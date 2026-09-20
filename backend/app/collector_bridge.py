@@ -42,6 +42,33 @@ def _ensure_env() -> None:
     os.environ["COLLECTOR_DATABASE_URL"] = override or ("sqlite:///" + (data_dir / "pred.db").as_posix())
 
 
+def prepare_modules() -> Any:
+    """Make the collector importable and return its ``schema`` module.
+
+    Unlike :func:`bootstrap` this runs no DDL, so it stays usable when the
+    schema is missing or broken. That makes it the entry point for diagnostics
+    and repair, which must be able to inspect a database that ``create_all()``
+    cannot get through.
+    """
+    _ensure_env()
+    root = str(COLLECTOR_ROOT)
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    import schema  # noqa: F401  (collector top-level module)
+
+    return schema
+
+
+def seed_reference_data(schema: Any | None = None) -> None:
+    """(Re-)populate the static reference tables. Idempotent."""
+    mod = schema or prepare_modules()
+    mod.seed_numbers()
+    mod.seed_number_attrs()
+    mod.seed_number_code_meta()
+    mod.seed_xiao_year_meta()
+    mod.seed_sources()
+
+
 def bootstrap() -> None:
     """Idempotently prepare sys.path and create/seed the collector schema."""
     global _initialized
@@ -50,18 +77,9 @@ def bootstrap() -> None:
     with _init_lock:
         if _initialized:
             return
-        _ensure_env()
-        root = str(COLLECTOR_ROOT)
-        if root not in sys.path:
-            sys.path.insert(0, root)
-        import schema  # noqa: F401  (collector top-level module)
-
+        schema = prepare_modules()
         schema.create_all()
-        schema.seed_numbers()
-        schema.seed_number_attrs()
-        schema.seed_number_code_meta()
-        schema.seed_xiao_year_meta()
-        schema.seed_sources()
+        seed_reference_data(schema)
         _initialized = True
 
 

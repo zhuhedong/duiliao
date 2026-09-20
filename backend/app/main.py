@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -24,6 +25,8 @@ from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.services.draw_scheduler import draw_scheduler
 from app.services.source_scheduler import source_scheduler
 
+logger = logging.getLogger("app.main")
+
 
 async def _purge_expired_sessions():
     """Periodically purge expired session keys (every 5 minutes)."""
@@ -32,9 +35,43 @@ async def _purge_expired_sessions():
         session_store.purge_expired()
 
 
+def _ensure_schema() -> None:
+    """Verify both databases have every declared table, creating any that are missing.
+
+    Runs at startup so a fresh database (e.g. a new PostgreSQL instance) is
+    initialized before the first request, instead of surfacing as a 500 later.
+    Never fatal: a failure here is logged and the app still starts.
+    """
+    try:
+        from app.services.db_service import repair_schema, verify_schema
+
+        report = verify_schema()
+        if report["ok"]:
+            logger.info(
+                "Schema OK: app=%d tables, collector=%d tables",
+                len(report["app_db"]["existing"]),
+                len(report["collector_db"]["existing"]),
+            )
+            return
+        logger.warning(
+            "Schema incomplete, %d table(s) missing (app=%s, collector=%s); creating them",
+            report["missing_total"],
+            report["app_db"]["missing"],
+            report["collector_db"]["missing"],
+        )
+        result = repair_schema()
+        if result["ok"]:
+            logger.info("Schema repaired, created %d table(s): %s", result["created_total"], result["created"])
+        else:
+            logger.error("Schema repair incomplete: failed=%s notes=%s", result["failed"], result["notes"])
+    except Exception as exc:
+        logger.error("Schema check failed: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    _ensure_schema()
     try:
         from app.services.settings_service import auto_sync_on_startup
         auto_sync_on_startup()

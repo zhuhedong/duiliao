@@ -23,6 +23,7 @@ from sqlalchemy import (
     delete,
     func,
     insert,
+    inspect as sa_inspect,
     select,
     text,
 )
@@ -177,6 +178,192 @@ def get_database_status() -> dict[str, Any]:
         "collector_db": collector_status,
         "total_records": total_records,
         "total_tables": total_tables,
+    }
+
+
+# ==============================================================================
+# Schema verification & repair
+# ==============================================================================
+
+
+def _app_target() -> tuple[Engine, Any]:
+    """Return the app (engine, metadata) with every model registered."""
+    from app import models  # noqa: F401  (registers models on AppBase.metadata)
+
+    return app_engine, AppBase.metadata
+
+
+def _collector_target() -> tuple[Engine, Any]:
+    """Return the collector (engine, metadata) without running any DDL.
+
+    Deliberately avoids ``collector_bridge.bootstrap()``: bootstrap creates and
+    migrates the schema, so it is unusable for diagnosing a database whose
+    schema is the thing that is broken.
+    """
+    from app import collector_bridge as cb
+
+    cb.prepare_modules()
+    import db as collector_db  # type: ignore[import-not-found]
+
+    return collector_db.get_engine(), collector_db.Base.metadata
+
+
+def _empty_report() -> dict[str, Any]:
+    return {
+        "engine": "unknown",
+        "url": "",
+        "is_connected": False,
+        "declared": [],
+        "existing": [],
+        "missing": [],
+        "unmanaged": [],
+    }
+
+
+def _schema_report(engine: Engine, metadata: Any, counterpart: set[str]) -> dict[str, Any]:
+    """Diff one database against its declared metadata.
+
+    ``counterpart`` holds the table names owned by the *other* metadata
+    registry; they are excluded from ``unmanaged`` so that a shared database
+    does not report the app's tables as strays of the collector (or vice versa).
+    """
+    declared = [t.name for t in metadata.sorted_tables]
+    report = _empty_report()
+    report.update({
+        "engine": engine.dialect.name,
+        "url": _mask_url(str(engine.url)),
+        "declared": declared,
+    })
+    try:
+        with engine.connect() as conn:
+            present = set(sa_inspect(conn).get_table_names())
+    except Exception as exc:
+        report["error"] = str(exc)
+        return report
+    report["is_connected"] = True
+    report["existing"] = [name for name in declared if name in present]
+    report["missing"] = [name for name in declared if name not in present]
+    report["unmanaged"] = sorted(present - set(declared) - counterpart)
+    return report
+
+
+def verify_schema() -> dict[str, Any]:
+    """Check that every table declared in the ORM metadata exists in its database.
+
+    ``missing`` comes back in dependency (foreign-key safe) order, which is the
+    same order :func:`repair_schema` creates them in.
+    """
+    app_eng, app_meta = _app_target()
+    app_declared = {t.name for t in app_meta.sorted_tables}
+
+    c_engine: Engine | None = None
+    try:
+        c_engine, c_meta = _collector_target()
+        collector = _schema_report(c_engine, c_meta, app_declared)
+        c_declared = {t.name for t in c_meta.sorted_tables}
+    except Exception as exc:
+        collector = _empty_report()
+        collector["error"] = str(exc)
+        c_declared = set()
+
+    app = _schema_report(app_eng, app_meta, c_declared)
+
+    missing_total = len(app["missing"]) + len(collector["missing"])
+    return {
+        "ok": missing_total == 0 and app["is_connected"] and collector["is_connected"],
+        "missing_total": missing_total,
+        "shared_database": c_engine is not None and str(c_engine.url) == str(app_eng.url),
+        "app_db": app,
+        "collector_db": collector,
+    }
+
+
+def _create_missing(
+    engine: Engine, metadata: Any, missing: list[str]
+) -> tuple[list[str], list[dict[str, str]]]:
+    """Create the named tables one transaction at a time, in foreign-key order.
+
+    One transaction per table is the whole point: a single failing table must
+    not roll back the tables already created alongside it, which is exactly how
+    a leftover reference to a dropped table once wiped out an entire
+    ``create_all()`` and left the database empty.
+    """
+    wanted = set(missing)
+    created: list[str] = []
+    failed: list[dict[str, str]] = []
+    for table in metadata.sorted_tables:
+        if table.name not in wanted:
+            continue
+        try:
+            with engine.begin() as conn:
+                table.create(conn, checkfirst=True)
+            created.append(table.name)
+        except Exception as exc:
+            failed.append({"table": table.name, "error": str(exc)})
+    return created, failed
+
+
+def repair_schema(scope: str = "all", seed: bool = True) -> dict[str, Any]:
+    """Create only the tables that are missing, then report what changed.
+
+    ``scope`` is ``all``, ``app`` or ``collector``. Existing tables are never
+    touched: this only issues ``CREATE TABLE`` for absent ones, so it cannot
+    drop or alter data.
+    """
+    if scope not in ("all", "app", "collector"):
+        raise ValueError("scope 必须是 all / app / collector 之一")
+
+    before = verify_schema()
+    created: dict[str, list[str]] = {"app": [], "collector": []}
+    failed: list[dict[str, str]] = []
+    notes: list[str] = []
+
+    if scope in ("all", "app") and before["app_db"]["missing"]:
+        engine, metadata = _app_target()
+        ok, bad = _create_missing(engine, metadata, before["app_db"]["missing"])
+        created["app"] = ok
+        failed.extend({"db": "app", **item} for item in bad)
+
+    if scope in ("all", "collector") and before["collector_db"]["missing"]:
+        try:
+            engine, metadata = _collector_target()
+        except Exception as exc:
+            failed.append({"db": "collector", "table": "-", "error": str(exc)})
+        else:
+            ok, bad = _create_missing(engine, metadata, before["collector_db"]["missing"])
+            created["collector"] = ok
+            failed.extend({"db": "collector", **item} for item in bad)
+
+    # Finish what the normal startup path would have done for the new tables:
+    # column/index migrations, then reference data. Both are idempotent.
+    if created["collector"]:
+        from app import collector_bridge as cb
+
+        try:
+            cb.prepare_modules().create_all()
+        except Exception as exc:
+            notes.append(f"迁移步骤未完成: {exc}")
+        if seed:
+            try:
+                cb.seed_reference_data()
+                notes.append("参考数据已重新写入 (number_info / source 等)")
+            except Exception as exc:
+                notes.append(f"参考数据写入失败: {exc}")
+
+    after = verify_schema()
+    return {
+        "ok": not failed and after["missing_total"] == 0,
+        "scope": scope,
+        "created": created,
+        "created_total": len(created["app"]) + len(created["collector"]),
+        "failed": failed,
+        "notes": notes,
+        "before_missing": {
+            "total": before["missing_total"],
+            "app": before["app_db"]["missing"],
+            "collector": before["collector_db"]["missing"],
+        },
+        "after": after,
     }
 
 
