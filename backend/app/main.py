@@ -52,7 +52,7 @@ def _ensure_schema() -> None:
     Never fatal: a failure here is logged and the app still starts.
     """
     try:
-        from app.services.db_service import repair_schema, verify_schema
+        from app.services.db_service import repair_schema, sync_sequences, verify_schema
 
         report = verify_schema()
         if report["ok"]:
@@ -61,6 +61,14 @@ def _ensure_schema() -> None:
                 len(report["app_db"]["existing"]),
                 len(report["collector_db"]["existing"]),
             )
+            # An imported dataset keeps its original ids while the PostgreSQL
+            # sequences stay at the start, so the next insert would collide.
+            # Forward-only and idempotent: a no-op on a healthy database.
+            seqs = sync_sequences()
+            if seqs["synced"]:
+                logger.info("Realigned %d primary key sequence(s)", len(seqs["synced"]))
+            if seqs["failed"]:
+                logger.warning("Sequence realignment issues: %s", seqs["failed"])
             return
         logger.warning(
             "Schema incomplete, %d table(s) missing (app=%s, collector=%s); creating them",

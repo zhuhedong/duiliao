@@ -27,7 +27,7 @@ from sqlalchemy import (
     select,
     text,
 )
-from sqlalchemy.engine import Engine, make_url
+from sqlalchemy.engine import Connection, Engine, make_url
 from sqlalchemy.pool import NullPool
 
 from app.core.config import BACKEND_DIR, ROOT_DIR, settings
@@ -308,7 +308,8 @@ def repair_schema(scope: str = "all", seed: bool = True) -> dict[str, Any]:
 
     ``scope`` is ``all``, ``app`` or ``collector``. Existing tables are never
     touched: this only issues ``CREATE TABLE`` for absent ones, so it cannot
-    drop or alter data.
+    drop or alter data. It also re-aligns the primary key sequences, which is
+    how an imported dataset's stale sequences get repaired.
     """
     if scope not in ("all", "app", "collector"):
         raise ValueError("scope 必须是 all / app / collector 之一")
@@ -350,11 +351,20 @@ def repair_schema(scope: str = "all", seed: bool = True) -> dict[str, Any]:
             except Exception as exc:
                 notes.append(f"参考数据写入失败: {exc}")
 
+    # Key sequences left behind by an imported/restored dataset hand out ids that
+    # already exist. Forward-only, so this is safe on an untouched database.
+    sequences = sync_sequences(scope)
+    if sequences["synced"]:
+        notes.append(f"已校准 {len(sequences['synced'])} 个自增主键序列")
+    for item in sequences["failed"]:
+        notes.append(f"序列校准失败 {item['db']}.{item['table']}: {item['error']}")
+
     after = verify_schema()
     return {
         "ok": not failed and after["missing_total"] == 0,
         "scope": scope,
         "created": created,
+        "sequences": sequences,
         "created_total": len(created["app"]) + len(created["collector"]),
         "failed": failed,
         "notes": notes,
@@ -577,23 +587,112 @@ def inspect_sqlite_file(content_bytes: bytes, filename: str) -> dict[str, Any]:
             pass
 
 
-def _sync_pg_sequences(engine: Engine, table: Table) -> None:
-    """Reset PostgreSQL serial/identity sequences to max(id) after data import."""
-    if engine.dialect.name != "postgresql":
-        return
+def _sync_pg_sequences(conn: Connection, table: Table, dry_run: bool = False) -> list[str]:
+    """Advance this table's PostgreSQL sequences past the largest key it holds.
+
+    Runs on the **caller's** connection on purpose. Imports insert explicit ``id``
+    values, which leaves the serial/identity sequence sitting at its start; a
+    second connection opened here would compute ``MAX(id)`` from a snapshot that
+    cannot see the still-uncommitted rows, set the sequence to 1, and make the
+    next natural insert collide with an imported row (``duplicate key value
+    violates unique constraint "draw_pkey"``).
+
+    A sequence is only ever moved forward, never back, so running this against a
+    healthy database is a no-op. Returns the sequences that needed moving (and,
+    unless ``dry_run``, were moved) as ``table.column=next_value``.
+    """
+    if conn.dialect.name != "postgresql":
+        return []
+
+    qualified = conn.dialect.identifier_preparer.format_table(table)
+    moved: list[str] = []
+
     for col in table.primary_key.columns:
-        if isinstance(col.type, (Integer, BigInteger, SmallInteger)):
-            col_name = col.name
-            tbl_name = table.name
-            sql = text(
-                f"SELECT setval(pg_get_serial_sequence('{tbl_name}', '{col_name}'), "
-                f"COALESCE(MAX({col_name}), 1)) FROM {tbl_name}"
+        if not isinstance(col.type, (Integer, BigInteger, SmallInteger)):
+            continue
+        seq = conn.execute(
+            text("SELECT pg_get_serial_sequence(:tbl, :col)"),
+            {"tbl": qualified, "col": col.name},
+        ).scalar()
+        if not seq:
+            # Plain integer key whose values the application supplies itself.
+            continue
+
+        highest = int(conn.execute(select(func.max(col))).scalar() or 0)
+        # ``seq`` is the identifier Postgres itself handed back, already quoted.
+        last_value, is_called = conn.execute(
+            text(f"SELECT last_value, is_called FROM {seq}")  # noqa: S608
+        ).one()
+        next_value = int(last_value) + 1 if is_called else int(last_value)
+        target = max(highest + 1, next_value)
+        if target == next_value:
+            continue  # already ahead of the data, leave it alone
+        if not dry_run:
+            # is_called=false => the next nextval() returns exactly ``target``.
+            conn.execute(
+                text("SELECT setval(:seq::regclass, :val, false)"),
+                {"seq": seq, "val": target},
             )
+        moved.append(f"{table.name}.{col.name}={target} (was {next_value})")
+    return moved
+
+
+def _sequence_targets() -> list[tuple[Engine, Any]]:
+    """Every (engine, metadata) pair that may own sequence-backed tables."""
+    targets: list[tuple[Engine, Any]] = [_app_target()]
+    try:
+        targets.append(_collector_target())
+    except Exception:
+        pass
+    return targets
+
+
+def sync_sequences(scope: str = "all", dry_run: bool = False) -> dict[str, Any]:
+    """Re-align every PostgreSQL key sequence with the data actually stored.
+
+    Idempotent and forward-only, so it is safe to call on every startup and
+    after every import. This is the repair for databases seeded by an SQLite
+    import (or a plain dump restore), where the rows carry their original ids
+    but the sequences were never advanced.
+
+    With ``dry_run`` nothing is written: the report then lists the sequences that
+    are currently handing out keys that already exist.
+    """
+    if scope not in ("all", "app", "collector"):
+        raise ValueError("scope 必须是 all / app / collector 之一")
+
+    synced: list[str] = []
+    failed: list[dict[str, str]] = []
+    names = ("app", "collector")
+
+    for name, (engine, metadata) in zip(names, _sequence_targets()):
+        if scope not in ("all", name) or engine is None:
+            continue
+        if engine.dialect.name != "postgresql":
+            continue
+        present: set[str] = set()
+        try:
+            with engine.connect() as conn:
+                present = set(sa_inspect(conn).get_table_names())
+        except Exception as exc:
+            failed.append({"db": name, "table": "-", "error": str(exc)})
+            continue
+        for table in metadata.sorted_tables:
+            if table.name not in present or not table.primary_key.columns:
+                continue
             try:
                 with engine.begin() as conn:
-                    conn.execute(sql)
-            except Exception:
-                pass
+                    synced.extend(_sync_pg_sequences(conn, table, dry_run=dry_run))
+            except Exception as exc:
+                failed.append({"db": name, "table": table.name, "error": str(exc)})
+
+    return {
+        "ok": not failed,
+        "scope": scope,
+        "dry_run": dry_run,
+        "synced": synced,
+        "failed": failed,
+    }
 
 
 def import_sqlite_data(
@@ -779,8 +878,8 @@ def import_sqlite_data(
                     tbl_inserted += len(records_to_insert)
                     records_to_insert.clear()
 
-                # Sync sequences if on PostgreSQL
-                _sync_pg_sequences(target_engine, table_obj)
+                # Still inside the insert transaction, so MAX(id) sees this batch.
+                _sync_pg_sequences(conn, table_obj)
 
             total_inserted += tbl_inserted
             total_skipped += tbl_skipped
@@ -792,6 +891,11 @@ def import_sqlite_data(
 
         sqlite_con.close()
 
+        # Sweep every table, not just the ones touched above: tables that were
+        # empty or fully skipped may still carry stale sequences from an earlier
+        # import, and they would break on the next application insert.
+        sequences = sync_sequences()
+
         elapsed_ms = int((time.perf_counter() - t0) * 1000)
         return {
             "ok": True,
@@ -800,6 +904,7 @@ def import_sqlite_data(
             "total_skipped": total_skipped,
             "elapsed_ms": elapsed_ms,
             "summary": summary,
+            "sequences": sequences,
         }
     except Exception as exc:
         return {
