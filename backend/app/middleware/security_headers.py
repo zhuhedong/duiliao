@@ -78,8 +78,17 @@ class SecurityHeadersMiddleware:
                     if key not in existing:
                         headers.append((key, value))
                 csp = _API_CSP if _is_api_request(scope["path"]) else _SPA_CSP
-                if b"content-security-policy" not in existing:
-                    headers.append((b"content-security-policy", csp))
+                # A response can already contain a policy added by an inner
+                # application layer or an upstream proxy. CSP headers are
+                # cumulative in browsers, so leaving an old restrictive
+                # policy alongside this one would still block the SPA. Keep
+                # one authoritative policy for the response instead.
+                headers[:] = [
+                    (key, value)
+                    for key, value in headers
+                    if key.lower() != b"content-security-policy"
+                ]
+                headers.append((b"content-security-policy", csp))
                 if settings.is_production:
                     headers.append(
                         (b"strict-transport-security", b"max-age=63072000; includeSubDomains; preload")
