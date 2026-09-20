@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: duiliao-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: duiliao_user
+      POSTGRES_PASSWORD: StrongProductionPassword2026!
+      POSTGRES_DB: duiliao_app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - duiliao-net
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: duiliao-app
+    restart: always
+    depends_on:
+      - postgres
+    env_file:
+      - ../backend/.env
+    volumes:
+      - ../backend/collector/sources:/app/backend/collector/sources
+      - ../backend/collector/data:/app/backend/collector/data
+    ports:
+      - "8000:8000"
+    networks:
+      - duiliao-net
+
+volumes:
+  pgdata:
+
+networks:
+  duiliao-net:
+    driver: bridge

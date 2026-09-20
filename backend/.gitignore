@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.db
+*.sqlite3
+.pytest_cache/
+# Collector runtime artifacts (raw crawl output, deadletter, catalog reports)
+collector/out/
+collector/data/*.db
+collector/data/*.db-wal
+collector/data/*.db-shm

@@ -1,0 +1,171 @@
+/* Appica UI 设计令牌（同时会引入 Tailwind v4）。 */
+@import "@appica/ui-react/styles.css";
+
+/* 让 Tailwind 扫描已编译的 Appica UI 组件里用到的工具类，
+   与本项目的样式合并进同一次构建。路径中的 ../ 数量需从本文件
+   （src/index.css）能回到 node_modules。 */
+@source "../node_modules/@appica/ui-react/dist";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-background, #fff);
+  color: var(--color-foreground, #111);
+  font-family:
+    "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Heiti SC",
+    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* —— 设计辅助类 —— */
+
+/* 柔和的应用背景：在主题背景上叠加两团品牌色光晕 */
+.app-bg {
+  background-color: var(--color-background);
+  background-image:
+    radial-gradient(60rem 60rem at 110% -10%, color-mix(in oklch, var(--color-primary) 18%, transparent), transparent 60%),
+    radial-gradient(50rem 50rem at -10% 110%, color-mix(in oklch, var(--color-info) 14%, transparent), transparent 55%);
+}
+
+/* 品牌渐变（用于 Logo 方块、品牌面板） */
+.brand-gradient {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-primary),
+    color-mix(in oklch, var(--color-primary) 55%, var(--color-info))
+  );
+}
+
+/* Logo 标记方块 */
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-lg, 0.75rem);
+  color: var(--color-primary-foreground, #fff);
+  font-weight: 800;
+  box-shadow: 0 6px 16px -6px color-mix(in oklch, var(--color-primary) 60%, transparent);
+}
+
+/* 玻璃拟态的粘性导航 */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: saturate(1.4) blur(10px);
+  background-color: color-mix(in oklch, var(--color-background) 78%, transparent);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* 导航胶囊 */
+.nav-pill {
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: var(--color-foreground-muted);
+  transition: background-color 0.15s, color 0.15s;
+}
+.nav-pill:hover {
+  background-color: var(--color-background-muted);
+  color: var(--color-foreground);
+}
+.nav-pill[data-active="true"] {
+  background-color: color-mix(in oklch, var(--color-primary) 14%, transparent);
+  color: var(--color-primary-strong, var(--color-primary));
+  font-weight: 600;
+}
+
+/* 统计卡内的图标圆底 */
+.icon-badge {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg, 0.75rem);
+  color: var(--color-primary-strong, var(--color-primary));
+  background-color: color-mix(in oklch, var(--color-primary) 12%, transparent);
+}
+
+/* —— 登录/注册分栏 —— */
+.auth-grid {
+  grid-template-columns: 1fr;
+}
+.auth-mobile-brand {
+  display: block;
+}
+
+/* 品牌面板：默认隐藏（窄屏），宽屏显示 */
+.auth-aside {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 52px 48px;
+  color: var(--color-primary-foreground, #fff);
+}
+/* 细网格底纹 */
+.auth-aside-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(120% 100% at 100% 0%, #000 30%, transparent 75%);
+}
+/* 右上角光晕 */
+.auth-aside-glow {
+  position: absolute;
+  top: -120px;
+  right: -120px;
+  width: 380px;
+  height: 380px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  filter: blur(10px);
+}
+
+@media (min-width: 900px) {
+  .auth-grid {
+    grid-template-columns: 1.05fr 1fr;
+  }
+  .auth-aside {
+    display: flex;
+  }
+  .auth-mobile-brand {
+    display: none;
+  }
+}
+
+/* 统一轻量细滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

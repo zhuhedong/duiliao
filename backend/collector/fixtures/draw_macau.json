@@ -1,0 +1,20 @@
+{
+  "draws": [
+    {
+      "lottery": "macau",
+      "period": "2026248",
+      "period_raw": "248",
+      "draw_date": "2026-09-05",
+      "openCode": "18,26,09,30,45,33,28",
+      "source": "fixture:official"
+    },
+    {
+      "lottery": "macau",
+      "period": "2026247",
+      "period_raw": "247",
+      "draw_date": "2026-09-04",
+      "openCode": "03,09,43,29,46,04,40",
+      "source": "fixture:official"
+    }
+  ]
+}

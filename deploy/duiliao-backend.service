@@ -1,0 +1,17 @@
+[Unit]
+Description=Duiliao FastAPI Production Backend Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/duiliao/backend
+EnvironmentFile=/var/www/duiliao/backend/.env
+ExecStart=/var/www/duiliao/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

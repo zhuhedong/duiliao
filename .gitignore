@@ -1,0 +1,18 @@
+# Python
+backend/.venv/
+**/__pycache__/
+*.pyc
+backend/.env
+*.db
+*.sqlite3
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+**/*.tsbuildinfo
+
+# OS / editor
+.DS_Store
+*.log

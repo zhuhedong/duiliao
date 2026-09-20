@@ -1,0 +1,26 @@
+# Web framework
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+python-multipart==0.0.32
+
+# Data / ORM
+SQLAlchemy==2.0.54
+psycopg[binary]>=3.1.0
+
+# Config
+pydantic==2.13.5
+pydantic-settings==2.15.0
+email-validator==2.3.0
+
+# Crypto & auth (pure-C / pure-Python; no OpenSSL/Rust build needed)
+pycryptodome==3.23.0
+PyJWT==2.14.0
+argon2-cffi==25.1.0
+
+# Rate limiting
+slowapi==0.1.10
+
+# Collector (ported pred-collector core) — HTTP client, YAML source config, .env loading
+httpx==0.28.1
+PyYAML==6.0.3
+python-dotenv==1.2.3

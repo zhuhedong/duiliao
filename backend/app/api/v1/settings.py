@@ -1,0 +1,185 @@
+"""System settings endpoints for managing AI configurations, keys, and connectivity testing."""
+from __future__ import annotations
+
+from typing import Any
+
+from fastapi import APIRouter, Body, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user
+from app.db.session import get_db
+from app.models.user import User
+from app.services.settings_service import (
+    get_all_ai_settings,
+    save_ai_settings,
+    test_ai_connection,
+)
+
+router = APIRouter(prefix="/settings", tags=["settings"])
+_user = Depends(get_current_user)
+
+
+class ProviderSettingPayload(BaseModel):
+    base_url: str | None = None
+    api_key: str | None = None
+    model: str | None = None
+
+
+class AISettingsUpdatePayload(BaseModel):
+    default_provider: str | None = Field(default=None, description="openai, gemini, or anthropic")
+    openai: ProviderSettingPayload | None = None
+    gemini: ProviderSettingPayload | None = None
+    anthropic: ProviderSettingPayload | None = None
+
+
+class AITestPayload(BaseModel):
+    provider: str = Field(..., description="Target provider: openai, gemini, or anthropic")
+    base_url: str | None = None
+    api_key: str | None = None
+    model: str | None = None
+
+
+@router.get("/ai")
+def get_ai_config(
+    db: Session = Depends(get_db),
+    _: User = _user,
+) -> dict[str, Any]:
+    """Retrieve all current AI configurations (with API keys masked)."""
+    return get_all_ai_settings(db, mask=True)
+
+
+@router.put("/ai")
+def update_ai_config(
+    payload: AISettingsUpdatePayload = Body(...),
+    db: Session = Depends(get_db),
+    _: User = _user,
+) -> dict[str, Any]:
+    """Save updated AI configurations (Base URL, models, and unmasked API keys)."""
+    data = payload.model_dump(exclude_unset=True)
+    updated = save_ai_settings(db, data)
+    return updated
+
+
+@router.post("/ai/test")
+def test_ai_conn(
+    payload: AITestPayload = Body(...),
+    _: User = _user,
+) -> dict[str, Any]:
+    """Test connection and authentication with the specified AI provider and endpoint."""
+    res = test_ai_connection(
+        provider=payload.provider,
+        base_url=payload.base_url,
+        api_key=payload.api_key,
+        model=payload.model,
+    )
+    return res
+
+
+# ==============================================================================
+# Database Management Endpoints
+# ==============================================================================
+
+
+class DBTestPayload(BaseModel):
+    url: str = Field(..., description="PostgreSQL connection URL to test")
+
+
+class DBConfigPayload(BaseModel):
+    database_url: str = Field(..., description="Primary application database URL")
+    collector_database_url: str | None = Field(default=None, description="Optional collector database URL")
+
+
+class SqliteInspectPayload(BaseModel):
+    filename: str = Field(default="database.db")
+    content_base64: str = Field(..., description="Base64-encoded SQLite file content")
+
+
+class SqliteImportPayload(BaseModel):
+    filename: str = Field(default="database.db")
+    content_base64: str = Field(..., description="Base64-encoded SQLite file content")
+    mode: str = Field(default="skip", description="'skip' to ignore existing rows, 'overwrite' to replace")
+    tables: list[str] | None = Field(default=None, description="Optional list of specific tables to import")
+
+
+@router.get("/database")
+def get_db_status(
+    _: User = _user,
+) -> dict[str, Any]:
+    """Retrieve current database engines, connection statuses, and table row counts."""
+    from app.services.db_service import get_database_status
+
+    return get_database_status()
+
+
+@router.post("/database/test")
+def test_db_connection(
+    payload: DBTestPayload = Body(...),
+    _: User = _user,
+) -> dict[str, Any]:
+    """Test connection to a specified PostgreSQL database instance."""
+    from app.services.db_service import test_pg_connection
+
+    return test_pg_connection(payload.url)
+
+
+@router.post("/database/config")
+def save_db_config(
+    payload: DBConfigPayload = Body(...),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Save updated database URLs, update .env, and reinitialize connections (staff/admin only)."""
+    if user.role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="仅管理员或工作人员可修改数据库配置")
+
+    from app.services.db_service import update_database_config
+
+    return update_database_config(
+        db_url=payload.database_url,
+        collector_url=payload.collector_database_url,
+    )
+
+
+@router.post("/database/inspect-sqlite")
+def inspect_sqlite(
+    payload: SqliteInspectPayload = Body(...),
+    _: User = _user,
+) -> dict[str, Any]:
+    """Inspect an uploaded SQLite database file without importing."""
+    import base64
+
+    try:
+        content_bytes = base64.b64decode(payload.content_base64)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Base64 解码失败，请确认文件数据完整")
+
+    from app.services.db_service import inspect_sqlite_file
+
+    return inspect_sqlite_file(content_bytes=content_bytes, filename=payload.filename)
+
+
+@router.post("/database/import-sqlite")
+def import_sqlite(
+    payload: SqliteImportPayload = Body(...),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Import data from an uploaded SQLite database file into current database (staff/admin only)."""
+    if user.role not in ("admin", "staff"):
+        raise HTTPException(status_code=403, detail="仅管理员或工作人员可导入数据库数据")
+
+    import base64
+
+    try:
+        content_bytes = base64.b64decode(payload.content_base64)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Base64 解码失败，请确认文件数据完整")
+
+    from app.services.db_service import import_sqlite_data
+
+    res = import_sqlite_data(
+        content_bytes=content_bytes,
+        filename=payload.filename,
+        mode=payload.mode,
+        selected_tables=payload.tables,
+    )
+    return res
