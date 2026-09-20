@@ -16,6 +16,9 @@ if str(BACKEND_DIR) not in sys.path:
 
 from app.core.config import settings
 from app.services.db_service import (
+    SQL_PG_COLUMN_DEFAULT,
+    SQL_PG_OWNED_SEQUENCE,
+    SQL_PG_SETVAL,
     get_database_status,
     import_sqlite_data,
     inspect_sqlite_file,
@@ -25,7 +28,7 @@ from app.services.db_service import (
 
 
 def test_url_normalization() -> None:
-    print("\n[1/4] Testing Database URL Normalization...")
+    print("\n[1/5] Testing Database URL Normalization...")
     # Standard postgres -> postgresql+psycopg
     assert normalize_db_url("postgresql://user:pass@localhost:5432/mydb") == "postgresql+psycopg://user:pass@localhost:5432/mydb", "Failed postgresql:// normalization"
     assert normalize_db_url("postgres://user:pass@localhost:5432/mydb") == "postgresql+psycopg://user:pass@localhost:5432/mydb", "Failed postgres:// normalization"
@@ -36,8 +39,37 @@ def test_url_normalization() -> None:
     print("  ✓ URL normalization passed for postgresql, postgres, and sqlite")
 
 
+def test_sequence_sql_binds() -> None:
+    """Every bind parameter in the sequence-repair SQL must reach the server.
+
+    ``text()`` refuses to treat ``:seq`` as a bind parameter when ``::`` follows
+    it, so ``setval(:seq::regclass, ...)`` compiled to SQL that still contained a
+    literal ``:seq`` and PostgreSQL rejected it with a syntax error. Compiling
+    each statement here catches that class of mistake without a live server.
+    """
+    print("\n[2/5] Testing Sequence Repair SQL Binds...")
+    import re
+
+    from sqlalchemy import text
+    from sqlalchemy.dialects import postgresql
+
+    dialect = postgresql.psycopg.dialect()
+    cases = [
+        (SQL_PG_OWNED_SEQUENCE, {"tbl", "col"}),
+        (SQL_PG_COLUMN_DEFAULT, {"tbl", "col"}),
+        (SQL_PG_SETVAL, {"seq", "val"}),
+    ]
+    for sql, expected in cases:
+        compiled = str(text(sql).compile(dialect=dialect))
+        stray = re.search(r"(?<!:):[A-Za-z_]\w*", compiled)
+        assert stray is None, f"unbound parameter {stray.group(0)!r} left in: {compiled}"
+        for name in expected:
+            assert f"%({name})s" in compiled, f"{name} was not bound in: {compiled}"
+    print(f"  ✓ {len(cases)} statement(s) compile with every parameter bound")
+
+
 def test_connection_testing() -> None:
-    print("\n[2/4] Testing PostgreSQL Connection Validator...")
+    print("\n[3/5] Testing PostgreSQL Connection Validator...")
     # Invalid URL syntax check
     res_inv = test_pg_connection("mysql://user:pass@localhost/db")
     assert not res_inv["ok"], "Expected invalid scheme to fail"
@@ -51,7 +83,7 @@ def test_connection_testing() -> None:
 
 
 def test_sqlite_inspection() -> None:
-    print("\n[3/4] Testing SQLite File Inspection...")
+    print("\n[4/5] Testing SQLite File Inspection...")
     # Use real duiliao.db if available
     db_file = BACKEND_DIR / "duiliao.db"
     if db_file.exists():
@@ -67,7 +99,7 @@ def test_sqlite_inspection() -> None:
 
 
 def test_sqlite_import_engine() -> None:
-    print("\n[4/4] Testing SQLite Data Import Engine...")
+    print("\n[5/5] Testing SQLite Data Import Engine...")
     # Create a temporary SQLite database with mock system_settings
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tf:
         tf_path = tf.name
@@ -142,6 +174,7 @@ def main() -> None:
     print("Running Database & SQLite Import Automated Tests")
     print("==================================================")
     test_url_normalization()
+    test_sequence_sql_binds()
     test_connection_testing()
     test_sqlite_inspection()
     test_sqlite_import_engine()

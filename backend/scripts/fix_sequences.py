@@ -66,6 +66,9 @@ def main() -> None:
         print(f"\n{len(res['synced'])} sequence(s) {verb}:")
         for item in res["synced"]:
             print(f"  {item}")
+    elif res["failed"]:
+        # Nothing to report is not the same as nothing to do when tables errored.
+        print("\nNo sequence was repaired; every table below failed.")
     else:
         print("\nAll inspected sequences are already ahead of the stored data.")
 

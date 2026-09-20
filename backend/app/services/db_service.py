@@ -587,6 +587,24 @@ def inspect_sqlite_file(content_bytes: bytes, filename: str) -> dict[str, Any]:
             pass
 
 
+# SQL for the sequence repair below, kept as constants so the statements can be
+# compiled and checked without a live PostgreSQL server (see
+# ``scripts/test_db_features.py``).
+#
+# Casts are written as CAST(:p AS type), never ``:p::type``: SQLAlchemy's text()
+# will not recognise a bind parameter immediately followed by ``::``, so the
+# ``:p`` would reach the server verbatim and fail with a syntax error.
+SQL_PG_OWNED_SEQUENCE = "SELECT pg_get_serial_sequence(:tbl, :col)"
+SQL_PG_COLUMN_DEFAULT = (
+    "SELECT pg_get_expr(d.adbin, d.adrelid) "
+    "FROM pg_attrdef d "
+    "JOIN pg_attribute a ON a.attrelid = d.adrelid AND a.attnum = d.adnum "
+    "WHERE d.adrelid = CAST(:tbl AS regclass) AND a.attname = :col"
+)
+SQL_PG_SEQUENCE_STATE = "SELECT last_value, is_called FROM {seq}"
+SQL_PG_SETVAL = "SELECT setval(CAST(:seq AS regclass), :val, false)"
+
+
 def _pg_column_sequence(conn: Connection, qualified_table: str, column: str) -> str | None:
     """Return the sequence feeding ``column``, or None if it has no sequence.
 
@@ -598,19 +616,14 @@ def _pg_column_sequence(conn: Connection, qualified_table: str, column: str) -> 
     fall back to reading the column default.
     """
     seq = conn.execute(
-        text("SELECT pg_get_serial_sequence(:tbl, :col)"),
+        text(SQL_PG_OWNED_SEQUENCE),
         {"tbl": qualified_table, "col": column},
     ).scalar()
     if seq:
         return str(seq)
 
     default = conn.execute(
-        text(
-            "SELECT pg_get_expr(d.adbin, d.adrelid) "
-            "FROM pg_attrdef d "
-            "JOIN pg_attribute a ON a.attrelid = d.adrelid AND a.attnum = d.adnum "
-            "WHERE d.adrelid = CAST(:tbl AS regclass) AND a.attname = :col"
-        ),
+        text(SQL_PG_COLUMN_DEFAULT),
         {"tbl": qualified_table, "col": column},
     ).scalar()
     match = re.search(r"nextval\('([^']+)'", str(default or ""))
@@ -648,7 +661,7 @@ def _sync_pg_sequences(conn: Connection, table: Table, dry_run: bool = False) ->
         highest = int(conn.execute(select(func.max(col))).scalar() or 0)
         # ``seq`` is the identifier Postgres itself handed back, already quoted.
         last_value, is_called = conn.execute(
-            text(f"SELECT last_value, is_called FROM {seq}")  # noqa: S608
+            text(SQL_PG_SEQUENCE_STATE.format(seq=seq))  # noqa: S608
         ).one()
         next_value = int(last_value) + 1 if is_called else int(last_value)
         target = max(highest + 1, next_value)
@@ -656,10 +669,7 @@ def _sync_pg_sequences(conn: Connection, table: Table, dry_run: bool = False) ->
             continue  # already ahead of the data, leave it alone
         if not dry_run:
             # is_called=false => the next nextval() returns exactly ``target``.
-            conn.execute(
-                text("SELECT setval(:seq::regclass, :val, false)"),
-                {"seq": seq, "val": target},
-            )
+            conn.execute(text(SQL_PG_SETVAL), {"seq": seq, "val": target})
         moved.append(f"{table.name}.{col.name}={target} (was {next_value})")
     return moved
 
