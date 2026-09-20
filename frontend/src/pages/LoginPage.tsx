@@ -81,7 +81,13 @@ export function LoginPage() {
       await login(identifier.trim(), password);
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "登录失败，请检查账号密码后重试");
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        const detail = err instanceof Error ? err.message : String(err);
+        console.error("Login failed with a non-API error:", err);
+        setError(`登录失败：${detail || "网络或加密初始化异常，请检查网络后重试"}`);
+      }
     } finally {
       setSubmitting(false);
     }
