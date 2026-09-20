@@ -587,6 +587,36 @@ def inspect_sqlite_file(content_bytes: bytes, filename: str) -> dict[str, Any]:
             pass
 
 
+def _pg_column_sequence(conn: Connection, qualified_table: str, column: str) -> str | None:
+    """Return the sequence feeding ``column``, or None if it has no sequence.
+
+    ``pg_get_serial_sequence`` only reports sequences *owned* by the column, the
+    link ``BIGSERIAL`` sets up. A table restored from a SQL dump can end up with
+    ``DEFAULT nextval('draw_id_seq')`` and no ownership record, and then the
+    catalog lookup returns NULL for a column that very much does draw from a
+    sequence — which is how a stale sequence stays invisible and unrepaired. So
+    fall back to reading the column default.
+    """
+    seq = conn.execute(
+        text("SELECT pg_get_serial_sequence(:tbl, :col)"),
+        {"tbl": qualified_table, "col": column},
+    ).scalar()
+    if seq:
+        return str(seq)
+
+    default = conn.execute(
+        text(
+            "SELECT pg_get_expr(d.adbin, d.adrelid) "
+            "FROM pg_attrdef d "
+            "JOIN pg_attribute a ON a.attrelid = d.adrelid AND a.attnum = d.adnum "
+            "WHERE d.adrelid = CAST(:tbl AS regclass) AND a.attname = :col"
+        ),
+        {"tbl": qualified_table, "col": column},
+    ).scalar()
+    match = re.search(r"nextval\('([^']+)'", str(default or ""))
+    return match.group(1) if match else None
+
+
 def _sync_pg_sequences(conn: Connection, table: Table, dry_run: bool = False) -> list[str]:
     """Advance this table's PostgreSQL sequences past the largest key it holds.
 
@@ -610,10 +640,7 @@ def _sync_pg_sequences(conn: Connection, table: Table, dry_run: bool = False) ->
     for col in table.primary_key.columns:
         if not isinstance(col.type, (Integer, BigInteger, SmallInteger)):
             continue
-        seq = conn.execute(
-            text("SELECT pg_get_serial_sequence(:tbl, :col)"),
-            {"tbl": qualified, "col": col.name},
-        ).scalar()
+        seq = _pg_column_sequence(conn, qualified, col.name)
         if not seq:
             # Plain integer key whose values the application supplies itself.
             continue
@@ -637,14 +664,21 @@ def _sync_pg_sequences(conn: Connection, table: Table, dry_run: bool = False) ->
     return moved
 
 
-def _sequence_targets() -> list[tuple[Engine, Any]]:
-    """Every (engine, metadata) pair that may own sequence-backed tables."""
-    targets: list[tuple[Engine, Any]] = [_app_target()]
-    try:
-        targets.append(_collector_target())
-    except Exception:
-        pass
-    return targets
+def _sequence_targets() -> tuple[dict[str, tuple[Engine, Any]], list[dict[str, str]]]:
+    """Resolve the (engine, metadata) pair of each database, plus what failed.
+
+    A database that cannot be resolved is *reported*, never silently dropped:
+    ``draw`` lives in the collector database, so swallowing that failure would
+    hide the very table this repair exists for.
+    """
+    targets: dict[str, tuple[Engine, Any]] = {}
+    failed: list[dict[str, str]] = []
+    for name, resolve in (("app", _app_target), ("collector", _collector_target)):
+        try:
+            targets[name] = resolve()
+        except Exception as exc:
+            failed.append({"db": name, "table": "-", "error": str(exc)})
+    return targets, failed
 
 
 def sync_sequences(scope: str = "all", dry_run: bool = False) -> dict[str, Any]:
@@ -662,13 +696,17 @@ def sync_sequences(scope: str = "all", dry_run: bool = False) -> dict[str, Any]:
         raise ValueError("scope 必须是 all / app / collector 之一")
 
     synced: list[str] = []
-    failed: list[dict[str, str]] = []
-    names = ("app", "collector")
+    targets, failed = _sequence_targets()
+    failed = [item for item in failed if scope in ("all", item["db"])]
+    # Tables actually examined per database. Without this an empty ``synced``
+    # cannot be told apart from a run that inspected nothing at all.
+    inspected: dict[str, int] = {}
 
-    for name, (engine, metadata) in zip(names, _sequence_targets()):
+    for name, (engine, metadata) in targets.items():
         if scope not in ("all", name) or engine is None:
             continue
         if engine.dialect.name != "postgresql":
+            inspected[name] = 0
             continue
         present: set[str] = set()
         try:
@@ -677,19 +715,23 @@ def sync_sequences(scope: str = "all", dry_run: bool = False) -> dict[str, Any]:
         except Exception as exc:
             failed.append({"db": name, "table": "-", "error": str(exc)})
             continue
+        count = 0
         for table in metadata.sorted_tables:
             if table.name not in present or not table.primary_key.columns:
                 continue
+            count += 1
             try:
                 with engine.begin() as conn:
                     synced.extend(_sync_pg_sequences(conn, table, dry_run=dry_run))
             except Exception as exc:
                 failed.append({"db": name, "table": table.name, "error": str(exc)})
+        inspected[name] = count
 
     return {
         "ok": not failed,
         "scope": scope,
         "dry_run": dry_run,
+        "inspected": inspected,
         "synced": synced,
         "failed": failed,
     }

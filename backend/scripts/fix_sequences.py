@@ -56,13 +56,18 @@ def main() -> None:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(2)
 
+    inspected = res.get("inspected") or {}
+    print("\nTables inspected: " + (", ".join(f"{k}={v}" for k, v in inspected.items()) or "none"))
+    if not sum(inspected.values()):
+        print("  Nothing was inspected — see the failures below, if any.")
+
     verb = "behind the data" if args.check else "realigned"
     if res["synced"]:
         print(f"\n{len(res['synced'])} sequence(s) {verb}:")
         for item in res["synced"]:
             print(f"  {item}")
     else:
-        print("\nAll sequences are already ahead of the stored data.")
+        print("\nAll inspected sequences are already ahead of the stored data.")
 
     if res["failed"]:
         print(f"\n{len(res['failed'])} failure(s):", file=sys.stderr)

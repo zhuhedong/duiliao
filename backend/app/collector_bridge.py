@@ -16,6 +16,7 @@ never talks to external prediction sites directly.
 """
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import threading
@@ -24,6 +25,8 @@ from pathlib import Path
 from typing import Any
 
 COLLECTOR_ROOT = Path(__file__).resolve().parent.parent / "collector"
+
+logger = logging.getLogger(__name__)
 
 _init_lock = threading.Lock()
 _initialized = False
@@ -80,7 +83,40 @@ def bootstrap() -> None:
         schema = prepare_modules()
         schema.create_all()
         seed_reference_data(schema)
+        _align_sequences("collector bootstrap")
         _initialized = True
+
+
+def _align_sequences(context: str) -> None:
+    """Push the collector's PostgreSQL id sequences past the stored rows.
+
+    Runs here, in the same process that writes draws, so the repair does not
+    depend on the app's startup hook having resolved this database. Never fatal.
+    """
+    try:
+        from app.services.db_service import sync_sequences
+
+        report = sync_sequences(scope="collector")
+        if report["synced"]:
+            logger.warning("%s: realigned id sequence(s): %s", context, report["synced"])
+        if report["failed"]:
+            logger.error("%s: sequence realignment failed: %s", context, report["failed"])
+    except Exception as exc:  # pragma: no cover - diagnostics only
+        logger.error("%s: sequence realignment skipped: %s", context, exc)
+
+
+def _is_stale_sequence_error(exc: Exception) -> bool:
+    """True when a write failed because a sequence handed out an existing key.
+
+    A primary key collision on a table nobody assigns keys to means the sequence
+    is behind the data. A clash on a business key such as ``uk_draw`` is a real
+    conflict and must keep propagating.
+    """
+    constraint = getattr(getattr(getattr(exc, "orig", None), "diag", None), "constraint_name", "") or ""
+    if constraint:
+        return constraint.endswith("_pkey")
+    message = str(exc).lower()
+    return "duplicate key" in message and "_pkey" in message
 
 
 def _resolve_fixture_dir(fixture_dir: str | None) -> Path | None:
@@ -245,7 +281,19 @@ def sync_draws(
         rows = [r for r in rows if r["period"] == canonical_period]
         if not rows:
             raise ValueError(f"no draw for {lottery} {canonical_period}")
-    return draw_sync.sync_draws(rows)
+
+    from sqlalchemy.exc import IntegrityError
+
+    try:
+        return draw_sync.sync_draws(rows)
+    except IntegrityError as exc:
+        if not _is_stale_sequence_error(exc):
+            raise
+        # An imported dataset left this sequence behind the rows it carries, so
+        # the insert asked for an id that already exists. Repair and retry once:
+        # upsert_draw is idempotent, so replaying the batch is safe.
+        _align_sequences("draw sync recovery")
+        return draw_sync.sync_draws(rows)
 
 
 def judge(lottery: str, period: str) -> dict[str, Any]:
