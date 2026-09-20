@@ -20,6 +20,8 @@ import {
   type DBTestResult,
   type SqliteInspectResult,
   type SqliteImportResult,
+  type SchemaVerifyResult,
+  type SchemaRepairResult,
 } from "../lib/api";
 
 interface PresetConfig {
@@ -82,6 +84,13 @@ export function SystemSettingsPage() {
   const [savingDb, setSavingDb] = useState(false);
   const [dbSaveSuccess, setDbSaveSuccess] = useState(false);
 
+  // Schema Verification & Repair State
+  const [schemaReport, setSchemaReport] = useState<SchemaVerifyResult | null>(null);
+  const [checkingSchema, setCheckingSchema] = useState(false);
+  const [repairingSchema, setRepairingSchema] = useState(false);
+  const [repairResult, setRepairResult] = useState<SchemaRepairResult | null>(null);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+
   // SQLite Import State
   const [sqliteFile, setSqliteFile] = useState<File | null>(null);
   const [fileBase64, setFileBase64] = useState<string>("");
@@ -126,6 +135,7 @@ export function SystemSettingsPage() {
   useEffect(() => {
     loadSettings();
     loadDbStatus();
+    loadSchemaReport();
   }, []);
 
   const loadSettings = async () => {
@@ -269,6 +279,36 @@ export function SystemSettingsPage() {
     }
   };
 
+  const loadSchemaReport = async () => {
+    setCheckingSchema(true);
+    setSchemaError(null);
+    try {
+      const res = await databaseApi.verifySchema();
+      setSchemaReport(res);
+    } catch (err: any) {
+      setSchemaError(err?.message || "表结构检测失败");
+    } finally {
+      setCheckingSchema(false);
+    }
+  };
+
+  const handleRepairSchema = async () => {
+    setRepairingSchema(true);
+    setSchemaError(null);
+    setRepairResult(null);
+    try {
+      const res = await databaseApi.repairSchema({ scope: "all", seed: true });
+      setRepairResult(res);
+      setSchemaReport(res.after);
+      // Row counts change once reference data is reseeded.
+      loadDbStatus();
+    } catch (err: any) {
+      setSchemaError(err?.message || "补齐缺失表失败");
+    } finally {
+      setRepairingSchema(false);
+    }
+  };
+
   const handleTestPg = async () => {
     if (!pgUrl.trim()) return;
     setTestingPg(true);
@@ -380,11 +420,14 @@ export function SystemSettingsPage() {
           ) : activeTab === "database" ? (
             <div className="flex items-center gap-2">
               <button
-                onClick={loadDbStatus}
-                disabled={loadingDb}
+                onClick={() => {
+                  loadDbStatus();
+                  loadSchemaReport();
+                }}
+                disabled={loadingDb || checkingSchema}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
               >
-                <RefreshIcon size={16} className={loadingDb ? "animate-spin" : ""} />
+                <RefreshIcon size={16} className={loadingDb || checkingSchema ? "animate-spin" : ""} />
                 刷新数据库状态
               </button>
             </div>
@@ -431,6 +474,18 @@ export function SystemSettingsPage() {
         </div>
       )}
 
+      {schemaError && (
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm flex items-center justify-between">
+          <span>{schemaError}</span>
+          <button
+            onClick={() => setSchemaError(null)}
+            className="text-xs font-semibold hover:underline"
+          >
+            关闭
+          </button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
         <button
@@ -448,6 +503,7 @@ export function SystemSettingsPage() {
           onClick={() => {
             setActiveTab("database");
             loadDbStatus();
+            loadSchemaReport();
           }}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
             activeTab === "database"
@@ -1045,6 +1101,202 @@ export function SystemSettingsPage() {
                         </span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 1.5: Schema Verification & Repair */}
+              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldIcon size={20} className="text-primary" />
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                        表结构自检与修复
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        比对代码中声明的数据表与数据库中实际存在的表，缺哪张补哪张。只新建缺失表，不修改也不删除已有表。
+                      </p>
+                    </div>
+                  </div>
+                  {schemaReport && (
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                        schemaReport.ok
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                      }`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          schemaReport.ok ? "bg-emerald-500" : "bg-rose-500 animate-pulse"
+                        }`}
+                      />
+                      {schemaReport.ok
+                        ? "全部就绪"
+                        : `缺少 ${schemaReport.missing_total} 张表`}
+                    </span>
+                  )}
+                </div>
+
+                {/* Per-database schema diff */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {([
+                    { label: "主数据库 (App)", rep: schemaReport?.app_db },
+                    { label: "采集业务库 (Collector)", rep: schemaReport?.collector_db },
+                  ] as const).map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {item.label}
+                        </span>
+                        <span
+                          className={`text-2xs font-semibold px-2 py-0.5 rounded-md ${
+                            item.rep && item.rep.missing.length === 0 && item.rep.is_connected
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {item.rep
+                            ? `${item.rep.existing.length} / ${item.rep.declared.length} 张已建`
+                            : "检测中..."}
+                        </span>
+                      </div>
+
+                      {item.rep?.error && (
+                        <div className="text-2xs text-rose-600 dark:text-rose-400 font-mono break-all">
+                          {item.rep.error}
+                        </div>
+                      )}
+
+                      {item.rep && item.rep.missing.length > 0 ? (
+                        <div className="space-y-1.5">
+                          <span className="text-2xs text-slate-500">
+                            缺失表（按外键依赖顺序建立）：
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {item.rep.missing.map((name) => (
+                              <span
+                                key={name}
+                                className="px-2 py-0.5 rounded-md text-2xs font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                              >
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        item.rep && (
+                          <div className="text-2xs text-slate-500">
+                            声明的表均已存在
+                          </div>
+                        )
+                      )}
+
+                      {item.rep && item.rep.unmanaged.length > 0 && (
+                        <div className="text-2xs text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
+                          库中另有 {item.rep.unmanaged.length} 张非本项目声明的表（不会被改动）
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {schemaReport?.shared_database && (
+                  <div className="text-2xs text-slate-500 dark:text-slate-400 px-3 py-2 rounded-lg bg-slate-100/70 dark:bg-slate-900/40">
+                    当前主库与采集库指向同一个数据库，两套表共存于其中。
+                  </div>
+                )}
+
+                {/* Repair result */}
+                {repairResult && (
+                  <div
+                    className={`p-3.5 rounded-xl text-xs space-y-2 animate-fadeIn ${
+                      repairResult.ok
+                        ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                        : "bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300"
+                    }`}
+                  >
+                    <div className="font-semibold">
+                      {repairResult.ok
+                        ? `修复完成，新建 ${repairResult.created_total} 张表`
+                        : `修复未完全成功，新建 ${repairResult.created_total} 张表，${repairResult.failed.length} 张失败`}
+                    </div>
+
+                    {repairResult.created_total > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {[...repairResult.created.app, ...repairResult.created.collector].map((name) => (
+                          <span
+                            key={name}
+                            className="px-2 py-0.5 rounded-md text-2xs font-mono bg-white/60 dark:bg-slate-900/40 border border-current/20"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {repairResult.failed.length > 0 && (
+                      <div className="space-y-1 pt-1 border-t border-current/20">
+                        {repairResult.failed.map((f, i) => (
+                          <div key={i} className="font-mono text-2xs break-all">
+                            <strong>{f.db}.{f.table}</strong>: {f.error}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {repairResult.notes.length > 0 && (
+                      <div className="space-y-0.5 pt-1 border-t border-current/20">
+                        {repairResult.notes.map((n, i) => (
+                          <div key={i} className="text-2xs">{n}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+                  <span className="text-2xs text-slate-400">
+                    后端启动时会自动执行同样的检测与补齐，此处用于手动复查。
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={loadSchemaReport}
+                      disabled={checkingSchema || repairingSchema}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      <RefreshIcon size={16} className={checkingSchema ? "animate-spin" : ""} />
+                      {checkingSchema ? "正在检测..." : "重新检测"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRepairSchema}
+                      disabled={
+                        repairingSchema ||
+                        checkingSchema ||
+                        !schemaReport ||
+                        schemaReport.missing_total === 0
+                      }
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                      title={
+                        schemaReport && schemaReport.missing_total === 0
+                          ? "当前没有缺失表"
+                          : undefined
+                      }
+                    >
+                      <CheckBadgeIcon size={16} />
+                      {repairingSchema
+                        ? "正在建表..."
+                        : schemaReport && schemaReport.missing_total > 0
+                          ? `补齐 ${schemaReport.missing_total} 张缺失表`
+                          : "补齐缺失表"}
+                    </button>
                   </div>
                 </div>
               </div>

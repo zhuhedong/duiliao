@@ -575,9 +575,45 @@ export interface SqliteImportResult {
   error?: string;
 }
 
+export interface SchemaDbReport {
+  engine: string;
+  url: string;
+  is_connected: boolean;
+  declared: string[];
+  existing: string[];
+  missing: string[];
+  unmanaged: string[];
+  error?: string;
+}
+
+export interface SchemaVerifyResult {
+  ok: boolean;
+  missing_total: number;
+  shared_database: boolean;
+  app_db: SchemaDbReport;
+  collector_db: SchemaDbReport;
+}
+
+export interface SchemaRepairResult {
+  ok: boolean;
+  scope: string;
+  created: { app: string[]; collector: string[] };
+  created_total: number;
+  failed: { db: string; table: string; error: string }[];
+  notes: string[];
+  before_missing: { total: number; app: string[]; collector: string[] };
+  after: SchemaVerifyResult;
+}
+
 export const databaseApi = {
   getStatus() {
     return api.get<DatabaseStatus>("/settings/database");
+  },
+  verifySchema() {
+    return api.get<SchemaVerifyResult>("/settings/database/schema");
+  },
+  repairSchema(data?: { scope?: "all" | "app" | "collector"; seed?: boolean }) {
+    return api.post<SchemaRepairResult>("/settings/database/schema/repair", data ?? {});
   },
   testConnection(url: string) {
     return api.post<DBTestResult>("/settings/database/test", { url });

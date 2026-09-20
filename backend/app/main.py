@@ -25,6 +25,15 @@ from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.services.draw_scheduler import draw_scheduler
 from app.services.source_scheduler import source_scheduler
 
+# Uvicorn only configures its own loggers; everything else bubbles up to a root
+# logger with no handler, where anything below WARNING is dropped. Install a
+# handler so application INFO logs are actually visible in container output.
+if not logging.getLogger().handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+
 logger = logging.getLogger("app.main")
 
 
