@@ -433,15 +433,14 @@ def _create_all_locked(conn) -> None:
             "created_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
             "updated_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
         },
-        "task": {
-            "spec": f"{kind} NOT NULL DEFAULT '{{}}'",
-            "owner": "VARCHAR(64) NULL",
-            "pending_key": "VARCHAR(64) NULL",
-            "request_key": "VARCHAR(64) NULL",
-            "cycle_attempt": "INTEGER NOT NULL DEFAULT 0",
-        },
     }
+    existing = set(inspect(conn).get_table_names())
     for table, fields in additions.items():
+        if table not in existing:
+            # The table is not part of Base.metadata (e.g. a leftover from an
+            # older revision). Skip it instead of aborting the whole DDL
+            # transaction, which would roll back every table created above.
+            continue
         known = {c["name"] for c in inspect(conn).get_columns(table)}
         for name, ddl in fields.items():
             if name not in known:
@@ -450,7 +449,6 @@ def _create_all_locked(conn) -> None:
             if name in fields:
                 conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS uk_{table}_{name} ON {table} ({name})"))
     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_schedule_next_run ON schedule (enabled, next_run_at)"))
-    conn.execute(text("UPDATE task SET active_key = NULL WHERE status IN ('queued', 'retry_wait')"))
     columns = {c["name"] for c in inspect(conn).get_columns("draw")}
     if "opened_at" not in columns:
         conn.execute(text("ALTER TABLE draw ADD COLUMN opened_at TIMESTAMP NULL"))
