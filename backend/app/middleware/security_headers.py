@@ -12,9 +12,53 @@ _BASE_HEADERS = [
     (b"cross-origin-opener-policy", b"same-origin"),
     (b"cross-origin-resource-policy", b"same-origin"),
     (b"permissions-policy", b"geolocation=(), microphone=(), camera=()"),
-    # API returns JSON only; a strict CSP is safe and blocks injected content.
-    (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'"),
 ]
+
+# API responses are JSON only, so they can use a completely isolated policy.
+_API_CSP = b"default-src 'none'; frame-ancestors 'none'"
+
+# The backend also serves the compiled React SPA. Keep its policy limited to
+# the resources the app actually needs instead of applying the API policy to
+# the HTML document and blocking every bundle. Cloudflare Web Analytics adds
+# its beacon at the edge, so its script origin is listed explicitly.
+#
+# - script-src-elem is set explicitly so browsers don't fall back to
+#   script-src / default-src, which caused Cloudflare beacon blocks.
+# - style-src-elem is set explicitly for the same reason with stylesheets.
+_SPA_CSP = (
+    b"default-src 'self'; "
+    b"base-uri 'self'; "
+    b"object-src 'none'; "
+    b"frame-ancestors 'none'; "
+    b"script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; "
+    b"script-src-elem 'self' https://static.cloudflareinsights.com; "
+    b"script-src-attr 'none'; "
+    b"style-src 'self' 'unsafe-inline'; "
+    b"style-src-elem 'self' 'unsafe-inline'; "
+    b"img-src 'self' data: blob:; "
+    b"font-src 'self' data:; "
+    b"connect-src 'self' https://cloudflareinsights.com"
+)
+
+
+def _is_api_request(path: str) -> bool:
+    """Return whether *path* serves an API or API metadata response."""
+    # Static SPA assets (JS/CSS/fonts/images) must never get the API CSP.
+    if path.startswith("/assets/") or path.startswith("/static/"):
+        return False
+    api_prefix = settings.API_V1_PREFIX.rstrip("/")
+    return (
+        path == "/health"
+        or path == "/api"
+        or path.startswith("/api/")
+        or path == api_prefix
+        or path.startswith(f"{api_prefix}/")
+        or path == "/docs"
+        or path.startswith("/docs/")
+        or path == "/redoc"
+        or path.startswith("/redoc/")
+        or path == "/openapi.json"
+    )
 
 
 class SecurityHeadersMiddleware:
@@ -33,6 +77,9 @@ class SecurityHeadersMiddleware:
                 for key, value in _BASE_HEADERS:
                     if key not in existing:
                         headers.append((key, value))
+                csp = _API_CSP if _is_api_request(scope["path"]) else _SPA_CSP
+                if b"content-security-policy" not in existing:
+                    headers.append((b"content-security-policy", csp))
                 if settings.is_production:
                     headers.append(
                         (b"strict-transport-security", b"max-age=63072000; includeSubDomains; preload")
