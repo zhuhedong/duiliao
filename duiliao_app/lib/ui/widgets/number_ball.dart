@@ -1,4 +1,4 @@
-/// The lottery number ball.
+/// The lottery number ball — iOS 27 Liquid Crystal Glass Edition.
 library;
 
 import 'package:flutter/material.dart';
@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../domain/models/draw.dart';
 import '../theme.dart';
 
-/// A single number, coloured by 波色.
+/// A single number, coloured by 波色 as a 3D translucent liquid crystal glass sphere.
 ///
 /// Colour alone is never the only channel: the 波色 name is rendered as text
 /// beneath the ball (unless [showColorName] is off) and the full attribute set is
@@ -36,7 +36,7 @@ class NumberBall extends StatelessWidget {
   /// Full attributes, used for the semantics label and the 波色.
   final NumberAttr? attr;
 
-  /// 特码 gets a ring so it is distinguishable from the six 正码 at a glance.
+  /// 特码 gets a radiant halo ring so it is distinguishable from the six 正码 at a glance.
   final bool isSpecial;
 
   final double size;
@@ -56,30 +56,97 @@ class NumberBall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = DuiliaoColors.forBose(_bose);
     final effective = dimmed ? color.withValues(alpha: 0.28) : color;
     final label = attr?.semanticLabel ?? _fallbackLabel();
 
+    // 3D Liquid Crystal Sphere styling
     final ball = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: effective,
         shape: BoxShape.circle,
-        border: isSpecial
-            ? Border.all(color: Theme.of(context).colorScheme.onSurface, width: 2.5)
-            : null,
-      ),
-      child: Text(
-        number,
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: size * 0.42,
-          // Keeps a column of balls optically aligned.
-          fontFeatures: const [FontFeature.tabularFigures()],
+        // Specular radial gradient creating 3D refractive sphere depth
+        gradient: RadialGradient(
+          center: const Alignment(-0.32, -0.36),
+          radius: 0.88,
+          colors: [
+            Color.lerp(Colors.white, effective, 0.22)!,
+            effective,
+            Color.lerp(effective, Colors.black, 0.38)!,
+          ],
+          stops: const [0.0, 0.52, 1.0],
         ),
+        // Luminous glass border + special halo for 特码
+        border: isSpecial
+            ? Border.all(
+                color: isDark ? const Color(0xFFFFE082) : const Color(0xFFF59E0B),
+                width: 2.2,
+              )
+            : Border.all(
+                color: Colors.white.withValues(alpha: isDark ? 0.35 : 0.45),
+                width: 0.9,
+              ),
+        boxShadow: [
+          // Ambient colored bloom matching 波色
+          BoxShadow(
+            color: effective.withValues(alpha: dimmed ? 0.05 : (isDark ? 0.45 : 0.28)),
+            blurRadius: size * 0.32,
+            offset: Offset(0, size * 0.12),
+          ),
+          if (isSpecial)
+            BoxShadow(
+              color: (isDark ? const Color(0xFFFFB800) : const Color(0xFFD97706))
+                  .withValues(alpha: 0.55),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+        ],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Top-left specular lens highlight arc
+          Positioned(
+            top: size * 0.08,
+            left: size * 0.18,
+            child: Container(
+              width: size * 0.42,
+              height: size * 0.20,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.elliptical(size * 0.42, size * 0.20)),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.75),
+                    Colors.white.withValues(alpha: 0.05),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Ball number text with slight specular shadow for maximum legibility
+          Text(
+            number,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: size * 0.42,
+              letterSpacing: -0.5,
+              shadows: const [
+                Shadow(
+                  color: Color(0x66000000),
+                  offset: Offset(0, 1.2),
+                  blurRadius: 2.5,
+                ),
+              ],
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
       ),
     );
 
@@ -98,11 +165,12 @@ class NumberBall extends StatelessWidget {
           ),
         if (showColorName && _bose != null && _bose!.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: 3),
             child: Text(
               _boseShort,
               style: TextStyle(
                 fontSize: size * 0.26,
+                fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -113,8 +181,6 @@ class NumberBall extends StatelessWidget {
     return Semantics(
       label: label,
       button: onTap != null,
-      // The visual text is redundant with the label, so hide it from a11y to
-      // avoid the colour name being announced twice.
       excludeSemantics: true,
       child: onTap == null
           ? content
@@ -183,8 +249,9 @@ class DrawBallRow extends StatelessWidget {
           child: Text(
             '+',
             style: TextStyle(
-              fontSize: ballSize * 0.4,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: ballSize * 0.44,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
             ),
           ),
         ),
@@ -213,6 +280,13 @@ class DrawBallRow extends StatelessWidget {
             : Theme.of(context).colorScheme.tertiary,
         shape: BoxShape.circle,
         border: Border.all(color: Theme.of(context).colorScheme.surface, width: 1.5),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x44000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
     );
   }

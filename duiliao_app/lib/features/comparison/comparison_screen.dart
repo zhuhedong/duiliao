@@ -162,7 +162,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                               : '没有${_filter!.label}状态的记录',
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 24),
+                          padding: const EdgeInsets.only(top: 4, bottom: 96),
                           itemCount: rows.length,
                           itemBuilder: (context, index) => _ComparisonRow(
                             item: rows[index],

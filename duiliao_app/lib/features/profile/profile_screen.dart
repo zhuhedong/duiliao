@@ -26,7 +26,7 @@ class ProfileScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('我的')),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 32),
+        padding: const EdgeInsets.only(top: 6, bottom: 96),
         children: [
           _ProfileHeader(user: user),
           const _SectionTitle('账号'),

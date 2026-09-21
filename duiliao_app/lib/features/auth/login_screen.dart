@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/net/api_client.dart';
 import '../../core/providers.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import 'auth_providers.dart';
 
@@ -55,109 +56,133 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final config = ref.watch(appConfigProvider);
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 24),
-                    Icon(Icons.insights, size: 56, color: context.colors.primary),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Duiliao 运营端',
-                      textAlign: TextAlign.center,
-                      style: context.texts.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '开奖 · 共识 · 源评级 · 采集',
-                      textAlign: TextAlign.center,
-                      style: context.texts.bodyMedium
-                          ?.copyWith(color: context.colors.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _identifier,
-                      autofillHints: const [AutofillHints.username],
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: '账号',
-                        // The backend accepts any of the three in one field.
-                        helperText: '邮箱 / 手机号 / 用户名',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (value) =>
-                          (value == null || value.trim().isEmpty) ? '请输入账号' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _password,
-                      obscureText: _obscure,
-                      autofillHints: const [AutofillHints.password],
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _submit(),
-                      decoration: InputDecoration(
-                        labelText: '密码',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          tooltip: _obscure ? '显示密码' : '隐藏密码',
-                          icon: Icon(
-                            _obscure ? Icons.visibility_off : Icons.visibility,
-                          ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                      validator: (value) =>
-                          (value == null || value.isEmpty) ? '请输入密码' : null,
-                    ),
-                    if (state.errorMessage != null) ...[
-                      const SizedBox(height: 16),
-                      _ErrorBox(message: state.errorMessage!),
-                    ],
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: state.isSubmitting ? null : _submit,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: state.isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+      body: GlassBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: GlassContainer(
+                  borderRadius: BorderRadius.circular(28),
+                  blur: 24,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 64,
+                            height: 64,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  context.colors.primary.withValues(alpha: 0.25),
+                                  context.colors.primary.withValues(alpha: 0.08),
+                                ],
                               ),
-                            )
-                          : const Text('登录'),
+                              border: Border.all(
+                                color: context.colors.primary.withValues(alpha: 0.4),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: context.colors.primary.withValues(alpha: 0.25),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(Icons.insights, size: 36, color: context.colors.primary),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Duiliao 运营端',
+                          textAlign: TextAlign.center,
+                          style: context.texts.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '开奖 · 共识 · 源评级 · 采集',
+                          textAlign: TextAlign.center,
+                          style: context.texts.bodyMedium?.copyWith(
+                            color: context.colors.onSurfaceVariant,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        TextFormField(
+                          controller: _identifier,
+                          autofillHints: const [AutofillHints.username],
+                          textInputAction: TextInputAction.next,
+                          decoration: const InputDecoration(
+                            labelText: '账号',
+                            helperText: '邮箱 / 手机号 / 用户名',
+                            prefixIcon: Icon(Icons.person_outline),
+                          ),
+                          validator: (value) =>
+                              (value == null || value.trim().isEmpty) ? '请输入账号' : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _password,
+                          obscureText: _obscure,
+                          autofillHints: const [AutofillHints.password],
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => _submit(),
+                          decoration: InputDecoration(
+                            labelText: '密码',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              tooltip: _obscure ? '显示密码' : '隐藏密码',
+                              icon: Icon(
+                                _obscure ? Icons.visibility_off : Icons.visibility,
+                              ),
+                              onPressed: () => setState(() => _obscure = !_obscure),
+                            ),
+                          ),
+                          validator: (value) =>
+                              (value == null || value.isEmpty) ? '请输入密码' : null,
+                        ),
+                        if (state.errorMessage != null) ...[
+                          const SizedBox(height: 16),
+                          _ErrorBox(message: state.errorMessage!),
+                        ],
+                        const SizedBox(height: 24),
+                        GlassButton(
+                          onPressed: state.isSubmitting ? null : _submit,
+                          isLoading: state.isSubmitting,
+                          child: const Text('登录'),
+                        ),
+                        const SizedBox(height: 20),
+                        // Explicit, so a new operator does not hunt for a sign-up link.
+                        Text(
+                          '账号由管理员在 Web 后台创建',
+                          textAlign: TextAlign.center,
+                          style: context.texts.bodySmall
+                              ?.copyWith(color: context.colors.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 24),
+                        _ConnectionFooter(host: config.displayHost),
+                        if (config.hasPlaceholderSecret) ...[
+                          const SizedBox(height: 12),
+                          const _ErrorBox(
+                            message: '当前构建使用占位签名密钥，所有请求都会被服务端拒绝。'
+                                '请使用 CI 注入 APP_SIGNING_SECRET 的正式包。',
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    // Explicit, so a new operator does not hunt for a sign-up link.
-                    Text(
-                      '账号由管理员在 Web 后台创建',
-                      textAlign: TextAlign.center,
-                      style: context.texts.bodySmall
-                          ?.copyWith(color: context.colors.onSurfaceVariant),
-                    ),
-                    const SizedBox(height: 24),
-                    _ConnectionFooter(host: config.displayHost),
-                    if (config.hasPlaceholderSecret) ...[
-                      const SizedBox(height: 12),
-                      // Without this the build fails every request with
-                      // bad_signature and the cause is invisible.
-                      const _ErrorBox(
-                        message: '当前构建使用占位签名密钥，所有请求都会被服务端拒绝。'
-                            '请使用 CI 注入 APP_SIGNING_SECRET 的正式包。',
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ),

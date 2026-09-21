@@ -101,7 +101,7 @@ class _ConsensusScreenState extends ConsumerState<ConsensusScreen> {
               );
             }
             return ListView(
-              padding: const EdgeInsets.only(bottom: 32),
+              padding: const EdgeInsets.only(top: 6, bottom: 96),
               children: [
                 if (data.isStale)
                   OfflineBanner(

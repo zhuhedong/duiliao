@@ -32,7 +32,7 @@ class SchedulesTab extends ConsumerWidget {
         loading: const SkeletonList(itemHeight: 120),
         onRetry: () => ref.invalidate(schedulesProvider(null)),
         builder: (data) => ListView(
-          padding: const EdgeInsets.only(bottom: 32),
+          padding: const EdgeInsets.only(top: 6, bottom: 96),
           children: [
             _SchedulerStatusCard(status: data.scheduler),
             if (data.schedules.isEmpty)
@@ -309,7 +309,7 @@ class RunHistoryTab extends ConsumerWidget {
         builder: (page) {
           final grouped = page.groupedByDay;
           return ListView(
-            padding: const EdgeInsets.only(bottom: 32),
+            padding: const EdgeInsets.only(top: 6, bottom: 96),
             children: [
               if (page.worker != null) _WorkerCard(worker: page.worker!),
               for (final entry in grouped.entries) ...[

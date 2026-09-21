@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/draw.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import '../../ui/widgets/number_ball.dart';
@@ -132,7 +133,7 @@ class _DrawTab extends ConsumerWidget {
                   return false;
                 },
                 child: ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 24),
+                  padding: const EdgeInsets.only(top: 6, bottom: 96),
                   itemCount: state.items.length + 1,
                   itemBuilder: (context, index) {
                     if (index == state.items.length) {
@@ -226,58 +227,53 @@ class _DrawCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = draw.summary;
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return GlassCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Text(
-                    Period.compact(draw.period),
-                    style: context.texts.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(width: 8),
-                  if (draw.drawDate != null)
-                    Text(
-                      draw.drawDate!,
-                      style: context.texts.bodySmall
-                          ?.copyWith(color: context.colors.onSurfaceVariant),
-                    ),
-                  const Spacer(),
-                  if (summary?.hasLianxiao == true)
-                    const StatusChip(
-                      label: '连肖',
-                      color: DuiliaoColors.warning,
-                      icon: Icons.link,
-                      compact: true,
-                    ),
-                ],
+              Text(
+                Period.compact(draw.period),
+                style: context.texts.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 10),
-              DrawBallRow(draw: draw, ballSize: 36),
-              if (summary != null) ...[
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    _MiniTag(label: '和值 ${summary.sum7}'),
-                    _MiniTag(label: summary.sum7Size),
-                    _MiniTag(label: summary.sum7Odd),
-                    _MiniTag(label: '特${summary.temaXiao}'),
-                    _MiniTag(label: summary.temaHalfwave),
-                  ],
+              const SizedBox(width: 8),
+              if (draw.drawDate != null)
+                Text(
+                  draw.drawDate!,
+                  style: context.texts.bodySmall
+                      ?.copyWith(color: context.colors.onSurfaceVariant),
                 ),
-              ],
+              const Spacer(),
+              if (summary?.hasLianxiao == true)
+                const StatusChip(
+                  label: '连肖',
+                  color: DuiliaoColors.warning,
+                  icon: Icons.link,
+                  compact: true,
+                ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          DrawBallRow(draw: draw, ballSize: 38),
+          if (summary != null) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                _MiniTag(label: '和值 ${summary.sum7}'),
+                _MiniTag(label: summary.sum7Size),
+                _MiniTag(label: summary.sum7Odd),
+                _MiniTag(label: '特${summary.temaXiao}'),
+                _MiniTag(label: summary.temaHalfwave),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -291,13 +287,29 @@ class _MiniTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (label.isEmpty) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: context.colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(4),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : const Color(0xFF007AFF).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : const Color(0xFF007AFF).withValues(alpha: 0.18),
+          width: 0.8,
+        ),
       ),
-      child: Text(label, style: context.texts.labelSmall),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: isDark ? Colors.white70 : const Color(0xFF007AFF),
+        ),
+      ),
     );
   }
 }

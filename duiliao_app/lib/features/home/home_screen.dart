@@ -10,6 +10,7 @@ import '../../domain/lottery.dart';
 import '../../domain/models/app_event.dart';
 import '../../domain/models/collect_job.dart';
 import '../../domain/play_type.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import '../../ui/widgets/number_ball.dart';
@@ -105,7 +106,7 @@ class HomeScreen extends ConsumerWidget {
           builder: (data) {
             final home = data.snapshot;
             return ListView(
-              padding: const EdgeInsets.only(bottom: 32),
+              padding: const EdgeInsets.only(top: 6, bottom: 96),
               children: [
                 if (data.isStale)
                   OfflineBanner(
@@ -143,16 +144,13 @@ class _LotterySelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: SegmentedButton<Lottery>(
-          segments: [
-            for (final l in Lottery.all)
-              ButtonSegment(value: l, label: Text(l.label)),
-          ],
-          selected: {selected},
-          showSelectedIcon: false,
-          onSelectionChanged: (selection) =>
-              ref.read(selectedLotteryProvider.notifier).set(selection.first),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        child: GlassSegmentedControl<Lottery>(
+          items: Lottery.all,
+          selected: selected,
+          labelBuilder: (l) => l.label,
+          onChanged: (lottery) =>
+              ref.read(selectedLotteryProvider.notifier).set(lottery),
         ),
       );
 }
@@ -165,50 +163,45 @@ class _LatestDrawCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final draw = home.latestDraw!;
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DrawDetailScreen(
-              lottery: Lottery.parse(draw.lottery),
-              period: draw.period,
-            ),
+    return GlassCard(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DrawDetailScreen(
+            lottery: Lottery.parse(draw.lottery),
+            period: draw.period,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Text('最新开奖', style: context.texts.titleSmall),
-                  const SizedBox(width: 8),
-                  Text(
-                    Period.compact(draw.period),
-                    style: context.texts.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
-                  ),
-                  const Spacer(),
-                  if (draw.drawDate != null)
-                    Text(draw.drawDate!, style: context.texts.labelSmall),
-                ],
+              Text('最新开奖', style: context.texts.titleSmall),
+              const SizedBox(width: 8),
+              Text(
+                Period.compact(draw.period),
+                style: context.texts.titleSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 12),
-              DrawBallRow(draw: draw, ballSize: 36),
-              if (draw.summary != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  '和值 ${draw.summary!.sum7}（${draw.summary!.sum7Size}'
-                  '${draw.summary!.sum7Odd}） · 特码 ${draw.summary!.temaXiao}'
-                  ' · ${draw.summary!.temaHalfwave}',
-                  style: context.texts.bodySmall,
-                ),
-              ],
+              const Spacer(),
+              if (draw.drawDate != null)
+                Text(draw.drawDate!, style: context.texts.labelSmall),
             ],
           ),
-        ),
+          const SizedBox(height: 14),
+          DrawBallRow(draw: draw, ballSize: 38),
+          if (draw.summary != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              '和值 ${draw.summary!.sum7}（${draw.summary!.sum7Size}'
+              '${draw.summary!.sum7Odd}） · 特码 ${draw.summary!.temaXiao}'
+              ' · ${draw.summary!.temaHalfwave}',
+              style: context.texts.bodySmall,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -221,73 +214,68 @@ class _ConsensusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ConsensusScreen(
-              lottery: Lottery.parse(home.lottery),
-              initialPeriod: home.consensusPeriod,
-            ),
+    return GlassCard(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ConsensusScreen(
+            lottery: Lottery.parse(home.lottery),
+            initialPeriod: home.consensusPeriod,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Text('共识摘要', style: context.texts.titleSmall),
-                  const Spacer(),
-                  const Icon(Icons.chevron_right, size: 18),
-                ],
-              ),
-              const SizedBox(height: 8),
-              for (final group in home.consensusGroups)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 70,
-                        child: Text(
-                          PlayTypes.labelFor(group.playType),
-                          style: context.texts.bodySmall,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
-                          group.leader == null || group.leader!.isEmpty
-                              ? '—'
-                              : group.leader!.map((a) => a.value).join(' '),
-                          style: context.texts.bodyMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        '${group.leaderVotes}/${group.nVotes} 票',
-                        style: context.texts.labelSmall,
-                      ),
-                      if (group.leaderHit != null) ...[
-                        const SizedBox(width: 6),
-                        Icon(
-                          group.leaderHit! ? Icons.check_circle : Icons.cancel,
-                          size: 14,
-                          color: group.leaderHit!
-                              ? DuiliaoColors.hit
-                              : DuiliaoColors.miss,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
+              Text('共识摘要', style: context.texts.titleSmall),
+              const Spacer(),
+              const Icon(Icons.chevron_right, size: 18),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          for (final group in home.consensusGroups)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 70,
+                    child: Text(
+                      PlayTypes.labelFor(group.playType),
+                      style: context.texts.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      group.leader == null || group.leader!.isEmpty
+                          ? '—'
+                          : group.leader!.map((a) => a.value).join(' '),
+                      style: context.texts.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    '${group.leaderVotes}/${group.nVotes} 票',
+                    style: context.texts.labelSmall,
+                  ),
+                  if (group.leaderHit != null) ...[
+                    const SizedBox(width: 6),
+                    Icon(
+                      group.leaderHit! ? Icons.check_circle : Icons.cancel,
+                      size: 14,
+                      color: group.leaderHit!
+                          ? DuiliaoColors.hit
+                          : DuiliaoColors.miss,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -301,58 +289,59 @@ class _ComparisonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = home.comparisonSummary!;
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ComparisonScreen(
-              lottery: Lottery.parse(home.lottery),
-              initialPeriod: home.consensusPeriod,
-            ),
+    return GlassCard(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ComparisonScreen(
+            lottery: Lottery.parse(home.lottery),
+            initialPeriod: home.consensusPeriod,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
               Text('本期对照汇总', style: context.texts.titleSmall),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  StatTile(label: '总数', value: '${summary.total}'),
-                  StatTile(
-                    label: '命中',
-                    value: '${summary.hits}',
-                    valueColor: DuiliaoColors.hit,
-                  ),
-                  StatTile(
-                    label: '未中',
-                    value: '${summary.misses}',
-                    valueColor: DuiliaoColors.miss,
-                  ),
-                  StatTile(label: '待判', value: '${summary.pending}'),
-                  StatTile(
-                    label: '冲突',
-                    value: '${summary.conflicts}',
-                    valueColor:
-                        summary.conflicts > 0 ? DuiliaoColors.conflict : null,
-                  ),
-                ],
-              ),
-              if (summary.conflicts > 0) ...[
-                const SizedBox(height: 10),
-                WarningNote(
-                  message: '有 ${summary.conflicts} 条源自称命中但判定未中',
-                  icon: Icons.report_problem_outlined,
-                  color: DuiliaoColors.conflict,
-                ),
-              ],
+              const Spacer(),
+              const Icon(Icons.chevron_right, size: 18),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              StatTile(label: '总数', value: '${summary.total}'),
+              StatTile(
+                label: '命中',
+                value: '${summary.hits}',
+                valueColor: DuiliaoColors.hit,
+              ),
+              StatTile(
+                label: '未中',
+                value: '${summary.misses}',
+                valueColor: DuiliaoColors.miss,
+              ),
+              StatTile(label: '待判', value: '${summary.pending}'),
+              StatTile(
+                label: '冲突',
+                value: '${summary.conflicts}',
+                valueColor:
+                    summary.conflicts > 0 ? DuiliaoColors.conflict : null,
+              ),
+            ],
+          ),
+          if (summary.conflicts > 0) ...[
+            const SizedBox(height: 10),
+            WarningNote(
+              message: '有 ${summary.conflicts} 条源自称命中但判定未中',
+              icon: Icons.report_problem_outlined,
+              color: DuiliaoColors.conflict,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -366,85 +355,78 @@ class _RatingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final window = home.ratingsWindows.isEmpty ? 30 : home.ratingsWindows.first;
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const RatingsScreen()),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return GlassCard(
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const RatingsScreen()),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Text('源评级 Top 5', style: context.texts.titleSmall),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${PlayTypes.labelFor(home.playType)} · $window 期',
-                    style: context.texts.labelSmall
-                        ?.copyWith(color: context.colors.onSurfaceVariant),
-                  ),
-                  const Spacer(),
-                  const Icon(Icons.chevron_right, size: 18),
-                ],
+              Text('源评级 Top 5', style: context.texts.titleSmall),
+              const SizedBox(width: 6),
+              Text(
+                '${PlayTypes.labelFor(home.playType)} · $window 期',
+                style: context.texts.labelSmall
+                    ?.copyWith(color: context.colors.onSurfaceVariant),
               ),
-              const SizedBox(height: 8),
-              for (final row in home.ratingsTop)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          row.sourceName,
-                          style: context.texts.bodyMedium,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      // Warn inline: a top-5 placement on three samples is not a
-                      // recommendation.
-                      if (row.hasIntegrityWarning)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 4),
-                          child: Icon(
-                            Icons.report_problem_outlined,
-                            size: 14,
-                            color: DuiliaoColors.conflict,
-                          ),
-                        )
-                      else if (row.isSmallSample(window))
-                        const Padding(
-                          padding: EdgeInsets.only(right: 4),
-                          child: Icon(
-                            Icons.warning_amber_rounded,
-                            size: 14,
-                            color: DuiliaoColors.warning,
-                          ),
-                        ),
-                      Text(
-                        formatRate(row.hitRate(window)),
-                        style: context.texts.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: const [FontFeature.tabularFigures()],
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      SizedBox(
-                        width: 44,
-                        child: Text(
-                          'n=${row.sampleSize(window) ?? 0}',
-                          style: context.texts.labelSmall,
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              const Spacer(),
+              const Icon(Icons.chevron_right, size: 18),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          for (final row in home.ratingsTop)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      row.sourceName,
+                      style: context.texts.bodyMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (row.hasIntegrityWarning)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.report_problem_outlined,
+                        size: 14,
+                        color: DuiliaoColors.conflict,
+                      ),
+                    )
+                  else if (row.isSmallSample(window))
+                    const Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.warning_amber_rounded,
+                        size: 14,
+                        color: DuiliaoColors.warning,
+                      ),
+                    ),
+                  Text(
+                    formatRate(row.hitRate(window)),
+                    style: context.texts.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  SizedBox(
+                    width: 44,
+                    child: Text(
+                      'n=${row.sampleSize(window) ?? 0}',
+                      style: context.texts.labelSmall,
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -457,63 +439,61 @@ class _JobsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('近期采集', style: context.texts.titleSmall),
-                const Spacer(),
-                if (home.worker != null)
-                  Text(
-                    home.worker!.running ? '执行器运行中' : '执行器未运行',
-                    style: context.texts.labelSmall?.copyWith(
-                      color: home.worker!.running
-                          ? DuiliaoColors.hit
-                          : DuiliaoColors.pending,
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('近期采集', style: context.texts.titleSmall),
+              const Spacer(),
+              if (home.worker != null)
+                Text(
+                  home.worker!.running ? '执行器运行中' : '执行器未运行',
+                  style: context.texts.labelSmall?.copyWith(
+                    color: home.worker!.running
+                        ? DuiliaoColors.hit
+                        : DuiliaoColors.pending,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final job in home.recentJobs)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    switch (job.status) {
+                      JobStatus.done => Icons.check_circle,
+                      JobStatus.failed => Icons.error,
+                      JobStatus.cancelled => Icons.cancel,
+                      JobStatus.interrupted => Icons.power_off,
+                      _ => Icons.autorenew,
+                    },
+                    size: 14,
+                    color: switch (job.status) {
+                      JobStatus.done => DuiliaoColors.hit,
+                      JobStatus.failed => DuiliaoColors.miss,
+                      JobStatus.interrupted => DuiliaoColors.conflict,
+                      _ => DuiliaoColors.warning,
+                    },
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '#${job.id} ${job.period == null ? '自动期号' : Period.compact(job.period)}'
+                      ' · ${job.successRatioLabel}',
+                      style: context.texts.bodySmall,
                     ),
                   ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            for (final job in home.recentJobs)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  children: [
-                    Icon(
-                      switch (job.status) {
-                        JobStatus.done => Icons.check_circle,
-                        JobStatus.failed => Icons.error,
-                        JobStatus.cancelled => Icons.cancel,
-                        JobStatus.interrupted => Icons.power_off,
-                        _ => Icons.autorenew,
-                      },
-                      size: 14,
-                      color: switch (job.status) {
-                        JobStatus.done => DuiliaoColors.hit,
-                        JobStatus.failed => DuiliaoColors.miss,
-                        JobStatus.interrupted => DuiliaoColors.conflict,
-                        _ => DuiliaoColors.warning,
-                      },
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '#${job.id} ${job.period == null ? '自动期号' : Period.compact(job.period)}'
-                        ' · ${job.successRatioLabel}',
-                        style: context.texts.bodySmall,
-                      ),
-                    ),
-                    Text(job.status.label, style: context.texts.labelSmall),
-                  ],
-                ),
+                  Text(job.status.label, style: context.texts.labelSmall),
+                ],
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

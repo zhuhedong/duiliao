@@ -21,6 +21,8 @@ import 'features/home/home_screen.dart';
 import 'features/notifications/notification_service.dart';
 import 'features/ratings/ratings_screen.dart';
 import 'domain/models/app_event.dart';
+import 'ui/glass/glass_nav_bar.dart';
+import 'ui/glass/glass_widgets.dart';
 import 'ui/theme.dart';
 
 class DuiliaoApp extends ConsumerWidget {
@@ -191,7 +193,11 @@ class _ForceUpdateView extends StatelessWidget {
 class _RestoringView extends StatelessWidget {
   const _RestoringView();
   @override
-  Widget build(BuildContext context) => const Scaffold(body: Center(child: CircularProgressIndicator()));
+  Widget build(BuildContext context) => const Scaffold(
+        body: GlassBackground(
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
 }
 
 class AppShell extends ConsumerStatefulWidget {
@@ -235,22 +241,45 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
       if (canOperate) const CollectScreen(),
     ];
     if (_index >= pages.length) _index = 0;
-    final labels = <String>['首页', '开奖', '对照', '评级', if (canOperate) '采集'];
-    final icons = <IconData>[
-      Icons.home_outlined,
-      Icons.confirmation_number_outlined,
-      Icons.compare_arrows,
-      Icons.insights_outlined,
-      if (canOperate) Icons.download_outlined,
+
+    final navItems = <GlassNavItem>[
+      const GlassNavItem(
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
+        label: '首页',
+      ),
+      const GlassNavItem(
+        icon: Icons.confirmation_number_outlined,
+        activeIcon: Icons.confirmation_number_rounded,
+        label: '开奖',
+      ),
+      const GlassNavItem(
+        icon: Icons.compare_arrows_outlined,
+        activeIcon: Icons.compare_arrows_rounded,
+        label: '对照',
+      ),
+      const GlassNavItem(
+        icon: Icons.insights_outlined,
+        activeIcon: Icons.insights_rounded,
+        label: '评级',
+      ),
+      if (canOperate)
+        const GlassNavItem(
+          icon: Icons.download_outlined,
+          activeIcon: Icons.download_rounded,
+          label: '采集',
+        ),
     ];
+
     return Scaffold(
-      body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
+      extendBody: true,
+      body: GlassBackground(
+        child: IndexedStack(index: _index, children: pages),
+      ),
+      bottomNavigationBar: GlassFloatingNavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() => _index = value),
-        destinations: [
-          for (var i = 0; i < pages.length; i++) NavigationDestination(icon: Icon(icons[i]), label: labels[i]),
-        ],
+        items: navItems,
       ),
     );
   }

@@ -68,7 +68,7 @@ class RatingsScreen extends ConsumerWidget {
                 builder: (data) {
                   final rows = data.result.sortedBy(window);
                   return ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 32),
+                    padding: const EdgeInsets.only(top: 6, bottom: 96),
                     itemCount: rows.length + (data.isStale ? 2 : 1),
                     itemBuilder: (context, index) {
                       if (data.isStale && index == 0) {

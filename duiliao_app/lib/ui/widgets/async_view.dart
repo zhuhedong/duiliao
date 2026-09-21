@@ -335,23 +335,30 @@ class StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 10, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.45), width: 0.9),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 1.5),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
             Icon(icon, size: compact ? 11 : 13, color: color),
-            const SizedBox(width: 3),
+            const SizedBox(width: 4),
           ],
           Text(
             label,
             style: (compact ? context.texts.labelSmall : context.texts.labelMedium)
-                ?.copyWith(color: color, fontWeight: FontWeight.w600),
+                ?.copyWith(color: color, fontWeight: FontWeight.w700, letterSpacing: 0.1),
           ),
         ],
       ),
@@ -377,21 +384,31 @@ class WarningNote extends StatelessWidget {
     final effective = color ?? DuiliaoColors.warning;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: effective.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: effective.withValues(alpha: 0.4)),
+        color: effective.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: effective.withValues(alpha: 0.35), width: 0.9),
+        boxShadow: [
+          BoxShadow(
+            color: effective.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 15, color: effective),
-          const SizedBox(width: 6),
+          Icon(icon, size: 16, color: effective),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               message,
-              style: context.texts.bodySmall?.copyWith(color: effective),
+              style: context.texts.bodySmall?.copyWith(
+                color: effective,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
