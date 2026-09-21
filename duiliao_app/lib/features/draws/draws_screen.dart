@@ -52,26 +52,69 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('开奖'),
-        bottom: TabBar(
-          controller: _tabs,
-          tabs: [for (final l in Lottery.all) Tab(text: l.label)],
-        ),
-        actions: [
-          IconButton(
-            tooltip: '期号区间筛选',
-            icon: const Icon(Icons.filter_alt_outlined),
-            onPressed: _openFilter,
+      body: GlassBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                child: GlassContainer(
+                  height: 54,
+                  borderRadius: BorderRadius.circular(999),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Text(
+                          '历史开奖',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '期号筛选',
+                        icon: const Icon(Icons.filter_alt_outlined, size: 20),
+                        onPressed: _openFilter,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: GlassContainer(
+                  borderRadius: BorderRadius.circular(20),
+                  padding: const EdgeInsets.all(4),
+                  child: TabBar(
+                    controller: _tabs,
+                    indicator: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
+                    ),
+                    dividerColor: Colors.transparent,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Colors.grey,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w800),
+                    tabs: [for (final l in Lottery.all) Tab(text: l.label)],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabs,
+                  children: [for (final l in Lottery.all) _DrawTab(lottery: l)],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: TabBarView(
-        controller: _tabs,
-        children: [for (final l in Lottery.all) _DrawTab(lottery: l)],
+        ),
       ),
     );
   }
@@ -129,8 +172,6 @@ class _DrawTab extends ConsumerWidget {
             Expanded(
               child: NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
-                  // Start the next page slightly before the end so the list
-                  // rarely shows an empty gap.
                   if (notification.metrics.pixels >=
                       notification.metrics.maxScrollExtent - 400) {
                     notifier.loadMore();
@@ -138,15 +179,17 @@ class _DrawTab extends ConsumerWidget {
                   return false;
                 },
                 child: ListView.builder(
-                  padding: const EdgeInsets.only(top: 6, bottom: 96),
+                  padding: const EdgeInsets.only(top: 10, bottom: 96),
                   itemCount: state.items.length + 1,
                   itemBuilder: (context, index) {
                     if (index == state.items.length) {
                       return _ListFooter(state: state);
                     }
                     final draw = state.items[index];
-                    return _DrawCard(
+                    return _TimelineDrawNode(
                       draw: draw,
+                      isFirst: index == 0,
+                      isLast: index == state.items.length - 1,
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => DrawDetailScreen(
@@ -185,8 +228,6 @@ class _ListFooter extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Center(
         child: Text(
-          // Explicit end-of-list, so an operator knows they have seen everything
-          // rather than wondering whether loading stalled.
           state.hasMore ? '上拉加载更多' : '没有更多了（共 ${state.total} 期）',
           style: context.texts.bodySmall
               ?.copyWith(color: context.colors.onSurfaceVariant),
@@ -214,9 +255,8 @@ class _FilterChipBar extends StatelessWidget {
       child: Align(
         alignment: Alignment.centerLeft,
         child: GlassContainer(
-          blur: 16,
           borderRadius: BorderRadius.circular(20),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -227,10 +267,10 @@ class _FilterChipBar extends StatelessWidget {
                   color: DuiliaoColors.primary,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               GestureDetector(
                 onTap: onClear,
-                child: const Icon(Icons.close, size: 14, color: DuiliaoColors.primary),
+                child: const Icon(Icons.close, size: 16, color: DuiliaoColors.primary),
               ),
             ],
           ),
@@ -240,86 +280,179 @@ class _FilterChipBar extends StatelessWidget {
   }
 }
 
-class _DrawCard extends StatelessWidget {
-  const _DrawCard({required this.draw, required this.onTap});
+class _TimelineDrawNode extends StatelessWidget {
+  const _TimelineDrawNode({
+    required this.draw,
+    required this.isFirst,
+    required this.isLast,
+    required this.onTap,
+  });
 
   final DrawRow draw;
+  final bool isFirst;
+  final bool isLast;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final summary = draw.summary;
-    return GlassCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Text(
-                Period.compact(draw.period),
-                style: context.texts.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(width: 8),
-              if (draw.drawDate != null)
-                Text(
-                  draw.drawDate!,
-                  style: context.texts.bodySmall
-                      ?.copyWith(color: context.colors.onSurfaceVariant),
-                ),
-              const Spacer(),
-              if (summary?.hasLianxiao == true)
-                const GlassBadge(
-                  label: '连肖',
-                  color: DuiliaoColors.warning,
-                  icon: Icons.link,
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          DrawBallRow(draw: draw, ballSize: 38),
-          if (summary != null) ...[
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
+          // Timeline column
+          SizedBox(
+            width: 44,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                _MiniTag(label: '和值 ${summary.sum7}'),
-                _MiniTag(label: summary.sum7Size),
-                _MiniTag(label: summary.sum7Odd),
-                _MiniTag(label: '特${summary.temaXiao}'),
-                _MiniTag(label: summary.temaHalfwave),
+                // The vertical line
+                Positioned(
+                  top: isFirst ? 30 : 0,
+                  bottom: isLast ? 30 : 0,
+                  width: 2,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          primary.withValues(alpha: 0.5),
+                          primary.withValues(alpha: 0.1),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                // The glowing node
+                Positioned(
+                  top: 24,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: primary,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primary.withValues(alpha: 0.5),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ],
+          ),
+          
+          // Card content
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 14, top: 4, bottom: 12),
+              child: GlassContainer(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(20),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            Period.compact(draw.period),
+                            style: context.texts.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (draw.drawDate != null)
+                          Text(
+                            draw.drawDate!,
+                            style: context.texts.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
+                          ),
+                        const Spacer(),
+                        if (summary?.hasLianxiao == true)
+                          GlassBadge(
+                            label: '连肖',
+                            color: DuiliaoColors.warning,
+                            icon: Icons.link,
+                            small: true,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    DrawBallRow(draw: draw, ballSize: 34),
+                    if (summary != null) ...[
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          _MiniFluidTag(label: '和值 ${summary.sum7}'),
+                          _MiniFluidTag(label: summary.sum7Size),
+                          _MiniFluidTag(label: summary.sum7Odd),
+                          _MiniFluidTag(label: '特${summary.temaXiao}', isHighlight: true),
+                          _MiniFluidTag(label: summary.temaHalfwave, isHighlight: true),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _MiniTag extends StatelessWidget {
-  const _MiniTag({required this.label});
+class _MiniFluidTag extends StatelessWidget {
+  const _MiniFluidTag({required this.label, this.isHighlight = false});
 
   final String label;
+  final bool isHighlight;
 
   @override
   Widget build(BuildContext context) {
     if (label.isEmpty) return const SizedBox.shrink();
+    final primary = Theme.of(context).colorScheme.primary;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.08)
-            : const Color(0xFF007AFF).withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(999),
+        color: isHighlight
+            ? primary.withValues(alpha: 0.15)
+            : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.12)
-              : const Color(0xFF007AFF).withValues(alpha: 0.18),
+          color: isHighlight
+              ? primary.withValues(alpha: 0.3)
+              : (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.1)),
           width: 0.8,
         ),
       ),
@@ -328,7 +461,7 @@ class _MiniTag extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: isDark ? Colors.white70 : const Color(0xFF007AFF),
+          color: isHighlight ? primary : (isDark ? Colors.white70 : Colors.black87),
         ),
       ),
     );
@@ -363,13 +496,12 @@ class _PeriodFilterSheetState extends State<_PeriodFilterSheet> {
   @override
   Widget build(BuildContext context) {
     return GlassContainer(
-      blur: 35,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       padding: EdgeInsets.fromLTRB(
-        20,
+        24,
         12,
-        20,
-        20 + MediaQuery.viewInsetsOf(context).bottom,
+        24,
+        24 + MediaQuery.viewInsetsOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -377,49 +509,53 @@ class _PeriodFilterSheetState extends State<_PeriodFilterSheet> {
         children: [
           Center(
             child: Container(
-              width: 36,
+              width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: Colors.grey.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Text('期号区间筛选', style: context.texts.titleMedium),
+          const SizedBox(height: 24),
+          const Text('期号区间筛选', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          Text(
+          const Text(
             '可填 248 或 2026248，服务端会自动规范化',
-            style: context.texts.bodySmall
-                ?.copyWith(color: context.colors.onSurfaceVariant),
+            style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           TextField(
             controller: _from,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: '起始期号'),
+            decoration: InputDecoration(
+              labelText: '起始期号',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           TextField(
             controller: _to,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: '结束期号'),
+            decoration: InputDecoration(
+              labelText: '结束期号',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(_error!, style: TextStyle(color: context.colors.error)),
+            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () =>
-                      Navigator.of(context).pop((from: null, to: null)),
-                  child: const Text('清除筛选'),
+                  onPressed: () => Navigator.of(context).pop((from: null, to: null)),
+                  child: const Text('清除'),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: FilledButton(
                   onPressed: _submit,

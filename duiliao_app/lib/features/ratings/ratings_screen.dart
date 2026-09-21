@@ -54,26 +54,58 @@ class RatingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('源评级')),
       body: GlassBackground(
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(ratingsProvider(key)),
-          child: Column(
-            children: [
-              _Selectors(lottery: lottery, playType: playType, window: window),
-              Expanded(
-                child: AsyncView<({RatingsResult result, bool isStale, String? storedAt})>(
-                  value: async,
-                  loading: const SkeletonList(itemHeight: 130),
-                  onRetry: () => ref.invalidate(ratingsProvider(key)),
-                  emptyCheck: (data) => data.result.sources.isEmpty,
-                  emptyMessage: '该玩法暂无评级数据',
-                  builder: (data) {
-                    final rows = data.result.sortedBy(window);
-                    return ListView.builder(
-                      padding: const EdgeInsets.only(top: 6, bottom: 96),
-                      itemCount: rows.length + (data.isStale ? 2 : 1),
-                      itemBuilder: (context, index) {
+          child: AsyncView<({RatingsResult result, bool isStale, String? storedAt})>(
+            value: async,
+            loading: const SkeletonList(itemHeight: 180),
+            onRetry: () => ref.invalidate(ratingsProvider(key)),
+            emptyCheck: (data) => data.result.sources.isEmpty,
+            emptyMessage: '该玩法暂无评级数据',
+            builder: (data) {
+              final rows = data.result.sortedBy(window);
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                        child: GlassContainer(
+                          height: 54,
+                          borderRadius: BorderRadius.circular(999),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back),
+                                onPressed: () => Navigator.of(context).pop(),
+                              ),
+                              const SizedBox(width: 4),
+                              const Expanded(
+                                child: Text(
+                                  '源评级分析',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  
+                  SliverToBoxAdapter(
+                    child: _Selectors(lottery: lottery, playType: playType, window: window),
+                  ),
+
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
                         if (data.isStale && index == 0) {
                           return OfflineBanner(
                             storedAtLabel: data.storedAt,
@@ -84,18 +116,25 @@ class RatingsScreen extends ConsumerWidget {
                         if (index == rows.length + offset) {
                           return _CoverageFootnote(result: data.result);
                         }
-                        return _RatingCard(
-                          row: rows[index - offset],
-                          rank: index - offset + 1,
-                          window: window,
-                          lottery: lottery,
+                        
+                        // Add some bottom padding to the very last item footprint
+                        final isLast = index == rows.length + offset - 1;
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: isLast ? 96.0 : 0.0),
+                          child: _RatingCard(
+                            row: rows[index - offset],
+                            rank: index - offset + 1,
+                            window: window,
+                            lottery: lottery,
+                          ),
                         );
                       },
-                    );
-                  },
-                ),
-              ),
-            ],
+                      childCount: rows.length + (data.isStale ? 2 : 1),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -116,9 +155,10 @@ class _Selectors extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GlassCard(
-      margin: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-      padding: const EdgeInsets.all(12),
+    return GlassContainer(
+      margin: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(24),
       child: Column(
         children: [
           Row(
@@ -127,26 +167,25 @@ class _Selectors extends ConsumerWidget {
                 child: DropdownButtonFormField<Lottery>(
                   initialValue: lottery,
                   isDense: true,
-                  decoration: const InputDecoration(labelText: '彩种'),
+                  decoration: const InputDecoration(labelText: '彩种', border: InputBorder.none),
                   items: [
                     for (final l in Lottery.all)
                       DropdownMenuItem(value: l, child: Text(l.label)),
                   ],
                   onChanged: (value) {
-                    if (value != null) {
-                      ref.read(selectedLotteryProvider.notifier).set(value);
-                    }
+                    if (value != null) ref.read(selectedLotteryProvider.notifier).set(value);
                   },
                 ),
               ),
-              const SizedBox(width: 10),
+              Container(width: 1, height: 30, color: Colors.grey.withValues(alpha: 0.3)),
+              const SizedBox(width: 16),
               Expanded(
                 flex: 2,
                 child: DropdownButtonFormField<String>(
                   initialValue: playType,
                   isDense: true,
                   isExpanded: true,
-                  decoration: const InputDecoration(labelText: '玩法'),
+                  decoration: const InputDecoration(labelText: '玩法', border: InputBorder.none),
                   items: [
                     for (final play in kPlayTypes)
                       DropdownMenuItem(
@@ -155,22 +194,21 @@ class _Selectors extends ConsumerWidget {
                       ),
                   ],
                   onChanged: (value) {
-                    if (value != null) {
-                      ref.read(selectedPlayTypeProvider.notifier).set(value);
-                    }
+                    if (value != null) ref.read(selectedPlayTypeProvider.notifier).set(value);
                   },
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const Divider(),
+          const SizedBox(height: 8),
           Row(
             children: [
               Text(
                 '统计窗口',
-                style: context.texts.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: context.texts.labelMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: GlassSegmentedControl<int>(
                   items: kRatingWindows,
@@ -206,44 +244,14 @@ class _RatingCard extends StatelessWidget {
     Color textColor = Colors.white;
     List<BoxShadow> shadows = [];
     if (rank == 1) {
-      gradient = const LinearGradient(
-        colors: [Color(0xFFFFD700), Color(0xFFFF9100)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
-      shadows = [
-        BoxShadow(
-          color: const Color(0xFFFF9100).withValues(alpha: 0.45),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ];
+      gradient = const LinearGradient(colors: [Color(0xFFFFD700), Color(0xFFFF9100)]);
+      shadows = [BoxShadow(color: const Color(0xFFFF9100).withValues(alpha: 0.4), blurRadius: 10)];
     } else if (rank == 2) {
-      gradient = const LinearGradient(
-        colors: [Color(0xFFE2E8F0), Color(0xFF94A3B8)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
-      shadows = [
-        BoxShadow(
-          color: const Color(0xFF94A3B8).withValues(alpha: 0.35),
-          blurRadius: 6,
-          offset: const Offset(0, 2),
-        ),
-      ];
+      gradient = const LinearGradient(colors: [Color(0xFFE2E8F0), Color(0xFF94A3B8)]);
+      shadows = [BoxShadow(color: const Color(0xFF94A3B8).withValues(alpha: 0.3), blurRadius: 10)];
     } else if (rank == 3) {
-      gradient = const LinearGradient(
-        colors: [Color(0xFFCD7F32), Color(0xFFA0522D)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
-      shadows = [
-        BoxShadow(
-          color: const Color(0xFFCD7F32).withValues(alpha: 0.35),
-          blurRadius: 6,
-          offset: const Offset(0, 2),
-        ),
-      ];
+      gradient = const LinearGradient(colors: [Color(0xFFCD7F32), Color(0xFFA0522D)]);
+      shadows = [BoxShadow(color: const Color(0xFFCD7F32).withValues(alpha: 0.3), blurRadius: 10)];
     } else {
       final isDark = Theme.of(context).brightness == Brightness.dark;
       gradient = LinearGradient(colors: [
@@ -254,30 +262,29 @@ class _RatingCard extends StatelessWidget {
     }
 
     return Container(
-      width: 26,
-      height: 26,
+      width: 32,
+      height: 32,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         gradient: gradient,
-        borderRadius: BorderRadius.circular(8),
+        shape: BoxShape.circle,
         boxShadow: shadows,
       ),
       child: Text(
         '$rank',
-        style: TextStyle(
-          color: textColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-        ),
+        style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w800),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-      padding: const EdgeInsets.all(14),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GlassContainer(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      borderRadius: BorderRadius.circular(24),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => SourceDetailScreen(
@@ -293,31 +300,47 @@ class _RatingCard extends StatelessWidget {
           Row(
             children: [
               _buildRankBadge(context),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   row.sourceName,
-                  style: context.texts.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: context.texts.titleMedium?.copyWith(fontWeight: FontWeight.w800),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              GlassBadge(
-                label: row.streakLabel,
-                color: row.currentStreak >= 0
-                    ? DuiliaoColors.hit
-                    : DuiliaoColors.miss,
-                icon: row.currentStreak >= 0
-                    ? Icons.trending_up
-                    : Icons.trending_down,
-                small: true,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: row.currentStreak >= 0
+                      ? DuiliaoColors.hit.withValues(alpha: 0.15)
+                      : DuiliaoColors.miss.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      row.currentStreak >= 0 ? Icons.trending_up : Icons.trending_down,
+                      size: 14,
+                      color: row.currentStreak >= 0 ? DuiliaoColors.hit : DuiliaoColors.miss,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      row.streakLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: row.currentStreak >= 0 ? DuiliaoColors.hit : DuiliaoColors.miss,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
 
-          // Three windows side by side, so a rate that looks good at 30 but
-          // poor at 100 is immediately visible.
+          // Windows Display
           Row(
             children: [
               for (final w in kRatingWindows)
@@ -333,40 +356,54 @@ class _RatingCard extends StatelessWidget {
             ],
           ),
 
-          const Divider(height: 20),
-
-          // Integrity block. These signals decide whether the rates above
-          // mean anything.
-          Row(
-            children: [
-              Expanded(
-                child: StatTile(
-                  label: '开奖前命中',
-                  value: formatRate(row.beforeRate),
-                  hint: '${row.beforeN} 样本',
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Text('盘前命中', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text(formatRate(row.beforeRate), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: StatTile(
-                  label: '开奖后命中',
-                  value: formatRate(row.afterRate),
-                  hint: '${row.afterN} 样本',
-                  valueColor: row.suspectedPostDrawEditing
-                      ? DuiliaoColors.conflict
-                      : null,
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Text('盘后命中', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text(
+                        formatRate(row.afterRate),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: row.suspectedPostDrawEditing ? DuiliaoColors.conflict : null,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(
-                child: StatTile(
-                  label: '连中 / 连挂',
-                  value: '${row.longestHit} / ${row.longestMiss}',
+                Expanded(
+                  child: Column(
+                    children: [
+                      const Text('极值 (中/挂)', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text('${row.longestHit} / ${row.longestMiss}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
           if (row.hasIntegrityWarning || row.isSmallSample(window)) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             ..._warnings(context),
           ],
         ],
@@ -379,15 +416,14 @@ class _RatingCard extends StatelessWidget {
 
     if (row.suspectedPostDrawEditing) {
       widgets.add(WarningNote(
-        message: '疑似开奖后改料：开奖后命中率 ${formatRate(row.afterRate)} '
-            '显著高于开奖前 ${formatRate(row.beforeRate)}，命中率不可信',
+        message: '疑似改料：开奖后命中率 ${formatRate(row.afterRate)} 显著高于开奖前，不可信',
         icon: Icons.block,
         color: DuiliaoColors.conflict,
       ));
     }
     if (row.hasPostDrawEdits) {
       widgets.add(WarningNote(
-        message: '开奖后修改预测 ${row.afterEdits} 次',
+        message: '盘后修改预测 ${row.afterEdits} 次',
         icon: Icons.edit_note,
       ));
     }
@@ -400,8 +436,7 @@ class _RatingCard extends StatelessWidget {
     }
     if (row.isSmallSample(window)) {
       widgets.add(WarningNote(
-        message: '样本不足：$window 期窗口仅 ${row.sampleSize(window)} 个样本，'
-            '命中率参考价值有限',
+        message: '样本不足：$window 期仅 ${row.sampleSize(window)} 个样本',
         icon: Icons.warning_amber_rounded,
       ));
     }
@@ -434,61 +469,60 @@ class _WindowCell extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
 
     return Container(
-      margin: const EdgeInsets.only(right: 6),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
         color: highlighted
-            ? primary.withValues(alpha: isDark ? 0.22 : 0.12)
-            : (isDark
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.black.withValues(alpha: 0.03)),
-        borderRadius: BorderRadius.circular(10),
+            ? primary.withValues(alpha: isDark ? 0.2 : 0.1)
+            : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03)),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: highlighted
-              ? primary.withValues(alpha: 0.45)
-              : (isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06)),
-          width: highlighted ? 1.0 : 0.8,
+              ? primary.withValues(alpha: 0.5)
+              : Colors.transparent,
+          width: highlighted ? 1.5 : 0,
         ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             '$window 期',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: highlighted ? primary : context.colors.onSurfaceVariant,
-              fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: highlighted ? FontWeight.w800 : FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 6),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 formatRate(rate),
                 style: context.texts.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                   color: highlighted ? primary : null,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               if (smallSample) ...[
-                const SizedBox(width: 3),
+                const SizedBox(width: 4),
                 const Icon(
                   Icons.warning_amber_rounded,
-                  size: 13,
+                  size: 14,
                   color: DuiliaoColors.warning,
                 ),
               ],
             ],
           ),
-          const SizedBox(height: 1),
+          const SizedBox(height: 2),
           Text(
             sample == null ? '无样本' : 'n=$sample',
-            style: context.texts.labelSmall
-                ?.copyWith(color: context.colors.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: 10,
+              color: highlighted ? primary.withValues(alpha: 0.8) : Colors.grey,
+            ),
           ),
         ],
       ),
@@ -506,30 +540,26 @@ class _CoverageFootnote extends StatelessWidget {
     final totalMissing = result.sources.fold<int>(0, (sum, r) => sum + r.missing);
     final totalPending = result.sources.fold<int>(0, (sum, r) => sum + r.pending);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      child: GlassCard(
-        margin: EdgeInsets.zero,
-        padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: GlassContainer(
+        padding: const EdgeInsets.all(16),
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '覆盖质量',
-              style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                const Icon(Icons.analytics_outlined, size: 16, color: Colors.grey),
+                const SizedBox(width: 8),
+                Text('覆盖质量', style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w800)),
+              ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               '统计区间 ${result.periodFrom ?? '—'} ~ ${result.periodTo ?? '—'}，'
               '共 ${result.periods.length} 期；'
               '缺期合计 $totalMissing，待判合计 $totalPending。',
-              style: context.texts.bodySmall
-                  ?.copyWith(color: context.colors.onSurfaceVariant),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '命中率显示「—」表示该窗口没有样本，与 0% 含义不同。',
-              style: context.texts.bodySmall
-                  ?.copyWith(color: context.colors.onSurfaceVariant),
+              style: context.texts.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
             ),
           ],
         ),
@@ -537,4 +567,3 @@ class _CoverageFootnote extends StatelessWidget {
     );
   }
 }
-

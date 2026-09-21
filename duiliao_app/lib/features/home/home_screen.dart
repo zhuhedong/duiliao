@@ -56,46 +56,6 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Duiliao'),
-        actions: [
-          IconButton(
-            tooltip: '消息中心',
-            icon: Badge(
-              isLabelVisible: unread > 0,
-              label: Text('$unread'),
-              child: const Icon(Icons.notifications_outlined),
-            ),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MessagesScreen()),
-            ),
-          ),
-          // "My account" lives behind the avatar rather than taking a tab slot.
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              tooltip: '我的',
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              ),
-              icon: CircleAvatar(
-                radius: 15,
-                backgroundColor: context.colors.primaryContainer,
-                child: Text(
-                  user?.initial ?? '?',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: context.colors.onPrimaryContainer,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () async {
           await ref
@@ -109,32 +69,148 @@ class HomeScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(homeProvider(key)),
           builder: (data) {
             final home = data.snapshot;
-            return ListView(
-              padding: const EdgeInsets.only(top: 6, bottom: 96),
-              children: [
-                if (data.isStale)
-                  OfflineBanner(
-                    storedAtLabel: data.storedAt,
-                    onRetry: () => ref.invalidate(homeProvider(key)),
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: SafeArea(
+                    bottom: false,
+                    child: _DynamicIslandHeader(unread: unread, initial: user?.initial ?? '?'),
                   ),
-                _LotterySelector(selected: lottery),
-                if (!home.hasAnyData)
-                  const Padding(
-                    padding: EdgeInsets.all(32),
-                    child: EmptyState(
-                      message: '暂无数据',
-                      detail: '该彩种还没有开奖或采集记录',
+                ),
+                SliverToBoxAdapter(
+                  child: _LotterySelector(selected: lottery),
+                ),
+                if (data.isStale)
+                  SliverToBoxAdapter(
+                    child: OfflineBanner(
+                      storedAtLabel: data.storedAt,
+                      onRetry: () => ref.invalidate(homeProvider(key)),
                     ),
                   ),
-                if (home.latestDraw != null) _LatestDrawCard(home: home),
-                if (home.consensusGroups.isNotEmpty) _ConsensusCard(home: home),
-                if (home.comparisonSummary != null) _ComparisonCard(home: home),
-                if (home.ratingsTop.isNotEmpty) _RatingsCard(home: home),
-                if (home.recentJobs.isNotEmpty) _JobsCard(home: home),
-                _QuickLinks(home: home),
+                if (!home.hasAnyData)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: EmptyState(
+                        message: '暂无数据',
+                        detail: '该彩种还没有开奖或采集记录',
+                      ),
+                    ),
+                  ),
+                if (home.latestDraw != null)
+                  SliverToBoxAdapter(child: _HeroDrawBanner(home: home)),
+                
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  sliver: SliverToBoxAdapter(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            children: [
+                              if (home.comparisonSummary != null) _ComparisonBentoBox(home: home),
+                              const SizedBox(height: 10),
+                              if (home.recentJobs.isNotEmpty) _JobsBentoBox(home: home),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              if (home.ratingsTop.isNotEmpty) _RatingsBentoBox(home: home),
+                              const SizedBox(height: 10),
+                              if (home.consensusGroups.isNotEmpty) _ConsensusBentoBox(home: home),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                SliverToBoxAdapter(
+                  child: _ControlCenterPanel(home: home),
+                ),
+                const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _DynamicIslandHeader extends StatelessWidget {
+  const _DynamicIslandHeader({required this.unread, required this.initial});
+  final int unread;
+  final String initial;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      child: GlassContainer(
+        height: 54,
+        borderRadius: BorderRadius.circular(999),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          children: [
+            const SizedBox(width: 12),
+            Text(
+              'Duiliao',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const Spacer(),
+            IconButton(
+              tooltip: '消息中心',
+              icon: Badge(
+                isLabelVisible: unread > 0,
+                label: Text('$unread'),
+                child: const Icon(Icons.notifications_outlined, size: 22),
+              ),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MessagesScreen()),
+              ),
+            ),
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              ),
+              child: Container(
+                margin: const EdgeInsets.only(right: 6, left: 4),
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      context.colors.primaryContainer,
+                      context.colors.primary.withValues(alpha: 0.5),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: context.colors.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -148,7 +224,7 @@ class _LotterySelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         child: GlassSegmentedControl<Lottery>(
           items: Lottery.all,
           selected: selected,
@@ -159,141 +235,101 @@ class _LotterySelector extends ConsumerWidget {
       );
 }
 
-class _LatestDrawCard extends StatelessWidget {
-  const _LatestDrawCard({required this.home});
-
+class _HeroDrawBanner extends StatelessWidget {
+  const _HeroDrawBanner({required this.home});
   final HomeSnapshot home;
 
   @override
   Widget build(BuildContext context) {
     final draw = home.latestDraw!;
-    return GlassCard(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => DrawDetailScreen(
-            lottery: Lottery.parse(draw.lottery),
-            period: draw.period,
-          ),
-        ),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('最新开奖', style: context.texts.titleSmall),
-              const SizedBox(width: 8),
-              Text(
-                Period.compact(draw.period),
-                style: context.texts.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              if (draw.drawDate != null)
-                Text(draw.drawDate!, style: context.texts.labelSmall),
-            ],
-          ),
-          const SizedBox(height: 14),
-          DrawBallRow(draw: draw, ballSize: 38),
-          if (draw.summary != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              '和值 ${draw.summary!.sum7}（${draw.summary!.sum7Size}'
-              '${draw.summary!.sum7Odd}） · 特码 ${draw.summary!.temaXiao}'
-              ' · ${draw.summary!.temaHalfwave}',
-              style: context.texts.bodySmall,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: GlassContainer(
+        borderRadius: BorderRadius.circular(28),
+        padding: const EdgeInsets.all(20),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DrawDetailScreen(
+              lottery: Lottery.parse(draw.lottery),
+              period: draw.period,
             ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ConsensusCard extends StatelessWidget {
-  const _ConsensusCard({required this.home});
-
-  final HomeSnapshot home;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ConsensusScreen(
-            lottery: Lottery.parse(home.lottery),
-            initialPeriod: home.consensusPeriod,
           ),
         ),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('共识摘要', style: context.texts.titleSmall),
-              const Spacer(),
-              const Icon(Icons.chevron_right, size: 18),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (final group in home.consensusGroups)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 70,
-                    child: Text(
-                      PlayTypes.labelFor(group.playType),
-                      style: context.texts.bodySmall,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+        // A subtle gradient fill for the hero banner
+        fillColor: isDark 
+            ? const Color(0xFF1D283A).withValues(alpha: 0.65)
+            : const Color(0xFFE0E7FF).withValues(alpha: 0.55),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                GlassBadge(label: '最新开奖', color: Theme.of(context).colorScheme.primary, small: true),
+                const SizedBox(width: 10),
+                Text(
+                  Period.compact(draw.period),
+                  style: context.texts.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                   ),
-                  Expanded(
-                    child: Text(
-                      group.leader == null || group.leader!.isEmpty
-                          ? '—'
-                          : group.leader!.map((a) => a.value).join(' '),
-                      style: context.texts.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                ),
+                const Spacer(),
+                if (draw.drawDate != null)
                   Text(
-                    '${group.leaderVotes}/${group.nVotes} 票',
-                    style: context.texts.labelSmall,
+                    draw.drawDate!,
+                    style: context.texts.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
                   ),
-                  if (group.leaderHit != null) ...[
+              ],
+            ),
+            const SizedBox(height: 20),
+            // We use standard DrawBallRow here but wrapped to look more spacious
+            DrawBallRow(draw: draw, ballSize: 42),
+            if (draw.summary != null) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.insights, size: 14, color: context.colors.primary),
                     const SizedBox(width: 6),
-                    Icon(
-                      group.leaderHit! ? Icons.check_circle : Icons.cancel,
-                      size: 14,
-                      color: group.leaderHit!
-                          ? DuiliaoColors.hit
-                          : DuiliaoColors.miss,
+                    Text(
+                      '和值 ${draw.summary!.sum7}（${draw.summary!.sum7Size}${draw.summary!.sum7Odd}） · 特码 ${draw.summary!.temaXiao} · ${draw.summary!.temaHalfwave}',
+                      style: context.texts.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
 }
 
-class _ComparisonCard extends StatelessWidget {
-  const _ComparisonCard({required this.home});
-
+class _ComparisonBentoBox extends StatelessWidget {
+  const _ComparisonBentoBox({required this.home});
   final HomeSnapshot home;
 
   @override
   Widget build(BuildContext context) {
     final summary = home.comparisonSummary!;
-    return GlassCard(
+    final hasConflict = summary.conflicts > 0;
+    
+    return GlassContainer(
+      padding: const EdgeInsets.all(14),
+      borderRadius: BorderRadius.circular(24),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => ComparisonScreen(
@@ -302,130 +338,143 @@ class _ComparisonCard extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.all(16),
+      borderColor: hasConflict ? DuiliaoColors.conflict.withValues(alpha: 0.5) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('本期对照汇总', style: context.texts.titleSmall),
-              const Spacer(),
-              const Icon(Icons.chevron_right, size: 18),
+              const Icon(Icons.compare_arrows_rounded, size: 18),
+              const SizedBox(width: 6),
+              Text('对照视界', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 12),
+          // A mini grid of stats
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              StatTile(label: '总数', value: '${summary.total}'),
-              StatTile(
-                label: '命中',
-                value: '${summary.hits}',
-                valueColor: DuiliaoColors.hit,
-              ),
-              StatTile(
-                label: '未中',
-                value: '${summary.misses}',
-                valueColor: DuiliaoColors.miss,
-              ),
-              StatTile(label: '待判', value: '${summary.pending}'),
-              StatTile(
-                label: '冲突',
-                value: '${summary.conflicts}',
-                valueColor:
-                    summary.conflicts > 0 ? DuiliaoColors.conflict : null,
-              ),
+              _MiniStat('总数', '${summary.total}', context),
+              _MiniStat('命中', '${summary.hits}', context, color: DuiliaoColors.hit),
+              _MiniStat('未中', '${summary.misses}', context, color: DuiliaoColors.miss),
             ],
           ),
-          if (summary.conflicts > 0) ...[
-            const SizedBox(height: 10),
-            WarningNote(
-              message: '有 ${summary.conflicts} 条源自称命中但判定未中',
-              icon: Icons.report_problem_outlined,
-              color: DuiliaoColors.conflict,
+          const SizedBox(height: 10),
+          if (hasConflict)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: DuiliaoColors.conflict.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: DuiliaoColors.conflict.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, size: 12, color: DuiliaoColors.conflict),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      '${summary.conflicts} 冲突预警',
+                      style: const TextStyle(fontSize: 11, color: DuiliaoColors.conflict, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text('数据一致无异常', style: TextStyle(fontSize: 11, color: Colors.grey)),
             ),
-          ],
         ],
       ),
     );
   }
 }
 
-class _RatingsCard extends StatelessWidget {
-  const _RatingsCard({required this.home});
+class _MiniStat extends StatelessWidget {
+  const _MiniStat(this.label, this.value, this.context, {this.color});
+  final String label;
+  final String value;
+  final BuildContext context;
+  final Color? color;
 
+  @override
+  Widget build(BuildContext _) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: color ?? context.colors.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RatingsBentoBox extends StatelessWidget {
+  const _RatingsBentoBox({required this.home});
   final HomeSnapshot home;
 
   @override
   Widget build(BuildContext context) {
     final window = home.ratingsWindows.isEmpty ? 30 : home.ratingsWindows.first;
-    return GlassCard(
+    return GlassContainer(
+      padding: const EdgeInsets.all(14),
+      borderRadius: BorderRadius.circular(24),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const RatingsScreen()),
       ),
-      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('源评级 Top 5', style: context.texts.titleSmall),
+              const Icon(Icons.insights_rounded, size: 18),
               const SizedBox(width: 6),
-              Text(
-                '${PlayTypes.labelFor(home.playType)} · $window 期',
-                style: context.texts.labelSmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
-              ),
-              const Spacer(),
-              const Icon(Icons.chevron_right, size: 18),
+              Text('评级 Top 5', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 10),
-          for (final row in home.ratingsTop)
+          for (var i = 0; i < home.ratingsTop.length; i++)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: Row(
                 children: [
+                  Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: i == 0 ? Colors.amber : (i == 1 ? Colors.grey[400] : (i == 2 ? Colors.brown[300] : Colors.transparent)),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: i < 3 
+                        ? Text('${i+1}', style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold))
+                        : Text('${i+1}', style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                  ),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      row.sourceName,
-                      style: context.texts.bodyMedium,
+                      home.ratingsTop[i].sourceName,
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  if (row.hasIntegrityWarning)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 4),
-                      child: Icon(
-                        Icons.report_problem_outlined,
-                        size: 14,
-                        color: DuiliaoColors.conflict,
-                      ),
-                    )
-                  else if (row.isSmallSample(window))
-                    const Padding(
-                      padding: EdgeInsets.only(right: 4),
-                      child: Icon(
-                        Icons.warning_amber_rounded,
-                        size: 14,
-                        color: DuiliaoColors.warning,
-                      ),
-                    ),
                   Text(
-                    formatRate(row.hitRate(window)),
-                    style: context.texts.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  SizedBox(
-                    width: 44,
-                    child: Text(
-                      'n=${row.sampleSize(window) ?? 0}',
-                      style: context.texts.labelSmall,
-                      textAlign: TextAlign.right,
-                    ),
+                    formatRate(home.ratingsTop[i].hitRate(window)),
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                   ),
                 ],
               ),
@@ -436,64 +485,138 @@ class _RatingsCard extends StatelessWidget {
   }
 }
 
-class _JobsCard extends StatelessWidget {
-  const _JobsCard({required this.home});
-
+class _ConsensusBentoBox extends StatelessWidget {
+  const _ConsensusBentoBox({required this.home});
   final HomeSnapshot home;
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
+    return GlassContainer(
+      padding: const EdgeInsets.all(14),
+      borderRadius: BorderRadius.circular(24),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ConsensusScreen(
+            lottery: Lottery.parse(home.lottery),
+            initialPeriod: home.consensusPeriod,
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('近期采集', style: context.texts.titleSmall),
+              const Icon(Icons.pie_chart_rounded, size: 18),
+              const SizedBox(width: 6),
+              Text('共识热力池', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final group in home.consensusGroups)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        PlayTypes.labelFor(group.playType),
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                      const Spacer(),
+                      if (group.leaderHit != null)
+                        Icon(
+                          group.leaderHit! ? Icons.check_circle : Icons.cancel,
+                          size: 10,
+                          color: group.leaderHit! ? DuiliaoColors.hit : DuiliaoColors.miss,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          group.leader == null || group.leader!.isEmpty
+                              ? '—'
+                              : group.leader!.map((a) => a.value).join(' '),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        '${group.leaderVotes}/${group.nVotes}',
+                        style: const TextStyle(fontSize: 10, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  GlassLinearProgress(
+                    value: group.nVotes > 0 ? group.leaderVotes / group.nVotes : 0,
+                    height: 4,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JobsBentoBox extends StatelessWidget {
+  const _JobsBentoBox({required this.home});
+  final HomeSnapshot home;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      padding: const EdgeInsets.all(14),
+      borderRadius: BorderRadius.circular(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.cloud_download_rounded, size: 18),
+              const SizedBox(width: 6),
+              Text('近期采集', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
               const Spacer(),
               if (home.worker != null)
-                Text(
-                  home.worker!.running ? '执行器运行中' : '执行器未运行',
-                  style: context.texts.labelSmall?.copyWith(
-                    color: home.worker!.running
-                        ? DuiliaoColors.hit
-                        : DuiliaoColors.pending,
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: home.worker!.running ? DuiliaoColors.hit : DuiliaoColors.pending,
                   ),
                 ),
             ],
           ),
           const SizedBox(height: 10),
-          for (final job in home.recentJobs)
+          for (final job in home.recentJobs.take(3))
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.only(bottom: 6),
               child: Row(
                 children: [
                   Icon(
-                    switch (job.status) {
-                      JobStatus.done => Icons.check_circle,
-                      JobStatus.failed => Icons.error,
-                      JobStatus.cancelled => Icons.cancel,
-                      JobStatus.interrupted => Icons.power_off,
-                      _ => Icons.autorenew,
-                    },
-                    size: 14,
-                    color: switch (job.status) {
-                      JobStatus.done => DuiliaoColors.hit,
-                      JobStatus.failed => DuiliaoColors.miss,
-                      JobStatus.interrupted => DuiliaoColors.conflict,
-                      _ => DuiliaoColors.warning,
-                    },
+                    job.status == JobStatus.done ? Icons.check_circle : Icons.autorenew,
+                    size: 12,
+                    color: job.status == JobStatus.done ? DuiliaoColors.hit : DuiliaoColors.pending,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      '#${job.id} ${job.period == null ? '自动期号' : Period.compact(job.period)}'
-                      ' · ${job.successRatioLabel}',
-                      style: context.texts.bodySmall,
+                      '#${job.id}',
+                      style: const TextStyle(fontSize: 12),
                     ),
                   ),
-                  Text(job.status.label, style: context.texts.labelSmall),
+                  Text(
+                    job.successRatioLabel,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -503,47 +626,84 @@ class _JobsCard extends StatelessWidget {
   }
 }
 
-class _QuickLinks extends ConsumerWidget {
-  const _QuickLinks({required this.home});
-
+class _ControlCenterPanel extends StatelessWidget {
+  const _ControlCenterPanel({required this.home});
   final HomeSnapshot home;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: GlassContainer(
+        borderRadius: BorderRadius.circular(24),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('控制中心', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _ControlButton(
+                  icon: Icons.auto_awesome,
+                  label: 'AI 研判',
+                  color: Colors.purpleAccent,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => AiScreen(initialPeriod: home.consensusPeriod)),
+                  ),
+                ),
+                _ControlButton(
+                  icon: Icons.grid_view_rounded,
+                  label: '号码百科',
+                  color: Colors.blueAccent,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const NumbersScreen()),
+                  ),
+                ),
+                _ControlButton(
+                  icon: Icons.rule_rounded,
+                  label: '玩法规则',
+                  color: Colors.teal,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const RulesScreen()),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ControlButton extends StatelessWidget {
+  const _ControlButton({required this.icon, required this.label, required this.color, required this.onTap});
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ActionChip(
-            avatar: const Icon(Icons.auto_awesome, size: 16),
-            label: const Text('AI 研判'),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AiScreen(initialPeriod: home.consensusPeriod),
-              ),
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.3)),
             ),
+            child: Icon(icon, color: color, size: 24),
           ),
-          ActionChip(
-            avatar: const Icon(Icons.grid_view_outlined, size: 16),
-            label: const Text('号码百科'),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NumbersScreen()),
-            ),
-          ),
-          ActionChip(
-            avatar: const Icon(Icons.rule_outlined, size: 16),
-            label: const Text('玩法规则'),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const RulesScreen()),
-            ),
-          ),
-          if (home.ruleVersion != null)
-            Chip(
-              avatar: const Icon(Icons.rule, size: 16),
-              label: Text('规则 ${home.ruleVersion}'),
-            ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
         ],
       ),
     );

@@ -69,7 +69,6 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
       final latest = ref.watch(latestPeriodProvider(lottery));
       return Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('明细对照')),
         body: GlassBackground(
           child: latest.when(
             loading: () => const SkeletonList(),
@@ -79,7 +78,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
             ),
             data: (period) {
               if (period == null) {
-                return const EmptyState(message: '暂无开奖期号');
+                return const Center(child: EmptyState(message: '暂无开奖期号'));
               }
               // Adopt it and rebuild with a concrete period.
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -98,22 +97,6 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Text('明细对照 ${Period.compact(_period)}'),
-        actions: [
-          IconButton(
-            tooltip: '选择期号',
-            icon: const Icon(Icons.event),
-            onPressed: _pickPeriod,
-          ),
-          if (canOperate)
-            IconButton(
-              tooltip: '重新判定',
-              icon: const Icon(Icons.gavel),
-              onPressed: () => _rejudge(key),
-            ),
-        ],
-      ),
       body: GlassBackground(
         child: RefreshIndicator(
           onRefresh: () async => ref.invalidate(comparisonProvider(key)),
@@ -124,68 +107,115 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
             builder: (data) {
               final result = data.result;
               final rows = result.withStatus(_filter);
-              return Column(
-                children: [
-                  if (data.isStale)
-                    OfflineBanner(
-                      storedAtLabel: data.storedAt,
-                      onRetry: () => ref.invalidate(comparisonProvider(key)),
-                    ),
-                  const SizedBox(height: 6),
-                  _SummaryBar(summary: result.summary),
-                  _StatusFilterBar(
-                    summary: result.summary,
-                    selected: _filter,
-                    onChanged: (status) => setState(() => _filter = status),
-                  ),
-                  if (result.draw != null)
-                    GlassCard(
-                      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '开奖结果',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Theme.of(context).colorScheme.primary,
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                        child: GlassContainer(
+                          height: 54,
+                          borderRadius: BorderRadius.circular(999),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back),
+                                onPressed: () => Navigator.of(context).pop(),
                               ),
-                            ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  '明细对照 ${Period.compact(_period)}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: '选择期号',
+                                icon: const Icon(Icons.event, size: 20),
+                                onPressed: _pickPeriod,
+                              ),
+                              if (canOperate)
+                                IconButton(
+                                  tooltip: '重新判定',
+                                  icon: const Icon(Icons.gavel, size: 20),
+                                  onPressed: () => _rejudge(key),
+                                ),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DrawBallRow(
-                              draw: result.draw!,
-                              ballSize: 30,
-                              showColorNames: false,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  Expanded(
-                    child: rows.isEmpty
-                        ? EmptyState(
-                            message: _filter == null
-                                ? '本期暂无源预测'
-                                : '没有${_filter!.label}状态的记录',
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.only(top: 4, bottom: 96),
-                            itemCount: rows.length,
-                            itemBuilder: (context, index) => _ComparisonRow(
-                              item: rows[index],
-                              onTap: () => _showEvidence(rows[index]),
-                            ),
-                          ),
                   ),
+                  if (data.isStale)
+                    SliverToBoxAdapter(
+                      child: OfflineBanner(
+                        storedAtLabel: data.storedAt,
+                        onRetry: () => ref.invalidate(comparisonProvider(key)),
+                      ),
+                    ),
+                  
+                  SliverToBoxAdapter(
+                    child: _SummaryBar(summary: result.summary),
+                  ),
+                  SliverToBoxAdapter(
+                    child: _StatusFilterBar(
+                      summary: result.summary,
+                      selected: _filter,
+                      onChanged: (status) => setState(() => _filter = status),
+                    ),
+                  ),
+                  if (result.draw != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        child: GlassContainer(
+                          borderRadius: BorderRadius.circular(24),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('官方开奖结果', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 12),
+                              DrawBallRow(draw: result.draw!, ballSize: 36, showColorNames: false),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  
+                  if (rows.isEmpty)
+                    SliverFillRemaining(
+                      child: EmptyState(
+                        message: _filter == null
+                            ? '本期暂无源预测'
+                            : '没有${_filter!.label}状态的记录',
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 96),
+                      // We use a responsive masonry-like grid: two columns side-by-side if wide enough, otherwise list
+                      sliver: SliverGrid(
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 400,
+                          mainAxisExtent: 140,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => _ComparisonCardItem(
+                            item: rows[index],
+                            onTap: () => _showEvidence(rows[index]),
+                          ),
+                          childCount: rows.length,
+                        ),
+                      ),
+                    ),
                 ],
               );
             },
@@ -251,6 +281,7 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.75,
@@ -269,45 +300,46 @@ class _SummaryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          StatTile(label: '总数', value: '${summary.total}'),
-          StatTile(
-            label: '命中',
-            value: '${summary.hits}',
-            valueColor: DuiliaoColors.hit,
-          ),
-          StatTile(
-            label: '未中',
-            value: '${summary.misses}',
-            valueColor: DuiliaoColors.miss,
-          ),
-          StatTile(
-            label: '待判',
-            value: '${summary.pending}',
-            valueColor: DuiliaoColors.pending,
-          ),
-          StatTile(
-            label: '冲突',
-            value: '${summary.conflicts}',
-            valueColor: summary.conflicts > 0 ? DuiliaoColors.conflict : null,
-          ),
-          StatTile(
-            label: '命中率',
-            value: formatRateDisplay(summary),
-            hint: summary.judged == 0 ? '尚未判定' : '已判 ${summary.judged}',
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: GlassContainer(
+        borderRadius: BorderRadius.circular(24),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            StatTile(label: '总数', value: '${summary.total}'),
+            StatTile(
+              label: '命中',
+              value: '${summary.hits}',
+              valueColor: DuiliaoColors.hit,
+            ),
+            StatTile(
+              label: '未中',
+              value: '${summary.misses}',
+              valueColor: DuiliaoColors.miss,
+            ),
+            StatTile(
+              label: '待判',
+              value: '${summary.pending}',
+              valueColor: DuiliaoColors.pending,
+            ),
+            StatTile(
+              label: '冲突',
+              value: '${summary.conflicts}',
+              valueColor: summary.conflicts > 0 ? DuiliaoColors.conflict : null,
+            ),
+            StatTile(
+              label: '命中率',
+              value: formatRateDisplay(summary),
+              hint: summary.judged == 0 ? '尚未判定' : '已判 ${summary.judged}',
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /// Hit rate is only meaningful once something has been judged; showing 0.0%
-  /// before any judgement would read as "everything missed".
   static String formatRateDisplay(ComparisonSummary summary) =>
       summary.judged == 0 ? '—' : '${(summary.hitRate * 100).toStringAsFixed(1)}%';
 }
@@ -334,7 +366,7 @@ class _StatusFilterBar extends StatelessWidget {
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Row(
         children: [
           GlassFilterPill(
@@ -359,18 +391,22 @@ class _StatusFilterBar extends StatelessWidget {
   }
 }
 
-class _ComparisonRow extends StatelessWidget {
-  const _ComparisonRow({required this.item, required this.onTap});
+class _ComparisonCardItem extends StatelessWidget {
+  const _ComparisonCardItem({required this.item, required this.onTap});
 
   final ComparisonItem item;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-      padding: const EdgeInsets.all(14),
+    final hasConflict = item.isConflict;
+    
+    return GlassContainer(
+      borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.all(12),
       onTap: onTap,
+      borderColor: hasConflict ? DuiliaoColors.conflict.withValues(alpha: 0.6) : null,
+      fillColor: hasConflict ? DuiliaoColors.conflict.withValues(alpha: 0.05) : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -379,29 +415,35 @@ class _ComparisonRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   '${item.sourceName}${item.groupSuffix}',
-                  style: context.texts.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               _StatusBadge(status: item.status),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             PlayTypes.labelFor(item.playType),
-            style: context.texts.bodySmall
-                ?.copyWith(color: context.colors.onSurfaceVariant),
+            style: context.texts.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
           ),
-          const SizedBox(height: 10),
+          const Spacer(),
           _AtomRow(item: item),
-          if (item.isConflict) ...[
-            const SizedBox(height: 10),
-            WarningNote(
-              message: '源自称「${item.claimedStatus}」，实际判定为未中',
-              icon: Icons.report_problem_outlined,
-              color: DuiliaoColors.conflict,
+          if (hasConflict) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: DuiliaoColors.conflict.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                '源自称「${item.claimedStatus}」，实际未中',
+                style: const TextStyle(fontSize: 10, color: DuiliaoColors.conflict, fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ],
@@ -425,45 +467,44 @@ class _AtomRow extends StatelessWidget {
     }
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isNumeric = item.preds.every((p) => p.kind == 'num');
-    if (isNumeric) {
-      return Wrap(
-        spacing: 6,
-        runSpacing: 6,
+    
+    // We restrict atoms to a single line scrolling if they are too long in grid view
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
         children: [
-          for (final atom in item.preds)
-            NumberBall(number: atom.value, size: 30, showColorName: false),
+          if (isNumeric)
+            for (final atom in item.preds)
+              NumberBall(number: atom.value, size: 24, showColorName: false)
+          else
+            for (final atom in item.preds)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0xFF007AFF).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.14)
+                        : const Color(0xFF007AFF).withValues(alpha: 0.20),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  atom.value,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF007AFF),
+                  ),
+                ),
+              ),
         ],
-      );
-    }
-    return Wrap(
-      spacing: 6,
-      runSpacing: 5,
-      children: [
-        for (final atom in item.preds)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : const Color(0xFF007AFF).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.14)
-                    : const Color(0xFF007AFF).withValues(alpha: 0.20),
-                width: 0.8,
-              ),
-            ),
-            child: Text(
-              atom.value,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white : const Color(0xFF007AFF),
-              ),
-            ),
-          ),
-      ],
+      ),
     );
   }
 }
@@ -490,7 +531,7 @@ class _StatusBadge extends StatelessWidget {
         ),
       null => ('未判定', DuiliaoColors.pending, Icons.help_outline),
     };
-    return GlassBadge(label: label, color: color, icon: icon);
+    return GlassBadge(label: label, color: color, icon: icon, small: true);
   }
 }
 
@@ -504,34 +545,32 @@ class _EvidenceDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F1522) : const Color(0xFFF3F6FD),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+    return GlassContainer(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      fillColor: isDark ? const Color(0xFF090D16).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.85),
       child: ListView(
         controller: controller,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
         children: [
           Row(
             children: [
               Expanded(
                 child: Text(
                   '${item.sourceName}${item.groupSuffix}',
-                  style: context.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               _StatusBadge(status: item.status),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             '${PlayTypes.labelFor(item.playType)} · ${Period.compact(item.period)} · '
             '判定模式 ${item.hitMode}',
-            style: context.texts.bodySmall
+            style: context.texts.bodyMedium
                 ?.copyWith(color: context.colors.onSurfaceVariant),
           ),
-          const Divider(height: 24),
+          const SizedBox(height: 24),
 
           if (!item.isJudged)
             const WarningNote(
@@ -631,25 +670,25 @@ class _EvidenceSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: GlassCard(
-        margin: EdgeInsets.zero,
-        padding: const EdgeInsets.all(14),
+      child: GlassContainer(
+        borderRadius: BorderRadius.circular(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               title,
-              style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w800),
             ),
             if (subtitle != null) ...[
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 subtitle!,
-                style: context.texts.labelSmall
+                style: context.texts.bodySmall
                     ?.copyWith(color: context.colors.onSurfaceVariant),
               ),
             ],
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             child,
           ],
         ),
@@ -674,12 +713,12 @@ class _JsonBlock extends StatelessWidget {
     }
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(10),
+            : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark
               ? Colors.white.withValues(alpha: 0.08)
@@ -689,9 +728,8 @@ class _JsonBlock extends StatelessWidget {
       ),
       child: SelectableText(
         text,
-        style: context.texts.bodySmall?.copyWith(fontFamily: 'monospace'),
+        style: context.texts.bodySmall?.copyWith(fontFamily: 'monospace', fontSize: 11),
       ),
     );
   }
 }
-
