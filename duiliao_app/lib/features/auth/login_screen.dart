@@ -56,6 +56,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final config = ref.watch(appConfigProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: GlassBackground(
         child: SafeArea(
           child: Center(

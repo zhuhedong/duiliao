@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../domain/models/draw.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import '../../ui/widgets/number_ball.dart';
@@ -131,8 +132,10 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen>
     final async = ref.watch(numbersProvider(date));
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('号码属性'),
+        backgroundColor: Colors.transparent,
         bottom: TabBar(
           controller: _tabs,
           tabs: const [Tab(text: '属性总表'), Tab(text: '属性反查')],
@@ -141,49 +144,50 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen>
           if (_tabs.index == 0)
             IconButton(
               tooltip: _gridView ? '切换列表' : '切换网格',
-              icon: Icon(_gridView ? Icons.view_list : Icons.grid_view),
+              icon: Icon(_gridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
               onPressed: () => setState(() => _gridView = !_gridView),
             ),
           IconButton(
             tooltip: '选择日期',
-            icon: const Icon(Icons.calendar_today),
+            icon: const Icon(Icons.calendar_today_rounded),
             onPressed: _pickDate,
           ),
         ],
       ),
-      body: AsyncView<({NumbersResult result, bool isStale, String? storedAt})>(
-        value: async,
-        loading: const SkeletonList(itemHeight: 60),
-        onRetry: () => ref.invalidate(numbersProvider(date)),
-        builder: (data) => Column(
-          children: [
-            if (data.isStale)
-              OfflineBanner(
-                storedAtLabel: data.storedAt,
-                onRetry: () => ref.invalidate(numbersProvider(date)),
-              ),
-            _DateBar(date: data.result.date, onPick: _pickDate),
-            if (!data.result.wuxingAvailable)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                // Stated explicitly: otherwise blank 五行 cells look like a bug.
-                child: WarningNote(
-                  message: '该年份无权威五行表，五行属性不可用'
-                      '${data.result.wuxingYears.isEmpty ? '' : '（有表年份：'
-                          '${data.result.wuxingYears.join('、')}）'}',
-                  icon: Icons.info_outline,
+      body: GlassBackground(
+        child: AsyncView<({NumbersResult result, bool isStale, String? storedAt})>(
+          value: async,
+          loading: const SkeletonList(itemHeight: 60),
+          onRetry: () => ref.invalidate(numbersProvider(date)),
+          builder: (data) => Column(
+            children: [
+              if (data.isStale)
+                OfflineBanner(
+                  storedAtLabel: data.storedAt,
+                  onRetry: () => ref.invalidate(numbersProvider(date)),
+                ),
+              _DateBar(date: data.result.date, onPick: _pickDate),
+              if (!data.result.wuxingAvailable)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  child: WarningNote(
+                    message: '该年份无权威五行表，五行属性不可用'
+                        '${data.result.wuxingYears.isEmpty ? '' : '（有表年份：'
+                            '${data.result.wuxingYears.join('、')}）'}',
+                    icon: Icons.info_outline,
+                  ),
+                ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabs,
+                  children: [
+                    _AttributeTable(result: data.result, grid: _gridView),
+                    _ReverseLookup(result: data.result),
+                  ],
                 ),
               ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabs,
-                children: [
-                  _AttributeTable(result: data.result, grid: _gridView),
-                  _ReverseLookup(result: data.result),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -194,7 +198,6 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen>
     final picked = await showDatePicker(
       context: context,
       initialDate: current,
-      // Wide enough to inspect any year the seeded attribute table covers.
       firstDate: DateTime(2000),
       lastDate: DateTime(2040, 12, 31),
       helpText: '选择日期（生肖随农历年轮转）',
@@ -211,15 +214,27 @@ class _DateBar extends StatelessWidget {
   final VoidCallback onPick;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+  Widget build(BuildContext context) => GlassCard(
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         child: Row(
           children: [
-            const Icon(Icons.event, size: 16),
-            const SizedBox(width: 6),
-            Text('按 $date 计算', style: context.texts.bodyMedium),
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: context.colors.primary.withValues(alpha: 0.12),
+              ),
+              child: Icon(Icons.event_rounded, size: 18, color: context.colors.primary),
+            ),
+            const SizedBox(width: 10),
+            Text('按 $date 计算', style: context.texts.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
             const Spacer(),
-            TextButton(onPressed: onPick, child: const Text('更换日期')),
+            TextButton(
+              onPressed: onPick,
+              child: const Text('更换日期', style: TextStyle(fontWeight: FontWeight.w600)),
+            ),
           ],
         ),
       );
@@ -238,49 +253,75 @@ class _AttributeTable extends StatelessWidget {
     }
     if (grid) {
       return GridView.builder(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 76,
-          childAspectRatio: 0.72,
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
+          maxCrossAxisExtent: 80,
+          childAspectRatio: 0.74,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
         ),
         itemCount: result.items.length,
         itemBuilder: (context, index) {
           final attr = result.items[index];
-          return InkWell(
+          return GlassCard(
+            margin: EdgeInsets.zero,
+            padding: const EdgeInsets.all(6),
             onTap: () => _showDetail(context, attr),
-            borderRadius: BorderRadius.circular(8),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 NumberBall(number: attr.num, attr: attr, size: 38),
-                const SizedBox(height: 2),
-                Text(attr.xiao, style: context.texts.labelSmall),
+                const SizedBox(height: 4),
+                Text(
+                  attr.xiao,
+                  style: context.texts.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ],
             ),
           );
         },
       );
     }
-    return ListView.separated(
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: result.items.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final attr = result.items[index];
-        return ListTile(
-          leading: NumberBall(
-            number: attr.num,
-            attr: attr,
-            size: 36,
-            showColorName: false,
-          ),
-          title: Text('${attr.xiao} · ${attr.bose} · ${attr.size}${attr.odd}'),
-          subtitle: Text(
-            '头${attr.head} 尾${attr.wei} 合${attr.sum} ${attr.jiaye}'
-            '${attr.wuxing == null ? '' : ' 五行${attr.wuxing}'}',
-          ),
+        return GlassCard(
+          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           onTap: () => _showDetail(context, attr),
+          child: Row(
+            children: [
+              NumberBall(
+                number: attr.num,
+                attr: attr,
+                size: 38,
+                showColorName: false,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${attr.xiao} · ${attr.bose} · ${attr.size}${attr.odd}',
+                      style: context.texts.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '头${attr.head} 尾${attr.wei} 合${attr.sum} ${attr.jiaye}'
+                      '${attr.wuxing == null ? '' : ' 五行${attr.wuxing}'}',
+                      style: context.texts.labelSmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 18),
+            ],
+          ),
         );
       },
     );
@@ -290,6 +331,7 @@ class _AttributeTable extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => _NumberDetailSheet(attr: attr),
     );
   }
@@ -302,76 +344,83 @@ class _NumberDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              NumberBall(number: attr.num, attr: attr, size: 52),
-              const SizedBox(width: 14),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${attr.num} 号', style: context.texts.titleLarge),
-                  Text(
-                    '${attr.xiao} · ${attr.bose}',
-                    style: context.texts.bodyMedium
-                        ?.copyWith(color: context.colors.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const Divider(height: 24),
-          // Fixed attributes first: these never change, so they are the stable
-          // reference an operator can rely on regardless of date.
-          _Group(
-            title: '固定属性',
-            subtitle: '不随年份变化',
-            entries: {
-              '波色': attr.bose,
-              '大小': attr.size,
-              '单双': attr.odd,
-              '头数': attr.head,
-              '尾数': attr.wei,
-              '合数单双': attr.sum,
-              '半波': attr.halfwave,
-            },
-          ),
-          _Group(
-            title: '年度属性',
-            subtitle: '随农历年轮转',
-            entries: {
-              '生肖': attr.xiao,
-              '家野': attr.jiaye,
-              '五行': attr.wuxing ?? '该年份无权威五行表',
-            },
-          ),
-          _Group(
-            title: '2026 灵码',
-            entries: {
-              '称谓': attr.role,
-              '花': attr.flower,
-              '时辰': attr.hour,
-              '地支': attr.dizhi,
-              '生肖色': attr.xiaoColor,
-              '笔画': attr.stroke,
-            },
-          ),
-          _Group(
-            title: '生肖分类',
-            entries: {
-              '天地肖': attr.tianDi,
-              '阴阳肖': attr.yinYang,
-              '男女肖': attr.gender,
-              '吉凶肖': attr.luck,
-              '季节': attr.season,
-              '方位': attr.direction,
-            },
-          ),
-        ],
+    return GlassContainer(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      blur: 35,
+      fillColor: context.colors.surface.withValues(alpha: 0.92),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                NumberBall(number: attr.num, attr: attr, size: 54),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${attr.num} 号',
+                      style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${attr.xiao} · ${attr.bose}',
+                      style: context.texts.bodyMedium
+                          ?.copyWith(color: context.colors.onSurfaceVariant, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            _Group(
+              title: '固定属性',
+              subtitle: '不随年份变化',
+              entries: {
+                '波色': attr.bose,
+                '大小': attr.size,
+                '单双': attr.odd,
+                '头数': attr.head,
+                '尾数': attr.wei,
+                '合数单双': attr.sum,
+                '半波': attr.halfwave,
+              },
+            ),
+            _Group(
+              title: '年度属性',
+              subtitle: '随农历年轮转',
+              entries: {
+                '生肖': attr.xiao,
+                '家野': attr.jiaye,
+                '五行': attr.wuxing ?? '该年份无权威五行表',
+              },
+            ),
+            _Group(
+              title: '2026 灵码',
+              entries: {
+                '称谓': attr.role,
+                '花': attr.flower,
+                '时辰': attr.hour,
+                '地支': attr.dizhi,
+                '生肖色': attr.xiaoColor,
+                '笔画': attr.stroke,
+              },
+            ),
+            _Group(
+              title: '生肖分类',
+              entries: {
+                '天地肖': attr.tianDi,
+                '阴阳肖': attr.yinYang,
+                '男女肖': attr.gender,
+                '吉凶肖': attr.luck,
+                '季节': attr.season,
+                '方位': attr.direction,
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -389,7 +438,7 @@ class _Group extends StatelessWidget {
     final present = entries.entries.where((e) => e.value != null && e.value!.isNotEmpty);
     if (present.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -397,7 +446,7 @@ class _Group extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               if (subtitle != null) ...[
                 const SizedBox(width: 6),
@@ -409,20 +458,25 @@ class _Group extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
               for (final entry in present)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: context.colors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(6),
+                    color: context.colors.surfaceContainerHighest.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
                   ),
-                  child: Text('${entry.key} ${entry.value}',
-                      style: context.texts.labelMedium),
+                  child: Text(
+                    '${entry.key} ${entry.value}',
+                    style: context.texts.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
                 ),
             ],
           ),
@@ -444,8 +498,6 @@ class _ReverseLookup extends ConsumerWidget {
     final controller = ref.read(numberFiltersProvider.notifier);
     final matched = result.items.where(filters.matches).toList();
 
-    // Dimensions are built from the actual data, so a value that never occurs is
-    // never offered as a filter.
     final dimensions = <String, ({String label, List<String> values})>{
       'bose': (label: '波色', values: _distinct(result, (a) => a.bose)),
       'size': (label: '大小', values: _distinct(result, (a) => a.size)),
@@ -465,66 +517,57 @@ class _ReverseLookup extends ConsumerWidget {
         'wuxing': (label: '五行', values: _distinct(result, (a) => a.wuxing)),
     };
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.only(top: 6, bottom: 96),
       children: [
-        Material(
-          color: context.colors.surfaceContainerHigh,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Row(
-              children: [
-                Text(
-                  '命中 ${matched.length} 个号码',
-                  style: context.texts.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const Spacer(),
-                if (!filters.isEmpty)
-                  TextButton(
-                    onPressed: controller.clear,
-                    child: const Text('清除条件'),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: 24),
+        GlassCard(
+          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          child: Row(
             children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: matched.isEmpty
-                    ? Text(
-                        '没有号码同时满足所有条件',
-                        style: TextStyle(color: context.colors.error),
-                      )
-                    : Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final attr in matched)
-                            NumberBall(
-                              number: attr.num,
-                              attr: attr,
-                              size: 36,
-                              showColorName: false,
-                            ),
-                        ],
-                      ),
+              Text(
+                '命中 ${matched.length} 个号码',
+                style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
-              const Divider(),
-              for (final entry in dimensions.entries)
-                if (entry.value.values.isNotEmpty)
-                  _FilterRow(
-                    label: entry.value.label,
-                    values: entry.value.values,
-                    selected: filters.valuesFor(entry.key),
-                    onToggle: (value) => controller.toggle(entry.key, value),
-                  ),
+              const Spacer(),
+              if (!filters.isEmpty)
+                TextButton(
+                  onPressed: controller.clear,
+                  child: const Text('清除条件', style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
             ],
           ),
         ),
+        GlassCard(
+          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          padding: const EdgeInsets.all(14),
+          child: matched.isEmpty
+              ? Text(
+                  '没有号码同时满足所有条件',
+                  style: TextStyle(color: context.colors.error, fontWeight: FontWeight.w600),
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final attr in matched)
+                      NumberBall(
+                        number: attr.num,
+                        attr: attr,
+                        size: 38,
+                        showColorName: false,
+                      ),
+                  ],
+                ),
+        ),
+        for (final entry in dimensions.entries)
+          if (entry.value.values.isNotEmpty)
+            _FilterRow(
+              label: entry.value.label,
+              values: entry.value.values,
+              selected: filters.valuesFor(entry.key),
+              onToggle: (value) => controller.toggle(entry.key, value),
+            ),
       ],
     );
   }
@@ -564,23 +607,31 @@ class _FilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: context.texts.labelMedium),
-          const SizedBox(height: 4),
+          Text(
+            label,
+            style: context.texts.labelMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.2,
+              color: context.colors.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
               for (final value in values)
-                FilterChip(
-                  label: Text(value),
-                  selected: selected.contains(value),
-                  onSelected: (_) => onToggle(value),
-                  visualDensity: VisualDensity.compact,
+                GlassFilterPill(
+                  label: value,
+                  isSelected: selected.contains(value),
+                  onTap: () => onToggle(value),
+                  small: true,
                 ),
             ],
           ),

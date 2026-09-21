@@ -55,7 +55,11 @@ class HomeScreen extends ConsumerWidget {
     final unread = ref.watch(messageCentreProvider).unreadCount;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: const Text('Duiliao'),
         actions: [
           IconButton(

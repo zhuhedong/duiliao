@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 /// as red in both themes. These are therefore fixed values, chosen to stay
 /// legible on both backgrounds, rather than being derived from the colour scheme.
 abstract final class DuiliaoColors {
+  /// iOS 27 Liquid Electric Azure / Blue.
+  static const Color primary = Color(0xFF007AFF);
+
   /// 红波 — 晶莹红宝石.
   static const Color boseRed = Color(0xFFE53935);
 

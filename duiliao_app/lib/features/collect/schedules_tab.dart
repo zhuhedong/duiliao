@@ -14,6 +14,7 @@ import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/collect_job.dart';
 import '../../domain/models/source.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import 'collect_providers.dart';
@@ -68,35 +69,62 @@ class _SchedulerStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Icon(
-              status.running ? Icons.play_circle : Icons.pause_circle,
-              color: status.running ? DuiliaoColors.hit : DuiliaoColors.pending,
+    final isRunning = status.running;
+    final color = isRunning ? DuiliaoColors.hit : DuiliaoColors.pending;
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.15),
+              border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    status.running ? '调度器运行中' : '调度器未运行',
-                    style: context.texts.titleSmall,
-                  ),
-                  Text(
-                    '检查间隔 ${status.checkIntervalSeconds}s · '
-                    '进行中 ${status.activeTasksCount} 个',
-                    style: context.texts.bodySmall
-                        ?.copyWith(color: context.colors.onSurfaceVariant),
-                  ),
-                ],
-              ),
+            child: Icon(
+              isRunning ? Icons.play_arrow_rounded : Icons.pause_rounded,
+              color: color,
+              size: 26,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      isRunning ? '调度器运行中' : '调度器未运行',
+                      style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(width: 8),
+                    GlassBadge(
+                      label: isRunning ? 'Active' : 'Paused',
+                      color: color,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '检查间隔 ${status.checkIntervalSeconds}s · '
+                  '进行中 ${status.activeTasksCount} 个',
+                  style: context.texts.bodySmall
+                      ?.copyWith(color: context.colors.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -109,57 +137,62 @@ class _ScheduleCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    schedule.name,
-                    style: context.texts.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700),
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  schedule.name,
+                  style: context.texts.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              Switch(
+                value: schedule.enabled,
+                onChanged: (value) => _toggle(context, ref, value),
+              ),
+            ],
+          ),
+          Text(
+            '${Lottery.labelFor(schedule.lottery)} · '
+            '${schedule.sourceCount == null ? '全部源' : '${schedule.sourceCount} 个源'}'
+            ' · 并发 ${schedule.concurrency}',
+            style: context.texts.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              GlassBadge(
+                label: schedule.isTimeWindow ? '时间窗口' : 'cron',
+                color: context.colors.primary,
+                icon: schedule.isTimeWindow ? Icons.timelapse : Icons.schedule,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  schedule.scheduleLabel,
+                  style: context.texts.labelSmall?.copyWith(
+                    fontFamily: schedule.isTimeWindow ? null : 'monospace',
                   ),
                 ),
-                Switch(
-                  value: schedule.enabled,
-                  onChanged: (value) => _toggle(context, ref, value),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: context.colors.surfaceContainerHighest.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
             ),
-            Text(
-              '${Lottery.labelFor(schedule.lottery)} · '
-              '${schedule.sourceCount == null ? '全部源' : '${schedule.sourceCount} 个源'}'
-              ' · 并发 ${schedule.concurrency}',
-              style: context.texts.bodySmall,
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                // The two scheduling modes read very differently, so they are
-                // labelled rather than both shown as a raw cron string.
-                StatusChip(
-                  label: schedule.isTimeWindow ? '时间窗口' : 'cron',
-                  color: context.colors.primary,
-                  icon: schedule.isTimeWindow ? Icons.timelapse : Icons.schedule,
-                  compact: true,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    schedule.scheduleLabel,
-                    style: context.texts.labelSmall?.copyWith(
-                      fontFamily: schedule.isTimeWindow ? null : 'monospace',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
+            child: Row(
               children: [
                 Expanded(
                   child: StatTile(
@@ -172,41 +205,46 @@ class _ScheduleCard extends ConsumerWidget {
                         : (schedule.lastRunFailed ? '失败' : '成功'),
                   ),
                 ),
+                Container(
+                  width: 1,
+                  height: 28,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: StatTile(
                     label: '下次执行',
-                    // Suppressed when disabled: showing a next run for a paused
-                    // task would be misleading.
                     value: schedule.displayNextRun ?? (schedule.enabled ? '—' : '已停用'),
                   ),
                 ),
               ],
             ),
-            if (schedule.lastRunFailed) ...[
-              const SizedBox(height: 8),
-              const WarningNote(
-                message: '上次执行失败，请查看日志',
-                icon: Icons.error_outline,
-                color: DuiliaoColors.miss,
-              ),
-            ],
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                TextButton.icon(
-                  onPressed: () => _trigger(context, ref),
-                  icon: const Icon(Icons.play_arrow, size: 18),
-                  label: const Text('立即执行'),
-                ),
-                TextButton.icon(
-                  onPressed: () => _showLogs(context, ref),
-                  icon: const Icon(Icons.article_outlined, size: 18),
-                  label: const Text('日志'),
-                ),
-              ],
+          ),
+          if (schedule.lastRunFailed) ...[
+            const SizedBox(height: 8),
+            const WarningNote(
+              message: '上次执行失败，请查看日志',
+              icon: Icons.error_outline,
+              color: DuiliaoColors.miss,
             ),
           ],
-        ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: () => _trigger(context, ref),
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: const Text('立即执行'),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () => _showLogs(context, ref),
+                icon: const Icon(Icons.article_outlined, size: 18),
+                label: const Text('日志'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -255,35 +293,67 @@ class _ScheduleCard extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => DraggableScrollableSheet(
         expand: false,
         initialChildSize: 0.7,
-        builder: (_, controller) => ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-          children: [
-            Text('${schedule.name} 执行日志', style: context.texts.titleMedium),
-            const SizedBox(height: 12),
-            if (logs.isEmpty)
-              const Text('暂无日志')
-            else
-              for (final log in logs)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    log.failed ? Icons.error : Icons.check_circle,
-                    color: log.failed ? DuiliaoColors.miss : DuiliaoColors.hit,
-                    size: 18,
+        builder: (_, controller) => GlassContainer(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          blur: 35,
+          fillColor: context.colors.surface.withValues(alpha: 0.88),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          child: ListView(
+            controller: controller,
+            children: [
+              Text('${schedule.name} 执行日志', style: context.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              if (logs.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(child: Text('暂无日志')),
+                )
+              else
+                for (final log in logs)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: context.colors.surfaceContainerHighest.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          log.failed ? Icons.error_rounded : Icons.check_circle_rounded,
+                          color: log.failed ? DuiliaoColors.miss : DuiliaoColors.hit,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(log.detail, style: context.texts.bodySmall),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${log.timestamp}'
+                                '${log.durationSec == null ? '' : ' · ${log.durationSec}s'}',
+                                style: context.texts.labelSmall?.copyWith(
+                                  color: context.colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  title: Text(log.detail, style: context.texts.bodySmall),
-                  subtitle: Text(
-                    '${log.timestamp}'
-                    '${log.durationSec == null ? '' : ' · ${log.durationSec}s'}',
-                    style: context.texts.labelSmall,
-                  ),
-                ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -333,32 +403,37 @@ class _WorkerCard extends StatelessWidget {
   final CollectWorkerStatus worker;
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Icon(
-                worker.running ? Icons.play_circle : Icons.pause_circle,
+  Widget build(BuildContext context) => GlassCard(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: (worker.running ? DuiliaoColors.hit : DuiliaoColors.pending).withValues(alpha: 0.15),
+              ),
+              child: Icon(
+                worker.running ? Icons.play_arrow_rounded : Icons.pause_rounded,
                 color: worker.running ? DuiliaoColors.hit : DuiliaoColors.pending,
+                size: 22,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  '采集执行器${worker.running ? '运行中' : '未运行'} · '
-                  '进行中 ${worker.activeJobsCount}/${worker.maxConcurrentJobs}',
-                  style: context.texts.bodySmall,
-                ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '采集执行器${worker.running ? '运行中' : '未运行'} · '
+                '进行中 ${worker.activeJobsCount}/${worker.maxConcurrentJobs}',
+                style: context.texts.bodySmall?.copyWith(fontWeight: FontWeight.w600),
               ),
-              if (worker.isSaturated)
-                const StatusChip(
-                  // Tells the operator why a new submission will sit queued.
-                  label: '已满，新任务将排队',
-                  color: DuiliaoColors.warning,
-                  compact: true,
-                ),
-            ],
-          ),
+            ),
+            if (worker.isSaturated)
+              const GlassBadge(
+                label: '已满排队中',
+                color: DuiliaoColors.warning,
+              ),
+          ],
         ),
       );
 }
@@ -371,33 +446,57 @@ class _HistoryTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (color, icon) = switch (job.status) {
-      JobStatus.done => (DuiliaoColors.hit, Icons.check_circle),
-      JobStatus.failed => (DuiliaoColors.miss, Icons.error),
-      JobStatus.cancelled => (DuiliaoColors.pending, Icons.cancel),
-      JobStatus.interrupted => (DuiliaoColors.conflict, Icons.power_off),
-      _ => (DuiliaoColors.warning, Icons.autorenew),
+      JobStatus.done => (DuiliaoColors.hit, Icons.check_circle_rounded),
+      JobStatus.failed => (DuiliaoColors.miss, Icons.error_rounded),
+      JobStatus.cancelled => (DuiliaoColors.pending, Icons.cancel_rounded),
+      JobStatus.interrupted => (DuiliaoColors.conflict, Icons.power_off_rounded),
+      _ => (DuiliaoColors.warning, Icons.autorenew_rounded),
     };
 
-    return ListTile(
-      dense: true,
-      leading: Icon(icon, color: color),
-      title: Text(
-        '#${job.id} ${Lottery.labelFor(job.lottery)} '
-        '${job.period == null ? '自动期号' : Period.compact(job.period)}',
-      ),
-      subtitle: Text(
-        '${job.successRatioLabel} 成功'
-        '${job.duration == null ? '' : ' · ${job.duration!.inSeconds}s'}'
-        '${job.startedAt == null ? '' : ' · ${job.startedAt}'}',
-        style: context.texts.labelSmall,
-      ),
-      trailing: StatusChip(label: job.status.label, color: color, compact: true),
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.all(12),
       onTap: () {
-        // Reopening a job reuses the live progress view, which also works for
-        // finished jobs since it polls once and stops.
         ref.read(activeJobIdProvider.notifier).set(job.id);
         DefaultTabController.maybeOf(context)?.animateTo(0);
       },
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.12),
+              border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '#${job.id} ${Lottery.labelFor(job.lottery)} '
+                  '${job.period == null ? '自动期号' : Period.compact(job.period)}',
+                  style: context.texts.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${job.successRatioLabel} 成功'
+                  '${job.duration == null ? '' : ' · ${job.duration!.inSeconds}s'}'
+                  '${job.startedAt == null ? '' : ' · ${job.startedAt}'}',
+                  style: context.texts.labelSmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GlassBadge(label: job.status.label, color: color),
+        ],
+      ),
     );
   }
 }

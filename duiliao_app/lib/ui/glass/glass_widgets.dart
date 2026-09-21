@@ -536,3 +536,246 @@ class GlassButton extends StatelessWidget {
     );
   }
 }
+
+/// An iOS Settings-style grouped glass card.
+///
+/// Wraps children (such as [ListTile]s) in a frosted glass card and automatically
+/// places a semi-transparent specular divider between items.
+class GlassGroup extends StatelessWidget {
+  const GlassGroup({
+    super.key,
+    required this.children,
+    this.margin = const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+    this.borderRadius,
+    this.dividerIndent = 16.0,
+  });
+
+  final List<Widget> children;
+  final EdgeInsetsGeometry margin;
+  final BorderRadius? borderRadius;
+  final double dividerIndent;
+
+  @override
+  Widget build(BuildContext context) {
+    if (children.isEmpty) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dividerColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : const Color(0xFF007AFF).withValues(alpha: 0.08);
+
+    return GlassCard(
+      margin: margin,
+      borderRadius: borderRadius,
+      padding: EdgeInsets.zero,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i < children.length - 1)
+              Divider(
+                height: 1,
+                thickness: 0.8,
+                indent: dividerIndent,
+                endIndent: 16,
+                color: dividerColor,
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A liquid crystal filter pill for filters, chips, and segment toggles.
+class GlassFilterPill extends StatelessWidget {
+  const GlassFilterPill({
+    super.key,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    this.icon,
+    this.count,
+    this.color,
+    this.small = false,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final IconData? icon;
+  final int? count;
+  final Color? color;
+  final bool small;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = color ?? Theme.of(context).colorScheme.primary;
+
+    final activeBg = isDark
+        ? primary.withValues(alpha: 0.28)
+        : primary.withValues(alpha: 0.16);
+    final inactiveBg = isDark
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.white.withValues(alpha: 0.55);
+
+    final activeBorder = isDark
+        ? primary.withValues(alpha: 0.60)
+        : primary.withValues(alpha: 0.50);
+    final inactiveBorder = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.white.withValues(alpha: 0.80);
+
+    final textColor = isSelected
+        ? (isDark ? Colors.white : primary)
+        : (isDark ? Colors.white.withValues(alpha: 0.70) : const Color(0xFF475569));
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: isSelected ? activeBg : inactiveBg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isSelected ? activeBorder : inactiveBorder,
+          width: isSelected ? 1.2 : 0.9,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: primary.withValues(alpha: 0.22),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: small ? 9 : 13,
+              vertical: small ? 4.5 : 7,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: small ? 12 : 14, color: textColor),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: small ? 11.5 : 13,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: textColor,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+                if (count != null) ...[
+                  const SizedBox(width: 4.5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? primary.withValues(alpha: 0.20)
+                          : (isDark
+                              ? Colors.white.withValues(alpha: 0.10)
+                              : Colors.black.withValues(alpha: 0.05)),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '$count',
+                      style: TextStyle(
+                        fontSize: small ? 10 : 11,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A liquid crystal linear progress bar with specular highlight and ambient glow.
+class GlassLinearProgress extends StatelessWidget {
+  const GlassLinearProgress({
+    super.key,
+    required this.value,
+    this.height = 10,
+    this.color,
+    this.gradient,
+    this.borderRadius,
+  });
+
+  final double value;
+  final double height;
+  final Color? color;
+  final Gradient? gradient;
+  final BorderRadius? borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = color ?? Theme.of(context).colorScheme.primary;
+    final radius = borderRadius ?? BorderRadius.circular(999);
+    final clamped = value.clamp(0.0, 1.0);
+
+    final trackBg = isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.black.withValues(alpha: 0.05);
+
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: trackBg,
+        borderRadius: radius,
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.white.withValues(alpha: 0.60),
+          width: 0.8,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          children: [
+            FractionallySizedBox(
+              widthFactor: clamped,
+              heightFactor: 1.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: gradient ??
+                      LinearGradient(
+                        colors: [
+                          primary.withValues(alpha: 0.85),
+                          Color.lerp(primary, Colors.cyanAccent, 0.35)!,
+                        ],
+                      ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primary.withValues(alpha: 0.35),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

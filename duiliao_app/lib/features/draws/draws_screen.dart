@@ -51,7 +51,11 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: const Text('开奖'),
         bottom: TabBar(
           controller: _tabs,
@@ -77,6 +81,7 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen>
     final current = ref.read(drawListProvider(lottery)).value;
     final result = await showModalBottomSheet<({String? from, String? to})>(
       context: context,
+      backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => _PeriodFilterSheet(
         initialFrom: current?.periodFrom,
@@ -205,13 +210,30 @@ class _FilterChipBar extends StatelessWidget {
       if (to != null) '止 ${Period.short(to)}',
     ].join(' · ');
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: InputChip(
-          label: Text('期号筛选：$label'),
-          onDeleted: onClear,
-          deleteIcon: const Icon(Icons.close, size: 16),
+        child: GlassContainer(
+          blur: 16,
+          borderRadius: BorderRadius.circular(20),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '期号筛选：$label',
+                style: context.texts.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: DuiliaoColors.primary,
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(Icons.close, size: 14, color: DuiliaoColors.primary),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -249,11 +271,10 @@ class _DrawCard extends StatelessWidget {
                 ),
               const Spacer(),
               if (summary?.hasLianxiao == true)
-                const StatusChip(
+                const GlassBadge(
                   label: '连肖',
                   color: DuiliaoColors.warning,
                   icon: Icons.link,
-                  compact: true,
                 ),
             ],
           ),
@@ -341,17 +362,30 @@ class _PeriodFilterSheetState extends State<_PeriodFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return GlassContainer(
+      blur: 35,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       padding: EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        16 + MediaQuery.viewInsetsOf(context).bottom,
+        20,
+        12,
+        20,
+        20 + MediaQuery.viewInsetsOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Text('期号区间筛选', style: context.texts.titleMedium),
           const SizedBox(height: 4),
           Text(

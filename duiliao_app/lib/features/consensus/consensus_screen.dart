@@ -9,6 +9,7 @@ import '../../domain/lottery.dart';
 import '../../domain/models/consensus.dart';
 import '../../domain/models/prediction.dart';
 import '../../domain/play_type.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import '../../ui/widgets/number_ball.dart';
@@ -54,20 +55,23 @@ class _ConsensusScreenState extends ConsumerState<ConsensusScreen> {
       // Default to the newest period so the screen is useful without any input.
       final latest = ref.watch(latestPeriodProvider(lottery));
       return Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: AppBar(title: const Text('共识榜')),
-        body: latest.when(
-          loading: () => const SkeletonList(),
-          error: (e, _) => ErrorState(
-            error: e,
-            onRetry: () => ref.invalidate(latestPeriodProvider(lottery)),
+        body: GlassBackground(
+          child: latest.when(
+            loading: () => const SkeletonList(),
+            error: (e, _) => ErrorState(
+              error: e,
+              onRetry: () => ref.invalidate(latestPeriodProvider(lottery)),
+            ),
+            data: (period) {
+              if (period == null) return const EmptyState(message: '暂无开奖期号');
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() => _period = period);
+              });
+              return const SkeletonList();
+            },
           ),
-          data: (period) {
-            if (period == null) return const EmptyState(message: '暂无开奖期号');
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _period = period);
-            });
-            return const SkeletonList();
-          },
         ),
       );
     }
@@ -76,6 +80,7 @@ class _ConsensusScreenState extends ConsumerState<ConsensusScreen> {
     final async = ref.watch(consensusProvider(key));
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text('共识榜 ${Period.compact(_period)}'),
         actions: [
@@ -86,56 +91,58 @@ class _ConsensusScreenState extends ConsumerState<ConsensusScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(consensusProvider(key)),
-        child: AsyncView<({ConsensusResult result, bool isStale, String? storedAt})>(
-          value: async,
-          loading: const SkeletonList(itemHeight: 120),
-          onRetry: () => ref.invalidate(consensusProvider(key)),
-          builder: (data) {
-            final result = data.result;
-            if (result.groups.isEmpty && !result.hasAtomTallies) {
-              return const EmptyState(
-                message: '本期暂无共识数据',
-                detail: '可能还没有采集到任何源预测',
+      body: GlassBackground(
+        child: RefreshIndicator(
+          onRefresh: () async => ref.invalidate(consensusProvider(key)),
+          child: AsyncView<({ConsensusResult result, bool isStale, String? storedAt})>(
+            value: async,
+            loading: const SkeletonList(itemHeight: 120),
+            onRetry: () => ref.invalidate(consensusProvider(key)),
+            builder: (data) {
+              final result = data.result;
+              if (result.groups.isEmpty && !result.hasAtomTallies) {
+                return const EmptyState(
+                  message: '本期暂无共识数据',
+                  detail: '可能还没有采集到任何源预测',
+                );
+              }
+              return ListView(
+                padding: const EdgeInsets.only(top: 6, bottom: 96),
+                children: [
+                  if (data.isStale)
+                    OfflineBanner(
+                      storedAtLabel: data.storedAt,
+                      onRetry: () => ref.invalidate(consensusProvider(key)),
+                    ),
+                  if (result.draw != null) _DrawStrip(result: result),
+                  if (result.temaTallies.isNotEmpty)
+                    _HeatSection(
+                      title: '特码热度',
+                      subtitle: '按得票占比排序',
+                      items: result.temaTallies,
+                      renderAsBall: true,
+                      isDrawn: result.isDrawn,
+                    ),
+                  if (result.texiaoTallies.isNotEmpty)
+                    _HeatSection(
+                      title: '特肖热度',
+                      subtitle: '12 生肖得票分布',
+                      items: result.texiaoTallies,
+                      renderAsBall: false,
+                      isDrawn: result.isDrawn,
+                    ),
+                  if (result.groups.isNotEmpty)
+                    const SectionHeader(
+                      title: '按玩法分组',
+                      subtitle: '领先方案置顶',
+                    ),
+                  for (final group in result.sortedGroups)
+                    _GroupCard(group: group, isDrawn: result.isDrawn),
+                  const _VotingFootnote(),
+                ],
               );
-            }
-            return ListView(
-              padding: const EdgeInsets.only(top: 6, bottom: 96),
-              children: [
-                if (data.isStale)
-                  OfflineBanner(
-                    storedAtLabel: data.storedAt,
-                    onRetry: () => ref.invalidate(consensusProvider(key)),
-                  ),
-                if (result.draw != null) _DrawStrip(result: result),
-                if (result.temaTallies.isNotEmpty)
-                  _HeatSection(
-                    title: '特码热度',
-                    subtitle: '按得票占比排序',
-                    items: result.temaTallies,
-                    renderAsBall: true,
-                    isDrawn: result.isDrawn,
-                  ),
-                if (result.texiaoTallies.isNotEmpty)
-                  _HeatSection(
-                    title: '特肖热度',
-                    subtitle: '12 生肖得票分布',
-                    items: result.texiaoTallies,
-                    renderAsBall: false,
-                    isDrawn: result.isDrawn,
-                  ),
-                if (result.groups.isNotEmpty)
-                  const SectionHeader(
-                    title: '按玩法分组',
-                    subtitle: '领先方案置顶',
-                  ),
-                for (final group in result.sortedGroups)
-                  _GroupCard(group: group, isDrawn: result.isDrawn),
-                const _VotingFootnote(),
-              ],
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -180,22 +187,35 @@ class _DrawStrip extends StatelessWidget {
   final ConsensusResult result;
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Text('已开奖', style: context.texts.labelMedium),
-              const SizedBox(width: 10),
-              Expanded(
-                child: DrawBallRow(
-                  draw: result.draw!,
-                  ballSize: 28,
-                  showColorNames: false,
+  Widget build(BuildContext context) => GlassCard(
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '已开奖',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DrawBallRow(
+                draw: result.draw!,
+                ballSize: 30,
+                showColorNames: false,
+              ),
+            ),
+          ],
         ),
       );
 }
@@ -223,62 +243,58 @@ class _HeatSection extends StatelessWidget {
     return Column(
       children: [
         SectionHeader(title: title, subtitle: subtitle),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Column(
-              children: [
-                for (final item in top)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 42,
-                          child: renderAsBall
-                              ? NumberBall(
-                                  number: item.value,
-                                  size: 28,
-                                  showColorName: false,
-                                )
-                              : Text(
-                                  item.value,
-                                  style: context.texts.titleSmall,
-                                ),
+        GlassCard(
+          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(
+            children: [
+              for (final item in top)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 44,
+                        child: renderAsBall
+                            ? NumberBall(
+                                number: item.value,
+                                size: 28,
+                                showColorName: false,
+                              )
+                            : Text(
+                                item.value,
+                                style: context.texts.titleSmall
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: GlassLinearProgress(
+                          value: item.barFraction,
+                          height: 12,
                         ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: item.barFraction,
-                              minHeight: 14,
-                              backgroundColor:
-                                  context.colors.surfaceContainerHighest,
-                            ),
+                      ),
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 76,
+                        child: Text(
+                          '${item.votes} 票 · '
+                          '${item.percentage.toStringAsFixed(0)}%',
+                          style: context.texts.labelSmall?.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                            fontWeight: FontWeight.w600,
                           ),
+                          textAlign: TextAlign.right,
                         ),
+                      ),
+                      if (isDrawn && item.hit != null) ...[
                         const SizedBox(width: 8),
-                        SizedBox(
-                          width: 70,
-                          child: Text(
-                            '${item.votes} 票 '
-                            '${item.percentage.toStringAsFixed(0)}%',
-                            style: context.texts.labelSmall,
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                        // Only meaningful once the draw is published; a null hit
-                        // before that is not a miss.
-                        if (isDrawn && item.hit != null) ...[
-                          const SizedBox(width: 6),
-                          _HitMark(hit: item.hit!),
-                        ],
+                        _HitMark(hit: item.hit!),
                       ],
-                    ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
       ],
@@ -295,7 +311,11 @@ class _GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final share = group.leaderShare;
-    return Card(
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      padding: EdgeInsets.zero,
       child: ExpansionTile(
         shape: const Border(),
         collapsedShape: const Border(),
@@ -320,17 +340,21 @@ class _GroupCard extends StatelessWidget {
           child: Row(
             children: [
               if (group.leader != null && group.leader!.isNotEmpty) ...[
-                // The leading scheme is the headline of the group.
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                   decoration: BoxDecoration(
-                    color: context.colors.primaryContainer,
-                    borderRadius: BorderRadius.circular(6),
+                    color: primary.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: primary.withValues(alpha: 0.40),
+                      width: 1,
+                    ),
                   ),
                   child: Text(
                     formatAtoms(group.leader!),
-                    style: context.texts.labelLarge?.copyWith(
-                      color: context.colors.onPrimaryContainer,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -370,8 +394,9 @@ class _TallyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
     return Container(
-      color: isLeader ? context.colors.primaryContainer.withValues(alpha: 0.25) : null,
+      color: isLeader ? primary.withValues(alpha: 0.10) : null,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,7 +411,13 @@ class _TallyRow extends StatelessWidget {
                   ),
                 ),
               ),
-              Text('${item.votes} 票', style: context.texts.labelMedium),
+              Text(
+                '${item.votes} 票',
+                style: context.texts.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
               if (isDrawn && item.hit != null) ...[
                 const SizedBox(width: 8),
                 _HitMark(hit: item.hit!),
@@ -407,23 +438,22 @@ class _TallyRow extends StatelessWidget {
   }
 }
 
-/// Hit indicator using both an icon and a word, never colour alone.
+/// Hit indicator using both an icon and a word with crystal badge.
 class _HitMark extends StatelessWidget {
   const _HitMark({required this.hit});
 
   final bool hit;
 
   @override
-  Widget build(BuildContext context) => StatusChip(
+  Widget build(BuildContext context) => GlassBadge(
         label: hit ? '中' : '挂',
         color: hit ? DuiliaoColors.hit : DuiliaoColors.miss,
         icon: hit ? Icons.check_circle : Icons.cancel,
-        compact: true,
+        small: true,
       );
 }
 
-/// Explains the vote-counting rule, because a naive reading of the numbers
-/// overstates how much independent agreement there is.
+/// Explains the vote-counting rule.
 class _VotingFootnote extends StatelessWidget {
   const _VotingFootnote();
 
@@ -438,3 +468,4 @@ class _VotingFootnote extends StatelessWidget {
         ),
       );
 }
+

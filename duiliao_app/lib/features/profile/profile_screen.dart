@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/providers.dart';
 import '../../core/storage/secure_store.dart';
 import '../../domain/models/user.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../auth/auth_providers.dart';
 import '../upgrade/github_update_service.dart';
@@ -22,113 +23,145 @@ class ProfileScreen extends ConsumerWidget {
     final auth = ref.watch(authStateProvider);
     final user = auth.user;
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('未登录')));
+      return const Scaffold(
+        body: GlassBackground(child: Center(child: Text('未登录'))),
+      );
     }
     final preferences = ref.watch(displayPreferencesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('我的')),
-      body: ListView(
-        padding: const EdgeInsets.only(top: 6, bottom: 96),
-        children: [
-          _ProfileHeader(user: user),
-          const _SectionTitle('账号'),
-          ListTile(
-            leading: const Icon(Icons.edit_outlined),
-            title: const Text('编辑资料'),
-            subtitle: Text(user.email ?? user.phone ?? user.username ?? user.id),
-            onTap: () => _editProfile(context, ref, user),
-          ),
-          ListTile(
-            leading: const Icon(Icons.password_outlined),
-            title: const Text('修改密码'),
-            onTap: () => _changePassword(context, ref),
-          ),
-          ListTile(
-            leading: const Icon(Icons.devices_outlined),
-            title: const Text('设备会话'),
-            subtitle: const Text('查看并下线其他设备'),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SessionsScreen()),
-            ),
-          ),
-          const _SectionTitle('安全与显示'),
-          SwitchListTile(
-            secondary: const Icon(Icons.fingerprint),
-            title: const Text('生物识别解锁'),
-            subtitle: const Text('重新打开应用时验证指纹或面容'),
-            value: preferences.biometricEnabled,
-            onChanged: (value) => _setBiometric(context, ref, value),
-          ),
-          ListTile(
-            leading: const Icon(Icons.dark_mode_outlined),
-            title: const Text('主题'),
-            trailing: DropdownButton<ThemeModePreference>(
-              value: preferences.themeMode,
-              underline: const SizedBox.shrink(),
-              items: const [
-                DropdownMenuItem(value: ThemeModePreference.system, child: Text('跟随系统')),
-                DropdownMenuItem(value: ThemeModePreference.light, child: Text('浅色')),
-                DropdownMenuItem(value: ThemeModePreference.dark, child: Text('深色')),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        title: const Text('我的'),
+        backgroundColor: Colors.transparent,
+      ),
+      body: GlassBackground(
+        child: ListView(
+          padding: const EdgeInsets.only(top: 6, bottom: 96),
+          children: [
+            _ProfileHeader(user: user),
+            const _SectionTitle('账号'),
+            GlassGroup(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('编辑资料'),
+                  subtitle: Text(user.email ?? user.phone ?? user.username ?? user.id),
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => _editProfile(context, ref, user),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.password_outlined),
+                  title: const Text('修改密码'),
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => _changePassword(context, ref),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.devices_outlined),
+                  title: const Text('设备会话'),
+                  subtitle: const Text('查看并下线其他设备'),
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SessionsScreen()),
+                  ),
+                ),
               ],
-              onChanged: (value) {
-                if (value != null) {
-                  ref.read(displayPreferencesProvider.notifier).setThemeMode(value);
-                }
-              },
             ),
-          ),
-          ListTile(
-            leading: const Icon(Icons.text_fields),
-            title: const Text('字号'),
-            subtitle: Slider(
-              value: preferences.textScale,
-              min: 0.9,
-              max: 1.4,
-              divisions: 10,
-              label: '${(preferences.textScale * 100).round()}%',
-              onChanged: (value) => ref
-                  .read(displayPreferencesProvider.notifier)
-                  .setTextScale(value),
+            const _SectionTitle('安全与显示'),
+            GlassGroup(
+              children: [
+                SwitchListTile(
+                  secondary: const Icon(Icons.fingerprint),
+                  title: const Text('生物识别解锁'),
+                  subtitle: const Text('重新打开应用时验证指纹或面容'),
+                  value: preferences.biometricEnabled,
+                  onChanged: (value) => _setBiometric(context, ref, value),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.dark_mode_outlined),
+                  title: const Text('主题'),
+                  trailing: DropdownButton<ThemeModePreference>(
+                    value: preferences.themeMode,
+                    underline: const SizedBox.shrink(),
+                    items: const [
+                      DropdownMenuItem(value: ThemeModePreference.system, child: Text('跟随系统')),
+                      DropdownMenuItem(value: ThemeModePreference.light, child: Text('浅色')),
+                      DropdownMenuItem(value: ThemeModePreference.dark, child: Text('深色')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        ref.read(displayPreferencesProvider.notifier).setThemeMode(value);
+                      }
+                    },
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.text_fields),
+                  title: const Text('字号'),
+                  subtitle: Slider(
+                    value: preferences.textScale,
+                    min: 0.9,
+                    max: 1.4,
+                    divisions: 10,
+                    label: '${(preferences.textScale * 100).round()}%',
+                    onChanged: (value) => ref
+                        .read(displayPreferencesProvider.notifier)
+                        .setTextScale(value),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const _SectionTitle('应用'),
-          ListTile(
-            leading: const Icon(Icons.rocket_launch_outlined),
-            title: const Text('在线升级 (GitHub)'),
-            subtitle: FutureBuilder<String>(
-              future: ref.watch(appVersionProvider.future),
-              builder: (_, snap) => Text('当前版本: v${snap.data ?? '1.0.0'} · 基于 GitHub Releases'),
+            const _SectionTitle('应用'),
+            GlassGroup(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.rocket_launch_outlined),
+                  title: const Text('在线升级 (GitHub)'),
+                  subtitle: FutureBuilder<String>(
+                    future: ref.watch(appVersionProvider.future),
+                    builder: (_, snap) => Text('当前版本: v${snap.data ?? '1.0.0'} · 基于 GitHub Releases'),
+                  ),
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => _checkVersion(context, ref),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('连接与规则版本'),
+                  subtitle: const Text('服务端规则版本可在首页刷新后查看'),
+                  trailing: const Icon(Icons.chevron_right, size: 18),
+                  onTap: () => _showConnection(context, ref),
+                ),
+              ],
             ),
-            trailing: const Icon(Icons.chevron_right, size: 18),
-            onTap: () => _checkVersion(context, ref),
-          ),
-          ListTile(
-            leading: const Icon(Icons.info_outline),
-            title: const Text('连接与规则版本'),
-            subtitle: Text('服务端规则版本可在首页刷新后查看'),
-            onTap: () => _showConnection(context, ref),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton.icon(
-              onPressed: () => ref.read(authControllerProvider).logout(),
-              icon: const Icon(Icons.logout),
-              label: const Text('退出登录'),
-            ),
-          ),
-          if (auth.canOperate)
+            const SizedBox(height: 16),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(
-                '当前角色：${user.role?.label ?? '未知'}',
-                textAlign: TextAlign.center,
-                style: context.texts.bodySmall?.copyWith(
-                  color: context.colors.onSurfaceVariant,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: GlassButton(
+                color: DuiliaoColors.miss.withValues(alpha: 0.15),
+                textColor: DuiliaoColors.miss,
+                onPressed: () => ref.read(authControllerProvider).logout(),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.logout_rounded, size: 18, color: DuiliaoColors.miss),
+                    SizedBox(width: 8),
+                    Text('退出登录', style: TextStyle(fontWeight: FontWeight.w700, color: DuiliaoColors.miss)),
+                  ],
                 ),
               ),
             ),
-        ],
+            if (auth.canOperate)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Text(
+                  '当前角色：${user.role?.label ?? '未知'}',
+                  textAlign: TextAlign.center,
+                  style: context.texts.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -332,11 +365,75 @@ class _ProfileHeader extends StatelessWidget {
   final AppUser user;
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: ListTile(
-          leading: CircleAvatar(radius: 26, child: Text(user.initial)),
-          title: Text(user.name, style: context.texts.titleMedium),
-          subtitle: Text('${user.role?.label ?? '未知角色'} · ${user.status?.label ?? ''}'),
+  Widget build(BuildContext context) => GlassCard(
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.all(18),
+        child: Row(
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    context.colors.primary,
+                    context.colors.primary.withValues(alpha: 0.65),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: context.colors.primary.withValues(alpha: 0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  user.initial,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user.name,
+                    style: context.texts.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      GlassBadge(
+                        label: user.role?.label ?? '未知角色',
+                        color: context.colors.primary,
+                      ),
+                      if (user.status?.label != null && user.status!.label.isNotEmpty)
+                        GlassBadge(
+                          label: user.status!.label,
+                          color: DuiliaoColors.hit,
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       );
 }
@@ -346,8 +443,15 @@ class _SectionTitle extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
-        child: Text(text, style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
+        child: Text(
+          text,
+          style: context.texts.labelMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.2,
+            color: context.colors.primary,
+          ),
+        ),
       );
 }
 
@@ -362,8 +466,10 @@ class SessionsScreen extends ConsumerWidget {
       _ => null,
     };
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('设备会话'),
+        backgroundColor: Colors.transparent,
         actions: [
           IconButton(
             tooltip: '退出所有设备',
@@ -372,53 +478,108 @@ class SessionsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('加载失败：$e')),
-        data: (sessions) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(deviceSessionsProvider),
-          child: ListView.builder(
-            itemCount: sessions.length,
-            itemBuilder: (_, index) {
-              final session = sessions[index];
-              final isThisDevice = session.isThisDevice(
-                thisDeviceName: device?.deviceName,
-                thisAppVersion: device?.appVersion,
-              );
-              return ListTile(
-                leading: Icon(session.platform == 'ios' ? Icons.phone_iphone : Icons.phone_android),
-                title: Text('${session.displayName}${isThisDevice ? '（当前设备）' : ''}'),
-                subtitle: Text('${session.platformLabel} · ${session.appVersion ?? '未知版本'}\n${session.ipAddress ?? ''}'),
-                isThreeLine: true,
-                trailing: IconButton(
-                  tooltip: '下线',
-                  icon: const Icon(Icons.logout),
-                  onPressed: () async {
-                    final confirmed = await _confirm(
-                      context,
-                      title: isThisDevice ? '下线当前设备？' : '下线设备？',
-                      message: '下线后，该设备需要重新登录。',
-                    );
-                    if (!confirmed || !context.mounted) return;
-                    try {
-                      await ref.read(authRepositoryProvider).revokeSession(session.id);
-                      if (isThisDevice) {
-                        await ref.read(authControllerProvider).logout();
-                        if (context.mounted) Navigator.pop(context);
-                      } else {
-                        ref.invalidate(deviceSessionsProvider);
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('下线失败：$e')),
-                        );
-                      }
-                    }
-                  },
-                ),
-              );
-            },
+      body: GlassBackground(
+        child: async.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('加载失败：$e')),
+          data: (sessions) => RefreshIndicator(
+            onRefresh: () async => ref.invalidate(deviceSessionsProvider),
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: sessions.length,
+              itemBuilder: (_, index) {
+                final session = sessions[index];
+                final isThisDevice = session.isThisDevice(
+                  thisDeviceName: device?.deviceName,
+                  thisAppVersion: device?.appVersion,
+                );
+                return GlassCard(
+                  margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: context.colors.primary.withValues(alpha: 0.12),
+                          border: Border.all(
+                            color: context.colors.primary.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Icon(
+                          session.platform == 'ios' ? Icons.phone_iphone : Icons.phone_android,
+                          color: context.colors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    session.displayName,
+                                    style: context.texts.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (isThisDevice) ...[
+                                  const SizedBox(width: 6),
+                                  const GlassBadge(
+                                    label: '当前设备',
+                                    color: DuiliaoColors.hit,
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              '${session.platformLabel} · ${session.appVersion ?? '未知版本'}'
+                              '${session.ipAddress == null ? '' : ' · ${session.ipAddress}'}',
+                              style: context.texts.labelSmall?.copyWith(
+                                color: context.colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '下线',
+                        icon: const Icon(Icons.logout_rounded, color: DuiliaoColors.miss, size: 20),
+                        onPressed: () async {
+                          final confirmed = await _confirm(
+                            context,
+                            title: isThisDevice ? '下线当前设备？' : '下线设备？',
+                            message: '下线后，该设备需要重新登录。',
+                          );
+                          if (!confirmed || !context.mounted) return;
+                          try {
+                            await ref.read(authRepositoryProvider).revokeSession(session.id);
+                            if (isThisDevice) {
+                              await ref.read(authControllerProvider).logout();
+                              if (context.mounted) Navigator.pop(context);
+                            } else {
+                              ref.invalidate(deviceSessionsProvider);
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('下线失败：$e')),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),

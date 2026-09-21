@@ -9,6 +9,7 @@ import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/source.dart';
 import '../../domain/play_type.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import 'collect_providers.dart';
@@ -57,60 +58,61 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
           return true;
         }).toList();
 
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Column(
-                children: [
-                  TextField(
-                    decoration: const InputDecoration(
-                      hintText: '搜索源名 / ID / 站族',
-                      prefixIcon: Icon(Icons.search),
+        return GlassContainer(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          blur: 35,
+          fillColor: context.colors.surface.withValues(alpha: 0.92),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Column(
+                  children: [
+                    TextField(
+                      decoration: const InputDecoration(
+                        hintText: '搜索源名 / ID / 站族',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (value) => setState(() => _query = value),
                     ),
-                    onChanged: (value) => setState(() => _query = value),
-                  ),
-                  const SizedBox(height: 8),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _FilterDropdown(
-                          hint: '玩法',
-                          value: _playFilter,
-                          items: {
-                            for (final play in plays) play: PlayTypes.labelFor(play),
-                          },
-                          onChanged: (value) => setState(() => _playFilter = value),
-                        ),
-                        const SizedBox(width: 8),
-                        _FilterDropdown(
-                          hint: '站族',
-                          value: _familyFilter,
-                          items: {for (final family in families) family: family},
-                          onChanged: (value) =>
-                              setState(() => _familyFilter = value),
-                        ),
-                      ],
+                    const SizedBox(height: 8),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _FilterDropdown(
+                            hint: '玩法',
+                            value: _playFilter,
+                            items: {
+                              for (final play in plays) play: PlayTypes.labelFor(play),
+                            },
+                            onChanged: (value) => setState(() => _playFilter = value),
+                          ),
+                          const SizedBox(width: 8),
+                          _FilterDropdown(
+                            hint: '站族',
+                            value: _familyFilter,
+                            items: {for (final family in families) family: family},
+                            onChanged: (value) =>
+                                setState(() => _familyFilter = value),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Material(
-              color: context.colors.surfaceContainerHigh,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              Container(
+                color: context.colors.surfaceContainerHighest.withValues(alpha: 0.35),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     Text(
                       '已选 ${draft.sourceIds.length} / 可见 ${visible.length}',
-                      style: context.texts.labelMedium,
+                      style: context.texts.labelMedium?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     const Spacer(),
                     TextButton(
-                      // Selects only what is currently visible, so a filtered
-                      // "select all" does not silently include hidden sources.
                       onPressed: () => controller.selectAll(
                         {...draft.sourceIds, ...visible.map((s) => s.sourceId)},
                       ),
@@ -123,69 +125,67 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
                   ],
                 ),
               ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                controller: widget.scrollController,
-                itemCount: visible.length,
-                itemBuilder: (context, index) {
-                  final source = visible[index];
-                  final selected = draft.sourceIds.contains(source.sourceId);
-                  return CheckboxListTile(
-                    dense: true,
-                    value: selected,
-                    onChanged: (_) => controller.toggleSource(source.sourceId),
-                    title: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            source.sourceName,
-                            overflow: TextOverflow.ellipsis,
+              Expanded(
+                child: ListView.builder(
+                  controller: widget.scrollController,
+                  itemCount: visible.length,
+                  itemBuilder: (context, index) {
+                    final source = visible[index];
+                    final selected = draft.sourceIds.contains(source.sourceId);
+                    return CheckboxListTile(
+                      dense: true,
+                      value: selected,
+                      onChanged: (_) => controller.toggleSource(source.sourceId),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              source.sourceName,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
                           ),
+                          if (source.isBroken)
+                            const GlassBadge(
+                              label: '脚本缺失',
+                              color: DuiliaoColors.miss,
+                              icon: Icons.error_outline,
+                            ),
+                        ],
+                      ),
+                      subtitle: Text(
+                        '${PlayTypes.labelFor(source.playType)} · ${source.siteFamily}'
+                        ' · ${source.timeoutSec}s',
+                        style: context.texts.labelSmall?.copyWith(
+                          color: context.colors.onSurfaceVariant,
                         ),
-                        if (source.isBroken)
-                          const StatusChip(
-                            label: '脚本缺失',
-                            color: DuiliaoColors.miss,
-                            icon: Icons.error_outline,
-                            compact: true,
-                          ),
-                      ],
-                    ),
-                    subtitle: Text(
-                      '${PlayTypes.labelFor(source.playType)} · ${source.siteFamily}'
-                      ' · ${source.timeoutSec}s',
-                      style: context.texts.labelSmall,
-                    ),
-                    secondary: IconButton(
-                      tooltip: '单源试跑',
-                      icon: const Icon(Icons.play_circle_outline),
-                      onPressed: () => _testSource(source),
-                    ),
-                  );
-                },
-              ),
-            ),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('完成'),
+                      ),
+                      secondary: IconButton(
+                        tooltip: '单源试跑',
+                        icon: const Icon(Icons.play_circle_outline),
+                        onPressed: () => _testSource(source),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-          ],
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: GlassButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('完成', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
   /// Run one source in isolation and show its raw output.
-  ///
-  /// This is the field-diagnosis path: it is the only view that surfaces the
-  /// script's stdout and stderr, which is what identifies whether a source is
-  /// failing because the site changed, timed out, or the script itself is broken.
   Future<void> _testSource(CollectorSource source) async {
     final messenger = ScaffoldMessenger.of(context);
     showDialog<void>(
@@ -204,6 +204,7 @@ class _SourcePickerState extends ConsumerState<SourcePicker> {
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
+        backgroundColor: Colors.transparent,
         builder: (_) => DraggableScrollableSheet(
           expand: false,
           initialChildSize: 0.8,
@@ -275,65 +276,91 @@ class _TestResultSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      controller: controller,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(source.sourceName, style: context.texts.titleMedium),
-            ),
-            StatusChip(
-              label: result.ok ? '成功' : '失败',
-              color: result.ok ? DuiliaoColors.hit : DuiliaoColors.miss,
-              icon: result.ok ? Icons.check_circle : Icons.cancel,
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: StatTile(label: '条目数', value: '${result.itemCount}'),
-            ),
-            Expanded(
-              child: StatTile(label: '耗时', value: result.elapsedLabel),
-            ),
-            Expanded(
-              child: StatTile(
-                label: '退出码',
-                value: result.exitCode?.toString() ?? '—',
-                valueColor:
-                    (result.exitCode ?? 0) != 0 ? DuiliaoColors.miss : null,
+    return GlassContainer(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      blur: 35,
+      fillColor: context.colors.surface.withValues(alpha: 0.92),
+      child: ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  source.sourceName,
+                  style: context.texts.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
+              GlassBadge(
+                label: result.ok ? '成功' : '失败',
+                color: result.ok ? DuiliaoColors.hit : DuiliaoColors.miss,
+                icon: result.ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: context.colors.surfaceContainerHighest.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: StatTile(label: '条目数', value: '${result.itemCount}'),
+                ),
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: StatTile(label: '耗时', value: result.elapsedLabel),
+                ),
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: StatTile(
+                    label: '退出码',
+                    value: result.exitCode?.toString() ?? '—',
+                    valueColor:
+                        (result.exitCode ?? 0) != 0 ? DuiliaoColors.miss : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (result.errorCode != null) ...[
+            const SizedBox(height: 10),
+            WarningNote(
+              message: '错误码 ${result.errorCode}'
+                  '${result.errorMsg == null ? '' : '：${result.errorMsg}'}',
+              icon: Icons.error_outline,
+              color: DuiliaoColors.miss,
             ),
           ],
-        ),
-        if (result.errorCode != null) ...[
-          const SizedBox(height: 10),
-          WarningNote(
-            message: '错误码 ${result.errorCode}'
-                '${result.errorMsg == null ? '' : '：${result.errorMsg}'}',
-            icon: Icons.error_outline,
-            color: DuiliaoColors.miss,
+          const Divider(height: 24),
+          Text('stdout', style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          _OutputBlock(
+            text: result.stdout.isEmpty ? '（无输出）' : result.stdout,
           ),
+          if (result.stderr.trim().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text('stderr', style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            _OutputBlock(text: result.stderr, isError: !result.ok),
+          ],
         ],
-        const Divider(height: 24),
-        Text('stdout', style: context.texts.labelLarge),
-        const SizedBox(height: 4),
-        _OutputBlock(
-          text: result.stdout.isEmpty ? '（无输出）' : result.stdout,
-        ),
-        // stderr is only shown when it matters: a successful run often writes
-        // harmless warnings there.
-        if (result.stderr.trim().isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Text('stderr', style: context.texts.labelLarge),
-          const SizedBox(height: 4),
-          _OutputBlock(text: result.stderr, isError: !result.ok),
-        ],
-      ],
+      ),
     );
   }
 }
@@ -348,12 +375,17 @@ class _OutputBlock extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: double.infinity,
         constraints: const BoxConstraints(maxHeight: 320),
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isError
-              ? DuiliaoColors.miss.withValues(alpha: 0.08)
-              : context.colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+              ? DuiliaoColors.miss.withValues(alpha: 0.1)
+              : context.colors.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isError
+                ? DuiliaoColors.miss.withValues(alpha: 0.3)
+                : Colors.white.withValues(alpha: 0.08),
+          ),
         ),
         child: SingleChildScrollView(
           child: SelectableText(

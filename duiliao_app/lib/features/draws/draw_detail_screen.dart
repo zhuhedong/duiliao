@@ -8,6 +8,7 @@ import '../../core/net/api_exception.dart';
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/draw.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import '../../ui/widgets/number_ball.dart';
@@ -28,7 +29,11 @@ class DrawDetailScreen extends ConsumerWidget {
     final canOperate = ref.watch(canOperateProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         title: Text('${lottery.label} ${Period.compact(period)}'),
         actions: [
           IconButton(
@@ -54,13 +59,15 @@ class DrawDetailScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: AsyncView<DrawRow?>(
-        value: async,
-        loading: const SkeletonList(itemHeight: 120),
-        onRetry: () => ref.invalidate(drawDetailProvider(key)),
-        emptyCheck: (draw) => draw == null,
-        emptyMessage: '未找到该期开奖',
-        builder: (draw) => _DetailBody(draw: draw!),
+      body: GlassBackground(
+        child: AsyncView<DrawRow?>(
+          value: async,
+          loading: const SkeletonList(itemHeight: 120),
+          onRetry: () => ref.invalidate(drawDetailProvider(key)),
+          emptyCheck: (draw) => draw == null,
+          emptyMessage: '未找到该期开奖',
+          builder: (draw) => _DetailBody(draw: draw!),
+        ),
       ),
     );
   }
@@ -102,7 +109,7 @@ class _DetailBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final summary = draw.summary;
     return ListView(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.only(top: 8, bottom: 32),
       children: [
         _DropOrderCard(draw: draw),
         if (summary != null) _SummaryCard(summary: summary),
@@ -133,73 +140,72 @@ class _DropOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('落球顺序', style: context.texts.titleSmall),
-                const Spacer(),
-                Text(
-                  draw.source,
-                  style: context.texts.labelSmall
-                      ?.copyWith(color: context.colors.onSurfaceVariant),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // Position labels are shown above the balls so 正码 order is explicit.
-            Row(
-              children: [
-                for (var i = 0; i < draw.balls.length; i++)
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text('z${i + 1}', style: context.texts.labelSmall),
-                        const SizedBox(height: 4),
-                        NumberBall(
-                          number: draw.balls[i],
-                          attr: i < draw.ballsDetail.length
-                              ? draw.ballsDetail[i]
-                              : null,
-                          size: 38,
-                        ),
-                      ],
-                    ),
-                  ),
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('落球顺序', style: context.texts.titleSmall),
+              const Spacer(),
+              Text(
+                draw.source,
+                style: context.texts.labelSmall
+                    ?.copyWith(color: context.colors.onSurfaceVariant),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Position labels are shown above the balls so 正码 order is explicit.
+          Row(
+            children: [
+              for (var i = 0; i < draw.balls.length; i++)
                 Expanded(
                   child: Column(
                     children: [
-                      Text(
-                        '特码',
-                        style: context.texts.labelSmall
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
+                      Text('z${i + 1}', style: context.texts.labelSmall),
                       const SizedBox(height: 4),
                       NumberBall(
-                        number: draw.tema,
-                        attr: draw.temaDetail,
-                        isSpecial: true,
+                        number: draw.balls[i],
+                        attr: i < draw.ballsDetail.length
+                            ? draw.ballsDetail[i]
+                            : null,
                         size: 38,
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-            if (draw.openedAt != null) ...[
-              const SizedBox(height: 10),
-              Text(
-                '开奖时间 ${draw.openedAt}',
-                style: context.texts.bodySmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      '特码',
+                      style: context.texts.labelSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    NumberBall(
+                      number: draw.tema,
+                      attr: draw.temaDetail,
+                      isSpecial: true,
+                      size: 38,
+                    ),
+                  ],
+                ),
               ),
             ],
+          ),
+          if (draw.openedAt != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              '开奖时间 ${draw.openedAt}',
+              style: context.texts.bodySmall
+                  ?.copyWith(color: context.colors.onSurfaceVariant),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -212,48 +218,50 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('期号汇总', style: context.texts.titleSmall),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 24,
-              runSpacing: 12,
-              children: [
-                StatTile(label: '七球和值', value: '${summary.sum7}'),
-                StatTile(label: '和值大小', value: summary.sum7Size),
-                StatTile(label: '和值单双', value: summary.sum7Odd),
-              ],
-            ),
-            const Divider(height: 24),
-            Text('特码属性', style: context.texts.labelLarge),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                _AttrChip(label: '生肖', value: summary.temaXiao),
-                _AttrChip(label: '波色', value: summary.temaBose),
-                _AttrChip(label: '大小', value: summary.temaSize),
-                _AttrChip(label: '单双', value: summary.temaOdd),
-                _AttrChip(label: '合数', value: summary.temaSumOdd),
-                _AttrChip(label: '家野', value: summary.temaJiaye),
-                _AttrChip(label: '半波', value: summary.temaHalfwave),
-                // Null 五行 is stated rather than left blank, so the absence is
-                // attributable to a missing table rather than a display bug.
-                _AttrChip(
-                  label: '五行',
-                  value: summary.temaWuxing ?? '无权威五行表',
-                  muted: summary.temaWuxing == null,
-                ),
-              ],
-            ),
-          ],
-        ),
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('期号汇总', style: context.texts.titleSmall),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 24,
+            runSpacing: 12,
+            children: [
+              StatTile(label: '七球和值', value: '${summary.sum7}'),
+              StatTile(label: '和值大小', value: summary.sum7Size),
+              StatTile(label: '和值单双', value: summary.sum7Odd),
+            ],
+          ),
+          Divider(
+            height: 24,
+            color: context.colors.outlineVariant.withValues(alpha: 0.3),
+          ),
+          Text('特码属性', style: context.texts.labelLarge),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _AttrChip(label: '生肖', value: summary.temaXiao),
+              _AttrChip(label: '波色', value: summary.temaBose),
+              _AttrChip(label: '大小', value: summary.temaSize),
+              _AttrChip(label: '单双', value: summary.temaOdd),
+              _AttrChip(label: '合数', value: summary.temaSumOdd),
+              _AttrChip(label: '家野', value: summary.temaJiaye),
+              _AttrChip(label: '半波', value: summary.temaHalfwave),
+              // Null 五行 is stated rather than left blank, so the absence is
+              // attributable to a missing table rather than a display bug.
+              _AttrChip(
+                label: '五行',
+                value: summary.temaWuxing ?? '无权威五行表',
+                muted: summary.temaWuxing == null,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -272,8 +280,12 @@ class _AttrChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: context.colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(6),
+        color: context.colors.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.15),
+          width: 0.5,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -306,85 +318,86 @@ class _LianxiaoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text('连肖检测', style: context.texts.titleSmall),
-                const SizedBox(width: 8),
-                if (summary.hasAdjacentLianxiao == true)
-                  const StatusChip(
-                    label: '顺位紧邻',
-                    color: DuiliaoColors.warning,
-                    icon: Icons.link,
-                    compact: true,
-                  ),
-              ],
-            ),
-            if (summary.lianxiaoText != null) ...[
-              const SizedBox(height: 6),
-              Text(summary.lianxiaoText!, style: context.texts.bodySmall),
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('连肖检测', style: context.texts.titleSmall),
+              const SizedBox(width: 8),
+              if (summary.hasAdjacentLianxiao == true)
+                const GlassBadge(
+                  label: '顺位紧邻',
+                  color: DuiliaoColors.warning,
+                  icon: Icons.link,
+                ),
             ],
-            const SizedBox(height: 10),
-            for (final group in summary.lianxiaoGroups)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 54,
-                      child: Text(
-                        '${group.xiao} ×${group.count}',
-                        style: context.texts.labelLarge
-                            ?.copyWith(fontWeight: FontWeight.w700),
-                      ),
+          ),
+          if (summary.lianxiaoText != null) ...[
+            const SizedBox(height: 6),
+            Text(summary.lianxiaoText!, style: context.texts.bodySmall),
+          ],
+          const SizedBox(height: 10),
+          for (final group in summary.lianxiaoGroups)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 54,
+                    child: Text(
+                      '${group.xiao} ×${group.count}',
+                      style: context.texts.labelLarge
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Wrap(
-                        spacing: 6,
-                        children: [
-                          for (var i = 0; i < group.nums.length; i++)
-                            Column(
-                              children: [
-                                NumberBall(
-                                  number: group.nums[i],
-                                  size: 30,
-                                  showColorName: false,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      children: [
+                        for (var i = 0; i < group.nums.length; i++)
+                          Column(
+                            children: [
+                              NumberBall(
+                                number: group.nums[i],
+                                size: 30,
+                                showColorName: false,
+                              ),
+                              if (i < group.positions.length)
+                                Text(
+                                  group.positions[i],
+                                  style: context.texts.labelSmall,
                                 ),
-                                if (i < group.positions.length)
-                                  Text(
-                                    group.positions[i],
-                                    style: context.texts.labelSmall,
-                                  ),
-                              ],
-                            ),
-                        ],
-                      ),
+                            ],
+                          ),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          if (summary.adjacentLianxiao.isNotEmpty) ...[
+            Divider(
+              height: 20,
+              color: context.colors.outlineVariant.withValues(alpha: 0.3),
+            ),
+            Text('紧邻同肖', style: context.texts.labelLarge),
+            const SizedBox(height: 6),
+            for (final adjacent in summary.adjacentLianxiao)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '${adjacent.xiao}：${adjacent.pos1} ${adjacent.num1} → '
+                  '${adjacent.pos2} ${adjacent.num2}',
+                  style: context.texts.bodySmall,
                 ),
               ),
-            if (summary.adjacentLianxiao.isNotEmpty) ...[
-              const Divider(height: 20),
-              Text('紧邻同肖', style: context.texts.labelLarge),
-              const SizedBox(height: 6),
-              for (final adjacent in summary.adjacentLianxiao)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text(
-                    '${adjacent.xiao}：${adjacent.pos1} ${adjacent.num1} → '
-                    '${adjacent.pos2} ${adjacent.num2}',
-                    style: context.texts.bodySmall,
-                  ),
-                ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }
@@ -404,16 +417,16 @@ class _PerBallCard extends StatelessWidget {
       if (draw.temaDetail != null) (position: '特码', attr: draw.temaDetail!),
     ];
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-              child: Text('逐球属性', style: context.texts.titleSmall),
-            ),
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+            child: Text('逐球属性', style: context.texts.titleSmall),
+          ),
             for (final entry in entries)
               ExpansionTile(
                 dense: true,
@@ -450,7 +463,6 @@ class _PerBallCard extends StatelessWidget {
               ),
           ],
         ),
-      ),
     );
   }
 }

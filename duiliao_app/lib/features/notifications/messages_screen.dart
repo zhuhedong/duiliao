@@ -11,6 +11,7 @@ import '../../domain/models/app_event.dart';
 import '../../domain/models/source.dart';
 import '../../domain/models/user.dart';
 import '../../domain/play_type.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import '../comparison/comparison_screen.dart';
@@ -28,8 +29,10 @@ class MessagesScreen extends ConsumerWidget {
     final centre = ref.read(messageCentreProvider.notifier);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('消息中心'),
+        backgroundColor: Colors.transparent,
         actions: [
           IconButton(
             tooltip: '订阅设置',
@@ -45,31 +48,33 @@ class MessagesScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          final subscription = ref.read(subscriptionProvider).value;
-          await centre.pollOnce(subscription: subscription);
-        },
-        child: state.messages.isEmpty
-            ? const EmptyState(
-                message: '暂无消息',
-                icon: Icons.notifications_none,
-                detail: '开奖、命中、连挂与采集完成的通知会显示在这里',
-              )
-            : ListView.separated(
-                itemCount: state.messages.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final message = state.messages[index];
-                  return _MessageTile(
-                    message: message,
-                    onTap: () {
-                      centre.markRead(message.event.dedupeKey);
-                      _openTarget(context, message.event);
-                    },
-                  );
-                },
-              ),
+      body: GlassBackground(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            final subscription = ref.read(subscriptionProvider).value;
+            await centre.pollOnce(subscription: subscription);
+          },
+          child: state.messages.isEmpty
+              ? const EmptyState(
+                  message: '暂无消息',
+                  icon: Icons.notifications_none,
+                  detail: '开奖、命中、连挂与采集完成的通知会显示在这里',
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: state.messages.length,
+                  itemBuilder: (context, index) {
+                    final message = state.messages[index];
+                    return _MessageTile(
+                      message: message,
+                      onTap: () {
+                        centre.markRead(message.event.dedupeKey);
+                        _openTarget(context, message.event);
+                      },
+                    );
+                  },
+                ),
+        ),
       ),
     );
   }
@@ -96,8 +101,6 @@ class MessagesScreen extends ConsumerWidget {
           );
         }
       case AppEventType.collectJobFinished:
-        // Jobs live behind the collection tab, which a plain user cannot reach;
-        // the period comparison is the useful destination either way.
         target = ComparisonScreen(lottery: lottery, initialPeriod: event.period);
       case null:
         target = null;
@@ -134,35 +137,75 @@ class _MessageTile extends StatelessWidget {
       null => (Icons.notifications_none, DuiliaoColors.pending),
     };
 
-    return ListTile(
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      padding: const EdgeInsets.all(14),
       onTap: onTap,
-      leading: Icon(icon, color: color),
-      title: Text(
-        event.title,
-        style: context.texts.bodyLarge?.copyWith(
-          // Unread messages are bolder as well as marked, not colour-only.
-          fontWeight: message.read ? FontWeight.normal : FontWeight.w700,
-        ),
-      ),
-      subtitle: Text(event.body, maxLines: 2, overflow: TextOverflow.ellipsis),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _timeLabel(event.occurredAtTime),
-            style: context.texts.labelSmall,
-          ),
-          if (!message.read)
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: context.colors.primary,
-                shape: BoxShape.circle,
-              ),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.14),
+              border: Border.all(color: color.withValues(alpha: 0.3), width: 1.2),
             ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        event.title,
+                        style: context.texts.bodyMedium?.copyWith(
+                          fontWeight: message.read ? FontWeight.w500 : FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _timeLabel(event.occurredAtTime),
+                      style: context.texts.labelSmall?.copyWith(
+                        color: context.colors.onSurfaceVariant,
+                      ),
+                    ),
+                    if (!message.read) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: context.colors.primary,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: context.colors.primary.withValues(alpha: 0.6),
+                              blurRadius: 6,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  event.body,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -195,170 +238,189 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     final sourcesAsync = ref.watch(allSourcesProvider);
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('订阅与通知'),
+        backgroundColor: Colors.transparent,
         actions: [
           if (_draft != null)
-            TextButton(
-              onPressed: _saving ? null : _save,
-              child: Text(_saving ? '保存中…' : '保存'),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: TextButton(
+                onPressed: _saving ? null : _save,
+                child: Text(_saving ? '保存中…' : '保存', style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
             ),
         ],
       ),
-      body: AsyncView<Subscription>(
-        value: async,
-        loading: const SkeletonList(itemHeight: 56),
-        onRetry: () => ref.invalidate(subscriptionProvider),
-        builder: (saved) {
-          final current = _draft ?? saved;
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 32),
-            children: [
-              const SectionHeader(
-                title: '通知规则',
-                subtitle: '关闭后不再弹出对应类型的本地通知',
-              ),
-              for (final entry in NotifyRule.toggles.entries)
-                SwitchListTile(
-                  title: Text(entry.value),
-                  subtitle: entry.key == NotifyRule.sourceHit ||
-                          entry.key == NotifyRule.sourceMissStreak
-                      ? const Text('仅对已关注的数据源生效')
-                      : null,
-                  value: current.isEnabled(
-                    entry.key,
-                    // Hit and leader-change notifications are noisy, so they
-                    // default off.
-                    fallback: entry.key != NotifyRule.sourceHit &&
-                        entry.key != NotifyRule.consensusLeaderChanged,
-                  ),
-                  onChanged: (value) => setState(
-                    () => _draft = current.withRule(entry.key, value),
-                  ),
+      body: GlassBackground(
+        child: AsyncView<Subscription>(
+          value: async,
+          loading: const SkeletonList(itemHeight: 56),
+          onRetry: () => ref.invalidate(subscriptionProvider),
+          builder: (saved) {
+            final current = _draft ?? saved;
+            return ListView(
+              padding: const EdgeInsets.only(top: 6, bottom: 96),
+              children: [
+                const SectionHeader(
+                  title: '通知规则',
+                  subtitle: '关闭后不再弹出对应类型的本地通知',
                 ),
-              ListTile(
-                title: const Text('连挂提醒阈值'),
-                subtitle: Text('连续未中 ${current.missStreakThreshold} 期时提醒'),
-                trailing: SizedBox(
-                  width: 140,
-                  child: Slider(
-                    value: current.missStreakThreshold.toDouble(),
-                    min: 2,
-                    max: 10,
-                    divisions: 8,
-                    label: '${current.missStreakThreshold}',
-                    onChanged: (value) => setState(
-                      () => _draft = current.withRule(
-                        NotifyRule.missStreakThreshold,
-                        value.round(),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SectionHeader(title: '默认彩种'),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 8,
+                GlassGroup(
                   children: [
-                    for (final l in Lottery.all)
-                      FilterChip(
-                        label: Text(l.label),
-                        selected: current.lotteries.contains(l.code),
-                        onSelected: (selected) {
-                          final next = [...current.lotteries];
-                          selected ? next.add(l.code) : next.remove(l.code);
-                          setState(
-                            () => _draft = current.copyWith(lotteries: next),
-                          );
-                        },
+                    for (final entry in NotifyRule.toggles.entries)
+                      SwitchListTile(
+                        title: Text(entry.value),
+                        subtitle: entry.key == NotifyRule.sourceHit ||
+                                entry.key == NotifyRule.sourceMissStreak
+                            ? const Text('仅对已关注的数据源生效')
+                            : null,
+                        value: current.isEnabled(
+                          entry.key,
+                          fallback: entry.key != NotifyRule.sourceHit &&
+                              entry.key != NotifyRule.consensusLeaderChanged,
+                        ),
+                        onChanged: (value) => setState(
+                          () => _draft = current.withRule(entry.key, value),
+                        ),
                       ),
-                  ],
-                ),
-              ),
-
-              const SectionHeader(title: '默认玩法'),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final play in kPlayTypes)
-                      FilterChip(
-                        label: Text(play.name),
-                        selected: current.playTypes.contains(play.key),
-                        onSelected: (selected) {
-                          final next = [...current.playTypes];
-                          selected ? next.add(play.key) : next.remove(play.key);
-                          setState(
-                            () => _draft = current.copyWith(playTypes: next),
-                          );
-                        },
-                      ),
-                  ],
-                ),
-              ),
-
-              SectionHeader(
-                title: '关注数据源',
-                subtitle: '已关注 ${current.sourceIds.length} 个',
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  decoration: const InputDecoration(
-                    hintText: '搜索数据源',
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                  onChanged: (value) => setState(() => _query = value),
-                ),
-              ),
-              sourcesAsync.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: ErrorState(
-                    error: e,
-                    onRetry: () => ref.invalidate(allSourcesProvider),
-                  ),
-                ),
-                data: (sources) {
-                  final visible =
-                      sources.where((s) => s.matches(_query)).take(120).toList();
-                  return Column(
-                    children: [
-                      for (final source in visible)
-                        CheckboxListTile(
-                          dense: true,
-                          value: current.sourceIds.contains(source.sourceId),
-                          onChanged: (_) => setState(
-                            () => _draft = current.withSource(
-                              source.sourceId,
-                              !current.sourceIds.contains(source.sourceId),
+                    ListTile(
+                      title: const Text('连挂提醒阈值'),
+                      subtitle: Text('连续未中 ${current.missStreakThreshold} 期时提醒'),
+                      trailing: SizedBox(
+                        width: 140,
+                        child: Slider(
+                          value: current.missStreakThreshold.toDouble(),
+                          min: 2,
+                          max: 10,
+                          divisions: 8,
+                          label: '${current.missStreakThreshold}',
+                          onChanged: (value) => setState(
+                            () => _draft = current.withRule(
+                              NotifyRule.missStreakThreshold,
+                              value.round(),
                             ),
                           ),
-                          title: Text(source.sourceName),
-                          subtitle: Text(
-                            '${Lottery.labelFor(source.lottery)} · '
-                            '${PlayTypes.labelFor(source.playType)}',
-                            style: context.texts.labelSmall,
-                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SectionHeader(title: '默认彩种'),
+                GlassCard(
+                  padding: const EdgeInsets.all(14),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final l in Lottery.all)
+                        GlassFilterPill(
+                          label: l.label,
+                          isSelected: current.lotteries.contains(l.code),
+                          onTap: () {
+                            final next = [...current.lotteries];
+                            current.lotteries.contains(l.code)
+                                ? next.remove(l.code)
+                                : next.add(l.code);
+                            setState(
+                              () => _draft = current.copyWith(lotteries: next),
+                            );
+                          },
                         ),
                     ],
-                  );
-                },
-              ),
+                  ),
+                ),
 
-              const _NotificationTimingNote(),
-            ],
-          );
-        },
+                const SectionHeader(title: '默认玩法'),
+                GlassCard(
+                  padding: const EdgeInsets.all(14),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final play in kPlayTypes)
+                        GlassFilterPill(
+                          label: play.name,
+                          isSelected: current.playTypes.contains(play.key),
+                          onTap: () {
+                            final next = [...current.playTypes];
+                            current.playTypes.contains(play.key)
+                                ? next.remove(play.key)
+                                : next.add(play.key);
+                            setState(
+                              () => _draft = current.copyWith(playTypes: next),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+
+                SectionHeader(
+                  title: '关注数据源',
+                  subtitle: '已关注 ${current.sourceIds.length} 个',
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      hintText: '搜索数据源',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
+                ),
+                sourcesAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: ErrorState(
+                      error: e,
+                      onRetry: () => ref.invalidate(allSourcesProvider),
+                    ),
+                  ),
+                  data: (sources) {
+                    final visible =
+                        sources.where((s) => s.matches(_query)).take(120).toList();
+                    return GlassCard(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        children: [
+                          for (final source in visible)
+                            CheckboxListTile(
+                              dense: true,
+                              value: current.sourceIds.contains(source.sourceId),
+                              onChanged: (_) => setState(
+                                () => _draft = current.withSource(
+                                  source.sourceId,
+                                  !current.sourceIds.contains(source.sourceId),
+                                ),
+                              ),
+                              title: Text(source.sourceName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              subtitle: Text(
+                                '${Lottery.labelFor(source.lottery)} · '
+                                '${PlayTypes.labelFor(source.playType)}',
+                                style: context.texts.labelSmall?.copyWith(
+                                  color: context.colors.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const _NotificationTimingNote(),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -397,23 +459,32 @@ class _NotificationTimingNote extends StatelessWidget {
   const _NotificationTimingNote();
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) => GlassCard(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '关于通知时效',
-              style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '本 APP 不使用第三方推送，而是定期向服务端拉取事件后弹出本地通知。'
-              'APP 在前台时约每分钟拉取一次；'
-              'iOS 的后台唤醒时机由系统调度，不保证及时，'
-              '打开 APP 会立即拉取一次。',
-              style: context.texts.bodySmall
-                  ?.copyWith(color: context.colors.onSurfaceVariant),
+            const Icon(Icons.info_outline, color: DuiliaoColors.pending, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '关于通知时效',
+                    style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '本 APP 不使用第三方推送，而是定期向服务端拉取事件后弹出本地通知。'
+                    'APP 在前台时约每分钟拉取一次；'
+                    'iOS 的后台唤醒时机由系统调度，不保证及时，'
+                    '打开 APP 会立即拉取一次。',
+                    style: context.texts.bodySmall
+                        ?.copyWith(color: context.colors.onSurfaceVariant),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
