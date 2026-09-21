@@ -16,3 +16,8 @@ frontend/.env.local
 # OS / editor
 .DS_Store
 *.log
+
+# Keystores and mobile signing
+*.jks
+*.keystore
+**/key.properties

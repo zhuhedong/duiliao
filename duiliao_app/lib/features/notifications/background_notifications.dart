@@ -55,7 +55,6 @@ void backgroundCallbackDispatcher() {
 Future<void> initializeBackgroundNotifications() async {
   await Workmanager().initialize(
     backgroundCallbackDispatcher,
-    isInDebugMode: false,
   );
   if (Platform.isIOS) {
     await Workmanager().registerOneOffTask(
@@ -70,7 +69,7 @@ Future<void> initializeBackgroundNotifications() async {
       _taskName,
       frequency: const Duration(minutes: 15),
       constraints: Constraints(networkType: NetworkType.connected),
-      existingWorkPolicy: ExistingWorkPolicy.keep,
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
     );
   }
 }
