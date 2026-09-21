@@ -103,28 +103,32 @@ class HomeScreen extends ConsumerWidget {
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   sliver: SliverToBoxAdapter(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Column(
-                            children: [
-                              if (home.comparisonSummary != null) _ComparisonBentoBox(home: home),
-                              const SizedBox(height: 10),
-                              if (home.recentJobs.isNotEmpty) _JobsBentoBox(home: home),
-                            ],
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  if (home.comparisonSummary != null) _ComparisonBentoBox(home: home),
+                                  const SizedBox(height: 10),
+                                  if (home.recentJobs.isNotEmpty) _JobsBentoBox(home: home),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  if (home.ratingsTop.isNotEmpty) _RatingsBentoBox(home: home),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              if (home.ratingsTop.isNotEmpty) _RatingsBentoBox(home: home),
-                              const SizedBox(height: 10),
-                              if (home.consensusGroups.isNotEmpty) _ConsensusBentoBox(home: home),
-                            ],
-                          ),
-                        ),
+                        const SizedBox(height: 10),
+                        if (home.consensusGroups.isNotEmpty) _ConsensusBentoBox(home: home),
                       ],
                     ),
                   ),
@@ -491,8 +495,9 @@ class _ConsensusBentoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return GlassContainer(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       borderRadius: BorderRadius.circular(24),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(
@@ -505,61 +510,81 @@ class _ConsensusBentoBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.pie_chart_rounded, size: 18),
-              const SizedBox(width: 6),
-              Text('共识热力池', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (final group in home.consensusGroups)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        PlayTypes.labelFor(group.playType),
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                      const Spacer(),
-                      if (group.leaderHit != null)
-                        Icon(
-                          group.leaderHit! ? Icons.check_circle : Icons.cancel,
-                          size: 10,
-                          color: group.leaderHit! ? DuiliaoColors.hit : DuiliaoColors.miss,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          group.leader == null || group.leader!.isEmpty
-                              ? '—'
-                              : group.leader!.map((a) => a.value).join(' '),
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        '${group.leaderVotes}/${group.nVotes}',
-                        style: const TextStyle(fontSize: 10, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  GlassLinearProgress(
-                    value: group.nVotes > 0 ? group.leaderVotes / group.nVotes : 0,
-                    height: 4,
-                  ),
-                ],
-              ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                const Icon(Icons.pie_chart_rounded, size: 18),
+                const SizedBox(width: 6),
+                Text('共识热力池', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              ],
             ),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                for (final group in home.consensusGroups)
+                  Container(
+                    width: 130,
+                    margin: const EdgeInsets.only(right: 10),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              PlayTypes.labelFor(group.playType),
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
+                            const Spacer(),
+                            if (group.leaderHit != null)
+                              Icon(
+                                group.leaderHit! ? Icons.check_circle : Icons.cancel,
+                                size: 12,
+                                color: group.leaderHit! ? DuiliaoColors.hit : DuiliaoColors.miss,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                group.leader == null || group.leader!.isEmpty
+                                    ? '—'
+                                    : group.leader!.map((a) => a.value).join(' '),
+                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              '${group.leaderVotes}/${group.nVotes}',
+                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        GlassLinearProgress(
+                          value: group.nVotes > 0 ? group.leaderVotes / group.nVotes : 0,
+                          height: 5,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );

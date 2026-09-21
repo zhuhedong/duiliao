@@ -4,7 +4,6 @@
 /// glass pills, and specular highlight treatments.
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// Ambient canvas with glowing aurora orbs beneath a frosted glass layer.
