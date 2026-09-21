@@ -205,10 +205,7 @@ class GlassContainer extends StatelessWidget {
 
     final frosted = ClipRRect(
       borderRadius: radius,
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-        child: content,
-      ),
+      child: content,
     );
 
     if (margin != null) {
