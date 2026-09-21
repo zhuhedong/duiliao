@@ -3,7 +3,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math' as math;
 
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
@@ -392,15 +391,12 @@ class _EnergyRingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final paint = Paint()
       ..color = color.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
 
-    final RRect rrect = RRect.fromRectAndRadius(rect, const Radius.circular(20));
-    
     // Path extraction for partial drawing is complex without PathMetrics, so we just draw an arc if it's circular
     // Since it's a rounded rect, we'll draw a simplified representation: a line at the bottom
     
