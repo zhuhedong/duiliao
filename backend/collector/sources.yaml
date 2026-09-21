@@ -506,8 +506,8 @@ sources:
   hit_mode: any
   script_path: sources/gaoren_sima.py
   timeout_sec: 30
-  enabled: true
-  remark: 劲爆内幕一肖与数据显示四码
+  enabled: false
+  remark: 上游栏目 1789460787496 已下线
   extra:
     title: 高人四码+一肖
     upstream_id: '1789460787496'
@@ -610,8 +610,63 @@ sources:
   hit_mode: any
   script_path: sources/shuangxiao_baote.py
   timeout_sec: 30
+  enabled: false
+  remark: 上游栏目 1786968450231 已下线
+  extra:
+    title: 清雅玉阁双肖爆特
+    upstream_id: '1786968450231'
+- source_id: dingjian_baoliao
+  source_name: 顶尖爆料·一肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dingjian_baoliao.py
+  timeout_sec: 30
   enabled: true
-  remark: 碧水双辉双肖及号码
+  remark: 顶尖爆料一肖二码及开奖验证
+  extra:
+    title: 顶尖爆料·一肖二码
+    upstream_id: '1789907465205'
+- source_id: sima_shuju
+  source_name: 研究所数据四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/sima_shuju.py
+  timeout_sec: 30
+  enabled: true
+  remark: 研究所数据四码及开奖结果
+  extra:
+    title: 四码数据
+    upstream_id: '1789908353019'
+- source_id: zengshi_xinshui
+  source_name: 曾氏心水二肖中特
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/zengshi_xinshui.py
+  timeout_sec: 30
+  enabled: true
+  remark: 曾氏心水二肖及对应四码
+  extra:
+    title: 曾氏心水  二肖中特
+    upstream_id: '1789905813382'
+- source_id: touzi_neimu
+  source_name: 投资内幕二肖
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/touzi_neimu.py
+  timeout_sec: 30
+  enabled: true
+  remark: 站长精准二肖及内幕开奖
+  extra:
+    title: 投资内幕二肖
+    upstream_id: '1789822727406'
 - source_id: tt_6xiao
   source_name: 通天必中六肖
   site_family: tongtian_83191
@@ -996,6 +1051,28 @@ sources:
   timeout_sec: 30
   enabled: true
   remark: 83191.com连锁反应三尾中特
+  extra: {}
+- source_id: tt_4x8m
+  source_name: 通天四肖至一码
+  site_family: tongtian_83191
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/tt_4x8m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 83191.com通天四肖至一码
+  extra: {}
+- source_id: tt_4wbm
+  source_name: 通天四尾八码
+  site_family: tongtian_83191
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/tt_4wbm.py
+  timeout_sec: 30
+  enabled: true
+  remark: 83191.com通天四尾八码
   extra: {}
 draw:
   macau:
