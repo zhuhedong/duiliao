@@ -6,7 +6,7 @@ RULES = {
     "tema_wei_n": ("特尾", "特码", "候选尾数包含特码尾数", "wei"),
     "tema_head_n": ("特头", "特码", "候选头数包含特码头数", "head"),
     "tema_bose": ("特波", "特码", "候选波色包含特码波色", "bose"),
-    "tema_twoface": ("两面", "特码", "按配置任一或全部属性匹配；大小按 01–24 小、25–49 大，单双按号码奇偶", "size,odd,xiao"),
+    "tema_twoface": ("两面", "特码", "按配置任一或全部属性匹配；大小按 01–24 小、25–49 大，单双按号码奇偶", "size,odd,xiao,gender,tian_di,yin_yang,luck"),
     "tema_halfwave": ("半波", "特码", "任一预测匹配特码的波色大小、波色单双或波色大小单双", "bose"),
     "hexiao": ("合肖", "特码", "候选生肖包含特码生肖", "xiao"),
     "pingte_xiao": ("平特肖", "七球（含特码）", "任一候选生肖出现在七个开奖号码中", "xiao"),
@@ -42,8 +42,24 @@ def validate(play, preds, mode):
             raise ValueError(f"{RULES[play][0]}不接受 {k} 类型")
         if k == "num":
             pad_num(v)
-        elif k == "xiao" and not (play == "tema_twoface" and v in {"家", "野"}):
-            normalize_xiao(v)
+        elif k == "xiao":
+            twoface_xiao_extra = {
+                "家", "野", "家禽", "野兽", "家肖", "野肖",
+                "男", "女", "男肖", "女肖",
+                "天", "地", "天肖", "地肖",
+                "阳", "阴", "阳肖", "阴肖",
+                "吉", "凶", "吉肖", "凶肖",
+            }
+            if not (play == "tema_twoface" and v in twoface_xiao_extra):
+                normalize_xiao(v)
+        elif k == "gender" and v not in {"男", "女", "男肖", "女肖"}:
+            raise ValueError("男女肖属性不合法")
+        elif k == "tian_di" and v not in {"天", "地", "天肖", "地肖"}:
+            raise ValueError("天地肖属性不合法")
+        elif k == "yin_yang" and v not in {"阳", "阴", "阳肖", "阴肖"}:
+            raise ValueError("阴阳肖属性不合法")
+        elif k == "luck" and v not in {"吉", "凶", "吉肖", "凶肖"}:
+            raise ValueError("吉凶肖属性不合法")
         elif k in {"wei", "head"} and v not in (list("0123456789") if k == "wei" else list("01234")):
             raise ValueError("头尾数超出范围")
         elif (k == "size" and v not in {"大", "小"}) or (k == "odd" and v not in {"单", "双"}):

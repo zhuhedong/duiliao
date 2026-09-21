@@ -52,6 +52,7 @@ export function CollectorNumbersPage() {
 
   // Filter state
   const [boseFilter, setBoseFilter] = useState<string>("all");
+  const [genderFilter, setGenderFilter] = useState<string>("all");
   const [keyword, setKeyword] = useState<string>("");
 
   const load = useCallback(async (d: string) => {
@@ -75,17 +76,20 @@ export function CollectorNumbersPage() {
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       if (boseFilter !== "all" && item.bose !== boseFilter) return false;
+      if (genderFilter !== "all" && item.gender !== genderFilter) return false;
       if (keyword.trim()) {
         const kw = keyword.trim().toLowerCase();
         const mNum = item.num.includes(kw);
         const mXiao = item.xiao.toLowerCase().includes(kw);
         const mWuxing = item.wuxing?.toLowerCase().includes(kw);
         const mJiaye = item.jiaye.includes(kw);
-        if (!mNum && !mXiao && !mWuxing && !mJiaye) return false;
+        const mGender = item.gender?.toLowerCase().includes(kw);
+        const mTianDi = item.tian_di?.toLowerCase().includes(kw);
+        if (!mNum && !mXiao && !mWuxing && !mJiaye && !mGender && !mTianDi) return false;
       }
       return true;
     });
-  }, [items, boseFilter, keyword]);
+  }, [items, boseFilter, genderFilter, keyword]);
 
   return (
     <div className="space-y-6">
@@ -144,12 +148,25 @@ export function CollectorNumbersPage() {
             </select>
           </div>
 
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">男女肖:</span>
+            <select
+              value={genderFilter}
+              onChange={(e) => setGenderFilter(e.target.value)}
+              className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs cursor-pointer"
+            >
+              <option value="all">全部生肖</option>
+              <option value="男肖">男肖 (7肖)</option>
+              <option value="女肖">女肖 (5肖)</option>
+            </select>
+          </div>
+
           <div className="flex-1 min-w-[180px]">
             <input
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="搜索号码 / 生肖 / 五行 / 家野..."
+              placeholder="搜索号码 / 生肖 / 男女肖 / 天地肖 / 五行 / 家野..."
               className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
             />
           </div>
@@ -182,6 +199,7 @@ export function CollectorNumbersPage() {
                 <tr>
                   <th className={`${tableThClass} w-20`}>号码</th>
                   <th className={tableThClass}>生肖</th>
+                  <th className={tableThClass}>生肖分类</th>
                   <th className={tableThClass}>五行属性</th>
                   <th className={tableThClass}>家野</th>
                   <th className={tableThClass}>波色</th>
@@ -202,6 +220,22 @@ export function CollectorNumbersPage() {
                       <span className="font-bold text-slate-900 dark:text-white text-base">
                         {n.xiao}
                       </span>
+                    </td>
+                    <td className={tableTdClass}>
+                      {n.gender ? (
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
+                            n.gender === "男肖"
+                              ? "bg-sky-500/10 text-sky-600 dark:text-sky-400"
+                              : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                          }`}
+                        >
+                          {n.gender}
+                          {n.tian_di ? ` · ${n.tian_di}` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </td>
                     <td className={tableTdClass}>
                       {n.wuxing ? (

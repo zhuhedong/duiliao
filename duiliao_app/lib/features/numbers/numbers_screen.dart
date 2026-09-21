@@ -82,8 +82,14 @@ class NumberFilters {
         'head' => attr.head,
         'wei' => attr.wei,
         'sum' => attr.sum,
-        'xiao' => attr.xiao,
         'jiaye' => attr.jiaye,
+        'gender' => attr.gender,
+        'tianDi' => attr.tianDi,
+        'yinYang' => attr.yinYang,
+        'luck' => attr.luck,
+        'season' => attr.season,
+        'direction' => attr.direction,
+        'xiao' => attr.xiao,
         'wuxing' => attr.wuxing,
         _ => null,
       };
@@ -448,6 +454,12 @@ class _ReverseLookup extends ConsumerWidget {
       'wei': (label: '尾数', values: _distinct(result, (a) => a.wei)),
       'sum': (label: '合数单双', values: _distinct(result, (a) => a.sum)),
       'jiaye': (label: '家野', values: _distinct(result, (a) => a.jiaye)),
+      'gender': (label: '男女肖', values: _ordered(result, (a) => a.gender, const ['男肖', '女肖'])),
+      'tianDi': (label: '天地肖', values: _ordered(result, (a) => a.tianDi, const ['天肖', '地肖'])),
+      'yinYang': (label: '阴阳肖', values: _ordered(result, (a) => a.yinYang, const ['阳肖', '阴肖'])),
+      'luck': (label: '吉凶肖', values: _ordered(result, (a) => a.luck, const ['吉肖', '凶肖'])),
+      'season': (label: '季节', values: _ordered(result, (a) => a.season, const ['春', '夏', '秋', '冬'])),
+      'direction': (label: '方位', values: _ordered(result, (a) => a.direction, const ['东', '南', '西', '北'])),
       'xiao': (label: '生肖', values: _distinct(result, (a) => a.xiao)),
       if (result.wuxingAvailable)
         'wuxing': (label: '五行', values: _distinct(result, (a) => a.wuxing)),
@@ -503,12 +515,13 @@ class _ReverseLookup extends ConsumerWidget {
               ),
               const Divider(),
               for (final entry in dimensions.entries)
-                _FilterRow(
-                  label: entry.value.label,
-                  values: entry.value.values,
-                  selected: filters.valuesFor(entry.key),
-                  onToggle: (value) => controller.toggle(entry.key, value),
-                ),
+                if (entry.value.values.isNotEmpty)
+                  _FilterRow(
+                    label: entry.value.label,
+                    values: entry.value.values,
+                    selected: filters.valuesFor(entry.key),
+                    onToggle: (value) => controller.toggle(entry.key, value),
+                  ),
             ],
           ),
         ),
@@ -523,6 +536,16 @@ class _ReverseLookup extends ConsumerWidget {
     final values = result.items.map(pick).whereType<String>().toSet().toList();
     values.sort();
     return values;
+  }
+
+  static List<String> _ordered(
+    NumbersResult result,
+    String? Function(NumberAttr) pick,
+    List<String> order,
+  ) {
+    final present = result.items.map(pick).whereType<String>().toSet();
+    if (present.isEmpty) return const [];
+    return order.where(present.contains).toList();
   }
 }
 

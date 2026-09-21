@@ -24,6 +24,7 @@ import 'package:duiliao_app/domain/models/ratings.dart';
 import 'package:duiliao_app/domain/models/source.dart';
 import 'package:duiliao_app/domain/models/user.dart';
 import 'package:duiliao_app/domain/play_type.dart';
+import 'package:duiliao_app/features/numbers/numbers_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Object? _fixture(String name) {
@@ -329,6 +330,24 @@ void main() {
             .any((v) => v != null),
         isTrue,
       );
+    });
+
+    test('NumberFilters matches on gender and tianDi', () {
+      final result = NumbersResult.fromJson(_map('numbers'));
+      const filters = NumberFilters(selections: {
+        'gender': {'女肖'},
+      });
+      final nvItems = result.items.where(filters.matches).toList();
+      expect(nvItems, isNotEmpty);
+      expect(nvItems.every((n) => n.gender == '女肖'), isTrue);
+
+      const multiFilters = NumberFilters(selections: {
+        'gender': {'女肖'},
+        'bose': {'红'},
+      });
+      final redNvItems = result.items.where(multiFilters.matches).toList();
+      expect(redNvItems, isNotEmpty);
+      expect(redNvItems.every((n) => n.gender == '女肖' && n.bose == '红'), isTrue);
     });
   });
 

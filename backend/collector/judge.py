@@ -159,12 +159,20 @@ def j_tema_twoface(preds, mode, ctx):
             ok = v == a["size"]
         elif k == "odd":
             ok = v == a["odd"]
-        elif k in {"xiao"} and v in {"家", "野"}:
-            ok = v == a["jiaye"]
+        elif k in {"gender"} or v in {"男", "女", "男肖", "女肖"}:
+            ok = (v[0] == a.get("gender", "")[:1])
+        elif k in {"tian_di"} or v in {"天", "地", "天肖", "地肖"}:
+            ok = (v[0] == a.get("tian_di", "")[:1])
+        elif k in {"yin_yang"} or v in {"阳", "阴", "阳肖", "阴肖"}:
+            ok = (v[0] == a.get("yin_yang", "")[:1])
+        elif k in {"luck"} or v in {"吉", "凶", "吉肖", "凶肖"}:
+            ok = (v[0] == a.get("luck", "")[:1])
+        elif k in {"xiao"} and v in {"家", "野", "家禽", "野兽", "家肖", "野肖"}:
+            ok = (v[0] == a["jiaye"])
         elif k == "xiao":
             ok = v == a["jiaye"] or v == a["xiao"]
         else:
-            # Only supported two-face attributes are size, odd/even and domestic/wild.
+            # Only supported two-face attributes are size, odd/even, xiao classifications.
             raise ValueError(f"unsupported twoface atom: {k}={v}")
         details.append({"kind": k, "value": v, "hit": ok})
         hit_any = hit_any or ok

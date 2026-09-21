@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from datetime import date
 
-from common.xiao import jia_ye, num_to_xiao
+from common.xiao import (
+    direction_xiao,
+    gender_xiao,
+    jia_ye,
+    luck_xiao,
+    num_to_xiao,
+    season_xiao,
+    tiandi_xiao,
+    yinyang_xiao,
+)
 
 # HKJC 波色
 RED = frozenset({1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46})
@@ -80,6 +89,12 @@ def ball_attrs(num: int | str, draw_date: date) -> dict[str, str]:
         "odd": odd(n),
         "sum": heshu_odd(n),
         "jiaye": jia_ye(x),
+        "gender": gender_xiao(x),
+        "tian_di": tiandi_xiao(x),
+        "yin_yang": yinyang_xiao(x),
+        "luck": luck_xiao(x),
+        "season": season_xiao(x),
+        "direction": direction_xiao(x),
         "halfwave": halfwave(n),
         "halfhalf": halfhalf(n),
     }

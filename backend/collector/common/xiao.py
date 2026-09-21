@@ -71,6 +71,32 @@ CNY_MD = {
 JIA_XIAO = frozenset({"牛", "马", "羊", "鸡", "狗", "猪"})
 YE_XIAO = frozenset({"鼠", "虎", "兔", "龙", "蛇", "猴"})
 
+NAN_XIAO = frozenset({"鼠", "牛", "虎", "龙", "马", "猴", "狗"})
+NV_XIAO = frozenset({"兔", "蛇", "羊", "鸡", "猪"})
+
+TIAN_XIAO = frozenset({"牛", "兔", "龙", "马", "猴", "猪"})
+DI_XIAO = frozenset({"鼠", "虎", "蛇", "羊", "鸡", "狗"})
+
+YANG_XIAO = frozenset({"牛", "虎", "兔", "羊", "猴", "鸡"})
+YIN_XIAO = frozenset({"鼠", "龙", "蛇", "马", "狗", "猪"})
+
+JI_XIAO = frozenset({"兔", "龙", "蛇", "马", "羊", "鸡"})
+XIONG_XIAO = frozenset({"鼠", "牛", "虎", "猴", "狗", "猪"})
+
+SEASON_XIAO = {
+    "春": frozenset({"虎", "兔", "龙"}),
+    "夏": frozenset({"蛇", "马", "羊"}),
+    "秋": frozenset({"猴", "鸡", "狗"}),
+    "冬": frozenset({"鼠", "牛", "猪"}),
+}
+
+DIRECTION_XIAO = {
+    "东": frozenset({"虎", "兔", "龙"}),
+    "南": frozenset({"蛇", "马", "羊"}),
+    "西": frozenset({"猴", "鸡", "狗"}),
+    "北": frozenset({"鼠", "牛", "猪"}),
+}
+
 
 def normalize_xiao(value: str) -> str:
     v = (value or "").strip()
@@ -115,6 +141,38 @@ def is_jia(xiao: str) -> bool:
 
 def jia_ye(xiao: str) -> str:
     return "家" if is_jia(xiao) else "野"
+
+
+def gender_xiao(xiao: str) -> str:
+    return "男肖" if normalize_xiao(xiao) in NAN_XIAO else "女肖"
+
+
+def tiandi_xiao(xiao: str) -> str:
+    return "天肖" if normalize_xiao(xiao) in TIAN_XIAO else "地肖"
+
+
+def yinyang_xiao(xiao: str) -> str:
+    return "阳肖" if normalize_xiao(xiao) in YANG_XIAO else "阴肖"
+
+
+def luck_xiao(xiao: str) -> str:
+    return "吉肖" if normalize_xiao(xiao) in JI_XIAO else "凶肖"
+
+
+def season_xiao(xiao: str) -> str:
+    nx = normalize_xiao(xiao)
+    for s, members in SEASON_XIAO.items():
+        if nx in members:
+            return s
+    return "春"
+
+
+def direction_xiao(xiao: str) -> str:
+    nx = normalize_xiao(xiao)
+    for d, members in DIRECTION_XIAO.items():
+        if nx in members:
+            return d
+    return "东"
 
 
 def extract_xiao(text: str) -> list[str]:
