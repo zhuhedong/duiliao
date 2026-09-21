@@ -11,6 +11,8 @@ import '../../core/storage/secure_store.dart';
 import '../../domain/models/user.dart';
 import '../../ui/theme.dart';
 import '../auth/auth_providers.dart';
+import '../upgrade/github_update_service.dart';
+import '../upgrade/glass_update_dialog.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -91,8 +93,13 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const _SectionTitle('应用'),
           ListTile(
-            leading: const Icon(Icons.system_update_outlined),
-            title: const Text('检查版本更新'),
+            leading: const Icon(Icons.rocket_launch_outlined),
+            title: const Text('在线升级 (GitHub)'),
+            subtitle: FutureBuilder<String>(
+              future: ref.watch(appVersionProvider.future),
+              builder: (_, snap) => Text('当前版本: v${snap.data ?? '1.0.0'} · 基于 GitHub Releases'),
+            ),
+            trailing: const Icon(Icons.chevron_right, size: 18),
             onTap: () => _checkVersion(context, ref),
           ),
           ListTile(
@@ -230,39 +237,79 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _checkVersion(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('正在连接 GitHub 检查最新版本…'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
     try {
       final current = await ref.read(appVersionProvider.future);
+      final updateService = ref.read(githubUpdateServiceProvider);
+
+      // 1. Try GitHub Releases check first
+      final ghResult = await updateService.checkUpdate(currentVersion: current);
+      if (!context.mounted) return;
+
+      if (ghResult.hasUpdate && ghResult.latestRelease != null) {
+        await GlassUpdateDialog.show(context, ghResult);
+        return;
+      }
+
+      // 2. If GitHub does not have a newer release, fallback to server version check
       final version = await ref.read(collectorRepositoryProvider).version(
             platform: ref.read(platformNameProvider),
             current: current,
           );
       if (!context.mounted) return;
-      final message = version.updateAvailable
-          ? '发现新版本 ${version.latest ?? ''}${version.releaseNotes == null ? '' : '\n${version.releaseNotes}'}'
-          : '当前已是最新版本';
+
+      if (version.updateAvailable) {
+        final message =
+            '发现新版本 ${version.latest ?? ''}${version.releaseNotes == null ? '' : '\n${version.releaseNotes}'}';
+        showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('版本检查'),
+            content: Text(message),
+            actions: [
+              if (version.downloadUrl != null)
+                FilledButton(
+                  onPressed: () => launchUrl(
+                    Uri.parse(version.downloadUrl!),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                  child: const Text('打开下载地址'),
+                ),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('知道了'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      // 3. Already up to date
       showDialog<void>(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('版本检查'),
-          content: Text(message),
+          title: const Text('已是最新版本'),
+          content: Text('当前版本 v$current 已是最新，暂无更新。'),
           actions: [
-            if (version.updateAvailable && version.downloadUrl != null)
-              FilledButton(
-                onPressed: () => launchUrl(
-                  Uri.parse(version.downloadUrl!),
-                  mode: LaunchMode.externalApplication,
-                ),
-                child: const Text('打开下载地址'),
-              ),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
+              child: const Text('好的'),
             ),
           ],
         ),
       );
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('检查失败：$e')));
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('检查失败：$e')));
+      }
     }
   }
 

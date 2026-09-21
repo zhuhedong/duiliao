@@ -7,6 +7,7 @@ on:
       - '.github/workflows/flutter-app.yml'
   push:
     branches: [main]
+    tags: ['v*']
     paths:
       - 'duiliao_app/**'
   workflow_dispatch:
@@ -28,7 +29,7 @@ jobs:
       - run: flutter test
 
   android-apk:
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     needs: verify
     runs-on: ubuntu-latest
     defaults:
@@ -52,7 +53,7 @@ jobs:
           test -n "$ANDROID_KEY_ALIAS"
           test -n "$ANDROID_KEY_PASSWORD"
           test -n "$ANDROID_STORE_PASSWORD"
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks || echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
           cat > android/key.properties <<EOF
           storePassword=$ANDROID_STORE_PASSWORD
           keyPassword=$ANDROID_KEY_PASSWORD
@@ -71,6 +72,14 @@ jobs:
         with:
           name: duiliao-android-apk
           path: duiliao_app/build/app/outputs/flutter-apk/*.apk
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: duiliao_app/build/app/outputs/flutter-apk/*.apk
+          generate_release_notes: true
+          draft: false
+          prerelease: false
 
   ios-build:
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
