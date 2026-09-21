@@ -20,8 +20,10 @@ import '../consensus/consensus_screen.dart';
 import '../draws/draw_detail_screen.dart';
 import '../notifications/messages_screen.dart';
 import '../notifications/notification_service.dart';
+import '../numbers/numbers_screen.dart';
 import '../profile/profile_screen.dart';
 import '../ratings/ratings_screen.dart';
+import '../rules/rules_screen.dart';
 
 /// The aggregated home payload. One request rather than five, because five
 /// sequential encrypted round-trips is a visible delay on a mobile link.
@@ -537,6 +539,20 @@ class _QuickLinks extends ConsumerWidget {
               MaterialPageRoute(
                 builder: (_) => AiScreen(initialPeriod: home.consensusPeriod),
               ),
+            ),
+          ),
+          ActionChip(
+            avatar: const Icon(Icons.grid_view_outlined, size: 16),
+            label: const Text('号码百科'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NumbersScreen()),
+            ),
+          ),
+          ActionChip(
+            avatar: const Icon(Icons.rule_outlined, size: 16),
+            label: const Text('玩法规则'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const RulesScreen()),
             ),
           ),
           if (home.ruleVersion != null)

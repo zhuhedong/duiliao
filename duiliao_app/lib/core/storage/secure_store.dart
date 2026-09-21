@@ -13,6 +13,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 abstract final class SecureKeys {
   static const String refreshToken = 'duiliao.refresh_token';
   static const String biometricEnabled = 'duiliao.biometric_enabled';
+  static const String themeMode = 'duiliao.theme_mode';
+  static const String textScale = 'duiliao.text_scale';
   static const String deviceId = 'duiliao.device_id';
   static const String lastIdentifier = 'duiliao.last_identifier';
 }

@@ -90,6 +90,15 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
   /// unavailable, in which case login omits the `device` block.
   final DeviceDescriptor Function()? deviceProvider;
 
+  DeviceDescriptor? _deviceDescriptor;
+
+  /// Supplies the asynchronously resolved platform metadata before the first
+  /// login. Tests may leave this unset and continue using their injected
+  /// synchronous provider.
+  void setDeviceDescriptor(DeviceDescriptor descriptor) {
+    _deviceDescriptor = descriptor;
+  }
+
   AuthRepository get _repository => ref.read(authRepositoryProvider);
 
   @override
@@ -163,9 +172,15 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
       final result = await _repository.login(
         identifier: identifier,
         password: password,
-        device: deviceProvider?.call(),
+        device: _deviceDescriptor ?? deviceProvider?.call(),
       );
       _accessToken = result.tokens.accessToken;
+      // Cached API payloads belong to the previous identity until this point.
+      // Clear them before rendering the new account so a fast offline read can
+      // never show another user's draws or ratings. Tests and early startup
+      // builds may not have a cache provider yet, so this is deliberately
+      // best-effort.
+      await _clearLocalCache();
       _emit(AuthState(phase: AuthPhase.authenticated, user: result.user));
       return true;
     } on ApiException catch (e) {
@@ -186,8 +201,18 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
   Future<void> logout({bool allDevices = false}) async {
     final refreshToken = await _repository.readRefreshToken();
     await _repository.logout(refreshToken: refreshToken, allDevices: allDevices);
+    await _clearLocalCache();
     _accessToken = null;
     _emit(const AuthState(phase: AuthPhase.unauthenticated));
+  }
+
+  Future<void> _clearLocalCache() async {
+    try {
+      await ref.read(cacheStoreProvider).clear();
+    } catch (_) {
+      // The cache is optional; authentication must still complete when Hive is
+      // unavailable or the provider is intentionally omitted in a test.
+    }
   }
 
   /// Unlock after a successful biometric check.

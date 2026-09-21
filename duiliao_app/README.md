@@ -1,17 +1,6 @@
 # duiliao_app
 
-A new Flutter project.
+Duiliao 运营随身端：开奖、号码属性、共识、源评级、采集执行、AI 报告和本地通知。
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+账号由 Web 后台创建，APP 没有注册入口。构建和签名流程见
+[`docs/app_release.md`](../docs/app_release.md)。

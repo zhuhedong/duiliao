@@ -18,6 +18,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/net/api_exception.dart';
+import '../../core/navigation.dart';
 import '../../core/providers.dart';
 import '../../core/storage/cache_store.dart';
 import '../../data/collector_repository.dart';
@@ -90,11 +91,20 @@ class LocalNotificationPresenter implements NotificationPresenter {
   Future<void> initialize() async {
     if (_initialized) return;
     await _plugin.initialize(
-      const InitializationSettings(
+      InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         iOS: DarwinInitializationSettings(),
       ),
+      onDidReceiveNotificationResponse: (response) {
+        openAppDeepLink(response.payload);
+      },
     );
+    await _plugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+    await _plugin
+        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
     _initialized = true;
   }
 
@@ -352,6 +362,27 @@ class EventPoller with WidgetsBindingObserver {
 final subscriptionProvider = FutureProvider<Subscription>(
   (ref) => ref.read(collectorRepositoryProvider).subscription(),
 );
+
+/// Foreground event polling is started by the authenticated app shell. Keeping
+/// it provider-scoped makes it stop automatically on logout and avoids a timer
+/// surviving a replaced ProviderContainer in tests.
+final eventPollerProvider = Provider<EventPoller>((ref) {
+  final poller = EventPoller(onPoll: () async {
+    Subscription? subscription;
+    try {
+      subscription = await ref.read(subscriptionProvider.future);
+    } catch (_) {
+      // The event feed can still be polled with server defaults when the
+      // preference request is temporarily unavailable.
+    }
+    await ref.read(messageCentreProvider.notifier).pollOnce(
+          subscription: subscription,
+        );
+  });
+  poller.start();
+  ref.onDispose(poller.stop);
+  return poller;
+});
 
 /// Serialise the message list for persistence. Exposed for tests.
 String encodeMessages(List<AppMessage> messages) =>

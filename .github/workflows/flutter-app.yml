@@ -1,0 +1,101 @@
+name: Flutter mobile app
+
+on:
+  pull_request:
+    paths:
+      - 'duiliao_app/**'
+      - '.github/workflows/flutter-app.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'duiliao_app/**'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: duiliao_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  android-apk:
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: duiliao_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Prepare Android signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEY_ALIAS"
+          test -n "$ANDROID_KEY_PASSWORD"
+          test -n "$ANDROID_STORE_PASSWORD"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_STORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
+      - run: >-
+          flutter build apk --release --split-per-abi
+          --dart-define=API_BASE_URL="${{ vars.APP_API_BASE_URL }}"
+          --dart-define=APP_SIGNING_SECRET="${{ secrets.APP_SIGNING_SECRET }}"
+          --dart-define=APP_ID=android-internal
+        # dart-defines are passed explicitly so a release can never silently use
+        # the placeholder signing secret. The protected signing key is prepared
+        # above and the Gradle release build refuses to use it unless present.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duiliao-android-apk
+          path: duiliao_app/build/app/outputs/flutter-apk/*.apk
+
+  ios-build:
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: duiliao_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: >-
+          flutter build ios --release --no-codesign
+          --dart-define=API_BASE_URL="${{ vars.APP_API_BASE_URL }}"
+          --dart-define=APP_SIGNING_SECRET="${{ secrets.APP_SIGNING_SECRET }}"
+          --dart-define=APP_ID=ios-internal
+        # Signing and TestFlight upload require the team's Apple certificate and
+        # provisioning profile. This job still verifies the native iOS target;
+        # the signed archive is produced by the release machine described in
+        # docs/app_release.md.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duiliao-ios-runner-app
+          path: duiliao_app/build/ios/iphoneos/Runner.app

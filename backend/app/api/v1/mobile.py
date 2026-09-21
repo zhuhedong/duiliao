@@ -293,6 +293,8 @@ async def events(
     # single primary-key lookup.
     sub = _load_subscription_row(db, user.id)
     followed: list[str] = list(sub.get("source_ids") or [])
+    preferred_lotteries: set[str] = set(sub.get("lotteries") or [])
+    preferred_play_types: set[str] = set(sub.get("play_types") or [])
     rules: dict[str, Any] = dict(sub.get("notify_rules") or {})
 
     def enabled(key: str, default: bool = True) -> bool:
@@ -406,6 +408,24 @@ async def events(
                     "data": row | {"occurred_at": _iso(row["occurred_at"])},
                 }
             )
+
+    # Subscription scopes are shared by all event types. Events without a
+    # play-type (draws and job completion) are still governed by the lottery
+    # preference, while source/consensus events additionally honour play types.
+    if preferred_lotteries or preferred_play_types:
+        out = [
+            event
+            for event in out
+            if (
+                not preferred_lotteries
+                or event.get("lottery") in preferred_lotteries
+            )
+            and (
+                not preferred_play_types
+                or not event.get("data", {}).get("play_type")
+                or event.get("data", {}).get("play_type") in preferred_play_types
+            )
+        ]
 
     # A single ordered, truncated stream; the cursor is the newest item actually
     # returned so truncation cannot skip events.

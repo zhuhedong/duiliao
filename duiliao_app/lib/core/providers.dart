@@ -128,13 +128,39 @@ class DisplayPreferencesController extends Notifier<DisplayPreferences> {
   @override
   DisplayPreferences build() => const DisplayPreferences();
 
-  void setThemeMode(ThemeModePreference mode) =>
-      state = state.copyWith(themeMode: mode);
+  Future<void> hydrate() async {
+    final store = ref.read(secureStoreProvider);
+    final theme = await store.read(SecureKeys.themeMode);
+    final scale = double.tryParse(await store.read(SecureKeys.textScale) ?? '');
+    final biometric = (await store.read(SecureKeys.biometricEnabled)) == '1';
+    final mode = ThemeModePreference.values.firstWhere(
+      (value) => value.name == theme,
+      orElse: () => ThemeModePreference.system,
+    );
+    state = DisplayPreferences(
+      themeMode: mode,
+      textScale: (scale ?? 1).clamp(0.9, 1.4),
+      biometricEnabled: biometric,
+    );
+  }
+
+  void setThemeMode(ThemeModePreference mode) {
+    state = state.copyWith(themeMode: mode);
+    ref.read(secureStoreProvider).write(SecureKeys.themeMode, mode.name);
+  }
 
   /// Clamped so an extreme value cannot make the UI unusable.
-  void setTextScale(double scale) =>
-      state = state.copyWith(textScale: scale.clamp(0.9, 1.4));
+  void setTextScale(double scale) {
+    final value = scale.clamp(0.9, 1.4);
+    state = state.copyWith(textScale: value);
+    ref.read(secureStoreProvider).write(SecureKeys.textScale, value.toString());
+  }
 
-  void setBiometricEnabled(bool enabled) =>
-      state = state.copyWith(biometricEnabled: enabled);
+  void setBiometricEnabled(bool enabled) {
+    state = state.copyWith(biometricEnabled: enabled);
+    ref.read(secureStoreProvider).write(
+          SecureKeys.biometricEnabled,
+          enabled ? '1' : '0',
+        );
+  }
 }

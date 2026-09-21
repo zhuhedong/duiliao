@@ -37,6 +37,8 @@ dependencies:
 
   # Notifications are polled and raised locally; no third-party push SDK.
   flutter_local_notifications: ^19.4.2
+  # Periodic background event polling. iOS execution remains OS-scheduled.
+  workmanager: ^0.5.2
 
   # Biometric app lock.
   local_auth: ^2.3.0
@@ -51,6 +53,7 @@ dependencies:
 
   # Deep links from notification taps.
   go_router: ^16.2.4
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

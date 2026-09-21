@@ -13,7 +13,6 @@ import '../../domain/models/user.dart';
 import '../../domain/play_type.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
-import '../ai/ai_screen.dart';
 import '../comparison/comparison_screen.dart';
 import '../consensus/consensus_screen.dart';
 import '../draws/draw_detail_screen.dart';
