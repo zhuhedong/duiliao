@@ -1,0 +1,55 @@
+{
+  "ok": true,
+  "count": 3,
+  "has_more": false,
+  "next_cursor": "2026-09-21T08:31:27.597199",
+  "events": [
+    {
+      "type": "draw_published",
+      "occurred_at": "2026-09-21T00:31:27",
+      "lottery": "macau",
+      "period": "2026247",
+      "title": "新开奖",
+      "body": "macau 2026247 特码 40",
+      "data": {
+        "lottery": "macau",
+        "period": "2026247",
+        "tema": "40",
+        "draw_date": "2026-09-04",
+        "occurred_at": "2026-09-21T00:31:27"
+      }
+    },
+    {
+      "type": "draw_published",
+      "occurred_at": "2026-09-21T00:31:27",
+      "lottery": "macau",
+      "period": "2026248",
+      "title": "新开奖",
+      "body": "macau 2026248 特码 28",
+      "data": {
+        "lottery": "macau",
+        "period": "2026248",
+        "tema": "28",
+        "draw_date": "2026-09-05",
+        "occurred_at": "2026-09-21T00:31:27"
+      }
+    },
+    {
+      "type": "collect_job_finished",
+      "occurred_at": "2026-09-21T08:31:27.597199",
+      "lottery": "macau",
+      "period": "2026248",
+      "title": "采集任务完成",
+      "body": "macau 2026248 成功 2/2",
+      "data": {
+        "job_id": 1,
+        "lottery": "macau",
+        "period": "2026248",
+        "status": "done",
+        "source_total": 2,
+        "source_ok": 2,
+        "occurred_at": "2026-09-21T08:31:27.597199"
+      }
+    }
+  ]
+}

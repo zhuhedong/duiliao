@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "scheduler": {
+    "running": false,
+    "check_interval_seconds": 5,
+    "active_tasks_count": 0,
+    "running_task_ids": [],
+    "recent_logs": []
+  },
+  "schedules": []
+}

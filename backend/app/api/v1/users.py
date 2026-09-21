@@ -97,3 +97,84 @@ def change_password(
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     user.password_hash = hash_password(payload.new_password)
     db.commit()
+
+
+
+# --------------------------------------------------------------------------- #
+# Mobile subscriptions and notification preferences
+# --------------------------------------------------------------------------- #
+class SubscriptionPayload(BaseModel):
+    """Full replacement of a user's subscription. PUT is idempotent."""
+
+    source_ids: list[str] = []
+    lotteries: list[str] = []
+    play_types: list[str] = []
+    notify_rules: dict[str, object] = {}
+
+
+@router.get("/me/subscriptions")
+def get_subscriptions(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Followed sources and notification rules, defaulted when never saved."""
+    from app.api.v1.mobile import _load_subscription_row
+
+    return {"ok": True, **_load_subscription_row(db, user.id)}
+
+
+@router.put("/me/subscriptions")
+def put_subscriptions(
+    payload: SubscriptionPayload,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """Replace the caller's subscription.
+
+    Source ids are validated against the collector catalogue so a typo cannot
+    silently disable notifications for a source that will never match. Lotteries
+    and play types are validated for the same reason.
+    """
+    from app import collector_bridge as cb
+    from app.api.v1.mobile import LOTTERIES, _load_subscription_row
+    from app.models.subscription import DEFAULT_NOTIFY_RULES, UserSubscription
+
+    requested = list(dict.fromkeys(payload.source_ids))
+    if requested:
+        try:
+            known = {s["source_id"] for s in cb.registry_module().list_sources()}
+        except Exception as exc:  # pragma: no cover - collector unavailable
+            raise HTTPException(status_code=503, detail="source catalogue unavailable") from exc
+        unknown = [s for s in requested if s not in known]
+        if unknown:
+            raise HTTPException(
+                status_code=400,
+                detail=f"unknown source_ids: {', '.join(sorted(unknown)[:10])}",
+            )
+
+    bad_lotteries = [x for x in payload.lotteries if x not in LOTTERIES]
+    if bad_lotteries:
+        raise HTTPException(status_code=400, detail=f"unknown lotteries: {', '.join(bad_lotteries)}")
+
+    if payload.play_types:
+        try:
+            valid_plays = {r["play_type"] for r in cb.rules_catalog()}
+        except Exception:  # pragma: no cover - fall back to accepting
+            valid_plays = set(payload.play_types)
+        bad_plays = [x for x in payload.play_types if x not in valid_plays]
+        if bad_plays:
+            raise HTTPException(status_code=400, detail=f"unknown play_types: {', '.join(bad_plays)}")
+
+    # Only known rule keys are persisted, so a client cannot bloat the row.
+    rules = {k: v for k, v in payload.notify_rules.items() if k in DEFAULT_NOTIFY_RULES}
+
+    row = db.get(UserSubscription, user.id)
+    if row is None:
+        row = UserSubscription(user_id=user.id)
+        db.add(row)
+    row.source_ids = requested
+    row.lotteries = list(dict.fromkeys(payload.lotteries))
+    row.play_types = list(dict.fromkeys(payload.play_types))
+    row.notify_rules = rules
+    db.commit()
+    return {"ok": True, **_load_subscription_row(db, user.id)}

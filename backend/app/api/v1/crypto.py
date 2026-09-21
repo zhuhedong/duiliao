@@ -1,6 +1,8 @@
 """Key-exchange endpoints. These are intentionally unencrypted (bootstrap)."""
 from __future__ import annotations
 
+import time
+
 from fastapi import APIRouter, HTTPException, status
 
 from app.core.crypto import rsa_manager, session_store
@@ -20,6 +22,7 @@ def get_public_key() -> PublicKeyResponse:
         keyId=rsa_manager.key_id,
         algorithm="RSA-OAEP-256",
         publicKey=rsa_manager.public_key_spki_b64,
+        serverTime=int(time.time()),
     )
 
 
@@ -40,4 +43,8 @@ def handshake(payload: HandshakeRequest) -> HandshakeResponse:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid AES key length",
         )
-    return HandshakeResponse(sessionId=session_id, expiresIn=ttl)
+    # serverTime lets the client correct for local clock skew before signing;
+    # without it every request from a skewed device fails with bad_timestamp.
+    return HandshakeResponse(
+        sessionId=session_id, expiresIn=ttl, serverTime=int(time.time())
+    )

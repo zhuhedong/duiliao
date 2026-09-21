@@ -1,0 +1,43 @@
+{
+  "ok": true,
+  "total": 2,
+  "count": 2,
+  "items": [
+    {
+      "id": 1,
+      "source_id": "haige_pingte",
+      "lottery": "macau",
+      "play_type": "pingte_xiao",
+      "period": "2026248",
+      "preds": [
+        {
+          "kind": "xiao",
+          "value": "猪",
+          "text": "猪猪猪"
+        }
+      ],
+      "claimed_status": "pending",
+      "raw_text": "248期:海哥平特【猪猪猪】开奖:猫00准",
+      "final_url": "file:///Users/code/develop/code/python/duiliao/backend/collector/fixtures/dingjian/haige_pingte.json",
+      "fetched_at": "2026-09-21T08:31:27.533307"
+    },
+    {
+      "id": 2,
+      "source_id": "heizhuang_pingte",
+      "lottery": "macau",
+      "play_type": "pingte_xiao",
+      "period": "2026248",
+      "preds": [
+        {
+          "kind": "xiao",
+          "value": "兔",
+          "text": "兔兔兔"
+        }
+      ],
+      "claimed_status": "pending",
+      "raw_text": "248期:黑庄平特【兔兔兔】开奖:猫00准",
+      "final_url": "file:///Users/code/develop/code/python/duiliao/backend/collector/fixtures/dingjian/heizhuang_pingte.json",
+      "fetched_at": "2026-09-21T08:31:27.533118"
+    }
+  ]
+}

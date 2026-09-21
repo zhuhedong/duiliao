@@ -1,0 +1,63 @@
+name: duiliao_app
+description: "Duiliao 运营随身端 — 开奖、共识、源评级与采集执行"
+# Internal distribution only (APK sideload / TestFlight); never published to pub.dev.
+publish_to: 'none'
+
+# Bumped by CI. `flutter build --build-name/--build-number` overrides these.
+# The version reported to GET /app/version for the force-update check.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management.
+  flutter_riverpod: ^3.0.3
+
+  # HTTP. Used directly rather than through dio because the encrypted transport
+  # needs byte-level control of the request body for signing.
+  http: ^1.5.0
+
+  # Crypto. pointycastle is pure Dart, so it needs no native build hooks or
+  # platform toolchain — see lib/core/crypto/duiliao_crypto.dart for why this was
+  # chosen over package:webcrypto.
+  pointycastle: ^4.0.0
+  crypto: ^3.0.6
+  asn1lib: ^1.6.4
+
+  # Storage: refresh token in the keychain/keystore, cached payloads on disk.
+  flutter_secure_storage: ^9.2.4
+  hive_ce: ^2.13.2
+  path_provider: ^2.1.5
+
+  # Notifications are polled and raised locally; no third-party push SDK.
+  flutter_local_notifications: ^19.4.2
+
+  # Biometric app lock.
+  local_auth: ^2.3.0
+
+  # Device metadata for the session list, and the running version for the
+  # update check.
+  device_info_plus: ^12.1.0
+  package_info_plus: ^9.0.1
+
+  # AI reports are Markdown.
+  flutter_markdown_plus: ^1.0.3
+
+  # Deep links from notification taps.
+  go_router: ^16.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fixtures/

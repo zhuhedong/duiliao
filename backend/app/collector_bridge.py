@@ -22,7 +22,7 @@ import sys
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 COLLECTOR_ROOT = Path(__file__).resolve().parent.parent / "collector"
 
@@ -138,11 +138,36 @@ def collect(
     fixture_dir: str | None = None,
     do_ingest: bool = True,
     concurrency: int = 8,
+    on_start: Callable[[str], None] | None = None,
+    on_done: Callable[[dict[str, Any]], None] | None = None,
+    on_phase: Callable[[str], None] | None = None,
+    should_cancel: Callable[[], bool] | None = None,
 ) -> dict[str, Any]:
     """Run the enabled source scripts in a ThreadPool (as subprocesses) and optionally ingest.
 
     Uses concurrent.futures.ThreadPoolExecutor to parallelize outbound crawling
     across data sources, drastically reducing overall collection time.
+
+    The optional callbacks let a caller report incremental progress instead of
+    waiting for the whole run. They are invoked as follows:
+
+    * ``on_start(source_id)`` — on the worker thread, immediately before the
+      source subprocess is launched.
+    * ``on_done(result)`` — on the worker thread, after ``runner.run_one``
+      returns and ``raw_path`` has been filled in. ``result`` is the full
+      per-source dict, including the ``stdout`` / ``stderr`` that the ``run.v1``
+      payload projection drops. Note that two ``run_one`` error branches omit
+      ``stdout``/``stderr`` entirely, so read them with ``.get(...) or ""``.
+    * ``on_phase(phase)`` — on the calling thread when the run moves between
+      ``collecting`` / ``ingesting`` / ``done``.
+    * ``should_cancel()`` — polled on the worker thread before each source
+      starts. Returning true makes the remaining sources report
+      ``error_code="cancelled"`` without spawning a subprocess.
+
+    Callbacks run on ThreadPoolExecutor worker threads, so anything they touch
+    must be thread-safe; a callback that raises is swallowed and logged rather
+    than failing the collection. ``runner.py`` is deliberately untouched — its
+    CLI path keeps its own copy of this loop.
     """
     bootstrap()
     import concurrent.futures
@@ -160,23 +185,87 @@ def collect(
 
     fixtures = _resolve_fixture_dir(fixture_dir)
 
+    def _notify(cb: Callable[..., None] | None, *args: Any) -> None:
+        """Invoke a progress callback without letting it break the collection."""
+        if cb is None:
+            return
+        try:
+            cb(*args)
+        except Exception:  # pragma: no cover - defensive
+            logger.exception("collect progress callback failed")
+
     def _execute_source(row: dict[str, Any]) -> dict[str, Any]:
+        source_id = row["source_id"]
+        if should_cancel is not None:
+            try:
+                cancelled = bool(should_cancel())
+            except Exception:  # pragma: no cover - defensive
+                logger.exception("collect cancel check failed")
+                cancelled = False
+            if cancelled:
+                skipped = {
+                    "source_id": source_id,
+                    "ok": False,
+                    "exit_code": None,
+                    "elapsed_ms": 0,
+                    "item_count": 0,
+                    "data": None,
+                    "error_code": "cancelled",
+                    "error_msg": "cancelled before start",
+                    "raw_path": None,
+                }
+                _notify(on_done, skipped)
+                return skipped
+
+        _notify(on_start, source_id)
         extra: list[str] = []
         if fixtures is not None:
-            fp = fixtures / f"{row['source_id']}.json"
+            fp = fixtures / f"{source_id}.json"
             if fp.exists():
                 extra += ["--fixture", str(fp)]
-        return runner.run_one(row, lottery, canonical_period, extra)
+        result = runner.run_one(row, lottery, canonical_period, extra)
+        # Written here rather than in a second serial pass so that on_done sees
+        # the final shape. Each source writes a distinct file and write_raw
+        # creates the directory with exist_ok, so this is thread-safe.
+        try:
+            result["raw_path"] = runner.write_raw(run_id, result)
+        except Exception:  # pragma: no cover - disk issues must not lose results
+            logger.exception("write_raw failed for %s", source_id)
+            result["raw_path"] = None
+        _notify(on_done, result)
+        return result
 
+    _notify(on_phase, "collecting")
     max_workers = max(1, min(int(concurrency or 8), len(sources) or 1))
     if max_workers == 1 or len(sources) <= 1:
         results: list[dict[str, Any]] = [_execute_source(row) for row in sources]
     else:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            results = list(executor.map(_execute_source, sources))
-
-    for r in results:
-        r["raw_path"] = runner.write_raw(run_id, r)
+            futures = {executor.submit(_execute_source, row): row for row in sources}
+            results = []
+            for future in concurrent.futures.as_completed(futures):
+                row = futures[future]
+                try:
+                    results.append(future.result())
+                except Exception as exc:  # pragma: no cover - run_one absorbs its own errors
+                    logger.exception("source %s raised", row.get("source_id"))
+                    failed = {
+                        "source_id": row.get("source_id"),
+                        "ok": False,
+                        "exit_code": None,
+                        "elapsed_ms": 0,
+                        "item_count": 0,
+                        "data": None,
+                        "error_code": "worker_error",
+                        "error_msg": str(exc),
+                        "raw_path": None,
+                    }
+                    _notify(on_done, failed)
+                    results.append(failed)
+        # as_completed yields in completion order; restore the configured order
+        # so the returned payload is deterministic regardless of timing.
+        order = {row["source_id"]: i for i, row in enumerate(sources)}
+        results.sort(key=lambda r: order.get(r.get("source_id"), len(order)))
 
     # If period wasn't provided, detect latest period from extracted items
     detected_periods = [
@@ -224,6 +313,7 @@ def collect(
         "source_ok": sum(1 for r in results if r["ok"]),
     }
     if do_ingest:
+        _notify(on_phase, "ingesting")
         out["ingest"] = ingest.ingest_run(payload)
     else:
         out["payload"] = payload
@@ -1114,3 +1204,729 @@ def update_schedule_run_result(
         if enabled is not None:
             sched.enabled = enabled
 
+
+# --------------------------------------------------------------------------- #
+# Asynchronous collection jobs (采集任务)
+# --------------------------------------------------------------------------- #
+# A job decouples "submit a collection" from "wait for it to finish". The HTTP
+# handler inserts a queued row and returns the id; a background task drives the
+# row through collecting -> ingesting -> judging -> done while writing per-source
+# progress, and the client polls. Progress writes happen on ThreadPoolExecutor
+# worker threads, so every helper below opens its own short session.
+
+JOB_ACTIVE_STATUSES = ("queued", "running")
+JOB_TERMINAL_STATUSES = ("done", "failed", "cancelled", "interrupted")
+
+# Serialises the read-modify-write of the `progress` JSON column, which several
+# collection worker threads update at once. See update_collect_job_source.
+_progress_lock = threading.Lock()
+
+
+def _job_to_dict(j: Any, include_result: bool = True) -> dict[str, Any]:
+    progress = j.progress if isinstance(j.progress, dict) else {}
+    # Preserve the submitted source order so the UI list does not reshuffle
+    # between polls as sources complete.
+    ordered_ids = list(j.source_ids or []) or list(progress.keys())
+    items = []
+    for source_id in ordered_ids:
+        entry = progress.get(source_id) or {}
+        items.append(
+            {
+                "source_id": source_id,
+                "source_name": entry.get("source_name"),
+                "state": entry.get("state") or "queued",
+                "item_count": entry.get("item_count"),
+                "elapsed_ms": entry.get("elapsed_ms"),
+                "exit_code": entry.get("exit_code"),
+                "error_code": entry.get("error_code"),
+                "error_msg": entry.get("error_msg"),
+            }
+        )
+
+    out: dict[str, Any] = {
+        "id": j.id,
+        "lottery": j.lottery,
+        "period": j.period,
+        "source_ids": j.source_ids or [],
+        "concurrency": j.concurrency,
+        "do_ingest": bool(j.do_ingest),
+        "auto_judge": bool(j.auto_judge),
+        "status": j.status,
+        "phase": j.phase,
+        "run_id": j.run_id,
+        "source_total": j.source_total,
+        "source_done": j.source_done,
+        "source_ok": j.source_ok,
+        "cancel_requested": bool(j.cancel_requested),
+        "created_by": j.created_by,
+        "schedule_id": j.schedule_id,
+        "error": j.error,
+        "items": items,
+        "created_at": j.created_at.strftime("%Y-%m-%d %H:%M:%S") if j.created_at else None,
+        "started_at": j.started_at.strftime("%Y-%m-%d %H:%M:%S") if j.started_at else None,
+        "finished_at": j.finished_at.strftime("%Y-%m-%d %H:%M:%S") if j.finished_at else None,
+    }
+    if include_result:
+        out["result"] = j.result
+        failed = [
+            {
+                "source_id": it["source_id"],
+                "source_name": it.get("source_name"),
+                "error_code": it.get("error_code"),
+                "error_msg": it.get("error_msg"),
+            }
+            for it in items
+            if it["state"] == "fail"
+        ]
+        out["failed"] = failed
+    return out
+
+
+def create_collect_job(
+    lottery: str,
+    period: str | None = None,
+    source_ids: list[str] | None = None,
+    concurrency: int = 8,
+    do_ingest: bool = True,
+    auto_judge: bool = True,
+    created_by: str | None = None,
+    schedule_id: int | None = None,
+) -> dict[str, Any]:
+    """Insert a queued job and pre-populate its per-source progress map.
+
+    Resolving the source list up front means the client gets the full checklist
+    back from the submit call and can render every source as "queued" before the
+    first one starts.
+    """
+    bootstrap()
+    import runner
+    from common.config import load_yaml
+    from db import session_scope
+    from schema import CollectJob
+
+    cfg = load_yaml()
+    only = set(source_ids) if source_ids else None
+    rows = runner.load_sources(cfg, lottery, only)
+    resolved_ids = [r["source_id"] for r in rows]
+    progress = {
+        r["source_id"]: {
+            "state": "queued",
+            "source_name": r.get("source_name"),
+            "item_count": None,
+            "elapsed_ms": None,
+            "exit_code": None,
+            "error_code": None,
+            "error_msg": None,
+        }
+        for r in rows
+    }
+
+    with session_scope() as s:
+        job = CollectJob(
+            lottery=lottery,
+            period=(period or None),
+            source_ids=resolved_ids,
+            concurrency=max(1, min(int(concurrency or 8), 32)),
+            do_ingest=1 if do_ingest else 0,
+            auto_judge=1 if auto_judge else 0,
+            status="queued",
+            phase="queued",
+            progress=progress,
+            source_total=len(resolved_ids),
+            source_done=0,
+            source_ok=0,
+            created_by=created_by,
+            schedule_id=schedule_id,
+        )
+        s.add(job)
+        s.flush()
+        return _job_to_dict(job)
+
+
+def get_collect_job(job_id: int) -> dict[str, Any] | None:
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+
+    with session_scope() as s:
+        row = s.get(CollectJob, job_id)
+        return _job_to_dict(row) if row else None
+
+
+def list_collect_jobs(
+    limit: int = 30,
+    offset: int = 0,
+    lottery: str | None = None,
+    status: str | None = None,
+) -> dict[str, Any]:
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+    from sqlalchemy import func as sa_func
+    from sqlalchemy import select
+
+    limit = max(1, min(int(limit or 30), 200))
+    offset = max(0, int(offset or 0))
+    with session_scope() as s:
+        stmt = select(CollectJob)
+        count_stmt = select(sa_func.count(CollectJob.id))
+        if lottery:
+            stmt = stmt.where(CollectJob.lottery == lottery)
+            count_stmt = count_stmt.where(CollectJob.lottery == lottery)
+        if status:
+            stmt = stmt.where(CollectJob.status == status)
+            count_stmt = count_stmt.where(CollectJob.status == status)
+        total = s.scalar(count_stmt) or 0
+        stmt = stmt.order_by(CollectJob.id.desc()).limit(limit).offset(offset)
+        rows = list(s.scalars(stmt))
+        # The list view drops the heavy result blob but keeps per-source items so
+        # the history screen can show a success ratio without an extra request.
+        return {
+            "ok": True,
+            "total": total,
+            "count": len(rows),
+            "items": [_job_to_dict(r, include_result=False) for r in rows],
+        }
+
+
+def request_collect_job_cancel(job_id: int) -> dict[str, Any] | None:
+    """Flag a job for cancellation; the worker stops before the next source.
+
+    Sources already running are left alone — their subprocesses are allowed to
+    finish rather than being killed mid-write. A job that has not started yet
+    goes straight to ``cancelled``.
+    """
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+
+    with session_scope() as s:
+        job = s.get(CollectJob, job_id)
+        if job is None:
+            return None
+        if job.status in JOB_TERMINAL_STATUSES:
+            return _job_to_dict(job)
+        job.cancel_requested = 1
+        if job.status == "queued":
+            job.status = "cancelled"
+            job.phase = "done"
+            job.finished_at = datetime.now()
+        s.flush()
+        return _job_to_dict(job)
+
+
+def is_collect_job_cancelled(job_id: int) -> bool:
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+
+    with session_scope() as s:
+        job = s.get(CollectJob, job_id)
+        return bool(job and job.cancel_requested)
+
+
+def mark_collect_job_started(job_id: int) -> None:
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+
+    with session_scope() as s:
+        job = s.get(CollectJob, job_id)
+        if job is None:
+            return
+        job.status = "running"
+        job.phase = "collecting"
+        job.started_at = datetime.now()
+
+
+def set_collect_job_phase(job_id: int, phase: str) -> None:
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+
+    with session_scope() as s:
+        job = s.get(CollectJob, job_id)
+        if job is None:
+            return
+        job.phase = phase
+
+
+def update_collect_job_source(
+    job_id: int,
+    source_id: str,
+    state: str,
+    item_count: int | None = None,
+    elapsed_ms: int | None = None,
+    exit_code: int | None = None,
+    error_code: str | None = None,
+    error_msg: str | None = None,
+) -> None:
+    """Merge one source's progress into the job's progress map.
+
+    Called concurrently from ThreadPoolExecutor worker threads. ``progress`` is a
+    single JSON column, so this is a read-modify-write: without serialisation two
+    sources finishing at the same time each read the same map, add their own
+    entry, and the later write silently discards the earlier one — progress then
+    under-reports and ``source_done`` never reaches ``source_total``.
+
+    The lock makes the critical section atomic. It is process-local, which is
+    sufficient because collection jobs execute in the API process and the
+    in-memory session/nonce stores already constrain the deployment to a single
+    instance. If that ever changes, this needs a per-source row or a
+    dialect-native atomic JSON update instead.
+
+    ``progress`` is also reassigned wholesale rather than mutated in place,
+    because SQLAlchemy does not track in-place mutation of a plain JSON value.
+    """
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+
+    with _progress_lock:
+        with session_scope() as s:
+            job = s.get(CollectJob, job_id)
+            if job is None:
+                return
+            progress = dict(job.progress or {})
+            entry = dict(progress.get(source_id) or {})
+            entry["state"] = state
+            if item_count is not None:
+                entry["item_count"] = item_count
+            if elapsed_ms is not None:
+                entry["elapsed_ms"] = elapsed_ms
+            if exit_code is not None:
+                entry["exit_code"] = exit_code
+            # Always assign the error fields so a retry clears a previous failure.
+            entry["error_code"] = error_code
+            entry["error_msg"] = (error_msg or None) and str(error_msg)[:500]
+            progress[source_id] = entry
+            job.progress = progress
+            if state in ("ok", "fail"):
+                job.source_done = sum(
+                    1 for e in progress.values() if (e or {}).get("state") in ("ok", "fail")
+                )
+                job.source_ok = sum(
+                    1 for e in progress.values() if (e or {}).get("state") == "ok"
+                )
+
+
+def finish_collect_job(
+    job_id: int,
+    status: str,
+    result: dict[str, Any] | None = None,
+    run_id: str | None = None,
+    period: str | None = None,
+    error: str | None = None,
+) -> dict[str, Any] | None:
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+
+    with session_scope() as s:
+        job = s.get(CollectJob, job_id)
+        if job is None:
+            return None
+        job.status = status
+        job.phase = "done"
+        job.finished_at = datetime.now()
+        if result is not None:
+            job.result = result
+        if run_id:
+            job.run_id = run_id
+        if period and period != "auto":
+            job.period = period
+        if error:
+            job.error = str(error)[:500]
+        s.flush()
+        return _job_to_dict(job)
+
+
+def reap_stale_collect_jobs(max_age_minutes: int = 180) -> int:
+    """Mark jobs left ``running`` by a process restart as ``interrupted``.
+
+    Jobs execute in-process, so a restart orphans anything in flight. Without
+    this they would poll as ``running`` forever and the UI would spin. Called
+    once at startup.
+    """
+    bootstrap()
+    from datetime import timedelta
+
+    from db import session_scope
+    from schema import CollectJob
+    from sqlalchemy import select
+
+    cutoff = datetime.now() - timedelta(minutes=max(1, int(max_age_minutes)))
+    with session_scope() as s:
+        stmt = select(CollectJob).where(CollectJob.status.in_(JOB_ACTIVE_STATUSES))
+        rows = list(s.scalars(stmt))
+        count = 0
+        for job in rows:
+            reference = job.started_at or job.created_at
+            if reference is not None and reference > cutoff:
+                continue
+            job.status = "interrupted"
+            job.phase = "done"
+            job.finished_at = datetime.now()
+            job.error = "interrupted by server restart"
+            count += 1
+        return count
+
+
+# --------------------------------------------------------------------------- #
+# AI report cache
+# --------------------------------------------------------------------------- #
+def _ai_report_to_dict(r: Any) -> dict[str, Any]:
+    return {
+        "ok": True,
+        "id": r.id,
+        "lottery": r.lottery,
+        "period": r.period,
+        "prompt_id": r.prompt_id,
+        "content": r.content,
+        "provider": r.provider,
+        "model": r.model,
+        "elapsed_sec": r.elapsed_sec,
+        "scraped_summary": r.scraped_summary,
+        "generated_by": r.generated_by,
+        "generated_at": r.generated_at.strftime("%Y-%m-%d %H:%M:%S") if r.generated_at else None,
+    }
+
+
+def get_ai_report(lottery: str, period: str, prompt_id: str) -> dict[str, Any] | None:
+    bootstrap()
+    from db import session_scope
+    from schema import AiReport
+    from sqlalchemy import select
+
+    with session_scope() as s:
+        row = s.scalar(
+            select(AiReport).where(
+                AiReport.lottery == lottery,
+                AiReport.period == period,
+                AiReport.prompt_id == prompt_id,
+            )
+        )
+        return _ai_report_to_dict(row) if row else None
+
+
+def save_ai_report(
+    lottery: str,
+    period: str,
+    prompt_id: str,
+    content: str,
+    provider: str | None = None,
+    model: str | None = None,
+    elapsed_sec: float | None = None,
+    scraped_summary: dict[str, Any] | None = None,
+    generated_by: str | None = None,
+) -> dict[str, Any]:
+    """Upsert on ``(lottery, period, prompt_id)`` so regenerating replaces."""
+    bootstrap()
+    from db import session_scope
+    from schema import AiReport
+    from sqlalchemy import select
+
+    with session_scope() as s:
+        row = s.scalar(
+            select(AiReport).where(
+                AiReport.lottery == lottery,
+                AiReport.period == period,
+                AiReport.prompt_id == prompt_id,
+            )
+        )
+        if row is None:
+            row = AiReport(lottery=lottery, period=period, prompt_id=prompt_id, content=content)
+            s.add(row)
+        else:
+            row.content = content
+        row.provider = provider
+        row.model = model
+        row.elapsed_sec = elapsed_sec
+        row.scraped_summary = scraped_summary
+        row.generated_by = generated_by
+        row.generated_at = datetime.now()
+        s.flush()
+        return _ai_report_to_dict(row)
+
+
+def list_ai_reports(lottery: str | None = None, limit: int = 20) -> list[dict[str, Any]]:
+    bootstrap()
+    from db import session_scope
+    from schema import AiReport
+    from sqlalchemy import select
+
+    with session_scope() as s:
+        stmt = select(AiReport)
+        if lottery:
+            stmt = stmt.where(AiReport.lottery == lottery)
+        stmt = stmt.order_by(AiReport.generated_at.desc()).limit(max(1, min(int(limit or 20), 100)))
+        rows = list(s.scalars(stmt))
+        # Metadata only — the list is for a picker, not for reading reports.
+        return [
+            {k: v for k, v in _ai_report_to_dict(r).items() if k != "content"}
+            for r in rows
+        ]
+
+
+
+# --------------------------------------------------------------------------- #
+# Consensus leader tracking (for consensus_leader_changed notifications)
+# --------------------------------------------------------------------------- #
+def _leader_key(preds: list[dict[str, Any]] | None) -> str:
+    """Stable identity for a set of prediction atoms, order-insensitive."""
+    if not preds:
+        return ""
+    parts = sorted(f"{p.get('kind')}:{p.get('value')}" for p in preds)
+    return "|".join(parts)[:500]
+
+
+def record_consensus_leaders(lottery: str, period: str) -> list[dict[str, Any]]:
+    """Snapshot the current consensus leaders, returning the ones that changed.
+
+    Called after ingest, the only point at which consensus can move. Returns a
+    list of change descriptors so the caller can log them; the rows themselves
+    are what ``/app/events`` reads.
+    """
+    bootstrap()
+    from db import session_scope
+    from schema import ConsensusLeader
+
+    try:
+        result = consensus_compare(lottery, period)
+    except Exception:
+        logger.exception("consensus snapshot failed for %s %s", lottery, period)
+        return []
+
+    groups = result.get("groups") or []
+    changes: list[dict[str, Any]] = []
+    now = datetime.now()
+
+    with session_scope() as s:
+        for group in groups:
+            play_type = group.get("play_type")
+            if not play_type:
+                continue
+            key = _leader_key(group.get("leader"))
+            votes = int(group.get("leader_votes") or 0)
+            row = s.get(ConsensusLeader, (lottery, period, play_type))
+            if row is None:
+                s.add(
+                    ConsensusLeader(
+                        lottery=lottery,
+                        period=period,
+                        play_type=play_type,
+                        leader_key=key,
+                        leader_votes=votes,
+                        previous_key=None,
+                        changed_at=now,
+                    )
+                )
+                # A first observation is not a "change" — there was no prior
+                # leader to move away from, so it must not raise a notification.
+                continue
+            if row.leader_key == key:
+                row.leader_votes = votes
+                continue
+            row.previous_key = row.leader_key
+            row.leader_key = key
+            row.leader_votes = votes
+            row.changed_at = now
+            changes.append(
+                {
+                    "lottery": lottery,
+                    "period": period,
+                    "play_type": play_type,
+                    "leader_key": key,
+                    "previous_key": row.previous_key,
+                    "leader_votes": votes,
+                }
+            )
+    return changes
+
+
+def list_consensus_leader_changes(
+    since: datetime | None = None,
+    lottery: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    bootstrap()
+    from db import session_scope
+    from schema import ConsensusLeader
+    from sqlalchemy import select
+
+    with session_scope() as s:
+        stmt = select(ConsensusLeader).where(ConsensusLeader.previous_key.isnot(None))
+        if since is not None:
+            stmt = stmt.where(ConsensusLeader.changed_at > since)
+        if lottery:
+            stmt = stmt.where(ConsensusLeader.lottery == lottery)
+        stmt = stmt.order_by(ConsensusLeader.changed_at.asc()).limit(max(1, min(int(limit or 50), 200)))
+        return [
+            {
+                "lottery": r.lottery,
+                "period": r.period,
+                "play_type": r.play_type,
+                "leader_key": r.leader_key,
+                "previous_key": r.previous_key,
+                "leader_votes": r.leader_votes,
+                "changed_at": r.changed_at,
+            }
+            for r in s.scalars(stmt)
+        ]
+
+
+# --------------------------------------------------------------------------- #
+# Event feed sources (for /app/events polling)
+# --------------------------------------------------------------------------- #
+def list_recent_draw_events(
+    since: datetime | None = None,
+    lottery: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    """Draws that became visible after ``since``, oldest first.
+
+    ``opened_at`` is nullable, so it is coalesced with ``created_at`` to give a
+    usable cursor for every row.
+    """
+    bootstrap()
+    from db import session_scope
+    from schema import Draw
+    from sqlalchemy import func as sa_func
+    from sqlalchemy import select
+
+    cursor_col = sa_func.coalesce(Draw.opened_at, Draw.created_at)
+    with session_scope() as s:
+        stmt = select(Draw)
+        if since is not None:
+            stmt = stmt.where(cursor_col > since)
+        if lottery:
+            stmt = stmt.where(Draw.lottery == lottery)
+        stmt = stmt.order_by(cursor_col.asc()).limit(max(1, min(int(limit or 50), 200)))
+        rows = list(s.scalars(stmt))
+        return [
+            {
+                "lottery": r.lottery,
+                "period": r.period,
+                "tema": r.tema,
+                "draw_date": r.draw_date.isoformat() if r.draw_date else None,
+                "occurred_at": r.opened_at or r.created_at,
+            }
+            for r in rows
+        ]
+
+
+def list_recent_judge_events(
+    since: datetime | None = None,
+    lottery: str | None = None,
+    source_ids: list[str] | None = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    """Judged predictions after ``since``, oldest first, optionally per source.
+
+    ``JudgeResult`` already denormalises source/lottery/period/play_type, so no
+    join to ``Prediction`` is needed — only ``Source`` for the display name.
+    """
+    bootstrap()
+    from db import session_scope
+    from schema import JudgeResult, Source
+    from sqlalchemy import select
+
+    with session_scope() as s:
+        stmt = select(JudgeResult, Source).join(
+            Source, JudgeResult.source_id == Source.source_id, isouter=True
+        )
+        if since is not None:
+            stmt = stmt.where(JudgeResult.judged_at > since)
+        if lottery:
+            stmt = stmt.where(JudgeResult.lottery == lottery)
+        if source_ids:
+            stmt = stmt.where(JudgeResult.source_id.in_(list(source_ids)))
+        stmt = stmt.order_by(JudgeResult.judged_at.asc()).limit(max(1, min(int(limit or 100), 300)))
+        out: list[dict[str, Any]] = []
+        for jr, src in s.execute(stmt):
+            out.append(
+                {
+                    "source_id": jr.source_id,
+                    "source_name": getattr(src, "source_name", None) or jr.source_id,
+                    "lottery": jr.lottery,
+                    "period": jr.period,
+                    "play_type": jr.play_type,
+                    "official_hit": jr.official_hit,
+                    "occurred_at": jr.judged_at,
+                }
+            )
+        return out
+
+
+def list_finished_job_events(
+    since: datetime | None = None,
+    lottery: str | None = None,
+    created_by: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+    from sqlalchemy import select
+
+    with session_scope() as s:
+        stmt = select(CollectJob).where(CollectJob.finished_at.isnot(None))
+        if since is not None:
+            stmt = stmt.where(CollectJob.finished_at > since)
+        if lottery:
+            stmt = stmt.where(CollectJob.lottery == lottery)
+        if created_by:
+            stmt = stmt.where(CollectJob.created_by == created_by)
+        stmt = stmt.order_by(CollectJob.finished_at.asc()).limit(max(1, min(int(limit or 50), 200)))
+        return [
+            {
+                "job_id": r.id,
+                "lottery": r.lottery,
+                "period": r.period,
+                "status": r.status,
+                "source_total": r.source_total,
+                "source_ok": r.source_ok,
+                "occurred_at": r.finished_at,
+            }
+            for r in s.scalars(stmt)
+        ]
+
+
+def source_miss_streaks(lottery: str, source_ids: list[str], play_type: str | None = None) -> dict[str, int]:
+    """Current consecutive-miss count per source, from the newest judged period back.
+
+    Used for ``source_miss_streak`` notifications. Returns only sources whose
+    most recent judged prediction was a miss; a source currently on a hit has no
+    active miss streak and is omitted.
+    """
+    bootstrap()
+    if not source_ids:
+        return {}
+    from db import session_scope
+    from schema import JudgeResult
+    from sqlalchemy import select
+
+    with session_scope() as s:
+        stmt = select(JudgeResult.source_id, JudgeResult.period, JudgeResult.official_hit).where(
+            JudgeResult.lottery == lottery,
+            JudgeResult.source_id.in_(list(source_ids)),
+            JudgeResult.official_hit.isnot(None),
+        )
+        if play_type:
+            stmt = stmt.where(JudgeResult.play_type == play_type)
+        stmt = stmt.order_by(JudgeResult.source_id.asc(), JudgeResult.period.desc())
+        per_source: dict[str, list[int]] = {}
+        for source_id, _period, hit in s.execute(stmt):
+            per_source.setdefault(source_id, []).append(int(hit))
+
+    streaks: dict[str, int] = {}
+    for source_id, hits in per_source.items():
+        streak = 0
+        for hit in hits:  # already newest-first
+            if hit == 0:
+                streak += 1
+            else:
+                break
+        if streak > 0:
+            streaks[source_id] = streak
+    return streaks

@@ -1,0 +1,170 @@
+[
+  {
+    "play_type": "tema_n",
+    "name": "特码",
+    "scope": "特码",
+    "condition": "候选号码包含特码",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "texiao",
+    "name": "特肖",
+    "scope": "特码",
+    "condition": "候选生肖包含特码生肖",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "tema_wei_n",
+    "name": "特尾",
+    "scope": "特码",
+    "condition": "候选尾数包含特码尾数",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "tema_head_n",
+    "name": "特头",
+    "scope": "特码",
+    "condition": "候选头数包含特码头数",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "tema_bose",
+    "name": "特波",
+    "scope": "特码",
+    "condition": "候选波色包含特码波色",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "tema_twoface",
+    "name": "两面",
+    "scope": "特码",
+    "condition": "按配置任一或全部属性匹配；大小按 01–24 小、25–49 大，单双按号码奇偶",
+    "version": "2026-09-06.2",
+    "modes": "按配置任一或全部匹配"
+  },
+  {
+    "play_type": "tema_halfwave",
+    "name": "半波",
+    "scope": "特码",
+    "condition": "任一预测匹配特码的波色大小、波色单双或波色大小单双",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "hexiao",
+    "name": "合肖",
+    "scope": "特码",
+    "condition": "候选生肖包含特码生肖",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "pingte_xiao",
+    "name": "平特肖",
+    "scope": "七球（含特码）",
+    "condition": "任一候选生肖出现在七个开奖号码中",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "pingte_wei",
+    "name": "平特尾",
+    "scope": "七球（含特码）",
+    "condition": "任一候选尾数出现在七个开奖号码中",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "lianxiao_n",
+    "name": "连肖",
+    "scope": "七球（含特码）",
+    "condition": "所有不同候选生肖均出现在七球中，重肖不增加不同生肖数量",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "lianwei_n",
+    "name": "连尾",
+    "scope": "七球（含特码）",
+    "condition": "所有不同候选尾数均出现在七球中",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "zhengma_n",
+    "name": "正码",
+    "scope": "六个正码",
+    "condition": "按配置任一或全部号码在正码中，特码不计",
+    "version": "2026-09-06.2",
+    "modes": "按配置任一或全部匹配"
+  },
+  {
+    "play_type": "zhengxiao",
+    "name": "正肖",
+    "scope": "六个正码",
+    "condition": "任一候选生肖出现在正码中，特码不计",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "lianma_2all",
+    "name": "二中二",
+    "scope": "六个正码",
+    "condition": "恰好两个不同号码，两个都在正码中",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "lianma_3all",
+    "name": "三中三",
+    "scope": "六个正码",
+    "condition": "恰好三个不同号码，三个都在正码中",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "lianma_3z2",
+    "name": "三中二",
+    "scope": "六个正码",
+    "condition": "恰好三个不同号码，至少两个在正码中，特码不计",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "lianma_2zt",
+    "name": "二中特",
+    "scope": "正码与特码",
+    "condition": "恰好两个不同号码，一个为正码，另一个为特码",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "buzhong_num",
+    "name": "不中码",
+    "scope": "七球（含特码）",
+    "condition": "所有候选号码均未出现在七球中",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "buzhong_xiao",
+    "name": "杀肖",
+    "scope": "七球（含特码）",
+    "condition": "所有候选生肖均未出现在七球中",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  },
+  {
+    "play_type": "buzhong_wei",
+    "name": "杀尾",
+    "scope": "七球（含特码）",
+    "condition": "所有候选尾数均未出现在七球中",
+    "version": "2026-09-06.2",
+    "modes": "固定按玩法条件判定"
+  }
+]

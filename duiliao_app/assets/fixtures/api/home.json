@@ -1,0 +1,439 @@
+{
+  "ok": true,
+  "lottery": "macau",
+  "play_type": "pingte_xiao",
+  "server_time": "2026-09-21T00:31:27.959565+00:00",
+  "latest_draw": {
+    "lottery": "macau",
+    "period": "2026248",
+    "period_raw": "2026248",
+    "draw_date": "2026-09-05",
+    "opened_at": null,
+    "balls": [
+      "18",
+      "26",
+      "09",
+      "30",
+      "45",
+      "33"
+    ],
+    "tema": "28",
+    "source": "fixture:official",
+    "tag": {
+      "repeat_xiao": [
+        {
+          "xiao": "牛",
+          "count": 2,
+          "balls": [
+            {
+              "num": "18",
+              "position": "z1"
+            },
+            {
+              "num": "30",
+              "position": "z4"
+            }
+          ]
+        },
+        {
+          "xiao": "狗",
+          "count": 3,
+          "balls": [
+            {
+              "num": "09",
+              "position": "z3"
+            },
+            {
+              "num": "45",
+              "position": "z5"
+            },
+            {
+              "num": "33",
+              "position": "z6"
+            }
+          ]
+        }
+      ]
+    },
+    "balls_detail": [
+      {
+        "num": "18",
+        "bose": "红",
+        "xiao": "牛",
+        "wuxing": "火",
+        "size": "小",
+        "odd": "双",
+        "sum": "单",
+        "wei": "8",
+        "head": "1",
+        "jiaye": "家",
+        "halfwave": "红小",
+        "is_lianxiao": true,
+        "lianxiao_count": 2,
+        "is_adjacent_lianxiao": false
+      },
+      {
+        "num": "26",
+        "bose": "蓝",
+        "xiao": "蛇",
+        "wuxing": "金",
+        "size": "大",
+        "odd": "双",
+        "sum": "双",
+        "wei": "6",
+        "head": "2",
+        "jiaye": "野",
+        "halfwave": "蓝大",
+        "is_lianxiao": false,
+        "lianxiao_count": 1,
+        "is_adjacent_lianxiao": false
+      },
+      {
+        "num": "09",
+        "bose": "蓝",
+        "xiao": "狗",
+        "wuxing": "木",
+        "size": "小",
+        "odd": "单",
+        "sum": "单",
+        "wei": "9",
+        "head": "0",
+        "jiaye": "家",
+        "halfwave": "蓝小",
+        "is_lianxiao": true,
+        "lianxiao_count": 3,
+        "is_adjacent_lianxiao": false
+      },
+      {
+        "num": "30",
+        "bose": "红",
+        "xiao": "牛",
+        "wuxing": "水",
+        "size": "大",
+        "odd": "双",
+        "sum": "单",
+        "wei": "0",
+        "head": "3",
+        "jiaye": "家",
+        "halfwave": "红大",
+        "is_lianxiao": true,
+        "lianxiao_count": 2,
+        "is_adjacent_lianxiao": false
+      },
+      {
+        "num": "45",
+        "bose": "红",
+        "xiao": "狗",
+        "wuxing": "水",
+        "size": "大",
+        "odd": "单",
+        "sum": "单",
+        "wei": "5",
+        "head": "4",
+        "jiaye": "家",
+        "halfwave": "红大",
+        "is_adjacent_lianxiao": true,
+        "is_lianxiao": true,
+        "lianxiao_count": 3
+      },
+      {
+        "num": "33",
+        "bose": "绿",
+        "xiao": "狗",
+        "wuxing": "火",
+        "size": "大",
+        "odd": "单",
+        "sum": "双",
+        "wei": "3",
+        "head": "3",
+        "jiaye": "家",
+        "halfwave": "绿大",
+        "is_adjacent_lianxiao": true,
+        "is_lianxiao": true,
+        "lianxiao_count": 3
+      }
+    ],
+    "tema_detail": {
+      "num": "28",
+      "bose": "绿",
+      "xiao": "兔",
+      "wuxing": "土",
+      "size": "大",
+      "odd": "双",
+      "sum": "双",
+      "wei": "8",
+      "head": "2",
+      "jiaye": "野",
+      "halfwave": "绿大",
+      "is_lianxiao": false,
+      "lianxiao_count": 1,
+      "is_adjacent_lianxiao": false
+    },
+    "summary": {
+      "sum7": 189,
+      "sum7_size": "大",
+      "sum7_odd": "单",
+      "tema_xiao": "兔",
+      "tema_bose": "绿",
+      "tema_wuxing": "土",
+      "tema_size": "大",
+      "tema_odd": "双",
+      "tema_sum_odd": "双",
+      "tema_jiaye": "野",
+      "tema_halfwave": "绿大",
+      "has_lianxiao": true,
+      "has_adjacent_lianxiao": true,
+      "lianxiao_groups": [
+        {
+          "xiao": "狗",
+          "count": 3,
+          "nums": [
+            "09",
+            "45",
+            "33"
+          ],
+          "positions": [
+            "正3",
+            "正5",
+            "正6"
+          ]
+        },
+        {
+          "xiao": "牛",
+          "count": 2,
+          "nums": [
+            "18",
+            "30"
+          ],
+          "positions": [
+            "正1",
+            "正4"
+          ]
+        }
+      ],
+      "adjacent_lianxiao": [
+        {
+          "xiao": "狗",
+          "pos1": "正5",
+          "pos2": "正6",
+          "num1": "45",
+          "num2": "33"
+        }
+      ],
+      "lianxiao_text": "狗(3码) · 牛(2码)"
+    }
+  },
+  "consensus": {
+    "lottery": "macau",
+    "period": "2026248",
+    "group_count": 1,
+    "groups": [
+      {
+        "play_type": "pingte_xiao",
+        "n_sources": 2,
+        "n_votes": 2,
+        "leader": [
+          {
+            "kind": "xiao",
+            "text": "兔兔兔",
+            "value": "兔"
+          }
+        ],
+        "leader_votes": 1,
+        "leader_hit": true
+      }
+    ]
+  },
+  "comparison_summary": {
+    "total": 2,
+    "judged": 2,
+    "hits": 1,
+    "misses": 1,
+    "pending": 0,
+    "conflicts": 0,
+    "hit_rate": 50.0
+  },
+  "ratings_top": {
+    "lottery": "macau",
+    "play_type": "pingte_xiao",
+    "windows": [
+      30,
+      50,
+      100
+    ],
+    "sources": [
+      {
+        "source_id": "heizhuang_pingte",
+        "source_name": "黑庄平特",
+        "dirty_flags": 0,
+        "missing": 0,
+        "pending": 0,
+        "uncovered": 1,
+        "before_n": 0,
+        "before_rate": null,
+        "after_n": 1,
+        "after_rate": 1.0,
+        "after_edits": 0,
+        "longest_hit": 1,
+        "longest_miss": 0,
+        "current_streak": 1,
+        "current_result": 1,
+        "n_30": 1,
+        "hit_30": 1.0,
+        "n_50": 1,
+        "hit_50": 1.0,
+        "n_100": 1,
+        "hit_100": 1.0
+      },
+      {
+        "source_id": "haige_pingte",
+        "source_name": "海哥平特",
+        "dirty_flags": 0,
+        "missing": 0,
+        "pending": 0,
+        "uncovered": 1,
+        "before_n": 0,
+        "before_rate": null,
+        "after_n": 1,
+        "after_rate": 0.0,
+        "after_edits": 0,
+        "longest_hit": 0,
+        "longest_miss": 1,
+        "current_streak": 1,
+        "current_result": 0,
+        "n_30": 1,
+        "hit_30": 0.0,
+        "n_50": 1,
+        "hit_50": 0.0,
+        "n_100": 1,
+        "hit_100": 0.0
+      },
+      {
+        "source_id": "jingxuan_8xiao",
+        "source_name": "精选⑧肖",
+        "dirty_flags": 0,
+        "missing": 0,
+        "pending": 0,
+        "uncovered": 2,
+        "before_n": 0,
+        "before_rate": null,
+        "after_n": 0,
+        "after_rate": null,
+        "after_edits": 0,
+        "longest_hit": 0,
+        "longest_miss": 0,
+        "current_streak": 0,
+        "current_result": null,
+        "n_30": 0,
+        "hit_30": null,
+        "n_50": 0,
+        "hit_50": null,
+        "n_100": 0,
+        "hit_100": null
+      },
+      {
+        "source_id": "mod_3xiao",
+        "source_name": "九肖模块③肖",
+        "dirty_flags": 0,
+        "missing": 0,
+        "pending": 0,
+        "uncovered": 2,
+        "before_n": 0,
+        "before_rate": null,
+        "after_n": 0,
+        "after_rate": null,
+        "after_edits": 0,
+        "longest_hit": 0,
+        "longest_miss": 0,
+        "current_streak": 0,
+        "current_result": null,
+        "n_30": 0,
+        "hit_30": null,
+        "n_50": 0,
+        "hit_50": null,
+        "n_100": 0,
+        "hit_100": null
+      },
+      {
+        "source_id": "mod_5xiao",
+        "source_name": "九肖模块⑤肖",
+        "dirty_flags": 0,
+        "missing": 0,
+        "pending": 0,
+        "uncovered": 2,
+        "before_n": 0,
+        "before_rate": null,
+        "after_n": 0,
+        "after_rate": null,
+        "after_edits": 0,
+        "longest_hit": 0,
+        "longest_miss": 0,
+        "current_streak": 0,
+        "current_result": null,
+        "n_30": 0,
+        "hit_30": null,
+        "n_50": 0,
+        "hit_50": null,
+        "n_100": 0,
+        "hit_100": null
+      }
+    ]
+  },
+  "recent_jobs": [
+    {
+      "id": 1,
+      "lottery": "macau",
+      "period": "2026248",
+      "source_ids": [
+        "haige_pingte",
+        "heizhuang_pingte"
+      ],
+      "concurrency": 2,
+      "do_ingest": true,
+      "auto_judge": true,
+      "status": "done",
+      "phase": "done",
+      "run_id": "20260921T003127Z-3701",
+      "source_total": 2,
+      "source_done": 2,
+      "source_ok": 2,
+      "cancel_requested": false,
+      "created_by": null,
+      "schedule_id": null,
+      "error": null,
+      "items": [
+        {
+          "source_id": "haige_pingte",
+          "source_name": "海哥平特",
+          "state": "ok",
+          "item_count": 1,
+          "elapsed_ms": 213,
+          "exit_code": 0,
+          "error_code": null,
+          "error_msg": null
+        },
+        {
+          "source_id": "heizhuang_pingte",
+          "source_name": "黑庄平特",
+          "state": "ok",
+          "item_count": 1,
+          "elapsed_ms": 213,
+          "exit_code": 0,
+          "error_code": null,
+          "error_msg": null
+        }
+      ],
+      "created_at": "2026-09-21 00:31:27",
+      "started_at": "2026-09-21 08:31:27",
+      "finished_at": "2026-09-21 08:31:27"
+    }
+  ],
+  "collect_worker": {
+    "running": false,
+    "check_interval_seconds": 3,
+    "max_concurrent_jobs": 2,
+    "active_jobs_count": 0,
+    "running_job_ids": []
+  },
+  "rule_version": "2026-09-06.2"
+}

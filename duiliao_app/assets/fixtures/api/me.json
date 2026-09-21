@@ -1,0 +1,18 @@
+{
+  "id": "0befd690c57e441292492d0c021b0729",
+  "username": "fixture_staff",
+  "email": "fixture_staff@duiliaoapp.com",
+  "email_verified": false,
+  "phone": null,
+  "phone_verified": false,
+  "display_name": "夹具staff",
+  "avatar_url": null,
+  "locale": "zh",
+  "timezone": "Asia/Shanghai",
+  "status": "active",
+  "role": "staff",
+  "registration_source": "android",
+  "mfa_enabled": false,
+  "last_login_at": null,
+  "created_at": "2026-09-21T00:31:27"
+}

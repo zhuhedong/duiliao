@@ -8,10 +8,12 @@ from sqlalchemy import (
     BigInteger,
     Date,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
     inspect,
@@ -306,6 +308,115 @@ class Schedule(Base):
     )
 
 
+class CollectJob(Base):
+    """An asynchronous collection run submitted by a client and polled for progress.
+
+    ``POST /collector/collect`` blocks for the whole crawl (40 sources x 30s
+    timeout / concurrency 8 is ~150s worst case), which no mobile HTTP client
+    will wait out. A job row decouples submission from execution: the request
+    handler inserts ``status="queued"`` and returns immediately, a background
+    task drives it through the phases, and the client polls.
+
+    ``progress`` maps ``source_id`` -> ``{state, item_count, elapsed_ms,
+    error_code, error_msg}`` where ``state`` is ``queued`` | ``running`` |
+    ``ok`` | ``fail``, so the UI can render per-source status while the run is
+    still in flight. Booleans are stored as ``Integer`` 0/1 to match the
+    ``Schedule`` convention, and timestamps are naive CN-local like the rest of
+    the collector schema.
+    """
+
+    __tablename__ = "collect_job"
+
+    id: Mapped[int] = mapped_column(PK_INT, primary_key=True, autoincrement=True)
+    lottery: Mapped[str] = mapped_column(String(16), nullable=False, default="macau")
+    period: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    source_ids: Mapped[list[str] | None] = mapped_column(JSON_TYPE, nullable=True)
+    concurrency: Mapped[int] = mapped_column(Integer, nullable=False, default=8, server_default=text("8"))
+    do_ingest: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
+    auto_judge: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default=text("1"))
+    # queued | running | done | failed | cancelled | interrupted
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued", server_default=text("'queued'"))
+    # queued | collecting | ingesting | judging | done
+    phase: Mapped[str] = mapped_column(String(16), nullable=False, default="queued", server_default=text("'queued'"))
+    progress: Mapped[dict] = mapped_column(JSON_TYPE, nullable=False, default=dict, server_default=text("'{}'"))
+    result: Mapped[dict | None] = mapped_column(JSON_TYPE, nullable=True)
+    error: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    run_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    source_done: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    source_ok: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    cancel_requested: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    # App-database user id; deliberately not a ForeignKey because users live in
+    # the other database and the two are only sometimes the same Postgres host.
+    created_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    schedule_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index("idx_collect_job_status", "status", "created_at"),
+        Index("idx_collect_job_created", "created_at"),
+    )
+
+
+class ConsensusLeader(Base):
+    """Last-known consensus leader per (lottery, period, play_type).
+
+    ``consensus_leader_changed`` notifications cannot be derived from the other
+    tables, because consensus is computed on the fly and nothing records what the
+    leader used to be. This table is written by the collect-job worker after
+    ingest — the only moment consensus can actually change — so the events
+    endpoint stays a pure read and works correctly for any number of polling
+    devices. ``changed_at`` is the event cursor.
+    """
+
+    __tablename__ = "consensus_leader"
+
+    lottery: Mapped[str] = mapped_column(String(16), primary_key=True)
+    period: Mapped[str] = mapped_column(String(16), primary_key=True)
+    play_type: Mapped[str] = mapped_column(String(32), primary_key=True)
+    # Canonical "kind:value|kind:value" of the leading prediction, used for
+    # change detection without storing the full atom list.
+    leader_key: Mapped[str] = mapped_column(String(512), nullable=False, default="")
+    leader_votes: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    previous_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    changed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_consensus_leader_changed", "changed_at"),
+    )
+
+
+class AiReport(Base):
+    """Server-side cache for generated AI analysis reports.
+
+    Without this every client call to ``/ai/analyze-588080`` makes the API
+    process scrape 588080 and bill an LLM request, because ``fetch_fresh``
+    defaults to true. Reports are keyed by ``(lottery, period, prompt_id)`` and
+    upserted, so readers get a cached report and only staff can pay to refresh.
+    """
+
+    __tablename__ = "ai_report"
+
+    id: Mapped[int] = mapped_column(PK_INT, primary_key=True, autoincrement=True)
+    lottery: Mapped[str] = mapped_column(String(16), nullable=False, default="macau")
+    period: Mapped[str] = mapped_column(String(16), nullable=False)
+    prompt_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    elapsed_sec: Mapped[float | None] = mapped_column(Float, nullable=True)
+    scraped_summary: Mapped[dict | None] = mapped_column(JSON_TYPE, nullable=True)
+    generated_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    generated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("lottery", "period", "prompt_id", name="uk_ai_report"),
+        Index("idx_ai_report_lookup", "lottery", "period"),
+    )
+
+
 def _migrate_schedule(conn) -> None:
     """Ensure schedule table schema is compatible with cron and start_at."""
     inspector = inspect(conn)
@@ -449,6 +560,8 @@ def _create_all_locked(conn) -> None:
             if name in fields:
                 conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS uk_{table}_{name} ON {table} ({name})"))
     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_schedule_next_run ON schedule (enabled, next_run_at)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_collect_job_status ON collect_job (status, created_at)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_collect_job_created ON collect_job (created_at)"))
     columns = {c["name"] for c in inspect(conn).get_columns("draw")}
     if "opened_at" not in columns:
         conn.execute(text("ALTER TABLE draw ADD COLUMN opened_at TIMESTAMP NULL"))

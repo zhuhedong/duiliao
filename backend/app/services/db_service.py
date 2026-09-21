@@ -114,7 +114,7 @@ def get_database_status() -> dict[str, Any]:
             app_status["is_connected"] = True
 
             # Count rows for app tables
-            for table_name in ("users", "refresh_tokens", "system_settings"):
+            for table_name in ("users", "refresh_tokens", "system_settings", "user_subscriptions"):
                 if table_name in AppBase.metadata.tables:
                     tbl = AppBase.metadata.tables[table_name]
                     try:
@@ -153,6 +153,7 @@ def get_database_status() -> dict[str, Any]:
                     "crawl_run",
                     "judge_result",
                     "schedule",
+                    "collect_job",
                     "number_info",
                     "audit_event",
                     "issue",
@@ -492,12 +493,13 @@ def update_database_config(db_url: str, collector_url: str | None = None) -> dic
 
 
 # Table category definitions and topological import ordering
-APP_TABLES = {"users", "refresh_tokens", "system_settings"}
+APP_TABLES = {"users", "refresh_tokens", "system_settings", "user_subscriptions"}
 
 APP_IMPORT_ORDER = [
     "system_settings",
     "users",
     "refresh_tokens",
+    "user_subscriptions",
 ]
 
 COLLECTOR_IMPORT_ORDER = [
@@ -507,6 +509,9 @@ COLLECTOR_IMPORT_ORDER = [
     "xiao_year_meta",
     "setting",
     "schedule",
+    "collect_job",
+    "ai_report",
+    "consensus_leader",
     "source",
     "draw",
     "issue",

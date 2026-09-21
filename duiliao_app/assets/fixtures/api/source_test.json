@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "source_id": "haige_pingte",
+  "lottery": "macau",
+  "period": "2026248",
+  "exit_code": 0,
+  "elapsed_ms": 210,
+  "item_count": 1,
+  "stdout": "{\"ok\":true,\"schema\":\"pred.v1\",\"source_id\":\"haige_pingte\",\"source_name\":\"海哥平特\",\"site_family\":\"dingjian_dashi\",\"lottery\":\"macau\",\"play_type\":\"pingte_xiao\",\"hit_mode\":\"any\",\"fetched_at\":\"2026-09-21T08:31:28.229058+08:00\",\"final_url\":\"file:///Users/code/develop/code/python/duiliao/backend/collector/fixtures/dingjian/haige_pingte.json\",\"content_hash\":\"9b59171e0e0c97a627906b600b368ccf9e1b36f87a4417781c99486daa4a3a75\",\"items\":[{\"period_raw\":\"248\",\"period\":\"2026248\",\"group_key\":\"\",\"published_at\":null,\"preds\":[{\"kind\":\"xiao\",\"value\":\"猪\",\"text\":\"猪猪猪\"}],\"claimed\":{\"status\":\"pending\",\"xiao\":null,\"num\":null,\"raw\":\"猫00准\"},\"raw_text\":\"248期:海哥平特【猪猪猪】开奖:猫00准\"}],\"error\":null}",
+  "stderr": "",
+  "error_code": null,
+  "error_msg": null,
+  "data": {
+    "ok": true,
+    "schema": "pred.v1",
+    "source_id": "haige_pingte",
+    "source_name": "海哥平特",
+    "site_family": "dingjian_dashi",
+    "lottery": "macau",
+    "play_type": "pingte_xiao",
+    "hit_mode": "any",
+    "fetched_at": "2026-09-21T08:31:28.229058+08:00",
+    "final_url": "file:///Users/code/develop/code/python/duiliao/backend/collector/fixtures/dingjian/haige_pingte.json",
+    "content_hash": "9b59171e0e0c97a627906b600b368ccf9e1b36f87a4417781c99486daa4a3a75",
+    "items": [
+      {
+        "period_raw": "248",
+        "period": "2026248",
+        "group_key": "",
+        "published_at": null,
+        "preds": [
+          {
+            "kind": "xiao",
+            "value": "猪",
+            "text": "猪猪猪"
+          }
+        ],
+        "claimed": {
+          "status": "pending",
+          "xiao": null,
+          "num": null,
+          "raw": "猫00准"
+        },
+        "raw_text": "248期:海哥平特【猪猪猪】开奖:猫00准"
+      }
+    ],
+    "error": null
+  }
+}

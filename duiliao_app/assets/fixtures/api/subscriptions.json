@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "source_ids": [],
+  "lotteries": [],
+  "play_types": [],
+  "notify_rules": {
+    "draw_published": true,
+    "source_hit": false,
+    "source_miss_streak": true,
+    "miss_streak_threshold": 3,
+    "consensus_leader_changed": false,
+    "collect_job_finished": true
+  },
+  "updated_at": null
+}

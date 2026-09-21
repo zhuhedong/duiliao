@@ -1,0 +1,408 @@
+{
+  "ok": true,
+  "lottery": "macau",
+  "period": "2026248",
+  "draw": {
+    "lottery": "macau",
+    "period": "2026248",
+    "period_raw": "2026248",
+    "draw_date": "2026-09-05",
+    "opened_at": null,
+    "balls": [
+      "18",
+      "26",
+      "09",
+      "30",
+      "45",
+      "33"
+    ],
+    "tema": "28",
+    "source": "fixture:official",
+    "tag": {
+      "repeat_xiao": [
+        {
+          "xiao": "牛",
+          "count": 2,
+          "balls": [
+            {
+              "num": "18",
+              "position": "z1"
+            },
+            {
+              "num": "30",
+              "position": "z4"
+            }
+          ]
+        },
+        {
+          "xiao": "狗",
+          "count": 3,
+          "balls": [
+            {
+              "num": "09",
+              "position": "z3"
+            },
+            {
+              "num": "45",
+              "position": "z5"
+            },
+            {
+              "num": "33",
+              "position": "z6"
+            }
+          ]
+        }
+      ]
+    },
+    "balls_detail": [
+      {
+        "num": "18",
+        "bose": "红",
+        "xiao": "牛",
+        "wuxing": "火",
+        "size": "小",
+        "odd": "双",
+        "sum": "单",
+        "wei": "8",
+        "head": "1",
+        "jiaye": "家",
+        "halfwave": "红小",
+        "is_lianxiao": true,
+        "lianxiao_count": 2,
+        "is_adjacent_lianxiao": false
+      },
+      {
+        "num": "26",
+        "bose": "蓝",
+        "xiao": "蛇",
+        "wuxing": "金",
+        "size": "大",
+        "odd": "双",
+        "sum": "双",
+        "wei": "6",
+        "head": "2",
+        "jiaye": "野",
+        "halfwave": "蓝大",
+        "is_lianxiao": false,
+        "lianxiao_count": 1,
+        "is_adjacent_lianxiao": false
+      },
+      {
+        "num": "09",
+        "bose": "蓝",
+        "xiao": "狗",
+        "wuxing": "木",
+        "size": "小",
+        "odd": "单",
+        "sum": "单",
+        "wei": "9",
+        "head": "0",
+        "jiaye": "家",
+        "halfwave": "蓝小",
+        "is_lianxiao": true,
+        "lianxiao_count": 3,
+        "is_adjacent_lianxiao": false
+      },
+      {
+        "num": "30",
+        "bose": "红",
+        "xiao": "牛",
+        "wuxing": "水",
+        "size": "大",
+        "odd": "双",
+        "sum": "单",
+        "wei": "0",
+        "head": "3",
+        "jiaye": "家",
+        "halfwave": "红大",
+        "is_lianxiao": true,
+        "lianxiao_count": 2,
+        "is_adjacent_lianxiao": false
+      },
+      {
+        "num": "45",
+        "bose": "红",
+        "xiao": "狗",
+        "wuxing": "水",
+        "size": "大",
+        "odd": "单",
+        "sum": "单",
+        "wei": "5",
+        "head": "4",
+        "jiaye": "家",
+        "halfwave": "红大",
+        "is_adjacent_lianxiao": true,
+        "is_lianxiao": true,
+        "lianxiao_count": 3
+      },
+      {
+        "num": "33",
+        "bose": "绿",
+        "xiao": "狗",
+        "wuxing": "火",
+        "size": "大",
+        "odd": "单",
+        "sum": "双",
+        "wei": "3",
+        "head": "3",
+        "jiaye": "家",
+        "halfwave": "绿大",
+        "is_adjacent_lianxiao": true,
+        "is_lianxiao": true,
+        "lianxiao_count": 3
+      }
+    ],
+    "tema_detail": {
+      "num": "28",
+      "bose": "绿",
+      "xiao": "兔",
+      "wuxing": "土",
+      "size": "大",
+      "odd": "双",
+      "sum": "双",
+      "wei": "8",
+      "head": "2",
+      "jiaye": "野",
+      "halfwave": "绿大",
+      "is_lianxiao": false,
+      "lianxiao_count": 1,
+      "is_adjacent_lianxiao": false
+    },
+    "summary": {
+      "sum7": 189,
+      "sum7_size": "大",
+      "sum7_odd": "单",
+      "tema_xiao": "兔",
+      "tema_bose": "绿",
+      "tema_wuxing": "土",
+      "tema_size": "大",
+      "tema_odd": "双",
+      "tema_sum_odd": "双",
+      "tema_jiaye": "野",
+      "tema_halfwave": "绿大",
+      "has_lianxiao": true,
+      "has_adjacent_lianxiao": true,
+      "lianxiao_groups": [
+        {
+          "xiao": "狗",
+          "count": 3,
+          "nums": [
+            "09",
+            "45",
+            "33"
+          ],
+          "positions": [
+            "正3",
+            "正5",
+            "正6"
+          ]
+        },
+        {
+          "xiao": "牛",
+          "count": 2,
+          "nums": [
+            "18",
+            "30"
+          ],
+          "positions": [
+            "正1",
+            "正4"
+          ]
+        }
+      ],
+      "adjacent_lianxiao": [
+        {
+          "xiao": "狗",
+          "pos1": "正5",
+          "pos2": "正6",
+          "num1": "45",
+          "num2": "33"
+        }
+      ],
+      "lianxiao_text": "狗(3码) · 牛(2码)"
+    }
+  },
+  "summary": {
+    "total": 2,
+    "judged": 2,
+    "hits": 1,
+    "misses": 1,
+    "pending": 0,
+    "conflicts": 0,
+    "hit_rate": 50.0
+  },
+  "items": [
+    {
+      "id": 1,
+      "source_id": "haige_pingte",
+      "source_name": "海哥平特",
+      "lottery": "macau",
+      "play_type": "pingte_xiao",
+      "hit_mode": "any",
+      "period": "2026248",
+      "period_raw": "248",
+      "group_key": "",
+      "preds": [
+        {
+          "kind": "xiao",
+          "value": "猪",
+          "text": "猪猪猪"
+        }
+      ],
+      "claimed_status": "pending",
+      "raw_text": "248期:海哥平特【猪猪猪】开奖:猫00准",
+      "fetched_at": "2026-09-21T08:31:27.533307",
+      "official_hit": 0,
+      "claimed_hit": null,
+      "hit_detail": {
+        "pred": [
+          "猪"
+        ],
+        "open": [
+          "牛",
+          "蛇",
+          "狗",
+          "兔"
+        ],
+        "inter": [],
+        "scope": "zheng_and_tema",
+        "tema_xiao": "兔",
+        "matched_balls": [],
+        "rule_version": "2026-09-06.2",
+        "rule": "任一候选生肖出现在七个开奖号码中",
+        "scope_label": "七球（含特码）",
+        "explanation": "平特肖：任一候选生肖出现在七个开奖号码中；本条不满足条件，判定为挂。",
+        "draw_snapshot": {
+          "draw_date": "2026-09-05",
+          "zheng": [
+            "18",
+            "26",
+            "09",
+            "30",
+            "45",
+            "33"
+          ],
+          "tema": "28",
+          "tema_attrs": {
+            "num": "28",
+            "xiao": "兔",
+            "wei": "8",
+            "head": "2",
+            "bose": "绿",
+            "size": "大",
+            "odd": "双",
+            "sum": "双",
+            "jiaye": "野",
+            "halfwave": "绿大",
+            "halfhalf": "绿大双"
+          }
+        },
+        "prediction_snapshot": {
+          "preds": [
+            {
+              "kind": "xiao",
+              "value": "猪",
+              "text": "猪猪猪"
+            }
+          ],
+          "hit_mode": "any"
+        },
+        "dirty_source": false,
+        "hit_mode": "any",
+        "n": 1
+      },
+      "judged_at": "2026-09-21T08:31:27.591529",
+      "status": "miss"
+    },
+    {
+      "id": 2,
+      "source_id": "heizhuang_pingte",
+      "source_name": "黑庄平特",
+      "lottery": "macau",
+      "play_type": "pingte_xiao",
+      "hit_mode": "any",
+      "period": "2026248",
+      "period_raw": "248",
+      "group_key": "",
+      "preds": [
+        {
+          "kind": "xiao",
+          "value": "兔",
+          "text": "兔兔兔"
+        }
+      ],
+      "claimed_status": "pending",
+      "raw_text": "248期:黑庄平特【兔兔兔】开奖:猫00准",
+      "fetched_at": "2026-09-21T08:31:27.533118",
+      "official_hit": 1,
+      "claimed_hit": null,
+      "hit_detail": {
+        "pred": [
+          "兔"
+        ],
+        "open": [
+          "牛",
+          "蛇",
+          "狗",
+          "兔"
+        ],
+        "inter": [
+          "兔"
+        ],
+        "scope": "zheng_and_tema",
+        "tema_xiao": "兔",
+        "matched_balls": [
+          {
+            "num": "28",
+            "xiao": "兔",
+            "position": "tema"
+          }
+        ],
+        "rule_version": "2026-09-06.2",
+        "rule": "任一候选生肖出现在七个开奖号码中",
+        "scope_label": "七球（含特码）",
+        "explanation": "平特肖：任一候选生肖出现在七个开奖号码中；本条满足条件，判定为中。",
+        "draw_snapshot": {
+          "draw_date": "2026-09-05",
+          "zheng": [
+            "18",
+            "26",
+            "09",
+            "30",
+            "45",
+            "33"
+          ],
+          "tema": "28",
+          "tema_attrs": {
+            "num": "28",
+            "xiao": "兔",
+            "wei": "8",
+            "head": "2",
+            "bose": "绿",
+            "size": "大",
+            "odd": "双",
+            "sum": "双",
+            "jiaye": "野",
+            "halfwave": "绿大",
+            "halfhalf": "绿大双"
+          }
+        },
+        "prediction_snapshot": {
+          "preds": [
+            {
+              "kind": "xiao",
+              "value": "兔",
+              "text": "兔兔兔"
+            }
+          ],
+          "hit_mode": "any"
+        },
+        "dirty_source": false,
+        "hit_mode": "any",
+        "n": 1
+      },
+      "judged_at": "2026-09-21T08:31:27.591529",
+      "status": "hit"
+    }
+  ]
+}

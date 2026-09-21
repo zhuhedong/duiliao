@@ -8,8 +8,9 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.api.deps import get_current_user
-from app.models.user import User
+from app import collector_bridge as cb
+from app.api.deps import get_current_user, require_roles
+from app.models.user import User, UserRole
 from app.services.ai.analyzer import analyze_scraped_data, analyze_scraped_data_stream
 from app.services.ai.prompts import list_prompt_templates
 
@@ -124,3 +125,94 @@ def analyze_stream_page(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+
+# --------------------------------------------------------------------------- #
+# Cached reports
+# --------------------------------------------------------------------------- #
+# `analyze-588080` defaults to fetch_fresh=True, so every call makes this process
+# scrape 588080 and bill an LLM request. With a mobile client that is one outbound
+# scrape and one LLM invoice per user per view. These endpoints separate reading a
+# report (any signed-in user, free) from producing one (staff/admin, paid).
+_staff = Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))
+
+
+class AIReportGenerateRequest(AIAnalyzeRequest):
+    lottery: str = Field(default="macau", description="Lottery the report belongs to")
+
+
+@router.get("/report")
+def get_ai_report(
+    lottery: str = "macau",
+    period: str = "",
+    prompt_id: str = "macau_analyst_expert",
+    _: User = _user,
+) -> dict[str, Any]:
+    """Return the cached report for (lottery, period, prompt_id), or 404.
+
+    Never triggers generation — a read must not be able to run up an LLM bill.
+    """
+    if not period.strip():
+        raise HTTPException(status_code=400, detail="period is required")
+    report = cb.get_ai_report(lottery, period.strip(), prompt_id)
+    if report is None:
+        raise HTTPException(status_code=404, detail="no cached report for this period")
+    return report
+
+
+@router.get("/reports")
+def list_ai_reports(
+    lottery: str | None = None,
+    limit: int = 20,
+    _: User = _user,
+) -> dict[str, Any]:
+    """Metadata for recently generated reports (no content), for a picker."""
+    return {"ok": True, "items": cb.list_ai_reports(lottery=lottery, limit=limit)}
+
+
+@router.post("/report/generate")
+def generate_ai_report(
+    req: AIReportGenerateRequest = Body(...),
+    user: User = _staff,
+) -> dict[str, Any]:
+    """Generate a report and upsert it into the cache. Staff/admin only."""
+    if not req.period or not req.period.strip():
+        raise HTTPException(status_code=400, detail="period is required")
+
+    data_source = None
+    if not req.fetch_fresh:
+        if not req.custom_data:
+            raise HTTPException(
+                status_code=400, detail="fetch_fresh 为 false 时必须提供 custom_data 数据对象"
+            )
+        data_source = req.custom_data
+
+    result = analyze_scraped_data(
+        scraped_data=data_source,
+        prompt_id=req.prompt_id,
+        custom_prompt=req.custom_prompt,
+        provider=req.provider,
+        model=req.model,
+        format_mode=req.format_mode,
+        temperature=req.temperature,
+        period=req.period,
+    )
+    if not result.ok:
+        raise HTTPException(status_code=502, detail=result.error)
+
+    payload = result.to_dict()
+    saved = cb.save_ai_report(
+        lottery=req.lottery,
+        period=req.period.strip(),
+        # A custom prompt is cached under "custom" so it cannot overwrite the
+        # cached report for a named preset.
+        prompt_id="custom" if req.custom_prompt else req.prompt_id,
+        content=payload.get("analysis") or "",
+        provider=payload.get("provider"),
+        model=payload.get("model"),
+        elapsed_sec=payload.get("elapsed_sec"),
+        scraped_summary=payload.get("scraped_summary"),
+        generated_by=user.id,
+    )
+    return saved
