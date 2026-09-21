@@ -1076,22 +1076,22 @@ sources:
   extra: {}
 draw:
   macau:
-    adapter: getTrend
-    url: https://kj2.kjkjkj-1.com/api/v1/trend/getTrend
+    adapter: getLastLottery
+    url: https://kj2.kjkjkj-1.com/api/v1/index/getLastLottery
     headers:
       lotterytype: '2'
   hk:
-    adapter: getTrend
-    url: https://kj2.kjkjkj-1.com/api/v1/trend/getTrend
+    adapter: getLastLottery
+    url: https://kj2.kjkjkj-1.com/api/v1/index/getLastLottery
     headers:
-      lotterytype: ''
+      lotterytype: '1'
   taiwan:
-    adapter: getTrend
+    adapter: getLastLottery
     url: ''
     headers:
       lotterytype: ''
   new:
-    adapter: getTrend
+    adapter: getLastLottery
     url: ''
     headers:
       lotterytype: ''

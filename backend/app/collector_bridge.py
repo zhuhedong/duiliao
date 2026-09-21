@@ -350,14 +350,17 @@ def sync_draws(
         rows = [draw_sync.from_generic(obj, lottery, str(obj.get("source") or "api")) for obj in draws]
     else:
         cfg = (load_yaml().get("draw") or {}).get(lottery) or {}
-        adapter = cfg.get("adapter") or "getTrend"
+        adapter = cfg.get("adapter") or "getLastLottery"
         url = (cfg.get("url") or "").strip()
         urls = list(cfg.get("urls") or [])
         headers = {str(k): str(v) for k, v in (cfg.get("headers") or {}).items() if v not in (None, "")}
-        if adapter == "getTrend":
+        if adapter in ("getLastLottery", "getTrend"):
             if not url:
                 raise ValueError(f"no draw url configured for {lottery}")
-            rows = draw_sync.fetch_get_trend(url, headers, lottery)
+            if adapter == "getLastLottery" or "getLastLottery" in url:
+                rows = draw_sync.fetch_get_last_lottery(url, headers, lottery)
+            else:
+                rows = draw_sync.fetch_get_trend(url, headers, lottery)
         elif adapter == "hkjc":
             if not urls:
                 raise ValueError(f"no draw urls configured for {lottery}")
@@ -368,7 +371,15 @@ def sync_draws(
             rows = draw_sync.fetch_macaumarksix(urls, lottery, canonical_period)
 
     if canonical_period:
-        rows = [r for r in rows if r["period"] == canonical_period]
+        matched = [r for r in rows if r["period"] == canonical_period]
+        if not matched and adapter in ("getLastLottery", "getTrend") and url:
+            trend_url = url.replace("/api/v1/index/getLastLottery", "/api/v1/trend/getTrend")
+            try:
+                trend_rows = draw_sync.fetch_get_trend(trend_url, headers, lottery)
+                matched = [r for r in trend_rows if r["period"] == canonical_period]
+            except Exception:
+                pass
+        rows = matched
         if not rows:
             raise ValueError(f"no draw for {lottery} {canonical_period}")
 

@@ -446,7 +446,7 @@ def _norm_draw(row: dict[str, Any] | None) -> dict[str, Any]:
     row = dict(row or {})
     headers = {str(k): str(v) for k, v in (row.get("headers") or {}).items()}
     return {
-        "adapter": row.get("adapter") or "getTrend",
+        "adapter": row.get("adapter") or "getLastLottery",
         "url": row.get("url") or "",
         "headers": headers,
         "lotterytype": str(headers.get("lotterytype") or ""),
@@ -467,7 +467,7 @@ def update_draw_config(lottery: str, body: dict[str, Any]) -> dict[str, Any]:
     cfg = load_config()
     draw = cfg.setdefault("draw", {})
     row = dict(draw.get(lottery) or {})
-    row["adapter"] = body.get("adapter") or row.get("adapter") or "getTrend"
+    row["adapter"] = body.get("adapter") or row.get("adapter") or "getLastLottery"
     if "url" in body and body["url"] is not None:
         row["url"] = str(body["url"]).strip()
     headers = dict(row.get("headers") or {})

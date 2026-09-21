@@ -61,9 +61,10 @@ def parse_date(value: Any) -> date:
 
 
 def from_generic(obj: dict[str, Any], lottery: str, source: str) -> dict[str, Any]:
-    period_raw = str(obj.get("expect") or obj.get("issue") or obj.get("period") or obj.get("period_raw") or "")
+    period_raw_candidate = str(obj.get("period") or obj.get("expect") or obj.get("issue") or obj.get("period_raw") or obj.get("periodStr") or "")
     dt = parse_date(obj.get("openTime") or obj.get("open_time") or obj.get("draw_date") or obj.get("date"))
-    period = normalize(lottery, str(obj.get("period") or period_raw), year=dt.year)
+    period = normalize(lottery, str(obj.get("periodStr") or obj.get("period") or period_raw_candidate), year=dt.year)
+    period_raw = period_raw_of(period) if (not period_raw_candidate or len(period_raw_candidate) >= 7) else str(period_raw_candidate).replace("期", "")
     open_code = obj.get("openCode") or obj.get("opencode") or obj.get("open_code") or obj.get("balls")
     if open_code is None and isinstance(obj.get("code"), list):
         open_code = obj.get("code")
@@ -72,18 +73,128 @@ def from_generic(obj: dict[str, Any], lottery: str, source: str) -> dict[str, An
         tema = obj.get("tema")
         if all(zs) and tema:
             open_code = zs + [tema]
+    if not open_code:
+        ns = [obj.get(f"n{i}") for i in range(1, 8)]
+        if all(n is not None and str(n).strip() != "" for n in ns):
+            open_code = ns
     z, tema = parse_balls(open_code)
     dt = parse_date(obj.get("openTime") or obj.get("open_time") or obj.get("draw_date") or obj.get("date"))
     return {
         "lottery": lottery,
         "period": period,
-        "period_raw": period_raw_of(period) if not period_raw else str(period_raw).replace("期", ""),
+        "period_raw": period_raw,
         "draw_date": dt,
         "opened_at": parse_opened_at(obj.get("opened_at") or obj.get("openTime") or obj.get("open_time") or obj.get("draw_date") or obj.get("date")),
         "z1": z[0], "z2": z[1], "z3": z[2], "z4": z[3], "z5": z[4], "z6": z[5],
         "tema": tema,
         "source": source,
     }
+
+
+def _parse_trend_items(items: list[dict[str, Any]], lottery: str, src: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        balls = it.get("code")
+        if not isinstance(balls, list):
+            balls = [it.get(f"n{i}") for i in range(1, 8)]
+            if not all(b is not None and str(b).strip() != "" for b in balls):
+                continue
+        try:
+            rows.append(
+                from_generic(
+                    {
+                        "period": it.get("periodStr") or it.get("period"),
+                        "period_raw": it.get("periodStr") or it.get("period"),
+                        "openCode": balls,
+                        "draw_date": it.get("date") or it.get("draw_date"),
+                    },
+                    lottery,
+                    src,
+                )
+            )
+        except Exception as e:
+            raise ValueError(f"开奖条目解析失败：{e}") from e
+    if not rows:
+        raise ValueError("returned no draws")
+    return rows
+
+
+def fetch_get_last_lottery(url: str, headers: dict[str, str], lottery: str) -> list[dict[str, Any]]:
+    """GET last lottery API (当期最新开奖接口).
+    Endpoint e.g. https://kj2.kjkjkj-1.com/api/v1/index/getLastLottery
+    Response format:
+    {
+      "code": 0,
+      "message": "Success",
+      "data": {
+        "id": 20262632,
+        "date": "2026-09-20",
+        "period": 263,
+        "periodStr": "2026263",
+        "time": "21:30",
+        "n1": "44", "n2": "28", "n3": "03", "n4": "02", "n5": "24", "n6": "13", "n7": "09",
+        "status": true
+      }
+    }
+    """
+    from common.http import get
+
+    hdrs = {str(k): str(v) for k, v in (headers or {}).items() if v not in (None, "")}
+    r = get(url, headers=hdrs, timeout=20, retries=1)
+    payload = r.json()
+    if not isinstance(payload, dict):
+        raise ValueError("getLastLottery response is not an object")
+    biz = payload.get("code")
+    if isinstance(biz, int) and biz not in (0, 200):
+        raise ValueError(payload.get("message") or f"getLastLottery code={biz}")
+    data = payload.get("data")
+    if isinstance(data, list):
+        return _parse_trend_items(data, lottery, f"getLastLottery:{url}")
+    if not isinstance(data, dict):
+        raise ValueError("getLastLottery returned empty data")
+
+    if data.get("status") is False:
+        raise ValueError("当期开奖尚未完成或尚未开奖 (status=false)")
+
+    balls = [data.get(f"n{i}") for i in range(1, 8)]
+    if not all(b is not None and str(b).strip() != "" for b in balls):
+        if isinstance(data.get("code"), list):
+            balls = data.get("code")
+        else:
+            raise ValueError(f"getLastLottery 开奖球号不完整: {balls}")
+
+    period_val = data.get("periodStr") or data.get("period")
+    if not period_val:
+        raise ValueError("getLastLottery 缺少期号")
+    draw_date = data.get("date") or data.get("draw_date")
+    if not draw_date:
+        raise ValueError("getLastLottery 缺少开奖日期")
+
+    opened_at_cand = None
+    if data.get("time") and draw_date:
+        try:
+            cand = datetime.fromisoformat(f"{draw_date}T{data['time']}:00")
+            if cand <= now_local():
+                opened_at_cand = cand
+        except Exception:
+            pass
+
+    src = f"getLastLottery:{url}"
+    row = from_generic(
+        {
+            "period": period_val,
+            "periodStr": period_val,
+            "period_raw": period_val,
+            "openCode": balls,
+            "draw_date": draw_date,
+            "opened_at": opened_at_cand,
+        },
+        lottery,
+        src,
+    )
+    return [row]
 
 
 def fetch_get_trend(url: str, headers: dict[str, str], lottery: str) -> list[dict[str, Any]]:
@@ -100,33 +211,10 @@ def fetch_get_trend(url: str, headers: dict[str, str], lottery: str) -> list[dic
         raise ValueError(payload.get("message") or f"getTrend code={biz}")
     items = payload.get("data") or []
     if isinstance(items, dict):
+        if "n1" in items or items.get("status") is not None:
+            return fetch_get_last_lottery(url, headers, lottery)
         items = [items]
-    rows: list[dict[str, Any]] = []
-    src = f"getTrend:{url}"
-    for it in items:
-        if not isinstance(it, dict):
-            continue
-        balls = it.get("code")
-        if not isinstance(balls, list):
-            continue
-        try:
-            rows.append(
-                from_generic(
-                    {
-                        "period": it.get("period"),
-                        "period_raw": it.get("period"),
-                        "openCode": balls,
-                        "draw_date": it.get("date") or it.get("draw_date"),
-                    },
-                    lottery,
-                    src,
-                )
-            )
-        except Exception as e:
-            raise ValueError(f"getTrend 开奖条目解析失败：{e}") from e
-    if not rows:
-        raise ValueError("getTrend returned no draws")
-    return rows
+    return _parse_trend_items(items, lottery, f"getTrend:{url}")
 
 
 def fetch_macaumarksix(urls: list[str], lottery: str, period: str | None) -> list[dict[str, Any]]:
@@ -338,14 +426,17 @@ def main() -> None:
         rows = load_json_file(path, lottery)
     else:
         cfg = (load_yaml().get("draw") or {}).get(lottery) or {}
-        adapter = cfg.get("adapter") or "getTrend"
+        adapter = cfg.get("adapter") or "getLastLottery"
         url = (cfg.get("url") or "").strip()
         urls = list(cfg.get("urls") or [])
         headers = {str(k): str(v) for k, v in (cfg.get("headers") or {}).items() if v not in (None, "")}
-        if adapter == "getTrend":
+        if adapter in ("getLastLottery", "getTrend"):
             if not url:
                 raise SystemExit(f"no draw url for {lottery}; set it on the 开奖 page")
-            rows = fetch_get_trend(url, headers, lottery)
+            if adapter == "getLastLottery" or "getLastLottery" in url:
+                rows = fetch_get_last_lottery(url, headers, lottery)
+            else:
+                rows = fetch_get_trend(url, headers, lottery)
         elif adapter == "hkjc":
             if not urls:
                 raise SystemExit(f"no draw urls for {lottery}")
