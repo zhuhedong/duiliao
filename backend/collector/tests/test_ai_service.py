@@ -29,6 +29,11 @@ from app.services.ai.prompts import (
 
 
 class TestAIService(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        from app.db.session import init_db
+        init_db()
+
     def test_clean_html_to_text(self):
         html_input = """
         <div class="card">

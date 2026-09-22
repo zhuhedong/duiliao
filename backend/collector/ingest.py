@@ -230,6 +230,7 @@ def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
                 final_url=envelope.final_url if envelope else None,
                 content_hash=envelope.content_hash if envelope else None,
                 raw_path=extra.get("raw_path"),
+                result_json=r.data or ({"raw_output": extra.get("raw_output")} if extra.get("raw_output") else None),
             )
             if crs is None:
                 s.add(CrawlRunSource(run_id=run.run_id, source_id=r.source_id, **crs_fields))

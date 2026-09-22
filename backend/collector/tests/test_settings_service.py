@@ -9,7 +9,7 @@ from app.services.settings_service import (
     is_masked_key,
     mask_api_key,
     save_ai_settings,
-    test_ai_connection,
+    test_ai_connection as run_ai_connection_test,
 )
 
 
@@ -83,7 +83,7 @@ class TestSettingsService(unittest.TestCase):
         self.assertEqual(client.default_model, "test-db-model")
 
     def test_test_ai_connection_empty_key(self):
-        res = test_ai_connection(provider="openai", api_key="")
+        res = run_ai_connection_test(provider="openai", api_key="")
         self.assertFalse(res["ok"])
         self.assertIn("为空", res["message"])
 
@@ -94,7 +94,7 @@ class TestSettingsService(unittest.TestCase):
         mock_resp.raise_for_status.return_value = None
         mock_post.return_value = mock_resp
 
-        res = test_ai_connection(
+        res = run_ai_connection_test(
             provider="openai",
             base_url="https://api.deepseek.com/v1",
             api_key="sk-real-test-key-12345",

@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
+import time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
@@ -42,24 +43,36 @@ class SourceScheduler:
         self._trigger_event: asyncio.Event = asyncio.Event()
         self._running_tasks: set[int] = set()
 
+    def load_initial_logs(self) -> None:
+        """Load recent schedule logs from database on startup."""
+        try:
+            res = cb.list_schedule_logs(limit=50)
+            self.recent_logs = res.get("items") or []
+        except Exception as e:
+            logger.warning("Failed to load initial schedule logs from DB: %s", e)
+
     def _add_log(
         self,
-        schedule_id: int,
-        schedule_name: str,
-        lottery: str,
-        status: str,
-        message: str,
+        schedule_id: int | dict[str, Any],
+        schedule_name: str | None = None,
+        lottery: str | None = None,
+        status: str | None = None,
+        message: str | None = None,
         result: dict[str, Any] | None = None,
     ) -> None:
-        entry = {
-            "timestamp": _now_str(),
-            "schedule_id": schedule_id,
-            "schedule_name": schedule_name,
-            "lottery": lottery,
-            "status": status,
-            "message": message,
-            "result": result,
-        }
+        if isinstance(schedule_id, dict):
+            entry = schedule_id
+        else:
+            entry = {
+                "timestamp": _now_str(),
+                "schedule_id": schedule_id,
+                "schedule_name": schedule_name or "",
+                "lottery": lottery or "",
+                "status": status or "",
+                "message": message or "",
+                "detail": message or "",
+                "result": result,
+            }
         self.recent_logs.insert(0, entry)
         if len(self.recent_logs) > 100:
             self.recent_logs = self.recent_logs[:100]
@@ -86,6 +99,7 @@ class SourceScheduler:
             except Exception:
                 concurrency = 8
 
+        t0 = time.perf_counter()
         now_cn = cron_util.now_cn()
         tag = "手动触发" if manual else "定时采集"
         logger.info(
@@ -132,12 +146,20 @@ class SourceScheduler:
             if not manual and next_run is None:
                 next_enabled = 0
 
+            elapsed_sec = round(time.perf_counter() - t0, 2)
+            sources = res.get("sources") or []
+            source_total = int(res.get("source_total", len(sources)))
+            source_ok = int(res.get("source_ok", sum(1 for s in sources if s.get("ok"))))
+            source_fail = max(0, source_total - source_ok)
+
             summary = {
                 "ok": res.get("ok", True),
                 "run_id": res.get("run_id"),
                 "period": res.get("period"),
-                "source_total": res.get("source_total", 0),
-                "source_ok": res.get("source_ok", 0),
+                "source_total": source_total,
+                "source_ok": source_ok,
+                "source_fail": source_fail,
+                "sources": sources,
                 "ingest": res.get("ingest"),
                 "judge": judged_info,
             }
@@ -155,13 +177,34 @@ class SourceScheduler:
 
             msg = (
                 f"[{tag}] 采集完成: 期数 {res.get('period')}, "
-                f"成功 {res.get('source_ok', 0)}/{res.get('source_total', 0)} 源"
+                f"成功 {source_ok}/{source_total} 源"
             )
-            self._add_log(sid, sname, lottery, "success", msg, summary)
+            # 5. Persist schedule log to DB
+            log_entry = await asyncio.to_thread(
+                cb.add_schedule_log,
+                schedule_id=sid,
+                schedule_name=sname,
+                lottery=lottery,
+                period=res.get("period"),
+                run_id=res.get("run_id"),
+                action=tag,
+                status="success",
+                detail=msg,
+                concurrency=concurrency,
+                duration_sec=elapsed_sec,
+                source_total=source_total,
+                source_ok=source_ok,
+                source_fail=source_fail,
+                sources_result=sources,
+                result=summary,
+                created_at=now_cn,
+            )
+            self._add_log(log_entry)
             logger.info("[%s] 任务 #%d 执行成功: %s", tag, sid, msg)
             return summary
 
         except Exception as exc:
+            elapsed_sec = round(time.perf_counter() - t0, 2)
             err_msg = str(exc)
             logger.error("[%s] 任务 #%d 执行失败: %s", tag, sid, exc, exc_info=True)
 
@@ -186,7 +229,27 @@ class SourceScheduler:
                 enabled=next_enabled,
             )
 
-            self._add_log(sid, sname, lottery, "error", f"[{tag}] 采集失败: {err_msg}", {"error": err_msg})
+            fail_msg = f"[{tag}] 采集失败: {err_msg}"
+            log_entry = await asyncio.to_thread(
+                cb.add_schedule_log,
+                schedule_id=sid,
+                schedule_name=sname,
+                lottery=lottery,
+                period=period,
+                run_id=None,
+                action=tag,
+                status="error",
+                detail=fail_msg,
+                concurrency=concurrency,
+                duration_sec=elapsed_sec,
+                source_total=0,
+                source_ok=0,
+                source_fail=0,
+                sources_result=[],
+                result={"ok": False, "error": err_msg},
+                created_at=now_cn,
+            )
+            self._add_log(log_entry)
             return {"ok": False, "error": err_msg}
 
     async def _safe_execute(self, item: dict[str, Any], manual: bool = False) -> dict[str, Any]:
@@ -212,6 +275,7 @@ class SourceScheduler:
         """Main periodic loop running during the FastAPI lifespan."""
         self.running = True
         logger.info("SourceScheduler started (polling interval: %ds)", self.check_interval_seconds)
+        self.load_initial_logs()
         try:
             while self.running:
                 # Wait for trigger event or check interval

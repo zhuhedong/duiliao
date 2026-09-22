@@ -137,6 +137,7 @@ class CollectJobWorker:
                     exit_code=result.get("exit_code"),
                     error_code=result.get("error_code"),
                     error_msg=result.get("error_msg"),
+                    data=result.get("data"),
                 )
 
             def on_phase(phase: str) -> None:
@@ -163,6 +164,7 @@ class CollectJobWorker:
                 "period": resolved_period,
                 "source_total": res.get("source_total"),
                 "source_ok": res.get("source_ok"),
+                "sources": res.get("sources"),
                 "ingest": res.get("ingest"),
             }
 

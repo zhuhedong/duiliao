@@ -172,6 +172,68 @@ class TestSourceSchedulerIntegration(unittest.TestCase):
         self.assertEqual(persisted["last_status"], "success")
         self.assertIsNotNone(persisted["last_run_at"])
 
+        # Verify schedule_log record in DB
+        logs_res = cb.list_schedule_logs(schedule_id=item["id"])
+        self.assertGreaterEqual(logs_res["total"], 1)
+        log_entry = logs_res["items"][0]
+        self.assertEqual(log_entry["schedule_id"], item["id"])
+        self.assertEqual(log_entry["status"], "success")
+        self.assertIsNotNone(log_entry["duration_sec"])
+        self.assertIn("sources_result", log_entry)
+        self.assertGreaterEqual(len(log_entry["sources_result"]), 1)
+        self.assertEqual(log_entry["sources_result"][0]["source_id"], "tt_6xiao")
+
+    def test_schedule_log_persistence_and_crawl_run_source(self):
+        item = cb.create_schedule(
+            name="UT-SourceResults-Persist",
+            lottery="macau",
+            source_ids=["tt_6xiao"],
+            cron="*/10 * * * *",
+            enabled=True,
+            do_ingest=True,
+            auto_judge=True,
+        )
+        self.created_ids.append(item["id"])
+
+        res = asyncio.run(source_scheduler.trigger_now(item["id"]))
+        self.assertTrue(res.get("ok"))
+        self.assertIn("sources", res)
+        self.assertEqual(len(res["sources"]), 1)
+        self.assertEqual(res["sources"][0]["source_id"], "tt_6xiao")
+
+        # Check schedule_log in DB
+        logs = cb.list_schedule_logs(schedule_id=item["id"])
+        self.assertGreaterEqual(logs["total"], 1)
+        entry = logs["items"][0]
+        self.assertEqual(entry["schedule_id"], item["id"])
+        self.assertEqual(entry["action"], "手动触发")
+        self.assertEqual(entry["status"], "success")
+        self.assertEqual(entry["source_total"], 1)
+        self.assertGreaterEqual(len(entry["sources_result"]), 1)
+        src_item = entry["sources_result"][0]
+        self.assertEqual(src_item["source_id"], "tt_6xiao")
+        self.assertIsNotNone(src_item.get("data"))
+
+        # Verify get_schedule_log
+        log_detail = cb.get_schedule_log(entry["id"])
+        self.assertIsNotNone(log_detail)
+        self.assertEqual(log_detail["id"], entry["id"])
+        self.assertEqual(len(log_detail["sources_result"]), 1)
+
+        # Check crawl_run_source in DB
+        run_id = entry.get("run_id")
+        self.assertIsNotNone(run_id)
+        from db import session_scope
+        from schema import CrawlRunSource
+        from sqlalchemy import select
+        with session_scope() as s:
+            crs = s.scalar(select(CrawlRunSource).where(
+                CrawlRunSource.run_id == run_id,
+                CrawlRunSource.source_id == "tt_6xiao",
+            ))
+            self.assertIsNotNone(crs)
+            self.assertIsNotNone(crs.result_json)
+
     def test_time_window_concurrency_execution(self):
         # Create a task with concurrency=8 and multiple sources
         sources = ["haige_pingte", "heizhuang_pingte", "wu_buzhong", "chengba_liuhe"]

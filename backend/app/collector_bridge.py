@@ -196,6 +196,7 @@ def collect(
 
     def _execute_source(row: dict[str, Any]) -> dict[str, Any]:
         source_id = row["source_id"]
+        source_name = row.get("name") or row.get("source_name") or source_id
         if should_cancel is not None:
             try:
                 cancelled = bool(should_cancel())
@@ -205,6 +206,7 @@ def collect(
             if cancelled:
                 skipped = {
                     "source_id": source_id,
+                    "source_name": source_name,
                     "ok": False,
                     "exit_code": None,
                     "elapsed_ms": 0,
@@ -224,6 +226,7 @@ def collect(
             if fp.exists():
                 extra += ["--fixture", str(fp)]
         result = runner.run_one(row, lottery, canonical_period, extra)
+        result["source_name"] = source_name
         # Written here rather than in a second serial pass so that on_done sees
         # the final shape. Each source writes a distinct file and write_raw
         # creates the directory with exist_ok, so this is thread-safe.
@@ -251,6 +254,7 @@ def collect(
                     logger.exception("source %s raised", row.get("source_id"))
                     failed = {
                         "source_id": row.get("source_id"),
+                        "source_name": row.get("name") or row.get("source_name") or row.get("source_id"),
                         "ok": False,
                         "exit_code": None,
                         "elapsed_ms": 0,
@@ -311,6 +315,21 @@ def collect(
         "period": period_summary,
         "source_total": len(results),
         "source_ok": sum(1 for r in results if r["ok"]),
+        "sources": [
+            {
+                "source_id": r.get("source_id"),
+                "source_name": r.get("source_name") or r.get("name") or r.get("source_id"),
+                "ok": bool(r.get("ok")),
+                "exit_code": r.get("exit_code"),
+                "elapsed_ms": r.get("elapsed_ms"),
+                "item_count": r.get("item_count", 0),
+                "error_code": r.get("error_code"),
+                "error_msg": r.get("error_msg"),
+                "data": r.get("data"),
+                "raw_path": r.get("raw_path"),
+            }
+            for r in results
+        ],
     }
     if do_ingest:
         _notify(on_phase, "ingesting")
@@ -1217,6 +1236,127 @@ def update_schedule_run_result(
 
 
 # --------------------------------------------------------------------------- #
+# Persistent schedule execution logs (任务执行日志)
+# --------------------------------------------------------------------------- #
+def _schedule_log_to_dict(log: Any) -> dict[str, Any]:
+    created_at_str = log.created_at.strftime("%Y-%m-%d %H:%M:%S") if getattr(log, "created_at", None) else None
+    return {
+        "id": log.id,
+        "schedule_id": log.schedule_id,
+        "schedule_name": log.schedule_name,
+        "lottery": log.lottery,
+        "period": log.period,
+        "run_id": log.run_id,
+        "action": log.action,
+        "status": log.status,
+        "detail": log.detail,
+        "message": log.detail,
+        "concurrency": log.concurrency,
+        "duration_sec": log.duration_sec,
+        "source_total": log.source_total,
+        "source_ok": log.source_ok,
+        "source_fail": log.source_fail,
+        "sources_result": log.sources_result or [],
+        "sources": log.sources_result or [],
+        "result": log.result,
+        "created_at": created_at_str,
+        "timestamp": created_at_str,
+    }
+
+
+def add_schedule_log(
+    schedule_id: int,
+    schedule_name: str,
+    lottery: str,
+    action: str,
+    status: str,
+    detail: str,
+    period: str | None = None,
+    run_id: str | None = None,
+    concurrency: int | None = None,
+    duration_sec: float | None = None,
+    source_total: int = 0,
+    source_ok: int = 0,
+    source_fail: int = 0,
+    sources_result: list[dict[str, Any]] | None = None,
+    result: dict[str, Any] | None = None,
+    created_at: datetime | None = None,
+) -> dict[str, Any]:
+    bootstrap()
+    import cron_util
+    from db import session_scope
+    from schema import ScheduleLog
+
+    dt = cron_util.to_naive_cn(created_at) if created_at else cron_util.now_cn()
+    with session_scope() as s:
+        row = ScheduleLog(
+            schedule_id=schedule_id,
+            schedule_name=schedule_name,
+            lottery=lottery,
+            period=period,
+            run_id=run_id,
+            action=action,
+            status=status,
+            detail=detail,
+            concurrency=concurrency,
+            duration_sec=duration_sec,
+            source_total=source_total,
+            source_ok=source_ok,
+            source_fail=source_fail,
+            sources_result=sources_result,
+            result=result,
+            created_at=dt,
+        )
+        s.add(row)
+        s.flush()
+        return _schedule_log_to_dict(row)
+
+
+def list_schedule_logs(
+    schedule_id: int | None = None,
+    lottery: str | None = None,
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    bootstrap()
+    from db import session_scope
+    from schema import ScheduleLog
+    from sqlalchemy import func as sa_func, select
+
+    with session_scope() as s:
+        stmt = select(ScheduleLog)
+        count_stmt = select(sa_func.count(ScheduleLog.id))
+        if schedule_id is not None:
+            stmt = stmt.where(ScheduleLog.schedule_id == schedule_id)
+            count_stmt = count_stmt.where(ScheduleLog.schedule_id == schedule_id)
+        if lottery:
+            stmt = stmt.where(ScheduleLog.lottery == lottery)
+            count_stmt = count_stmt.where(ScheduleLog.lottery == lottery)
+        if status:
+            stmt = stmt.where(ScheduleLog.status == status)
+            count_stmt = count_stmt.where(ScheduleLog.status == status)
+
+        total = s.scalar(count_stmt) or 0
+        stmt = stmt.order_by(ScheduleLog.id.desc()).limit(max(1, min(int(limit or 50), 200))).offset(max(0, int(offset or 0)))
+        rows = list(s.scalars(stmt))
+        return {
+            "total": total,
+            "items": [_schedule_log_to_dict(r) for r in rows],
+        }
+
+
+def get_schedule_log(log_id: int) -> dict[str, Any] | None:
+    bootstrap()
+    from db import session_scope
+    from schema import ScheduleLog
+
+    with session_scope() as s:
+        row = s.get(ScheduleLog, log_id)
+        return _schedule_log_to_dict(row) if row else None
+
+
+# --------------------------------------------------------------------------- #
 # Asynchronous collection jobs (采集任务)
 # --------------------------------------------------------------------------- #
 # A job decouples "submit a collection" from "wait for it to finish". The HTTP
@@ -1251,6 +1391,7 @@ def _job_to_dict(j: Any, include_result: bool = True) -> dict[str, Any]:
                 "exit_code": entry.get("exit_code"),
                 "error_code": entry.get("error_code"),
                 "error_msg": entry.get("error_msg"),
+                "data": entry.get("data"),
             }
         )
 
@@ -1471,6 +1612,7 @@ def update_collect_job_source(
     exit_code: int | None = None,
     error_code: str | None = None,
     error_msg: str | None = None,
+    data: Any = None,
 ) -> None:
     """Merge one source's progress into the job's progress map.
 
@@ -1507,6 +1649,8 @@ def update_collect_job_source(
                 entry["elapsed_ms"] = elapsed_ms
             if exit_code is not None:
                 entry["exit_code"] = exit_code
+            if data is not None:
+                entry["data"] = data
             # Always assign the error fields so a retry clears a previous failure.
             entry["error_code"] = error_code
             entry["error_msg"] = (error_msg or None) and str(error_msg)[:500]

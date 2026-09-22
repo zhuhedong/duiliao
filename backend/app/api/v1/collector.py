@@ -615,6 +615,42 @@ def create_collection_schedule(
         raise _bad_request(exc)
 
 
+@router.get("/schedules/logs")
+def list_collection_schedule_logs(
+    schedule_id: int | None = None,
+    lottery: str | None = None,
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    _: User = _user,
+) -> dict[str, Any]:
+    """List execution logs across all schedules with optional filters and pagination."""
+    res = cb.list_schedule_logs(
+        schedule_id=schedule_id,
+        lottery=lottery,
+        status=status,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "ok": True,
+        "total": res["total"],
+        "items": res["items"],
+    }
+
+
+@router.get("/schedules/logs/{log_id}")
+def get_collection_schedule_log_detail(
+    log_id: int,
+    _: User = _user,
+) -> dict[str, Any]:
+    """Get detail of a single schedule execution log including full source return results."""
+    row = cb.get_schedule_log(log_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Schedule log not found")
+    return {"ok": True, "log": row}
+
+
 @router.get("/schedules/{schedule_id}")
 def get_collection_schedule(
     schedule_id: int,
@@ -722,17 +758,18 @@ async def trigger_collection_schedule(
 @router.get("/schedules/{schedule_id}/logs")
 def get_collection_schedule_logs(
     schedule_id: int,
+    limit: int = 50,
+    offset: int = 0,
     _: User = _user,
 ) -> dict[str, Any]:
-    """Get recent execution logs for a specific schedule."""
-    from app.services.source_scheduler import source_scheduler
-
-    logs = [l for l in source_scheduler.recent_logs if l.get("schedule_id") == schedule_id]
+    """Get recent execution logs for a specific schedule from database with per-source return results."""
+    res = cb.list_schedule_logs(schedule_id=schedule_id, limit=limit, offset=offset)
     item = cb.get_schedule(schedule_id)
     return {
         "ok": True,
         "schedule": item,
-        "logs": logs,
+        "total": res["total"],
+        "logs": res["items"],
     }
 
 

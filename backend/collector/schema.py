@@ -146,6 +146,7 @@ class CrawlRunSource(Base):
     final_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     raw_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    result_json: Mapped[object | None] = mapped_column(JSON_TYPE, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
 
     run = relationship('CrawlRun', back_populates='sources')
@@ -305,6 +306,39 @@ class Schedule(Base):
 
     __table_args__ = (
         Index("idx_schedule_next_run", "enabled", "next_run_at"),
+    )
+
+
+class ScheduleLog(Base):
+    """Execution log for scheduled and manually triggered collection tasks.
+
+    Records the execution timestamp, action, status, concurrency, duration,
+    overall summary, and per-source result details in ``sources_result``.
+    """
+
+    __tablename__ = "schedule_log"
+
+    id: Mapped[int] = mapped_column(PK_INT, primary_key=True, autoincrement=True)
+    schedule_id: Mapped[int] = mapped_column(PK_INT, ForeignKey("schedule.id", ondelete="CASCADE"), nullable=False, index=True)
+    schedule_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    lottery: Mapped[str] = mapped_column(String(16), nullable=False)
+    period: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    run_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)  # 定时采集 | 手动触发
+    status: Mapped[str] = mapped_column(String(16), nullable=False)  # success | error | running
+    detail: Mapped[str] = mapped_column(String(1024), nullable=False)
+    concurrency: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duration_sec: Mapped[float | None] = mapped_column(Float, nullable=True)
+    source_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    source_ok: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    source_fail: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    sources_result: Mapped[object | None] = mapped_column(JSON_TYPE, nullable=True)
+    result: Mapped[object | None] = mapped_column(JSON_TYPE, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now(), index=True)
+
+    __table_args__ = (
+        Index("idx_schedule_log_lookup", "schedule_id", "created_at"),
+        Index("idx_schedule_log_created", "created_at"),
     )
 
 
@@ -544,6 +578,9 @@ def _create_all_locked(conn) -> None:
             "created_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
             "updated_at": "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
         },
+        "crawl_run_source": {
+            "result_json": f"{kind} NULL",
+        },
     }
     existing = set(inspect(conn).get_table_names())
     for table, fields in additions.items():
@@ -562,6 +599,8 @@ def _create_all_locked(conn) -> None:
     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_schedule_next_run ON schedule (enabled, next_run_at)"))
     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_collect_job_status ON collect_job (status, created_at)"))
     conn.execute(text("CREATE INDEX IF NOT EXISTS idx_collect_job_created ON collect_job (created_at)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_schedule_log_lookup ON schedule_log (schedule_id, created_at)"))
+    conn.execute(text("CREATE INDEX IF NOT EXISTS idx_schedule_log_created ON schedule_log (created_at)"))
     columns = {c["name"] for c in inspect(conn).get_columns("draw")}
     if "opened_at" not in columns:
         conn.execute(text("ALTER TABLE draw ADD COLUMN opened_at TIMESTAMP NULL"))
