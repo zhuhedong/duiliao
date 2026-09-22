@@ -267,11 +267,41 @@ def list_predictions(
     lottery: Lottery | None = None,
     period: str | None = None,
     source_id: str | None = None,
+    status: str | None = None,
     limit: int = 100,
+    offset: int = 0,
     _: User = _user,
 ) -> dict[str, Any]:
     """List stored predictions (most recent period first)."""
-    return cb.list_predictions(lottery, period, source_id, limit)
+    return cb.list_predictions(lottery, period, source_id, status=status, limit=limit, offset=offset)
+
+
+@router.get("/sources/{source_id}/history")
+def get_source_history(
+    source_id: str,
+    lottery: Lottery | None = None,
+    status: str | None = None,
+    period_from: str | None = None,
+    period_to: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    _: User = _user,
+) -> dict[str, Any]:
+    """Retrieve full prediction history, judge verification, and draw results for a source."""
+    try:
+        return cb.get_source_history(
+            source_id,
+            lottery=lottery,
+            status=status,
+            period_from=period_from,
+            period_to=period_to,
+            limit=limit,
+            offset=offset,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise _bad_request(exc)
 
 
 @router.post("/missing/confirm")

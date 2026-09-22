@@ -22,6 +22,8 @@ class DrawDetailScreen extends ConsumerWidget {
   final Lottery lottery;
   final String period;
 
+  static final Set<String> _activeActions = <String>{};
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final key = (lottery: lottery, period: period);
@@ -60,19 +62,26 @@ class DrawDetailScreen extends ConsumerWidget {
         ],
       ),
       body: GlassBackground(
-        child: AsyncView<DrawRow?>(
-          value: async,
-          loading: const SkeletonList(itemHeight: 120),
-          onRetry: () => ref.invalidate(drawDetailProvider(key)),
-          emptyCheck: (draw) => draw == null,
-          emptyMessage: '未找到该期开奖',
-          builder: (draw) => _DetailBody(draw: draw!),
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await ref.refresh(drawDetailProvider(key).future);
+          },
+          child: AsyncView<DrawRow?>(
+            value: async,
+            loading: const SkeletonList(itemHeight: 120),
+            onRetry: () => ref.invalidate(drawDetailProvider(key)),
+            emptyCheck: (draw) => draw == null,
+            emptyMessage: '未找到该期开奖',
+            builder: (draw) => _DetailBody(draw: draw!),
+          ),
         ),
       ),
     );
   }
 
   Future<void> _runAction(BuildContext context, WidgetRef ref, String action) async {
+    final actionKey = '${lottery.code}:$period:$action';
+    if (!_activeActions.add(actionKey)) return;
     final repo = ref.read(collectorRepositoryProvider);
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
@@ -91,11 +100,15 @@ class DrawDetailScreen extends ConsumerWidget {
         messenger.showSnackBar(SnackBar(
           content: Text('判定完成：${result.judged} 条，命中 ${result.hits}'),
         ));
+        ref.invalidate(drawDetailProvider((lottery: lottery, period: period)));
+        ref.invalidate(drawListProvider(lottery));
       }
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
     } on NetworkException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
+    } finally {
+      _activeActions.remove(actionKey);
     }
   }
 }

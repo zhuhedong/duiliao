@@ -19,6 +19,8 @@ What lives here and why:
 from __future__ import annotations
 
 import asyncio
+import base64
+import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -93,7 +95,7 @@ async def home(
     period = (latest or {}).get("period")
 
     consensus_task = (
-        _safe("consensus", cb.consensus_compare, lottery, period) if period else _safe("noop", lambda: None)
+        _safe("consensus", cb.consensus_compare, lottery, period, play_type) if period else _safe("noop", lambda: None)
     )
     comparison_task = (
         _safe("comparison", cb.get_period_comparison, lottery, period) if period else _safe("noop", lambda: None)
@@ -243,29 +245,79 @@ async def cancel_collect_job(job_id: int, user: User = _staff) -> dict[str, Any]
 # --------------------------------------------------------------------------- #
 # Event feed
 # --------------------------------------------------------------------------- #
-def _parse_since(since: str | None) -> datetime | None:
+def _parse_since(since: str | None) -> tuple[datetime | None, str | None]:
     if not since:
-        return None
+        return None, None
     raw = since.strip()
     if not raw:
-        return None
-    try:
-        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="since must be an ISO-8601 timestamp",
-        ) from exc
+        return None, None
+    if raw.startswith("v1."):
+        try:
+            encoded = raw[3:]
+            encoded += "=" * (-len(encoded) % 4)
+            payload = json.loads(base64.urlsafe_b64decode(encoded).decode("utf-8"))
+            occurred_at = payload["occurred_at"]
+            key = payload["key"]
+            if not isinstance(occurred_at, str) or not isinstance(key, str):
+                raise ValueError("invalid cursor fields")
+            parsed = datetime.fromisoformat(occurred_at.replace("Z", "+00:00"))
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError, base64.binascii.Error) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="since must be a valid event cursor",
+            ) from exc
+    else:
+        key = None
+        try:
+            parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="since must be an ISO-8601 timestamp or event cursor",
+            ) from exc
     # Collector timestamps are naive CN-local; normalise so comparisons work.
     if parsed.tzinfo is not None:
         parsed = parsed.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
-    return parsed
+    return parsed, key
 
 
 def _iso(value: Any) -> str | None:
     if isinstance(value, datetime):
         return value.isoformat()
     return value if value is None else str(value)
+
+
+def _event_key(event: dict[str, Any]) -> str:
+    """Return a deterministic tie-breaker for events sharing a timestamp."""
+    data = event.get("data") or {}
+    return "|".join(
+        str(event.get(name) or "")
+        for name in ("type", "lottery", "period")
+    ) + "|" + "|".join(
+        str(data.get(name) or "")
+        for name in ("job_id", "source_id", "play_type", "leader_key")
+    )
+
+
+def _event_time(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
+    return parsed
+
+
+def _encode_event_cursor(event: dict[str, Any]) -> str:
+    payload = json.dumps(
+        {"occurred_at": event["occurred_at"], "key": _event_key(event)},
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return "v1." + base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
 
 
 @router.get("/events")
@@ -282,12 +334,24 @@ async def events(
     job worker maintains) rather than stored in a queue, so the same cursor works
     for any number of devices and nothing is consumed by being read.
 
-    ``next_cursor`` is the newest ``occurred_at`` returned, or the incoming cursor
-    when there is nothing new. Clients persist it and pass it back as ``since``.
+    ``next_cursor`` is an opaque composite cursor for the newest event returned,
+    or the incoming cursor when there is nothing new. Legacy ISO timestamps are
+    still accepted as input. Clients persist the value and pass it back as
+    ``since``.
     """
     if lottery:
         _validate_lottery(lottery)
-    cursor = _parse_since(since)
+    cursor_time, cursor_key = _parse_since(since)
+    # Existing bridge queries accept a timestamp only. Query one second before
+    # a composite cursor (the database may store timestamps at second
+    # precision), then apply the tie-breaker below so same-time events are never
+    # lost at a page boundary.
+    query_since = (
+        cursor_time - timedelta(seconds=1)
+        if cursor_time is not None and cursor_key is not None
+        else cursor_time
+    )
+    source_limit = min(max(limit * 2, limit), 200)
 
     # Read synchronously: a SQLAlchemy Session is not thread-safe, and this is a
     # single primary-key lookup.
@@ -305,7 +369,7 @@ async def events(
 
     if enabled("draw_published"):
         for row in await asyncio.to_thread(
-            cb.list_recent_draw_events, cursor, lottery, limit
+            cb.list_recent_draw_events, query_since, lottery, source_limit
         ) or []:
             out.append(
                 {
@@ -322,7 +386,7 @@ async def events(
     # Hit/miss events are only meaningful for sources the user follows.
     if followed and (enabled("source_hit", False) or enabled("source_miss_streak")):
         judged = await asyncio.to_thread(
-            cb.list_recent_judge_events, cursor, lottery, followed, limit
+            cb.list_recent_judge_events, query_since, lottery, followed, source_limit
         ) or []
         if enabled("source_hit", False):
             for row in judged:
@@ -379,7 +443,7 @@ async def events(
 
     if enabled("consensus_leader_changed", False):
         for row in await asyncio.to_thread(
-            cb.list_consensus_leader_changes, cursor, lottery, limit
+            cb.list_consensus_leader_changes, query_since, lottery, source_limit
         ) or []:
             out.append(
                 {
@@ -395,7 +459,7 @@ async def events(
 
     if enabled("collect_job_finished"):
         for row in await asyncio.to_thread(
-            cb.list_finished_job_events, cursor, lottery, None, limit
+            cb.list_finished_job_events, query_since, lottery, None, source_limit
         ) or []:
             out.append(
                 {
@@ -427,12 +491,30 @@ async def events(
             )
         ]
 
-    # A single ordered, truncated stream; the cursor is the newest item actually
-    # returned so truncation cannot skip events.
-    out.sort(key=lambda e: (e["occurred_at"] or "", e["type"]))
+    # A single ordered, truncated stream. For old timestamp-only cursors retain
+    # the original exclusive semantics; for composite cursors compare both
+    # timestamp and identity so same-timestamp events are delivered exactly once.
+    if cursor_time is not None:
+        filtered: list[dict[str, Any]] = []
+        for event in out:
+            event_time = _event_time(event.get("occurred_at"))
+            if event_time is None or event_time < cursor_time:
+                continue
+            if event_time == cursor_time and cursor_key is None:
+                continue
+            if event_time == cursor_time and cursor_key is not None and _event_key(event) <= cursor_key:
+                continue
+            filtered.append(event)
+        out = filtered
+
+    out.sort(key=lambda e: (e["occurred_at"] or "", _event_key(e)))
     truncated = len(out) > limit
     out = out[:limit]
-    next_cursor = out[-1]["occurred_at"] if out else (_iso(cursor) if cursor else None)
+    next_cursor = (
+        _encode_event_cursor(out[-1])
+        if out
+        else (since if since and cursor_key is not None else _iso(cursor_time))
+    )
 
     return {
         "ok": True,

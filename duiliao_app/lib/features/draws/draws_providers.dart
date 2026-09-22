@@ -21,6 +21,7 @@ class DrawListState {
     this.total = 0,
     this.isLoadingMore = false,
     this.isStale = false,
+    this.loadMoreError,
     this.storedAtLabel,
     this.periodFrom,
     this.periodTo,
@@ -32,6 +33,10 @@ class DrawListState {
   final int total;
 
   final bool isLoadingMore;
+
+  /// A transient error from the last pagination request. The already-loaded
+  /// rows remain usable while the footer offers an explicit retry.
+  final String? loadMoreError;
 
   /// True when the visible rows came from the cache while offline.
   final bool isStale;
@@ -50,6 +55,8 @@ class DrawListState {
     int? total,
     bool? isLoadingMore,
     bool? isStale,
+    String? loadMoreError,
+    bool clearLoadMoreError = false,
     String? storedAtLabel,
     String? periodFrom,
     String? periodTo,
@@ -60,6 +67,7 @@ class DrawListState {
         total: total ?? this.total,
         isLoadingMore: isLoadingMore ?? this.isLoadingMore,
         isStale: isStale ?? this.isStale,
+        loadMoreError: clearLoadMoreError ? null : (loadMoreError ?? this.loadMoreError),
         storedAtLabel: storedAtLabel ?? this.storedAtLabel,
         periodFrom: clearFilter ? null : (periodFrom ?? this.periodFrom),
         periodTo: clearFilter ? null : (periodTo ?? this.periodTo),
@@ -144,7 +152,10 @@ class DrawListNotifier extends AsyncNotifier<DrawListState> {
     final current = state.value;
     if (current == null || current.isLoadingMore || !current.hasMore) return;
 
-    state = AsyncValue.data(current.copyWith(isLoadingMore: true));
+    state = AsyncValue.data(current.copyWith(
+      isLoadingMore: true,
+      clearLoadMoreError: true,
+    ));
     try {
       final result = await _repo.draws(
         lottery: lottery.code,
@@ -166,10 +177,15 @@ class DrawListNotifier extends AsyncNotifier<DrawListState> {
         isLoadingMore: false,
         isStale: result.isStale,
         storedAtLabel: result.storedAtLabel,
+        clearLoadMoreError: true,
       ));
     } catch (_) {
-      // Keep what is already on screen; the footer stops showing a spinner.
-      state = AsyncValue.data(current.copyWith(isLoadingMore: false));
+      // Keep what is already on screen, but expose a retry affordance in the
+      // footer instead of silently pretending pagination completed.
+      state = AsyncValue.data(current.copyWith(
+        isLoadingMore: false,
+        loadMoreError: '加载失败，请重试',
+      ));
     }
   }
 }
@@ -191,6 +207,7 @@ final drawDetailProvider = FutureProvider.family<DrawRow?, ({Lottery lottery, St
       limit: 1,
       periodFrom: key.period,
       periodTo: key.period,
+      forceRefresh: true,
     );
     return result.value.items.isEmpty ? null : result.value.items.first;
   },

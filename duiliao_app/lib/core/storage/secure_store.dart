@@ -17,6 +17,8 @@ abstract final class SecureKeys {
   static const String textScale = 'duiliao.text_scale';
   static const String deviceId = 'duiliao.device_id';
   static const String lastIdentifier = 'duiliao.last_identifier';
+  /// Account id used to scope background notification cache entries.
+  static const String notificationUserId = 'duiliao.notification_user_id';
 }
 
 /// Thin wrapper so the auth layer can be tested without a platform channel.

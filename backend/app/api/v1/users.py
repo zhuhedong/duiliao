@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -19,6 +19,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 class SessionInfo(BaseModel):
     id: str
+    device_id: str | None
     device_name: str | None
     platform: str | None
     app_version: str | None
@@ -48,6 +49,7 @@ def update_me(
 
 @router.get("/me/sessions", response_model=list[SessionInfo])
 def list_sessions(
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> list[SessionInfo]:
@@ -60,13 +62,15 @@ def list_sessions(
     return [
         SessionInfo(
             id=r.id,
+            device_id=r.device_id,
             device_name=r.device_name,
             platform=r.platform,
             app_version=r.app_version,
             ip_address=r.ip_address,
             created_at=r.created_at,
             last_used_at=r.last_used_at,
-            current=(as_aware(r.expires_at) or now) > now,
+            current=(r.jti == getattr(request.state, "session_id", None))
+            and (as_aware(r.expires_at) or now) > now,
         )
         for r in rows
     ]
@@ -89,6 +93,7 @@ def revoke_session(
 @router.post("/me/password", status_code=204)
 def change_password(
     payload: PasswordChange,
+    request: Request,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ) -> None:
@@ -96,6 +101,20 @@ def change_password(
     if not user.password_hash or not verify_password(payload.current_password, user.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     user.password_hash = hash_password(payload.new_password)
+    current_session_id = getattr(request.state, "session_id", None)
+    sessions = db.scalars(
+        select(RefreshToken).where(
+            RefreshToken.user_id == user.id,
+            RefreshToken.revoked == False,  # noqa: E712
+        )
+    ).all()
+    # Keep the device that performed the password change signed in. Tokens
+    # issued before session binding have no session_id and conservatively revoke
+    # every refresh session so a forgotten device cannot remain authenticated.
+    for session in sessions:
+        if current_session_id is None or session.jti != current_session_id:
+            session.revoked = True
+            session.revoked_at = datetime.now(timezone.utc)
     db.commit()
 
 

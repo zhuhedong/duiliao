@@ -224,7 +224,7 @@ def test_draw_events_are_emitted_and_the_cursor_advances(user_client, seeded_dra
     draw_events = [e for e in body["events"] if e["type"] == "draw_published"]
     assert draw_events, "expected draw_published events for the seeded draws"
     assert all(e["occurred_at"] for e in draw_events)
-    assert body["next_cursor"] == body["events"][-1]["occurred_at"]
+    assert body["next_cursor"].startswith("v1."), "new cursors include a timestamp tie-breaker"
 
     # Replaying with the returned cursor must not re-deliver the same events.
     again = user_client.get(

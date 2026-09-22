@@ -18,6 +18,14 @@ import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import 'collect_providers.dart';
+String _formatCollectTime(String? raw) {
+  if (raw == null || raw.trim().isEmpty) return '—';
+  final parsed = DateTime.tryParse(raw)?.toLocal();
+  if (parsed == null) return raw;
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${parsed.year}-${two(parsed.month)}-${two(parsed.day)} '
+      '${two(parsed.hour)}:${two(parsed.minute)}:${two(parsed.second)}';
+}
 
 class SchedulesTab extends ConsumerWidget {
   const SchedulesTab({super.key});
@@ -137,6 +145,7 @@ class _ScheduleCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final action = ref.watch(scheduleActionProvider(schedule.id));
     return GlassCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -153,7 +162,7 @@ class _ScheduleCard extends ConsumerWidget {
               ),
               Switch(
                 value: schedule.enabled,
-                onChanged: (value) => _toggle(context, ref, value),
+                onChanged: action == null ? (value) => _toggle(context, ref, value) : null,
               ),
             ],
           ),
@@ -232,13 +241,13 @@ class _ScheduleCard extends ConsumerWidget {
           Row(
             children: [
               TextButton.icon(
-                onPressed: () => _trigger(context, ref),
+                onPressed: action == null ? () => _trigger(context, ref) : null,
                 icon: const Icon(Icons.play_arrow_rounded, size: 18),
                 label: const Text('立即执行'),
               ),
               const SizedBox(width: 8),
               TextButton.icon(
-                onPressed: () => _showLogs(context, ref),
+                onPressed: action == null ? () => _showLogs(context, ref) : null,
                 icon: const Icon(Icons.article_outlined, size: 18),
                 label: const Text('日志'),
               ),
@@ -250,35 +259,66 @@ class _ScheduleCard extends ConsumerWidget {
   }
 
   Future<void> _toggle(BuildContext context, WidgetRef ref, bool enabled) async {
-    final messenger = ScaffoldMessenger.of(context);
+    final action = ref.read(scheduleActionProvider(schedule.id).notifier);
+    if (action.state != null) return;
+    action.state = ScheduleAction.toggle;
     try {
       await ref
           .read(collectorRepositoryProvider)
           .setScheduleEnabled(schedule.id, enabled);
       ref.invalidate(schedulesProvider(null));
-      messenger.showSnackBar(
-        SnackBar(content: Text(enabled ? '已启用「${schedule.name}」' : '已停用「${schedule.name}」')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(enabled ? '已启用「${schedule.name}」' : '已停用「${schedule.name}」')),
+        );
+      }
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
+    } on NetworkException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
+    } finally {
+      action.state = null;
     }
   }
 
   Future<void> _trigger(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(SnackBar(content: Text('正在触发「${schedule.name}」…')));
+    final action = ref.read(scheduleActionProvider(schedule.id).notifier);
+    if (action.state != null) return;
+    action.state = ScheduleAction.trigger;
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('正在触发「${schedule.name}」…')));
+    }
     try {
       await ref.read(collectorRepositoryProvider).triggerSchedule(schedule.id);
       ref.invalidate(schedulesProvider(null));
       ref.invalidate(jobHistoryProvider);
-      messenger.showSnackBar(const SnackBar(content: Text('已触发，请在运行记录中查看')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('已触发，请在运行记录中查看')));
+      }
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
+    } on NetworkException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
+    } finally {
+      action.state = null;
     }
   }
 
   Future<void> _showLogs(BuildContext context, WidgetRef ref) async {
     List<SchedulerLogEntry> logs;
+    final action = ref.read(scheduleActionProvider(schedule.id).notifier);
+    if (action.state != null) return;
+    action.state = ScheduleAction.logs;
     try {
       logs = await ref.read(collectorRepositoryProvider).scheduleLogs(schedule.id);
     } on ApiException catch (e) {
@@ -286,10 +326,21 @@ class _ScheduleCard extends ConsumerWidget {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.displayMessage)));
       }
+      action.state = null;
+      return;
+    } on NetworkException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
+      action.state = null;
       return;
     }
-    if (!context.mounted) return;
-    showModalBottomSheet<void>(
+    if (!context.mounted) {
+      action.state = null;
+      return;
+    }
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -301,7 +352,7 @@ class _ScheduleCard extends ConsumerWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           blur: 35,
           fillColor: context.colors.surface.withValues(alpha: 0.88),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, MediaQuery.paddingOf(context).bottom + 24),
           child: ListView(
             controller: controller,
             children: [
@@ -340,7 +391,7 @@ class _ScheduleCard extends ConsumerWidget {
                               Text(log.detail, style: context.texts.bodySmall),
                               const SizedBox(height: 4),
                               Text(
-                                '${log.timestamp}'
+                                '${_formatCollectTime(log.timestamp)}'
                                 '${log.durationSec == null ? '' : ' · ${log.durationSec}s'}',
                                 style: context.texts.labelSmall?.copyWith(
                                   color: context.colors.onSurfaceVariant,
@@ -357,12 +408,15 @@ class _ScheduleCard extends ConsumerWidget {
         ),
       ),
     );
+    action.state = null;
   }
 }
 
 /// Historical job runs, grouped by day.
 class RunHistoryTab extends ConsumerWidget {
-  const RunHistoryTab({super.key});
+  const RunHistoryTab({super.key, this.onOpenJob});
+
+  final VoidCallback? onOpenJob;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -387,7 +441,8 @@ class RunHistoryTab extends ConsumerWidget {
                   title: entry.key,
                   subtitle: '${entry.value.length} 个任务',
                 ),
-                for (final job in entry.value) _HistoryTile(job: job),
+                for (final job in entry.value)
+                  _HistoryTile(job: job, onOpenJob: onOpenJob),
               ],
             ],
           );
@@ -439,9 +494,10 @@ class _WorkerCard extends StatelessWidget {
 }
 
 class _HistoryTile extends ConsumerWidget {
-  const _HistoryTile({required this.job});
+  const _HistoryTile({required this.job, this.onOpenJob});
 
   final CollectJob job;
+  final VoidCallback? onOpenJob;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -458,7 +514,7 @@ class _HistoryTile extends ConsumerWidget {
       padding: const EdgeInsets.all(12),
       onTap: () {
         ref.read(activeJobIdProvider.notifier).set(job.id);
-        DefaultTabController.maybeOf(context)?.animateTo(0);
+        onOpenJob?.call();
       },
       child: Row(
         children: [
@@ -486,7 +542,7 @@ class _HistoryTile extends ConsumerWidget {
                 Text(
                   '${job.successRatioLabel} 成功'
                   '${job.duration == null ? '' : ' · ${job.duration!.inSeconds}s'}'
-                  '${job.startedAt == null ? '' : ' · ${job.startedAt}'}',
+                  '${job.startedAt == null ? '' : ' · ${_formatCollectTime(job.startedAt)}'}',
                   style: context.texts.labelSmall?.copyWith(
                     color: context.colors.onSurfaceVariant,
                   ),

@@ -56,7 +56,9 @@ class RatingsScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       body: GlassBackground(
         child: RefreshIndicator(
-          onRefresh: () async => ref.invalidate(ratingsProvider(key)),
+          onRefresh: () async {
+            await ref.refresh(ratingsProvider(key).future);
+          },
           child: AsyncView<({RatingsResult result, bool isStale, String? storedAt})>(
             value: async,
             loading: const SkeletonList(itemHeight: 180),

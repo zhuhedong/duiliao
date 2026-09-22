@@ -17,12 +17,24 @@ import '../features/auth/auth_providers.dart';
 import 'providers.dart';
 
 final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+String? _pendingDeepLink;
+
+/// Retry a notification link after the authenticated shell has mounted.
+void flushPendingDeepLink() {
+  final pending = _pendingDeepLink;
+  if (pending == null) return;
+  _pendingDeepLink = null;
+  openAppDeepLink(pending);
+}
 
 /// Resolve the compact links stored in local notifications.
 void openAppDeepLink(String? value) {
   if (value == null || value.isEmpty) return;
   final navigator = appNavigatorKey.currentState;
-  if (navigator == null) return;
+  if (navigator == null) {
+    _pendingDeepLink = value;
+    return;
+  }
   final uri = Uri.tryParse(value);
   final parts = uri?.pathSegments ?? const <String>[];
   if (parts.isEmpty) return;

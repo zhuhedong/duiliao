@@ -178,7 +178,7 @@ class CollectorRepository {
     bool forceRefresh = false,
   }) =>
       _cached(
-        key: CacheKeys.consensus(lottery, period),
+        key: CacheKeys.consensus(lottery, period, playType),
         ttl: CacheTtl.consensus,
         forceRefresh: forceRefresh,
         fetch: () => _client.get<Map<String, dynamic>>(
@@ -216,7 +216,8 @@ class CollectorRepository {
     );
     // The stored copy is now wrong.
     await _cache.delete(CacheKeys.comparison(lottery, period));
-    await _cache.delete(CacheKeys.consensus(lottery, period));
+    // Invalidate every play type because judging changes the shared source rows.
+    await _cache.deleteByPrefix('consensus:$lottery:$period:');
     return PeriodComparisonResult.fromJson(json);
   }
 
@@ -275,6 +276,32 @@ class CollectorRepository {
     // revisions, so both are accepted.
     if (json is List) return asModelList(json, PredictionRow.fromJson);
     return asModelList(asMap(json)['items'], PredictionRow.fromJson);
+  }
+
+  /// Full prediction history with aggregated stats and draw details for a source.
+  Future<({CollectorSource source, SourceHistoryStats stats, List<PredictionRow> items, int total})> sourceHistory({
+    required String sourceId,
+    String? lottery,
+    String? status,
+    int limit = 100,
+    int offset = 0,
+  }) async {
+    final json = await _client.get<Map<String, dynamic>>(
+      '/collector/sources/$sourceId/history',
+      query: {
+        'lottery': lottery,
+        if (status != null && status.isNotEmpty) 'status': status,
+        'limit': limit,
+        'offset': offset,
+      },
+    );
+    final map = asMap(json);
+    return (
+      source: CollectorSource.fromJson(asMap(map['source'])),
+      stats: SourceHistoryStats.fromJson(asMap(map['stats'])),
+      items: asModelList(map['items'], PredictionRow.fromJson),
+      total: asInt(map['total']),
+    );
   }
 
   Future<CollectorSource> source(String sourceId) async {
@@ -423,7 +450,10 @@ class CollectorRepository {
       '/collector/judge',
       body: {'lottery': lottery, 'period': period},
     );
-    await _cache.delete(CacheKeys.comparison(lottery, period));
+    await _cache.deleteByPrefix('comparison:$lottery:$period');
+    await _cache.deleteByPrefix('consensus:$lottery:$period:');
+    await _cache.deleteByPrefix('home:$lottery:');
+    await _cache.deleteByPrefix('ratings:$lottery:');
     return JudgeStats.fromJson(json);
   }
 

@@ -4,10 +4,10 @@
 /// persisted cursor and raises notifications locally. That keeps operational data
 /// off any external service, at the cost of delivery latency.
 ///
-/// The cursor is what prevents duplicates. It is the `occurred_at` of the newest
-/// event delivered, persisted to disk, and sent back as `since` — so the same
-/// event is never notified twice even across a restart. It is only advanced once
-/// the events have been handled.
+/// The cursor is an opaque composite cursor for the newest event delivered,
+/// persisted to disk, and sent back as `since` — so events sharing a timestamp
+/// are not lost and the same event is never notified twice across a restart.
+/// It is only advanced once the events have been handled.
 library;
 
 import 'dart:async';
@@ -24,6 +24,7 @@ import '../../core/storage/cache_store.dart';
 import '../../data/collector_repository.dart';
 import '../../domain/models/app_event.dart';
 import '../../domain/models/user.dart';
+import '../auth/auth_providers.dart';
 
 /// Foreground poll interval. Background polling is coarser and OS-controlled.
 const Duration kEventPollInterval = Duration(minutes: 1);
@@ -58,24 +59,36 @@ class AppMessage {
 /// Local message log, newest first.
 @immutable
 class MessageCentreState {
-  const MessageCentreState({this.messages = const [], this.cursor});
+  const MessageCentreState({
+    this.messages = const [],
+    this.cursor,
+    this.notificationPermissionDenied = false,
+  });
 
   final List<AppMessage> messages;
 
-  /// Persisted `occurred_at` cursor.
+  /// Persisted opaque event cursor.
   final String? cursor;
+  final bool notificationPermissionDenied;
 
   int get unreadCount => messages.where((m) => !m.read).length;
 
-  MessageCentreState copyWith({List<AppMessage>? messages, String? cursor}) =>
+  MessageCentreState copyWith({
+    List<AppMessage>? messages,
+    String? cursor,
+    bool? notificationPermissionDenied,
+  }) =>
       MessageCentreState(
         messages: messages ?? this.messages,
         cursor: cursor ?? this.cursor,
+        notificationPermissionDenied:
+            notificationPermissionDenied ?? this.notificationPermissionDenied,
       );
 }
 
 /// Wraps the plugin so polling logic stays testable without a platform channel.
 abstract class NotificationPresenter {
+  bool get permissionDenied => false;
   Future<void> initialize();
   Future<void> show(AppEvent event, int id);
 }
@@ -86,6 +99,10 @@ class LocalNotificationPresenter implements NotificationPresenter {
 
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
+  bool _permissionDenied = false;
+
+  @override
+  bool get permissionDenied => _permissionDenied;
 
   @override
   Future<void> initialize() async {
@@ -99,18 +116,20 @@ class LocalNotificationPresenter implements NotificationPresenter {
         openAppDeepLink(response.payload);
       },
     );
-    await _plugin
+    final androidPermission = await _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
-    await _plugin
+    final iosPermission = await _plugin
         .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(alert: true, badge: true, sound: true);
+    _permissionDenied = androidPermission == false || iosPermission == false;
     _initialized = true;
   }
 
   @override
   Future<void> show(AppEvent event, int id) async {
     await initialize();
+    if (_permissionDenied) return;
     final channelId = event.type?.channelId ?? 'duiliao_general';
     await _plugin.show(
       id,
@@ -149,22 +168,32 @@ final messageCentreProvider =
     NotifierProvider<MessageCentre, MessageCentreState>(MessageCentre.new);
 
 class MessageCentre extends Notifier<MessageCentreState> {
+  String? _accountId;
+  int _restoreGeneration = 0;
+
   @override
   MessageCentreState build() {
+    final user = ref.watch(authStateProvider).user;
+    _accountId = user?.id;
+    final generation = ++_restoreGeneration;
     // Loaded asynchronously; the UI starts empty and fills in.
-    Future.microtask(_restore);
+    Future.microtask(() => _restore(user?.id, generation));
     return const MessageCentreState();
   }
 
   CacheStore get _cache => ref.read(cacheStoreProvider);
   CollectorRepository get _repo => ref.read(collectorRepositoryProvider);
 
-  Future<void> _restore() async {
+  String _scopedKey(String key, String? accountId) =>
+      '$key:${accountId?.isNotEmpty == true ? accountId : 'anonymous'}';
+
+  Future<void> _restore(String? accountId, int generation) async {
+    if (accountId == null || accountId.isEmpty) return;
     try {
       final cursorEntry =
-          await _cache.read(CacheKeys.eventCursor, ttl: const Duration(days: 3650));
+          await _cache.read(_scopedKey(CacheKeys.eventCursor, accountId), ttl: const Duration(days: 3650));
       final messagesEntry =
-          await _cache.read(CacheKeys.messages, ttl: const Duration(days: 3650));
+          await _cache.read(_scopedKey(CacheKeys.messages, accountId), ttl: const Duration(days: 3650));
       final messages = <AppMessage>[];
       final raw = messagesEntry?.value;
       if (raw is List) {
@@ -173,6 +202,7 @@ class MessageCentre extends Notifier<MessageCentreState> {
           if (message != null) messages.add(message);
         }
       }
+      if (_accountId != accountId || generation != _restoreGeneration) return;
       state = MessageCentreState(
         messages: messages,
         cursor: cursorEntry?.value as String?,
@@ -185,11 +215,11 @@ class MessageCentre extends Notifier<MessageCentreState> {
   Future<void> _persist() async {
     try {
       await _cache.write(
-        CacheKeys.messages,
+        _scopedKey(CacheKeys.messages, _accountId),
         state.messages.map((m) => m.toJson()).toList(),
       );
       if (state.cursor != null) {
-        await _cache.write(CacheKeys.eventCursor, state.cursor);
+        await _cache.write(_scopedKey(CacheKeys.eventCursor, _accountId), state.cursor);
       }
     } catch (_) {
       // Non-fatal: the cursor is re-derived from the server on the next poll.
@@ -201,46 +231,56 @@ class MessageCentre extends Notifier<MessageCentreState> {
   ///
   /// Returns the number of notifications raised.
   Future<int> pollOnce({Subscription? subscription}) async {
-    final AppEventPage page;
-    try {
-      page = await _repo.events(since: state.cursor, limit: 50);
-    } on ApiException {
-      return 0;
-    } on NetworkException {
-      return 0;
-    }
-
-    if (page.events.isEmpty) {
-      // Still adopt the server's cursor so an empty poll does not re-scan.
-      if (page.nextCursor != null && page.nextCursor != state.cursor) {
-        state = state.copyWith(cursor: page.nextCursor);
-        await _persist();
-      }
-      return 0;
-    }
-
-    // Guard against an event arriving twice across a cursor boundary.
-    final known = state.messages.map((m) => m.event.dedupeKey).toSet();
-    final fresh = page.events.where((e) => !known.contains(e.dedupeKey)).toList();
-
-    final presenter = ref.read(notificationPresenterProvider);
+    final accountId = _accountId;
+    if (accountId == null || accountId.isEmpty) return 0;
+    var cursor = state.cursor;
     var raised = 0;
-    for (final event in fresh) {
-      if (!_allowedByRules(event, subscription)) continue;
-      // A stable-ish id keeps the OS from stacking unrelated notifications.
-      await presenter.show(event, event.dedupeKey.hashCode & 0x7fffffff);
-      raised++;
-    }
+    // Drain a bounded number of pages so a busy interval does not leave a long
+    // backlog waiting for the next one-minute tick.
+    for (var batch = 0; batch < 8; batch++) {
+      final AppEventPage page;
+      try {
+        page = await _repo.events(since: cursor, limit: 50);
+      } on ApiException {
+        rethrow;
+      } on NetworkException {
+        rethrow;
+      }
+      // An account switch/logout may have rebuilt this notifier while the
+      // request was in flight. Do not write the response into the new account.
+      if (_accountId != accountId) return raised;
 
-    final combined = [
-      ...fresh.map((e) => AppMessage(event: e, read: false)),
-      ...state.messages,
-    ];
-    state = MessageCentreState(
-      messages: combined.take(kMaxStoredMessages).toList(),
-      cursor: page.nextCursor ?? state.cursor,
-    );
-    await _persist();
+      final known = state.messages.map((m) => m.event.dedupeKey).toSet();
+      final fresh = page.events.where((e) => !known.contains(e.dedupeKey)).toList();
+      final presenter = ref.read(notificationPresenterProvider);
+      await presenter.initialize();
+      for (final event in fresh) {
+        if (!_allowedByRules(event, subscription)) continue;
+        await presenter.show(event, event.dedupeKey.hashCode & 0x7fffffff);
+        raised++;
+      }
+
+      final nextCursor = page.nextCursor;
+      final progressed = nextCursor != null && nextCursor != cursor;
+      if (fresh.isNotEmpty || progressed) {
+        final combined = [
+          ...fresh.reversed.map((e) => AppMessage(event: e, read: false)),
+          ...state.messages,
+        ];
+        state = MessageCentreState(
+          messages: combined.take(kMaxStoredMessages).toList(),
+          cursor: nextCursor ?? cursor,
+          notificationPermissionDenied: presenter.permissionDenied,
+        );
+        await _persist();
+      } else if (presenter.permissionDenied && !state.notificationPermissionDenied) {
+        state = state.copyWith(notificationPermissionDenied: true);
+      }
+      cursor = nextCursor ?? cursor;
+      if (!page.hasMore || !progressed) {
+        break;
+      }
+    }
     return raised;
   }
 
@@ -292,8 +332,14 @@ class MessageCentre extends Notifier<MessageCentreState> {
   /// Reset the cursor, so the next poll re-scans recent history.
   Future<void> resetCursor() async {
     state = const MessageCentreState();
-    await _cache.delete(CacheKeys.eventCursor);
-    await _cache.delete(CacheKeys.messages);
+    await _cache.delete(_scopedKey(CacheKeys.eventCursor, _accountId));
+    await _cache.delete(_scopedKey(CacheKeys.messages, _accountId));
+  }
+
+  /// Clear account-local state immediately during logout or account switching.
+  Future<void> resetForAccount() async {
+    _restoreGeneration++;
+    state = const MessageCentreState();
   }
 }
 
@@ -311,6 +357,13 @@ class EventPoller with WidgetsBindingObserver {
 
   Timer? _timer;
   bool _started = false;
+  bool _pollInFlight = false;
+  DateTime? _lastSuccessfulPoll;
+  Object? _lastError;
+
+  DateTime? get lastSuccessfulPoll => _lastSuccessfulPoll;
+  Object? get lastError => _lastError;
+  bool get isPolling => _pollInFlight;
 
   void start() {
     if (_started) return;
@@ -336,10 +389,17 @@ class EventPoller with WidgetsBindingObserver {
   }
 
   Future<void> _poll() async {
+    if (_pollInFlight) return;
+    _pollInFlight = true;
     try {
       await onPoll();
-    } catch (_) {
-      // Polling is best-effort; a failure just means the next tick tries again.
+      _lastSuccessfulPoll = DateTime.now();
+      _lastError = null;
+    } catch (error) {
+      _lastError = error;
+      // Polling is best-effort; the next tick retries after a transient error.
+    } finally {
+      _pollInFlight = false;
     }
   }
 
@@ -366,7 +426,7 @@ final subscriptionProvider = FutureProvider<Subscription>(
 /// Foreground event polling is started by the authenticated app shell. Keeping
 /// it provider-scoped makes it stop automatically on logout and avoids a timer
 /// surviving a replaced ProviderContainer in tests.
-final eventPollerProvider = Provider<EventPoller>((ref) {
+final eventPollerProvider = Provider.autoDispose<EventPoller>((ref) {
   final poller = EventPoller(onPoll: () async {
     Subscription? subscription;
     try {

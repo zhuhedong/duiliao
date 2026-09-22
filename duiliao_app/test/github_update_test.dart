@@ -41,6 +41,10 @@ void main() {
             'size': 25165824, // ~24.0 MB
             'browser_download_url': 'https://github.com/zhuhedong/duiliao/releases/download/v1.1.0/app.apk',
             'content_type': 'application/vnd.android.package-archive',
+            'digest': 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          },
+          {
+            'name': 'source.tar.gz',
           },
           {
             'name': 'source.tar.gz',
@@ -63,6 +67,20 @@ void main() {
       expect(apk!.name, 'duiliao-v1.1.0-arm64-v8a-release.apk');
       expect(apk.isApk, isTrue);
       expect(apk.formattedSize, '24.0 MB');
+      expect(apk.sha256Digest, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+      expect(apk.hasIntegrityDigest, isTrue);
+    });
+
+    test('rejects malformed asset digests', () {
+      final asset = GitHubReleaseAsset.fromJson({
+        'name': 'app.apk',
+        'size': 1,
+        'browser_download_url': 'https://github.com/zhuhedong/duiliao/releases/download/v1/app.apk',
+        'content_type': 'application/octet-stream',
+        'digest': 'sha256:not-a-digest',
+      });
+      expect(asset.sha256Digest, isNull);
+      expect(asset.hasIntegrityDigest, isFalse);
     });
   });
 
@@ -80,8 +98,9 @@ void main() {
                 {
                   'name': 'duiliao-arm64-v8a.apk',
                   'size': 20971520,
-                  'browser_download_url': 'https://example.com/app.apk',
+                  'browser_download_url': 'https://github.com/zhuhedong/duiliao/releases/download/v2.0.0/app.apk',
                   'content_type': 'application/vnd.android.package-archive',
+                  'digest': 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
                 }
               ],
             }),
@@ -99,6 +118,42 @@ void main() {
       expect(result.latestRelease?.tagName, 'v2.0.0');
       expect(result.apkAsset?.name, 'duiliao-arm64-v8a.apk');
       expect(result.error, isNull);
+    });
+
+    test('rejects prerelease metadata by default', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({
+            'tag_name': 'v2.0.0-rc.1',
+            'name': '候选版本',
+            'prerelease': true,
+            'assets': [],
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final service = GitHubUpdateService(client: mockClient, repo: 'test/repo');
+      final result = await service.checkUpdate(currentVersion: '1.0.0');
+
+      expect(result.hasUpdate, isFalse);
+      expect(result.latestRelease, isNull);
+    });
+
+    test('allows only HTTPS GitHub artifact hosts', () {
+      expect(isAllowedUpdateUri(Uri.parse('https://github.com/a/b/app.apk')), isTrue);
+      expect(isAllowedUpdateUri(Uri.parse('https://objects.githubusercontent.com/a')), isTrue);
+      expect(isAllowedUpdateUri(Uri.parse('http://github.com/a/b/app.apk')), isFalse);
+      expect(isAllowedUpdateUri(Uri.parse('https://example.com/app.apk')), isFalse);
+      expect(isAllowedUpdateUri(Uri.parse('https://ghproxy.net/https://github.com/a/b/app.apk')), isFalse);
+      expect(
+        isAllowedUpdateUri(
+          Uri.parse('https://ghproxy.net/https://github.com/a/b/app.apk'),
+          allowMirrors: true,
+        ),
+        isTrue,
+      );
     });
 
     test('returns hasUpdate false when current version is latest', () async {

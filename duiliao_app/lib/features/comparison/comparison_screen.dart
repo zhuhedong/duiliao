@@ -16,6 +16,7 @@ import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import '../../ui/widgets/number_ball.dart';
 import '../auth/auth_providers.dart';
+import '../ratings/source_detail_screen.dart';
 
 /// Comparison for a (lottery, period) pair.
 final comparisonProvider = FutureProvider.family<
@@ -99,7 +100,9 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
       backgroundColor: Colors.transparent,
       body: GlassBackground(
         child: RefreshIndicator(
-          onRefresh: () async => ref.invalidate(comparisonProvider(key)),
+          onRefresh: () async {
+            await ref.refresh(comparisonProvider(key).future);
+          },
           child: AsyncView<({PeriodComparisonResult result, bool isStale, String? storedAt})>(
             value: async,
             loading: const SkeletonList(itemHeight: 88),
@@ -305,8 +308,10 @@ class _SummaryBar extends StatelessWidget {
       child: GlassContainer(
         borderRadius: BorderRadius.circular(24),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          spacing: 20,
+          runSpacing: 10,
           children: [
             StatTile(label: '总数', value: '${summary.total}'),
             StatTile(
@@ -570,7 +575,30 @@ class _EvidenceDrawer extends StatelessWidget {
             style: context.texts.bodyMedium
                 ?.copyWith(color: context.colors.onSurfaceVariant),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SourceDetailScreen(
+                      sourceId: item.sourceId,
+                      sourceName: item.sourceName,
+                      lottery: Lottery.parse(item.lottery),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.history, size: 16),
+              label: const Text('查看此源全量历史战绩'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
 
           if (!item.isJudged)
             const WarningNote(

@@ -45,7 +45,8 @@ class AppEvent {
 
   final AppEventType? type;
 
-  /// Cursor value. Events are ordered by this and it is echoed back as `since`.
+  /// Server event timestamp. The `/app/events` cursor is opaque and may include
+  /// a tie-breaker for events sharing this timestamp.
   final String occurredAt;
 
   final String? lottery;
@@ -78,7 +79,16 @@ class AppEvent {
 
   /// Stable identity, so the message centre can deduplicate if the same event is
   /// seen twice across a cursor boundary.
-  String get dedupeKey => '${type?.code}|$occurredAt|$lottery|$period|${data['job_id'] ?? data['source_id'] ?? ''}';
+  String get dedupeKey => [
+        type?.code,
+        occurredAt,
+        lottery,
+        period,
+        data['job_id'],
+        data['source_id'],
+        data['play_type'],
+        data['leader_key'],
+      ].map((value) => value ?? '').join('|');
 
   /// Deep link for the notification tap.
   String? get deepLink {
@@ -115,7 +125,9 @@ class AppEventPage {
   /// immediately rather than waiting for the next tick.
   final bool hasMore;
 
-  /// Persist and send back as `since`. Null only when there is no history at all.
+  /// Persist and send back as `since`. New servers return an opaque composite
+  /// cursor; older servers may return an ISO timestamp. Null only when there is
+  /// no history at all.
   final String? nextCursor;
 
   final List<AppEvent> events;

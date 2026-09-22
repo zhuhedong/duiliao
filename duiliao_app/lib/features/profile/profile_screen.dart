@@ -72,10 +72,17 @@ class ProfileScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final columnWidth = constraints.maxWidth < 680
+                        ? constraints.maxWidth
+                        : (constraints.maxWidth - 14) / 2;
+                    return Wrap(
+                      spacing: 14,
+                      runSpacing: 14,
+                      children: [
+                    SizedBox(
+                      width: columnWidth,
                       child: Column(
                         children: [
                           _SettingsIsland(
@@ -123,8 +130,8 @@ class ProfileScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
+                    SizedBox(
+                      width: columnWidth,
                       child: Column(
                         children: [
                           _SettingsIsland(
@@ -191,7 +198,9 @@ class ProfileScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

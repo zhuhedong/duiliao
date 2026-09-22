@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 
@@ -177,8 +177,10 @@ def _issue_tokens(
     user_agent: str | None,
 ) -> tuple[str, str]:
     role_value = getattr(user.role, "value", user.role)
-    access = create_access_token(user.id, role=role_value)
     refresh, jti = create_refresh_token(user.id)
+    # Bind the short-lived access token to the refresh-token session so the
+    # device list and password-revoke flow can identify this exact device.
+    access = create_access_token(user.id, role=role_value, session_id=jti)
 
     session = RefreshToken(
         jti=jti,
@@ -263,9 +265,22 @@ def refresh_access_token(
     if user is None or not user.is_active:
         raise AuthError("Account is not active", "inactive", 403)
 
-    # Revoke the old refresh token (rotation).
-    session.revoked = True
-    session.revoked_at = _utcnow()
+    # Revoke the old refresh token with a conditional UPDATE. Two concurrent
+    # refresh requests may both read the row before either commits; only one
+    # is allowed to change revoked=false to true and mint a successor.
+    revoked_at = _utcnow()
+    rotated = db.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.jti == jti,
+            RefreshToken.revoked == False,  # noqa: E712
+            RefreshToken.expires_at > revoked_at,
+        )
+        .values(revoked=True, revoked_at=revoked_at)
+    )
+    if rotated.rowcount != 1:
+        db.rollback()
+        raise AuthError("Refresh token revoked or expired", "revoked", 401)
 
     # Issue new tokens, carrying forward the device info from the old session.
     device = DeviceInfo(

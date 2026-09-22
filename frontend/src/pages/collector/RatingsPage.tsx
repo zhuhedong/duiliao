@@ -15,7 +15,8 @@ import {
   tableRowClass,
   StatusPill,
 } from "./shared";
-import { StarIcon } from "../../components/icons";
+import { StarIcon, CalendarIcon } from "../../components/icons";
+import { SourceHistoryModal } from "./SourceHistoryModal";
 
 function pct(v: unknown): string {
   if (v == null || typeof v !== "number") return "—";
@@ -33,6 +34,7 @@ export function CollectorRatingsPage() {
 
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDesc, setSortDesc] = useState(true);
+  const [historyModal, setHistoryModal] = useState<{ sourceId: string; lottery: Lottery } | null>(null);
 
   useEffect(() => {
     collectorApi.rules().then(setRules).catch(() => undefined);
@@ -171,15 +173,22 @@ export function CollectorRatingsPage() {
                   {renderTh("missing", "缺期数")}
                   {renderTh("pending", "待对奖")}
                   {renderTh("dirty_flags", "虚假报喜(不一致)")}
+                  <th className={`${tableThClass} text-right`}>历史流水</th>
                 </tr>
               </thead>
               <tbody>
                 {sortedSources.map((s, idx) => (
                   <tr key={s.source_id} className={tableRowClass}>
                     <td className={tableTdClass}>
-                      <div className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                        <span className="text-xs font-mono text-slate-400">#{idx + 1}</span>
-                        <span>{s.source_name}</span>
+                      <div
+                        className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5 cursor-pointer hover:text-primary transition-colors group"
+                        onClick={() => setHistoryModal({ sourceId: s.source_id, lottery })}
+                        title="点击查看该源全量历史对奖流水"
+                      >
+                        <span className="text-xs font-mono text-slate-400 group-hover:text-primary">#{idx + 1}</span>
+                        <span className="underline decoration-dotted decoration-slate-300 dark:decoration-slate-600 underline-offset-2 group-hover:decoration-primary">
+                          {s.source_name}
+                        </span>
                       </div>
                       <div className="text-xs font-mono text-slate-400 mt-0.5">{s.source_id}</div>
                     </td>
@@ -228,6 +237,17 @@ export function CollectorRatingsPage() {
                         <StatusPill variant="success" dot={false}>0 异常</StatusPill>
                       )}
                     </td>
+                    <td className={`${tableTdClass} text-right`}>
+                      <button
+                        type="button"
+                        onClick={() => setHistoryModal({ sourceId: s.source_id, lottery })}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 border border-primary/30 transition-colors cursor-pointer"
+                        title="查看该源全部历史对奖与预测数据"
+                      >
+                        <CalendarIcon size={12} />
+                        <span>历史</span>
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -235,6 +255,14 @@ export function CollectorRatingsPage() {
           )}
         </SectionCard>
       )}
+
+      {/* 数据源历史数据详情弹窗 */}
+      <SourceHistoryModal
+        sourceId={historyModal?.sourceId ?? null}
+        lottery={historyModal?.lottery}
+        isOpen={!!historyModal}
+        onClose={() => setHistoryModal(null)}
+      />
     </div>
   );
 }

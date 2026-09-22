@@ -121,6 +121,16 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen>
   bool _gridView = true;
 
   @override
+  void initState() {
+    super.initState();
+    _tabs.addListener(_handleTabChanged);
+  }
+
+  void _handleTabChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
     _tabs.dispose();
     super.dispose();
@@ -147,6 +157,11 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen>
               icon: Icon(_gridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
               onPressed: () => setState(() => _gridView = !_gridView),
             ),
+          IconButton(
+            tooltip: '刷新数据',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => ref.invalidate(numbersProvider(date)),
+          ),
           IconButton(
             tooltip: '选择日期',
             icon: const Icon(Icons.calendar_today_rounded),

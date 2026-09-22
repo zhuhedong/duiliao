@@ -102,6 +102,11 @@ Future<void> _pollInBackground() async {
   final cache = HiveCacheStore();
   await cache.init();
   final secure = const FlutterSecureStorage();
+  final accountId = await secure.read(key: SecureKeys.notificationUserId);
+  // Never reuse a previous account's cursor or message log when a refresh token
+  // exists without a matching authenticated account identity.
+  if (accountId == null || accountId.isEmpty) return;
+  String scoped(String key) => '$key:$accountId';
   final store = _SecureStoreAdapter(secure);
   final client = ApiClient(config: AppConfig.fromEnvironment());
   final auth = AuthRepository(client: client, store: store);
@@ -112,10 +117,10 @@ Future<void> _pollInBackground() async {
     return;
   }
   final repo = CollectorRepository(client: client, cache: cache);
-  final cursor = (await cache.read(CacheKeys.eventCursor, ttl: const Duration(days: 3650)))?.value as String?;
+  final cursor = (await cache.read(scoped(CacheKeys.eventCursor), ttl: const Duration(days: 3650)))?.value as String?;
   final page = await repo.events(since: cursor, limit: 50);
   final presenter = LocalNotificationPresenter();
-  final stored = await cache.read(CacheKeys.messages, ttl: const Duration(days: 3650));
+  final stored = await cache.read(scoped(CacheKeys.messages), ttl: const Duration(days: 3650));
   final messages = <AppMessage>[];
   if (stored?.value is List) {
     for (final raw in stored!.value as List) {
@@ -130,14 +135,14 @@ Future<void> _pollInBackground() async {
   }
   if (fresh.isNotEmpty) {
     await cache.write(
-      CacheKeys.messages,
+      scoped(CacheKeys.messages),
       [
-        ...fresh.map((event) => AppMessage(event: event, read: false).toJson()),
+        ...fresh.reversed.map((event) => AppMessage(event: event, read: false).toJson()),
         ...messages.map((message) => message.toJson()),
       ].take(kMaxStoredMessages).toList(),
     );
   }
-  if (page.nextCursor != null) await cache.write(CacheKeys.eventCursor, page.nextCursor);
+  if (page.nextCursor != null) await cache.write(scoped(CacheKeys.eventCursor), page.nextCursor);
   client.dispose();
 }
 

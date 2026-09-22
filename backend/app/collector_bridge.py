@@ -659,16 +659,19 @@ def list_predictions(
     lottery: str | None = None,
     period: str | None = None,
     source_id: str | None = None,
+    status: str | None = None,
     limit: int = 100,
+    offset: int = 0,
 ) -> dict[str, Any]:
-    """List stored predictions (most recent period first)."""
+    """List stored predictions (most recent period first) with judge verification."""
     bootstrap()
     from sqlalchemy import func, select
 
     from db import session_scope
-    from schema import Prediction
+    from schema import Prediction, JudgeResult, Source
 
     limit = max(1, min(limit, 500))
+    offset = max(0, offset)
     with session_scope(guard=False) as s:
         base = select(Prediction)
         if lottery:
@@ -679,24 +682,294 @@ def list_predictions(
             base = base.where(Prediction.source_id == source_id)
         total = s.scalar(select(func.count()).select_from(base.subquery())) or 0
         rows = list(
-            s.scalars(base.order_by(Prediction.period.desc(), Prediction.source_id).limit(limit))
+            s.scalars(base.order_by(Prediction.period.desc(), Prediction.source_id).offset(offset).limit(limit))
         )
-        items = [
-            {
-                "id": p.id,
-                "source_id": p.source_id,
-                "lottery": p.lottery,
-                "play_type": p.play_type,
-                "period": p.period,
-                "preds": p.preds_json,
-                "claimed_status": p.claimed_status,
-                "raw_text": p.raw_text,
-                "final_url": p.final_url,
-                "fetched_at": p.fetched_at.isoformat() if p.fetched_at else None,
+
+        pred_ids = [p.id for p in rows]
+        judge_map: dict[int, JudgeResult] = {}
+        if pred_ids:
+            jr_stmt = select(JudgeResult).where(JudgeResult.prediction_id.in_(pred_ids))
+            for jr in s.scalars(jr_stmt):
+                judge_map[jr.prediction_id] = jr
+
+        sources_map = {src.source_id: src.source_name for src in s.scalars(select(Source))}
+
+        items = []
+        for p in rows:
+            jr = judge_map.get(p.id)
+            official_hit = jr.official_hit if jr else None
+            item_status = "pending"
+            if official_hit == 1:
+                item_status = "hit"
+            elif official_hit == 0:
+                item_status = "miss"
+            if p.claimed_status == "hit" and official_hit == 0:
+                item_status = "conflict"
+
+            items.append(
+                {
+                    "id": p.id,
+                    "source_id": p.source_id,
+                    "source_name": sources_map.get(p.source_id) or p.source_id,
+                    "lottery": p.lottery,
+                    "play_type": p.play_type,
+                    "hit_mode": p.hit_mode,
+                    "period": p.period,
+                    "period_raw": p.period_raw,
+                    "group_key": p.group_key,
+                    "preds": p.preds_json,
+                    "claimed_status": p.claimed_status,
+                    "raw_text": p.raw_text,
+                    "final_url": p.final_url,
+                    "fetched_at": p.fetched_at.isoformat() if p.fetched_at else None,
+                    "official_hit": official_hit,
+                    "claimed_hit": jr.claimed_hit if jr else None,
+                    "hit_detail": jr.hit_detail if jr else None,
+                    "judged_at": jr.judged_at.isoformat() if (jr and jr.judged_at) else None,
+                    "status": item_status,
+                }
+            )
+    return {"ok": True, "total": int(total), "count": len(items), "items": items, "limit": limit, "offset": offset}
+
+
+def get_source_history(
+    source_id: str,
+    lottery: str | None = None,
+    status: str | None = None,
+    period_from: str | None = None,
+    period_to: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    """Retrieve all historical predictions, judge verification, and draw results for a specific source."""
+    bootstrap()
+    from db import session_scope
+    from schema import Prediction, JudgeResult, Draw, Source
+    from sqlalchemy import select
+
+    with session_scope(guard=False) as s:
+        # 1. Verify source exists in DB or YAML
+        src_row = s.scalar(select(Source).where(Source.source_id == source_id))
+        source_meta = None
+        if src_row:
+            source_meta = {
+                "source_id": src_row.source_id,
+                "source_name": src_row.source_name,
+                "site_family": src_row.site_family,
+                "lottery": src_row.lottery,
+                "play_type": src_row.play_type,
+                "hit_mode": src_row.hit_mode,
+                "script_path": src_row.script_path,
+                "timeout_sec": src_row.timeout_sec,
+                "enabled": bool(src_row.enabled),
+                "remark": src_row.remark,
             }
-            for p in rows
-        ]
-    return {"ok": True, "total": int(total), "count": len(items), "items": items}
+        else:
+            try:
+                reg = registry_module()
+                source_meta = reg.get_source(source_id)
+            except Exception:
+                pass
+
+        if not source_meta:
+            first_pred = s.scalar(select(Prediction).where(Prediction.source_id == source_id).limit(1))
+            if first_pred:
+                source_meta = {
+                    "source_id": source_id,
+                    "source_name": source_id,
+                    "site_family": "unknown",
+                    "lottery": first_pred.lottery,
+                    "play_type": first_pred.play_type,
+                    "hit_mode": first_pred.hit_mode,
+                    "script_path": f"sources/{source_id}.py",
+                    "timeout_sec": 30,
+                    "enabled": True,
+                    "remark": None,
+                }
+            else:
+                raise KeyError(f"未找到数据源: {source_id}")
+
+        target_lottery = lottery or source_meta.get("lottery")
+
+        # 2. Query ALL predictions for this source to compute global source statistics
+        all_preds_stmt = select(Prediction).where(Prediction.source_id == source_id)
+        if target_lottery:
+            all_preds_stmt = all_preds_stmt.where(Prediction.lottery == target_lottery)
+        all_preds_stmt = all_preds_stmt.order_by(Prediction.period.desc())
+        all_preds = list(s.scalars(all_preds_stmt))
+
+        # Query all judge results for these predictions
+        pred_ids = [p.id for p in all_preds]
+        judge_map: dict[int, JudgeResult] = {}
+        if pred_ids:
+            jr_stmt = select(JudgeResult).where(JudgeResult.prediction_id.in_(pred_ids))
+            for jr in s.scalars(jr_stmt):
+                judge_map[jr.prediction_id] = jr
+
+        # 3. Calculate full statistics across all historical records
+        total_records = len(all_preds)
+        hit_count = 0
+        miss_count = 0
+        pending_count = 0
+        conflict_count = 0
+        missing_count = 0
+
+        # For streak calculation, sort chronologically (period ascending)
+        chronological_pairs = []
+        for p in reversed(all_preds):
+            jr = judge_map.get(p.id)
+            if jr is not None and jr.official_hit is not None:
+                chronological_pairs.append((p, jr))
+
+        longest_hit = 0
+        longest_miss = 0
+        cur_hit_streak = 0
+        cur_miss_streak = 0
+        last_streak_type = None
+        current_streak = 0
+
+        for p, jr in chronological_pairs:
+            hit = jr.official_hit
+            if hit == 1:
+                cur_hit_streak += 1
+                cur_miss_streak = 0
+                if cur_hit_streak > longest_hit:
+                    longest_hit = cur_hit_streak
+                last_streak_type = "hit"
+                current_streak = cur_hit_streak
+            elif hit == 0:
+                cur_miss_streak += 1
+                cur_hit_streak = 0
+                if cur_miss_streak > longest_miss:
+                    longest_miss = cur_miss_streak
+                last_streak_type = "miss"
+                current_streak = cur_miss_streak
+
+        for p in all_preds:
+            jr = judge_map.get(p.id)
+            if p.claimed_status == "missing":
+                missing_count += 1
+            elif jr and jr.hit_detail and isinstance(jr.hit_detail, dict) and jr.hit_detail.get("missing_period"):
+                missing_count += 1
+
+            if jr is not None and jr.official_hit is not None:
+                if jr.official_hit == 1:
+                    hit_count += 1
+                else:
+                    miss_count += 1
+                if p.claimed_status == "hit" and jr.official_hit == 0:
+                    conflict_count += 1
+            else:
+                pending_count += 1
+
+        judged_count = hit_count + miss_count
+        hit_rate = round(hit_count / judged_count * 100, 1) if judged_count > 0 else 0.0
+
+        stats = {
+            "total": total_records,
+            "judged": judged_count,
+            "hits": hit_count,
+            "misses": miss_count,
+            "pending": pending_count,
+            "conflicts": conflict_count,
+            "missing": missing_count,
+            "hit_rate": hit_rate,
+            "longest_hit": longest_hit,
+            "longest_miss": longest_miss,
+            "current_streak": current_streak,
+            "current_status": last_streak_type,
+        }
+
+        # 4. Filter predictions according to query params
+        filtered_preds = []
+        for p in all_preds:
+            if period_from and p.period < period_from:
+                continue
+            if period_to and p.period > period_to:
+                continue
+
+            jr = judge_map.get(p.id)
+            official_hit = jr.official_hit if jr else None
+            is_missing = (p.claimed_status == "missing") or bool(
+                jr and jr.hit_detail and isinstance(jr.hit_detail, dict) and jr.hit_detail.get("missing_period")
+            )
+            is_conflict = bool(p.claimed_status == "hit" and official_hit == 0)
+
+            item_status = "pending"
+            if official_hit == 1:
+                item_status = "hit"
+            elif official_hit == 0:
+                item_status = "miss"
+
+            if status:
+                s_lower = status.lower()
+                if s_lower == "hit" and item_status != "hit":
+                    continue
+                elif s_lower == "miss" and item_status != "miss":
+                    continue
+                elif s_lower == "pending" and item_status != "pending":
+                    continue
+                elif s_lower == "conflict" and not is_conflict:
+                    continue
+                elif s_lower == "missing" and not is_missing:
+                    continue
+
+            filtered_preds.append((p, jr, item_status, is_missing, is_conflict))
+
+        total_filtered = len(filtered_preds)
+        limit = max(1, min(limit, 500))
+        offset = max(0, offset)
+        paged = filtered_preds[offset : offset + limit]
+
+        # 5. Fetch Draw details for paged records
+        paged_periods = list({p.period for p, _, _, _, _ in paged})
+        draw_map = {}
+        if paged_periods:
+            draw_stmt = select(Draw).where(Draw.period.in_(paged_periods))
+            if target_lottery:
+                draw_stmt = draw_stmt.where(Draw.lottery == target_lottery)
+            for d in s.scalars(draw_stmt):
+                draw_map[(d.lottery, d.period)] = enrich_draw_row(d)
+
+        items = []
+        for p, jr, item_status, is_missing, is_conflict in paged:
+            draw_info = draw_map.get((p.lottery, p.period))
+            items.append(
+                {
+                    "id": p.id,
+                    "source_id": p.source_id,
+                    "source_name": source_meta.get("source_name") or p.source_id,
+                    "lottery": p.lottery,
+                    "play_type": p.play_type,
+                    "hit_mode": p.hit_mode,
+                    "period": p.period,
+                    "period_raw": p.period_raw,
+                    "group_key": p.group_key,
+                    "preds": p.preds_json,
+                    "claimed_status": p.claimed_status,
+                    "raw_text": p.raw_text,
+                    "final_url": p.final_url,
+                    "fetched_at": p.fetched_at.isoformat() if p.fetched_at else None,
+                    "official_hit": jr.official_hit if jr else None,
+                    "claimed_hit": jr.claimed_hit if jr else None,
+                    "hit_detail": jr.hit_detail if jr else None,
+                    "judged_at": jr.judged_at.isoformat() if (jr and jr.judged_at) else None,
+                    "status": item_status,
+                    "is_missing": is_missing,
+                    "is_conflict": is_conflict,
+                    "draw": draw_info,
+                }
+            )
+
+        return {
+            "ok": True,
+            "source": source_meta,
+            "stats": stats,
+            "total": total_filtered,
+            "limit": limit,
+            "offset": offset,
+            "items": items,
+        }
 
 
 def confirm_missing(source_id: str, periods: list[str]) -> dict[str, Any]:

@@ -43,6 +43,9 @@ def get_current_user(
     user = db.get(User, payload.get("sub"))
     if user is None or not user.is_active:
         raise _UNAUTH
+    # Preserve the refresh-token session identity for endpoints that need to
+    # distinguish this device from the user's other active sessions.
+    request.state.session_id = payload.get("session_id")
     return user
 
 

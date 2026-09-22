@@ -245,6 +245,87 @@ export interface DrawListResult {
   items: DrawRow[];
 }
 
+export interface SourceHistoryItem {
+  id: number;
+  source_id: string;
+  source_name: string;
+  lottery: string;
+  play_type: string;
+  hit_mode: string;
+  period: string;
+  period_raw: string;
+  group_key: string;
+  preds: PredAtom[];
+  claimed_status: string;
+  raw_text: string;
+  final_url?: string | null;
+  fetched_at?: string | null;
+  official_hit?: number | null;
+  claimed_hit?: number | null;
+  hit_detail?: Record<string, unknown> | null;
+  judged_at?: string | null;
+  status: "hit" | "miss" | "pending" | "conflict";
+  is_missing: boolean;
+  is_conflict: boolean;
+  draw?: DrawRow | null;
+}
+
+export interface SourceHistoryStats {
+  total: number;
+  judged: number;
+  hits: number;
+  misses: number;
+  pending: number;
+  conflicts: number;
+  missing: number;
+  hit_rate: number;
+  longest_hit: number;
+  longest_miss: number;
+  current_streak: number;
+  current_status: "hit" | "miss" | null;
+}
+
+export interface SourceHistoryResult {
+  ok: boolean;
+  source: CollectorSource;
+  stats: SourceHistoryStats;
+  total: number;
+  limit: number;
+  offset: number;
+  items: SourceHistoryItem[];
+}
+
+export interface PredictionItem {
+  id: number;
+  source_id: string;
+  source_name?: string;
+  lottery: string;
+  play_type: string;
+  hit_mode?: string;
+  period: string;
+  period_raw?: string;
+  group_key?: string;
+  preds: PredAtom[];
+  claimed_status: string;
+  raw_text: string;
+  final_url?: string | null;
+  fetched_at?: string | null;
+  official_hit?: number | null;
+  claimed_hit?: number | null;
+  hit_detail?: Record<string, unknown> | null;
+  judged_at?: string | null;
+  status?: "hit" | "miss" | "pending" | "conflict";
+}
+
+export interface PredictionListResult {
+  ok: boolean;
+  total: number;
+  count: number;
+  limit: number;
+  offset: number;
+  items: PredictionItem[];
+}
+
 export interface RuleRow {
   play_type: string;
   name: string;
@@ -501,6 +582,45 @@ export const collectorApi = {
   numbers(date?: string) {
     const q = date ? `?date=${date}` : "";
     return api.get<NumbersResult>(`/collector/numbers${q}`);
+  },
+  listPredictions(params?: {
+    lottery?: Lottery;
+    period?: string;
+    source_id?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const q = new URLSearchParams();
+    if (params?.lottery) q.set("lottery", params.lottery);
+    if (params?.period) q.set("period", params.period);
+    if (params?.source_id) q.set("source_id", params.source_id);
+    if (params?.status) q.set("status", params.status);
+    if (params?.limit !== undefined) q.set("limit", String(params.limit));
+    if (params?.offset !== undefined) q.set("offset", String(params.offset));
+    const qs = q.toString() ? `?${q.toString()}` : "";
+    return api.get<PredictionListResult>(`/collector/predictions${qs}`);
+  },
+  getSourceHistory(
+    sourceId: string,
+    params?: {
+      lottery?: Lottery;
+      status?: string;
+      period_from?: string;
+      period_to?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ) {
+    const q = new URLSearchParams();
+    if (params?.lottery) q.set("lottery", params.lottery);
+    if (params?.status) q.set("status", params.status);
+    if (params?.period_from) q.set("period_from", params.period_from);
+    if (params?.period_to) q.set("period_to", params.period_to);
+    if (params?.limit !== undefined) q.set("limit", String(params.limit));
+    if (params?.offset !== undefined) q.set("offset", String(params.offset));
+    const qs = q.toString() ? `?${q.toString()}` : "";
+    return api.get<SourceHistoryResult>(`/collector/sources/${sourceId}/history${qs}`);
   },
 
   // --- source & script management ---

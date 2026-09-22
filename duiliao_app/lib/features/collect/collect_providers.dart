@@ -2,10 +2,12 @@
 library;
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/net/api_exception.dart';
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/collect_job.dart';
@@ -76,10 +78,20 @@ final collectDraftProvider =
 class CollectDraftController extends Notifier<CollectRequestDraft> {
   @override
   CollectRequestDraft build() {
-    // Follow whichever lottery the operator is browsing elsewhere.
-    final lottery = ref.watch(selectedLotteryProvider);
+    // Seed the draft from the currently selected lottery, but do not watch it
+    // here. Watching would rebuild the notifier and silently reset the
+    // operator's period, concurrency, and ingest choices whenever another
+    // screen changes the global lottery.
+    final lottery = ref.read(selectedLotteryProvider);
     return CollectRequestDraft(lottery: lottery);
   }
+
+  /// Change the lottery while keeping the rest of the collection draft.
+  ///
+  /// Source ids are intentionally cleared because source ids belong to a
+  /// lottery and retaining them would submit sources from the previous one.
+  void setLottery(Lottery lottery) =>
+      state = state.copyWith(lottery: lottery, sourceIds: const {});
 
   void setPeriod(String period) => state = state.copyWith(period: period);
   void setAutoDetect(bool value) =>
@@ -114,6 +126,30 @@ class ActiveJobId extends Notifier<int?> {
   void set(int? id) => state = id;
 }
 
+/// UI action currently being sent for one job. Keeping this in a provider lets
+/// every action button disable itself immediately, even while the request is
+/// waiting on the encrypted network round-trip.
+enum CollectionJobAction { cancel, retry }
+
+final collectionJobActionProvider =
+    StateProvider.autoDispose.family<CollectionJobAction?, int>((ref, _) => null);
+
+/// True while the immediate collection form is submitting a new job.
+final collectSubmitBusyProvider =
+    StateProvider.autoDispose<bool>((ref) => false);
+
+/// Prevents a schedule card from sending the same mutation more than once while
+/// the previous request is still in flight.
+enum ScheduleAction { toggle, trigger, logs }
+
+final scheduleActionProvider =
+    StateProvider.autoDispose.family<ScheduleAction?, int>((ref, _) => null);
+
+/// Number of consecutive transient poll failures for a job. The progress view
+/// uses this to show a reconnecting banner while the stream keeps retrying.
+final jobPollRetryProvider =
+    StateProvider.autoDispose.family<int, int>((ref, _) => 0);
+
 /// Polls one job until it reaches a terminal state.
 ///
 /// Implemented as a stream so polling stops automatically when nothing is
@@ -123,11 +159,34 @@ class ActiveJobId extends Notifier<int?> {
 final jobProgressProvider =
     StreamProvider.family<CollectJob, int>((ref, jobId) async* {
   final repo = ref.read(collectorRepositoryProvider);
+  final retryState = ref.read(jobPollRetryProvider(jobId).notifier);
+  var failures = 0;
+  retryState.state = 0;
+
   while (true) {
-    final job = await repo.collectJob(jobId);
-    yield job;
-    if (job.isTerminal) return;
-    await Future<void>.delayed(kJobPollInterval);
+    try {
+      final job = await repo.collectJob(jobId);
+      failures = 0;
+      retryState.state = 0;
+      yield job;
+      if (job.isTerminal) return;
+      await Future<void>.delayed(kJobPollInterval);
+    } on NetworkException {
+      failures += 1;
+      retryState.state = failures;
+      final multiplier = 1 << math.min(failures - 1, 4);
+      final seconds = math.min(30, kJobPollInterval.inSeconds * multiplier);
+      await Future<void>.delayed(Duration(seconds: seconds));
+    } on ApiException catch (error) {
+      // A temporary server failure is retriable. Client errors (404, 403,
+      // malformed requests) still terminate the stream and reach the error UI.
+      if ((error.statusCode ?? 0) < 500) rethrow;
+      failures += 1;
+      retryState.state = failures;
+      final multiplier = 1 << math.min(failures - 1, 4);
+      final seconds = math.min(30, kJobPollInterval.inSeconds * multiplier);
+      await Future<void>.delayed(Duration(seconds: seconds));
+    }
   }
 });
 
@@ -138,6 +197,45 @@ final jobHistoryProvider =
       .read(collectorRepositoryProvider)
       .collectJobs(limit: 50, lottery: lottery?.code);
 });
+
+/// Query for the paged history list. The equality implementation is important
+/// for Riverpod family caching: rebuilding the widget with the same filters
+/// should reuse the same request rather than starting another one.
+@immutable
+class CollectHistoryQuery {
+  const CollectHistoryQuery({
+    this.lottery,
+    this.status,
+    this.limit = 30,
+    this.offset = 0,
+  });
+
+  final Lottery? lottery;
+  final String? status;
+  final int limit;
+  final int offset;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CollectHistoryQuery &&
+      other.lottery == lottery &&
+      other.status == status &&
+      other.limit == limit &&
+      other.offset == offset;
+
+  @override
+  int get hashCode => Object.hash(lottery, status, limit, offset);
+}
+
+final collectHistoryPageProvider =
+    FutureProvider.autoDispose.family<CollectJobPage, CollectHistoryQuery>(
+  (ref, query) => ref.read(collectorRepositoryProvider).collectJobs(
+        limit: query.limit,
+        offset: query.offset,
+        lottery: query.lottery?.code,
+        status: query.status,
+      ),
+);
 
 /// Schedules plus the scheduler's runtime state.
 final schedulesProvider =

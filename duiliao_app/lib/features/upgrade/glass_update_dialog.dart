@@ -203,6 +203,25 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
               const SizedBox(height: 14),
 
               // Mirror acceleration toggle
+              if (widget.result.error != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.withValues(alpha: 0.35)),
+                  ),
+                  child: Text(
+                    widget.result.error!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.orange.shade200 : Colors.orange.shade900,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
               InkWell(
                 borderRadius: BorderRadius.circular(10),
                 onTap: _status == _DownloadStatus.downloading
@@ -256,7 +275,7 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
 
               // Action buttons
               if (_status != _DownloadStatus.downloading) ...[
-                if (_apk != null)
+                if (_apk != null && widget.result.error == null)
                   GlassButton(
                     onPressed: _startDownload,
                     child: Text(_status == _DownloadStatus.completed ? '重新下载' : '在线立即升级'),
@@ -367,20 +386,32 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
   }
 
   Future<void> _startDownload() async {
-    if (_apk == null) return;
+    final apk = _apk;
+    final digest = apk?.sha256Digest;
+    if (apk == null || digest == null) {
+      if (mounted) {
+        setState(() {
+          _status = _DownloadStatus.error;
+          _errorMsg = '更新包缺少可信 SHA-256 摘要，已拒绝安装';
+        });
+      }
+      return;
+    }
     setState(() {
       _status = _DownloadStatus.downloading;
       _progress = 0.0;
       _received = 0;
-      _total = _apk!.size;
+      _total = apk.size;
       _errorMsg = null;
     });
 
     final service = ref.read(githubUpdateServiceProvider);
     try {
       final file = await service.downloadApk(
-        downloadUrl: _apk!.downloadUrl,
-        fileName: _apk!.name,
+        downloadUrl: apk.downloadUrl,
+        fileName: apk.name,
+        expectedSha256: digest,
+        expectedSize: apk.size,
         useMirror: _useMirror,
         onProgress: (received, total) {
           if (mounted) {
@@ -425,13 +456,25 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
   }
 
   Future<void> _openInBrowser() async {
-    final url = _apk?.downloadUrl ?? _release.htmlUrl;
-    final targetUrl = _useMirror && _apk != null && !url.startsWith('http://127.0.0.1')
-        ? '${kGitHubMirrors.first}$url'
-        : url;
-    await launchUrl(
-      Uri.parse(targetUrl),
-      mode: LaunchMode.externalApplication,
-    );
+    final apkUri = _apk == null ? null : Uri.tryParse(_apk!.downloadUrl);
+    final releaseUri = Uri.tryParse(_release.htmlUrl);
+    final trustedApk = _apk != null &&
+        _apk!.hasIntegrityDigest &&
+        apkUri != null &&
+        isAllowedUpdateUri(apkUri);
+    Uri? targetUri = trustedApk ? apkUri : releaseUri;
+    if (targetUri == null || !isAllowedUpdateUri(targetUri)) {
+      if (mounted) {
+        setState(() {
+          _status = _DownloadStatus.error;
+          _errorMsg = '没有可验证的安全下载地址';
+        });
+      }
+      return;
+    }
+    if (_useMirror && trustedApk) {
+      targetUri = Uri.parse('${kGitHubMirrors.first}$targetUri');
+    }
+    await launchUrl(targetUri, mode: LaunchMode.externalApplication);
   }
 }

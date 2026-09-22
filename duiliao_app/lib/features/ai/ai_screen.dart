@@ -119,6 +119,11 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         elevation: 0,
         title: Text('AI 研判 ${Period.compact(_period)}'),
         actions: [
+          IconButton(
+            tooltip: '选择期号',
+            icon: const Icon(Icons.event),
+            onPressed: _streaming ? null : _pickPeriod,
+          ),
           if (canOperate && !_streaming)
             IconButton(
               tooltip: '流式重新生成',
@@ -130,7 +135,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       body: GlassBackground(
         child: Column(
           children: [
-            _PromptSelector(promptId: promptId),
+            _PromptSelector(promptId: promptId, enabled: !_streaming),
             Expanded(
               child: _streamBuffer != null
                   ? _StreamingView(
@@ -170,7 +175,13 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   Future<void> _startStream(String promptId) async {
     final token = ref.read(authControllerProvider).accessToken;
-    if (token == null) return;
+    if (token == null || _period == null || _streaming) return;
+    final reportKey = (
+      lottery: ref.read(selectedLotteryProvider),
+      period: _period!,
+      promptId: promptId,
+    );
+    var generated = false;
 
     setState(() {
       _streaming = true;
@@ -196,11 +207,17 @@ class _AiScreenState extends ConsumerState<AiScreen> {
             case 'done':
               _streamStatus = null;
               _streaming = false;
+              generated = true;
             case 'error':
               _streamStatus = event.error ?? '生成失败';
               _streaming = false;
           }
         });
+      }
+      if (generated) {
+        // The streaming result is now authoritative; refresh the cached report
+        // before the user dismisses the streaming view.
+        ref.invalidate(aiReportProvider(reportKey));
       }
     } on ApiException catch (e) {
       if (mounted) {
@@ -220,12 +237,49 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (mounted) setState(() => _streaming = false);
     }
   }
+
+  Future<void> _pickPeriod() async {
+    if (_streaming) return;
+    final controller = TextEditingController(text: Period.short(_period));
+    final value = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('输入期号'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(helperText: '可填 248 或 2026248'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null || value.isEmpty || !mounted) return;
+    if (!Period.looksValid(value)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('期号格式不正确')));
+      return;
+    }
+    setState(() {
+      _period = value;
+      _streamBuffer = null;
+      _streamStatus = null;
+    });
+  }
 }
 
 class _PromptSelector extends ConsumerWidget {
-  const _PromptSelector({required this.promptId});
+  const _PromptSelector({required this.promptId, this.enabled = true});
 
   final String promptId;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -239,12 +293,29 @@ class _PromptSelector extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         child: async.when(
           loading: () => const LinearProgressIndicator(minHeight: 2),
-          error: (_, _) => const SizedBox.shrink(),
+          error: (_, _) => Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 18, color: context.colors.error),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('提示词加载失败，无法切换模板')),
+              TextButton(
+                onPressed: () => ref.invalidate(aiPromptsProvider),
+                child: const Text('重试'),
+              ),
+            ],
+          ),
           data: (prompts) {
             if (prompts.isEmpty) return const SizedBox.shrink();
             // Fall back to the first prompt if the remembered id is gone.
             final value =
                 prompts.any((p) => p.id == promptId) ? promptId : prompts.first.id;
+            if (value != promptId) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (ref.read(selectedPromptProvider) == promptId) {
+                  ref.read(selectedPromptProvider.notifier).set(value);
+                }
+              });
+            }
             return DropdownButtonFormField<String>(
               initialValue: value,
               isDense: true,
@@ -264,11 +335,13 @@ class _PromptSelector extends ConsumerWidget {
                     ),
                   ),
               ],
-              onChanged: (next) {
-                if (next != null) {
-                  ref.read(selectedPromptProvider.notifier).set(next);
-                }
-              },
+              onChanged: enabled
+                  ? (next) {
+                      if (next != null) {
+                        ref.read(selectedPromptProvider.notifier).set(next);
+                      }
+                    }
+                  : null,
             );
           },
         ),

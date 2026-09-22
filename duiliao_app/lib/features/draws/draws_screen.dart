@@ -183,7 +183,10 @@ class _DrawTab extends ConsumerWidget {
                   itemCount: state.items.length + 1,
                   itemBuilder: (context, index) {
                     if (index == state.items.length) {
-                      return _ListFooter(state: state);
+                      return _ListFooter(
+                        state: state,
+                        onRetry: notifier.loadMore,
+                      );
                     }
                     final draw = state.items[index];
                     return _TimelineDrawNode(
@@ -211,9 +214,10 @@ class _DrawTab extends ConsumerWidget {
 }
 
 class _ListFooter extends StatelessWidget {
-  const _ListFooter({required this.state});
+  const _ListFooter({required this.state, required this.onRetry});
 
   final DrawListState state;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -221,6 +225,24 @@ class _ListFooter extends StatelessWidget {
       return const Padding(
         padding: EdgeInsets.all(20),
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+    if (state.loadMoreError != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                state.loadMoreError!,
+                style: context.texts.bodySmall?.copyWith(color: context.colors.error),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(onPressed: onRetry, child: const Text('重试')),
+          ],
+        ),
       );
     }
     if (state.items.isEmpty) return const SizedBox.shrink();

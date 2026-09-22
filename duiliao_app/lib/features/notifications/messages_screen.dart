@@ -55,24 +55,33 @@ class MessagesScreen extends ConsumerWidget {
             await centre.pollOnce(subscription: subscription);
           },
           child: state.messages.isEmpty
-              ? const EmptyState(
-                  message: '暂无消息',
-                  icon: Icons.notifications_none,
-                  detail: '开奖、命中、连挂与采集完成的通知会显示在这里',
+              ? ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: [
+                    if (state.notificationPermissionDenied)
+                      const _NotificationPermissionBanner(),
+                    const SizedBox(height: 160),
+                    const EmptyState(
+                      message: '暂无消息',
+                      icon: Icons.notifications_none,
+                      detail: '开奖、命中、连挂与采集完成的通知会显示在这里',
+                    ),
+                  ],
                 )
-              : ListView.builder(
+              : ListView(
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: state.messages.length,
-                  itemBuilder: (context, index) {
-                    final message = state.messages[index];
-                    return _MessageTile(
-                      message: message,
-                      onTap: () {
-                        centre.markRead(message.event.dedupeKey);
-                        _openTarget(context, message.event);
-                      },
-                    );
-                  },
+                  children: [
+                    if (state.notificationPermissionDenied)
+                      const _NotificationPermissionBanner(),
+                    for (final message in state.messages)
+                      _MessageTile(
+                        message: message,
+                        onTap: () {
+                          centre.markRead(message.event.dedupeKey);
+                          _openTarget(context, message.event);
+                        },
+                      ),
+                  ],
                 ),
         ),
       ),
@@ -108,6 +117,31 @@ class MessagesScreen extends ConsumerWidget {
     if (target == null) return;
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => target!));
   }
+}
+
+class _NotificationPermissionBanner extends StatelessWidget {
+  const _NotificationPermissionBanner();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+        child: GlassCard(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.notifications_off_outlined, color: context.colors.error),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '系统通知权限已关闭，APP 仍会在消息中心同步事件，但不会弹出本地通知。请在系统设置中允许通知。',
+                  style: context.texts.bodySmall,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
 class _MessageTile extends StatelessWidget {

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/net/api_client.dart';
 import '../../core/providers.dart';
+import '../../core/storage/secure_store.dart';
 import '../../core/net/api_exception.dart';
 import '../../data/auth_repository.dart';
 import '../../domain/models/user.dart';
@@ -141,6 +142,10 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
       _accessToken = tokens.accessToken;
       // /auth/refresh does not return a user, so the profile is fetched.
       final user = await _repository.me();
+      await ref.read(secureStoreProvider).write(
+        SecureKeys.notificationUserId,
+        user.id,
+      );
       _emit(AuthState(
         phase: requireBiometric ? AuthPhase.locked : AuthPhase.authenticated,
         user: user,
@@ -175,6 +180,10 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
         device: _deviceDescriptor ?? deviceProvider?.call(),
       );
       _accessToken = result.tokens.accessToken;
+      await ref.read(secureStoreProvider).write(
+        SecureKeys.notificationUserId,
+        result.user.id,
+      );
       // Cached API payloads belong to the previous identity until this point.
       // Clear them before rendering the new account so a fast offline read can
       // never show another user's draws or ratings. Tests and early startup
@@ -200,10 +209,18 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
 
   Future<void> logout({bool allDevices = false}) async {
     final refreshToken = await _repository.readRefreshToken();
-    await _repository.logout(refreshToken: refreshToken, allDevices: allDevices);
-    await _clearLocalCache();
-    _accessToken = null;
-    _emit(const AuthState(phase: AuthPhase.unauthenticated));
+    try {
+      // Server-side revocation is best effort. The local session must still end
+      // when the device is offline, otherwise the user appears to remain signed in.
+      await _repository.logout(refreshToken: refreshToken, allDevices: allDevices);
+    } catch (_) {
+      // The next sign-in can retry server revocation; local credentials are cleared below.
+    } finally {
+      await _clearLocalCache();
+      await ref.read(secureStoreProvider).delete(SecureKeys.notificationUserId);
+      _accessToken = null;
+      _emit(const AuthState(phase: AuthPhase.unauthenticated));
+    }
   }
 
   Future<void> _clearLocalCache() async {

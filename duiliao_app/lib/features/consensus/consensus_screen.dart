@@ -17,10 +17,14 @@ import '../comparison/comparison_screen.dart';
 
 final consensusProvider = FutureProvider.family<
     ({ConsensusResult result, bool isStale, String? storedAt}),
-    ({Lottery lottery, String period})>((ref, key) async {
+    ({Lottery lottery, String period, String playType})>((ref, key) async {
   final fetched = await ref
       .read(collectorRepositoryProvider)
-      .consensus(lottery: key.lottery.code, period: key.period);
+      .consensus(
+          lottery: key.lottery.code,
+          period: key.period,
+          playType: key.playType,
+        );
   return (
     result: fetched.value,
     isStale: fetched.isStale,
@@ -75,14 +79,17 @@ class _ConsensusScreenState extends ConsumerState<ConsensusScreen> {
       );
     }
 
-    final key = (lottery: lottery, period: _period!);
+    final playType = ref.watch(selectedPlayTypeProvider);
+    final key = (lottery: lottery, period: _period!, playType: playType);
     final async = ref.watch(consensusProvider(key));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlassBackground(
         child: RefreshIndicator(
-          onRefresh: () async => ref.invalidate(consensusProvider(key)),
+          onRefresh: () async {
+            await ref.refresh(consensusProvider(key).future);
+          },
           child: AsyncView<({ConsensusResult result, bool isStale, String? storedAt})>(
             value: async,
             loading: const SkeletonList(itemHeight: 120),

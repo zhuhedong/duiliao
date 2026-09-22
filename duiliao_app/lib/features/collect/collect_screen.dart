@@ -51,10 +51,10 @@ class _CollectScreenState extends ConsumerState<CollectScreen>
       body: GlassBackground(
         child: TabBarView(
           controller: _tabs,
-          children: const [
-            _ImmediateCollectTab(),
-            SchedulesTab(),
-            RunHistoryTab(),
+          children: [
+            const _ImmediateCollectTab(),
+            const SchedulesTab(),
+            RunHistoryTab(onOpenJob: () => _tabs.animateTo(0)),
           ],
         ),
       ),
@@ -82,6 +82,7 @@ class _CollectForm extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = ref.watch(collectDraftProvider);
     final controller = ref.read(collectDraftProvider.notifier);
+    final isSubmitting = ref.watch(collectSubmitBusyProvider);
     final sourcesAsync = ref.watch(sourcesForLotteryProvider(draft.lottery));
     final totalEnabled = sourcesAsync.value?.length ?? 0;
 
@@ -103,8 +104,8 @@ class _CollectForm extends ConsumerWidget {
                 ],
                 onChanged: (value) {
                   if (value == null) return;
+                  controller.setLottery(value);
                   ref.read(selectedLotteryProvider.notifier).set(value);
-                  controller.clearSources();
                 },
               ),
               const SizedBox(height: 14),
@@ -237,7 +238,8 @@ class _CollectForm extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           child: GlassButton(
             height: 50,
-            onPressed: () => _submit(context, ref),
+            isLoading: isSubmitting,
+            onPressed: isSubmitting ? null : () => _submit(context, ref),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -271,6 +273,8 @@ class _CollectForm extends ConsumerWidget {
   }
 
   Future<void> _submit(BuildContext context, WidgetRef ref) async {
+    final busy = ref.read(collectSubmitBusyProvider.notifier);
+    if (busy.state) return;
     final draft = ref.read(collectDraftProvider);
     final messenger = ScaffoldMessenger.of(context);
 
@@ -279,6 +283,8 @@ class _CollectForm extends ConsumerWidget {
       return;
     }
 
+    busy.state = true;
+    var handedOffToProgress = false;
     try {
       final job = await ref.read(collectorRepositoryProvider).submitCollectJob(
             lottery: draft.lottery.code,
@@ -288,12 +294,22 @@ class _CollectForm extends ConsumerWidget {
             ingest: draft.ingest,
             autoJudge: draft.autoJudge,
           );
+      // Release the auto-dispose submit state before switching away from the
+      // form, so the provider cannot be torn down while finally is running.
+      busy.state = false;
+      handedOffToProgress = true;
       ref.read(activeJobIdProvider.notifier).set(job.id);
       ref.invalidate(jobHistoryProvider);
     } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
     } on NetworkException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
+    } finally {
+      if (!handedOffToProgress) busy.state = false;
     }
   }
 }
@@ -307,6 +323,7 @@ class _JobProgressView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(jobProgressProvider(jobId));
+    final retryCount = ref.watch(jobPollRetryProvider(jobId));
 
     return AsyncView<CollectJob>(
       value: async,
@@ -316,6 +333,15 @@ class _JobProgressView extends ConsumerWidget {
         padding: const EdgeInsets.only(top: 6, bottom: 96),
         children: [
           _JobHeaderCard(job: job),
+          if (retryCount > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: WarningNote(
+                message: '网络波动，正在重连（第 $retryCount 次）',
+                icon: Icons.cloud_off_outlined,
+                color: DuiliaoColors.warning,
+              ),
+            ),
           if (job.isTerminal) _JobResultCard(job: job),
           const SectionHeader(title: '逐源状态'),
           for (final item in job.items) _SourceProgressTile(item: item),
@@ -325,32 +351,40 @@ class _JobProgressView extends ConsumerWidget {
             child: Column(
               children: [
                 if (job.isActive)
-                  GlassButton(
-                    color: DuiliaoColors.miss,
-                    onPressed: () => _cancel(context, ref, job),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.stop_circle_outlined, size: 20),
-                        SizedBox(width: 6),
-                        Text('取消任务'),
-                      ],
-                    ),
-                  )
-                else ...[
-                  if (job.failedSourceIds.isNotEmpty) ...[
-                    GlassButton(
-                      color: Theme.of(context).colorScheme.primary,
-                      onPressed: () => _retryFailed(context, ref, job),
-                      child: Row(
+                  Builder(builder: (context) {
+                    final action = ref.watch(collectionJobActionProvider(job.id));
+                    return GlassButton(
+                      color: DuiliaoColors.miss,
+                      isLoading: action == CollectionJobAction.cancel,
+                      onPressed: action == null ? () => _cancel(context, ref, job) : null,
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.replay, size: 20),
-                          const SizedBox(width: 6),
-                          Text('只重采失败源（${job.failedSourceIds.length}）'),
+                          Icon(Icons.stop_circle_outlined, size: 20),
+                          SizedBox(width: 6),
+                          Text('取消任务'),
                         ],
                       ),
-                    ),
+                    );
+                  })
+                else ...[
+                  if (job.failedSourceIds.isNotEmpty) ...[
+                    Builder(builder: (context) {
+                      final action = ref.watch(collectionJobActionProvider(job.id));
+                      return GlassButton(
+                        color: Theme.of(context).colorScheme.primary,
+                        isLoading: action == CollectionJobAction.retry,
+                        onPressed: action == null ? () => _retryFailed(context, ref, job) : null,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.replay, size: 20),
+                            const SizedBox(width: 6),
+                            Text('只重采失败源（${job.failedSourceIds.length}）'),
+                          ],
+                        ),
+                      );
+                    }),
                     const SizedBox(height: 10),
                   ],
                   if (job.period != null)
@@ -382,25 +416,28 @@ class _JobProgressView extends ConsumerWidget {
   }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref, CollectJob job) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('取消采集任务？'),
-        content: const Text('已在执行的源会跑完，尚未开始的源将被跳过。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('继续执行'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('取消任务'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
+    final action = ref.read(collectionJobActionProvider(job.id).notifier);
+    if (action.state != null) return;
+    action.state = CollectionJobAction.cancel;
     try {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('取消采集任务？'),
+          content: const Text('已在执行的源会跑完，尚未开始的源将被跳过。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('继续执行'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('取消任务'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
       await ref.read(collectorRepositoryProvider).cancelCollectJob(job.id);
       ref.invalidate(jobProgressProvider(job.id));
     } on ApiException catch (e) {
@@ -408,6 +445,13 @@ class _JobProgressView extends ConsumerWidget {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.displayMessage)));
       }
+    } on NetworkException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
+    } finally {
+      action.state = null;
     }
   }
 
@@ -416,6 +460,9 @@ class _JobProgressView extends ConsumerWidget {
     WidgetRef ref,
     CollectJob job,
   ) async {
+    final action = ref.read(collectionJobActionProvider(job.id).notifier);
+    if (action.state != null) return;
+    action.state = CollectionJobAction.retry;
     ref.read(collectDraftProvider.notifier).setSources(job.failedSourceIds);
     try {
       final next = await ref.read(collectorRepositoryProvider).submitCollectJob(
@@ -433,6 +480,13 @@ class _JobProgressView extends ConsumerWidget {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text(e.displayMessage)));
       }
+    } on NetworkException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.displayMessage)));
+      }
+    } finally {
+      action.state = null;
     }
   }
 }

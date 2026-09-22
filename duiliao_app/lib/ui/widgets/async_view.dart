@@ -135,7 +135,9 @@ class ErrorState extends StatelessWidget {
     if (error is NetworkException) {
       return (error.displayMessage, '请确认网络后重试');
     }
-    return ('加载失败', error.toString());
+    // Keep raw exception details out of the UI; they may contain internal URLs,
+    // request identifiers, or implementation details that are not actionable.
+    return ('加载失败', '请稍后重试或检查网络连接');
   }
 }
 

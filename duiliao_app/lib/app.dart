@@ -20,6 +20,7 @@ import 'features/draws/draws_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/notifications/notification_service.dart';
 import 'features/ratings/ratings_screen.dart';
+import 'features/upgrade/github_update_service.dart';
 import 'domain/models/app_event.dart';
 import 'ui/glass/glass_nav_bar.dart';
 import 'ui/glass/glass_widgets.dart';
@@ -44,7 +45,11 @@ class DuiliaoApp extends ConsumerWidget {
       builder: (context, child) {
         final media = MediaQuery.of(context);
         return MediaQuery(
-          data: media.copyWith(textScaler: TextScaler.linear(preferences.textScale)),
+          data: media.copyWith(
+            textScaler: TextScaler.linear(
+              media.textScaler.scale(1.0) * preferences.textScale,
+            ),
+          ),
           child: child ?? const SizedBox.shrink(),
         );
       },
@@ -91,6 +96,10 @@ class _AuthGateState extends ConsumerState<AuthGate> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authStateProvider);
+    if (auth.phase == AuthPhase.authenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => flushPendingDeepLink());
+      return const VersionGate();
+    }
     return switch (auth.phase) {
       AuthPhase.restoring => const _RestoringView(),
       AuthPhase.unauthenticated => const LoginScreen(),
@@ -177,7 +186,13 @@ class _ForceUpdateView extends StatelessWidget {
                 if (info.downloadUrl != null) ...[
                   const SizedBox(height: 14),
                   FilledButton.icon(
-                    onPressed: () => launchUrl(Uri.parse(info.downloadUrl!), mode: LaunchMode.externalApplication),
+                    onPressed: () {
+                      final uri = Uri.tryParse(info.downloadUrl!);
+                      if (uri != null &&
+                          isAllowedUpdateUri(uri, allowMirrors: true)) {
+                        launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
                     icon: const Icon(Icons.download),
                     label: const Text('打开下载地址'),
                   ),

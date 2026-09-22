@@ -1,9 +1,12 @@
 """Service for reading and writing system settings, with fallback to environment config."""
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
 import time
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 from sqlalchemy import select
@@ -14,6 +17,73 @@ from app.db.session import SessionLocal
 from app.models.setting import SystemSetting
 
 log = logging.getLogger("duiliao.settings")
+
+_ALLOWED_PROVIDER_SCHEMES = {"http", "https"}
+_MAX_AI_REQUEST_TIMEOUT = 20.0
+
+
+def validate_external_url(value: str, *, resolve_dns: bool = True) -> str:
+    """Validate a provider URL before the server makes an outbound request.
+
+    Custom providers are supported, but endpoints that resolve to loopback,
+    private, link-local, multicast, reserved, or unspecified addresses are not.
+    Redirects are disabled at the call site because validating only the initial
+    URL cannot make an unvalidated redirect safe.
+    """
+    raw = (value or "").strip()
+    if not raw:
+        raise ValueError("Base URL 不能为空")
+    parsed = urlsplit(raw)
+    if parsed.scheme.lower() not in _ALLOWED_PROVIDER_SCHEMES:
+        raise ValueError("Base URL 必须使用 http 或 https")
+    if not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("Base URL 必须包含有效主机名，且不能包含账号密码")
+    if parsed.fragment:
+        raise ValueError("Base URL 不能包含 fragment")
+    try:
+        port = parsed.port
+    except ValueError as exc:
+        raise ValueError("Base URL 端口无效") from exc
+    port = port or (443 if parsed.scheme.lower() == "https" else 80)
+    host = parsed.hostname.rstrip(".").lower()
+
+    def _blocked(address: str) -> bool:
+        ip = ipaddress.ip_address(address)
+        return (
+            ip.is_loopback
+            or ip.is_private
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        )
+
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None:
+        if _blocked(str(literal)):
+            raise ValueError("Base URL 不允许指向本机或内网地址")
+    elif host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
+        raise ValueError("Base URL 不允许使用本地域名")
+    elif resolve_dns:
+        try:
+            addresses = {
+                item[4][0]
+                for item in socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+            }
+        except OSError as exc:
+            raise ValueError("Base URL 主机名无法解析") from exc
+        if not addresses or any(_blocked(address) for address in addresses):
+            raise ValueError("Base URL 不允许解析到本机或内网地址")
+
+    # Keep paths (for OpenAI-compatible gateways) but discard a fragment and
+    # normalize the trailing slash. Query strings are not needed for provider
+    # base URLs and make endpoint validation harder to reason about.
+    if parsed.query:
+        raise ValueError("Base URL 不能包含 query 参数")
+    return urlunsplit((parsed.scheme.lower(), parsed.netloc, parsed.path.rstrip("/"), "", ""))
 
 # Mapping of setting keys
 AI_SETTING_KEYS = [
@@ -156,6 +226,7 @@ def save_ai_settings(db: Session, data: dict[str, Any]) -> dict[str, Any]:
         if "base_url" in block and block["base_url"] is not None:
             url = str(block["base_url"]).strip()
             if url:
+                url = validate_external_url(url)
                 set_setting_value(db, f"{prefix}_base_url", url, f"{provider} API Base URL")
 
         if "model" in block and block["model"] is not None:
@@ -307,7 +378,7 @@ def test_ai_connection(
     real_settings = get_all_ai_settings(mask=False)
     p_config = real_settings.get(target_provider, {})
 
-    target_url = (base_url or p_config.get("base_url") or "").strip().rstrip("/")
+    target_url = validate_external_url(base_url or p_config.get("base_url") or "")
     target_model = (model or p_config.get("model") or "").strip()
 
     if api_key is not None and not is_masked_key(api_key):
@@ -324,7 +395,12 @@ def test_ai_connection(
         }
 
     try:
-        with httpx.Client(timeout=timeout) as client:
+        timeout = max(3.0, min(float(timeout), _MAX_AI_REQUEST_TIMEOUT))
+        with httpx.Client(
+            timeout=timeout,
+            follow_redirects=False,
+            limits=httpx.Limits(max_connections=4, max_keepalive_connections=2),
+        ) as client:
             if target_provider in ("openai", "deepseek", "qwen", "kimi"):
                 url = f"{target_url}/chat/completions"
                 headers = {
@@ -372,6 +448,9 @@ def test_ai_connection(
                     "error": "Unsupported provider",
                 }
 
+            if 300 <= resp.status_code < 400:
+                raise ValueError("AI 服务端返回了重定向，出于安全原因未继续跟随")
+
         elapsed_ms = int((time.perf_counter() - t0) * 1000)
         return {
             "ok": True,
@@ -380,6 +459,8 @@ def test_ai_connection(
             "error": None,
         }
 
+    except ValueError:
+        raise
     except httpx.HTTPStatusError as e:
         elapsed_ms = int((time.perf_counter() - t0) * 1000)
         status = e.response.status_code

@@ -31,8 +31,10 @@ import {
   tableRowClass,
 } from "./shared";
 import { ScheduleManager } from "./ScheduleManager";
+import { SourceHistoryModal } from "./SourceHistoryModal";
 import {
   ClockIcon,
+  CalendarIcon,
   DatabaseIcon,
   PlayIcon,
   EditIcon,
@@ -117,6 +119,12 @@ export function CollectorSourcesPage() {
     running: boolean;
     ingest: boolean;
     result: ScriptRunResult | null;
+  } | null>(null);
+
+  // Source History Modal
+  const [historyModal, setHistoryModal] = useState<{
+    sourceId: string;
+    lottery: Lottery;
   } | null>(null);
 
   const load = async () => {
@@ -789,6 +797,20 @@ export function CollectorSourcesPage() {
                             <div className="flex items-center justify-end gap-1.5">
                               <button
                                 type="button"
+                                onClick={() =>
+                                  setHistoryModal({
+                                    sourceId: s.source_id,
+                                    lottery: (s.lottery as Lottery) || lottery,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 border border-primary/30 transition-colors cursor-pointer"
+                                title="查看该源全部历史对奖与预测数据"
+                              >
+                                <CalendarIcon size={13} />
+                                <span>历史</span>
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => openTestModal(s)}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 transition-colors cursor-pointer"
                                 title="调试运行此脚本"
@@ -829,18 +851,33 @@ export function CollectorSourcesPage() {
                                 </div>
                               ) : (
                                 <div className="space-y-3">
-                                  <div className="flex justify-between items-center">
+                                  <div className="flex justify-between items-center flex-wrap gap-2">
                                     <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                                       {s.source_name} 详细配置与入库参数
                                     </h4>
-                                    <button
-                                      type="button"
-                                      onClick={() => void openScriptEditor(s)}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-                                    >
-                                      <EditIcon size={13} />
-                                      <span>查看/编辑源文件</span>
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setHistoryModal({
+                                            sourceId: s.source_id,
+                                            lottery: (s.lottery as Lottery) || lottery,
+                                          })
+                                        }
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-colors cursor-pointer"
+                                      >
+                                        <CalendarIcon size={13} />
+                                        <span>查看该源所有历史对奖数据</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => void openScriptEditor(s)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                                      >
+                                        <EditIcon size={13} />
+                                        <span>查看/编辑源文件</span>
+                                      </button>
+                                    </div>
                                   </div>
                                   <ResultJson data={sourceDetail} />
                                 </div>
@@ -1038,6 +1075,14 @@ export function CollectorSourcesPage() {
           </div>
         </div>
       )}
+
+      {/* 数据源历史数据详情弹窗 */}
+      <SourceHistoryModal
+        sourceId={historyModal?.sourceId ?? null}
+        lottery={historyModal?.lottery}
+        isOpen={!!historyModal}
+        onClose={() => setHistoryModal(null)}
+      />
     </div>
   );
 }

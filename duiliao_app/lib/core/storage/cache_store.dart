@@ -70,6 +70,9 @@ abstract class CacheStore {
 
   Future<void> delete(String key);
 
+  /// Delete all entries whose key starts with [prefix].
+  Future<void> deleteByPrefix(String prefix);
+
   /// Clear everything. Used when the signed-in user changes, so one user's
   /// cached data is never shown to another.
   Future<void> clear();
@@ -128,6 +131,16 @@ class HiveCacheStore implements CacheStore {
   Future<void> delete(String key) async => _openBox?.delete(key);
 
   @override
+  Future<void> deleteByPrefix(String prefix) async {
+    final box = _openBox;
+    if (box == null) return;
+    final keys = box.keys
+        .where((key) => key is String && key.startsWith(prefix))
+        .toList();
+    if (keys.isNotEmpty) await box.deleteAll(keys);
+  }
+
+  @override
   Future<void> clear() async => _openBox?.clear();
 }
 
@@ -158,6 +171,11 @@ class MemoryCacheStore implements CacheStore {
   Future<void> delete(String key) async => entries.remove(key);
 
   @override
+  Future<void> deleteByPrefix(String prefix) async {
+    entries.removeWhere((key, _) => key.startsWith(prefix));
+  }
+
+  @override
   Future<void> clear() async => entries.clear();
 }
 
@@ -168,8 +186,8 @@ abstract final class CacheKeys {
   static String numbers(String date) => 'numbers:$date';
   static String draws(String lottery, int limit, int offset) =>
       'draws:$lottery:$limit:$offset';
-  static String consensus(String lottery, String period) =>
-      'consensus:$lottery:$period';
+  static String consensus(String lottery, String period, String? playType) =>
+      'consensus:$lottery:$period:${playType ?? 'all'}';
   static String comparison(String lottery, String period) =>
       'comparison:$lottery:$period';
   static String ratings(String lottery, String playType, String windows) =>

@@ -281,6 +281,9 @@ class PredictionRow {
     this.groupKey = '',
     this.hitMode = '',
     this.sourceName,
+    this.status,
+    this.draw,
+    this.hitDetail,
   });
 
   final int id;
@@ -297,6 +300,9 @@ class PredictionRow {
   final int? officialHit;
   final String groupKey;
   final String hitMode;
+  final String? status;
+  final DrawRow? draw;
+  final Map<String, dynamic>? hitDetail;
 
   factory PredictionRow.fromJson(Map<String, dynamic> json) => PredictionRow(
         id: asInt(json['id']),
@@ -313,8 +319,59 @@ class PredictionRow {
         officialHit: asIntOrNull(json['official_hit']),
         groupKey: asString(json['group_key']),
         hitMode: asString(json['hit_mode']),
+        status: asStringOrNull(json['status']),
+        draw: asModelOrNull(json['draw'], DrawRow.fromJson),
+        hitDetail: asMapOrNull(json['hit_detail']),
       );
 
   bool get isJudged => officialHit != null;
   bool get isHit => officialHit == 1;
+  bool get isConflict => status == 'conflict' || (claimedStatus == 'hit' && officialHit == 0);
+  bool get isMissing => claimedStatus == 'missing' || (hitDetail?['missing_period'] == true);
+}
+
+/// Aggregated stats returned by `/collector/sources/{id}/history`.
+class SourceHistoryStats {
+  const SourceHistoryStats({
+    required this.total,
+    required this.judged,
+    required this.hits,
+    required this.misses,
+    required this.pending,
+    required this.conflicts,
+    required this.missing,
+    required this.hitRate,
+    required this.longestHit,
+    required this.longestMiss,
+    required this.currentStreak,
+    this.currentStatus,
+  });
+
+  final int total;
+  final int judged;
+  final int hits;
+  final int misses;
+  final int pending;
+  final int conflicts;
+  final int missing;
+  final double hitRate;
+  final int longestHit;
+  final int longestMiss;
+  final int currentStreak;
+  final String? currentStatus;
+
+  factory SourceHistoryStats.fromJson(Map<String, dynamic> json) => SourceHistoryStats(
+        total: asInt(json['total']),
+        judged: asInt(json['judged']),
+        hits: asInt(json['hits']),
+        misses: asInt(json['misses']),
+        pending: asInt(json['pending']),
+        conflicts: asInt(json['conflicts']),
+        missing: asInt(json['missing']),
+        hitRate: asDouble(json['hit_rate']),
+        longestHit: asInt(json['longest_hit']),
+        longestMiss: asInt(json['longest_miss']),
+        currentStreak: asInt(json['current_streak']),
+        currentStatus: asStringOrNull(json['current_status']),
+      );
 }

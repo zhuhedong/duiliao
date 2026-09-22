@@ -4,9 +4,11 @@ and SQLite file inspection & topological data import into SQLite/PostgreSQL.
 from __future__ import annotations
 
 import base64
+import ipaddress
 import json
 import os
 import re
+import socket
 import sqlite3
 import tempfile
 import time
@@ -384,6 +386,42 @@ def test_pg_connection(url: str) -> dict[str, Any]:
     if not (norm_url.startswith("postgresql") or norm_url.startswith("postgres")):
         return {"ok": False, "error": "连接串必须是以 postgresql:// 或 postgres:// 开头的有效地址"}
 
+    try:
+        parsed = make_url(norm_url)
+        host = parsed.host
+        if not host:
+            raise ValueError("数据库连接串缺少主机名")
+
+        def _blocked(address: str) -> bool:
+            ip = ipaddress.ip_address(address)
+            return (
+                ip.is_loopback
+                or ip.is_private
+                or ip.is_link_local
+                or ip.is_multicast
+                or ip.is_reserved
+                or ip.is_unspecified
+            )
+
+        try:
+            literal = ipaddress.ip_address(host)
+        except ValueError:
+            literal = None
+        if literal is not None:
+            blocked = _blocked(str(literal))
+        elif host.lower() in {"localhost", "localhost.localdomain"} or host.lower().endswith(".local"):
+            blocked = True
+        else:
+            addresses = {
+                item[4][0]
+                for item in socket.getaddrinfo(host, parsed.port or 5432, type=socket.SOCK_STREAM)
+            }
+            blocked = not addresses or any(_blocked(address) for address in addresses)
+        if blocked:
+            return {"ok": False, "error": "出于安全原因，不允许测试本机或内网数据库地址"}
+    except (OSError, ValueError) as exc:
+        return {"ok": False, "error": f"数据库地址无效: {exc}"}
+
     t0 = time.perf_counter()
     tmp_engine = None
     try:
@@ -405,7 +443,7 @@ def test_pg_connection(url: str) -> dict[str, Any]:
     except Exception as exc:
         return {
             "ok": False,
-            "error": f"连接失败: {exc}",
+            "error": "连接失败，请检查地址、账号密码和网络策略",
             "elapsed_ms": int((time.perf_counter() - t0) * 1000),
         }
     finally:

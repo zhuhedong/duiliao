@@ -7,12 +7,38 @@ class GitHubReleaseAsset {
     required this.size,
     required this.downloadUrl,
     required this.contentType,
+    this.digest,
   });
 
   final String name;
   final int size;
   final String downloadUrl;
   final String contentType;
+
+  /// GitHub's SHA-256 asset digest (usually returned as `sha256:<hex>`).
+  ///
+  /// The updater refuses to install an artifact without this value.  Keeping
+  /// the normalization here means callers never accidentally compare a
+  /// prefixed digest with a raw SHA-256 string.
+  final String? digest;
+
+  String? get sha256Digest {
+    final raw = digest?.trim().toLowerCase();
+    if (raw == null || raw.isEmpty) return null;
+    final normalized = raw.startsWith('sha256:') ? raw.substring(7) : raw;
+    return RegExp(r'^[0-9a-f]{64}$').hasMatch(normalized) ? normalized : null;
+  }
+
+  bool get hasIntegrityDigest => sha256Digest != null;
+
+  bool get hasSupportedContentType {
+    final normalized = contentType.split(';').first.trim().toLowerCase();
+    // GitHub occasionally reports an empty type for an asset; the streamed
+    // response is checked again before it is written to disk.
+    return normalized.isEmpty ||
+        normalized == 'application/octet-stream' ||
+        normalized == 'application/vnd.android.package-archive';
+  }
 
   String get formattedSize {
     if (size <= 0) return '';
@@ -30,6 +56,7 @@ class GitHubReleaseAsset {
         size: json['size'] as int? ?? 0,
         downloadUrl: json['browser_download_url'] as String? ?? '',
         contentType: json['content_type'] as String? ?? '',
+        digest: json['digest'] as String? ?? json['sha256'] as String?,
       );
 }
 
@@ -59,17 +86,23 @@ class GitHubRelease {
     final apks = assets.where((a) => a.isApk).toList();
     if (apks.isEmpty) return null;
 
+    // Prefer an artifact with a verifiable digest.  If none is available we
+    // still return the best matching asset so the UI can explain why automatic
+    // installation is disabled instead of silently hiding the release.
+    final candidates = apks.where((a) => a.hasIntegrityDigest).toList();
+    final ranked = candidates.isNotEmpty ? candidates : apks;
+
     // Prefer arm64-v8a
-    for (final apk in apks) {
+    for (final apk in ranked) {
       if (apk.name.contains('arm64-v8a')) return apk;
     }
     // Prefer general release apk
-    for (final apk in apks) {
+    for (final apk in ranked) {
       if (apk.name.contains('release') || apk.name.contains('universal')) {
         return apk;
       }
     }
-    return apks.first;
+    return ranked.first;
   }
 
   /// Clean version string without 'v' prefix.
