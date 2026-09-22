@@ -77,10 +77,17 @@ def _item_sig(preds: list[dict[str, Any]], item: PredItem) -> str:
     )
 
 
-def auto_judge(s, pred):
+def auto_judge(s, pred, draw_cache: dict | None = None):
     from judge import draw_view, judge_one, write_deadletter
-    s.flush()
-    draw = s.scalar(select(Draw).where(Draw.lottery == pred.lottery, Draw.period == pred.period))
+    if getattr(pred, "id", None) is None:
+        s.flush()
+    key = (pred.lottery, pred.period)
+    if draw_cache is not None and key in draw_cache:
+        draw = draw_cache[key]
+    else:
+        draw = s.scalar(select(Draw).where(Draw.lottery == pred.lottery, Draw.period == pred.period))
+        if draw_cache is not None:
+            draw_cache[key] = draw
     if draw is None:
         return False
     from rules import archive_current
@@ -100,7 +107,7 @@ def auto_judge(s, pred):
     return True
 
 
-def upsert_prediction(s, envelope: PredV1, item: PredItem, play_type: str, run_id: str) -> str:
+def upsert_prediction(s, envelope: PredV1, item: PredItem, play_type: str, run_id: str, draw_cache: dict | None = None) -> str:
     preds = _preds_payload(item)
     sig = _item_sig(preds, item)
     fetched = _naive(envelope.fetched_at)
@@ -139,8 +146,8 @@ def upsert_prediction(s, envelope: PredV1, item: PredItem, play_type: str, run_i
                 last_run_id=run_id,
             )
         s.add(created)
-        record(s, created, raw_text=item.raw_text)
-        auto_judge(s, created)
+        record(s, created, raw_text=item.raw_text, draw_cache=draw_cache)
+        auto_judge(s, created, draw_cache=draw_cache)
         return "inserted"
     ensure_baseline(s, existing)
     old_sig = sha256_json(
@@ -159,7 +166,7 @@ def upsert_prediction(s, envelope: PredV1, item: PredItem, play_type: str, run_i
     existing.last_seen_at = fetched
     existing.last_run_id = run_id
     if old_sig == sig and existing.hit_mode == envelope.hit_mode:
-        auto_judge(s, existing)
+        auto_judge(s, existing, draw_cache=draw_cache)
         return "unchanged"
     was_missing = existing.claimed_status == "missing"
     from rules import archive_current
@@ -179,14 +186,15 @@ def upsert_prediction(s, envelope: PredV1, item: PredItem, play_type: str, run_i
     existing.fetched_at = fetched
     if was_missing:
         existing.first_seen_at = fetched
-    record(s, existing, raw_text=item.raw_text)
-    auto_judge(s, existing)
+    record(s, existing, raw_text=item.raw_text, draw_cache=draw_cache)
+    auto_judge(s, existing, draw_cache=draw_cache)
     return "updated"
 
 
 def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
     run = run_loads(payload)
     counts = {"inserted": 0, "updated": 0, "unchanged": 0, "source_ok": 0, "source_fail": 0, "items": 0, "missing_added": 0}
+    draw_cache: dict[tuple[str, str], Any] = {}
     with session_scope() as s:
         s.merge(
             CrawlRun(
@@ -248,7 +256,7 @@ def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
                 for play_type, split in _split_items(envelope, item):
                     plays.add(play_type)
                     counts["items"] += 1
-                    action = upsert_prediction(s, envelope, split, play_type, run.run_id)
+                    action = upsert_prediction(s, envelope, split, play_type, run.run_id, draw_cache=draw_cache)
                     counts[action] += 1
             for play_type in plays:
                 counts["missing_added"] += fill_missing(s, envelope.source_id, envelope.lottery,

@@ -38,14 +38,25 @@ def fill_missing(s, source_id: str, lottery: str, play_type: str, now: datetime,
     )).all())
     template = max(real, key=lambda r: r.period)
     added = 0
-    for period in sorted(expected - existing):
+    missing_periods = sorted(expected - existing)
+    if not missing_periods:
+        return 0
+
+    missing_preds = []
+    for period in missing_periods:
         pred = Prediction(source_id=source_id, lottery=lottery, play_type=play_type,
                           hit_mode=template.hit_mode, period=period, period_raw=str(int(period[4:])),
                           preds_json=[], claimed_status="missing", raw_text="缺期：覆盖范围内未采集到该期预测",
                           content_hash="missing_period", final_url=None, fetched_at=now,
                           first_seen_at=now, last_seen_at=now, last_run_id=run_id)
         s.add(pred)
-        s.flush()
+        missing_preds.append(pred)
+
+    # Single flush to assign IDs to all missing predictions
+    s.flush()
+
+    for pred in missing_preds:
         s.add(JudgeResult(**missing_result(pred), judged_at=now))
         added += 1
+
     return added

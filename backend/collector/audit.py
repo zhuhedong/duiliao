@@ -13,13 +13,19 @@ def snapshot(row):
             for c in row.__table__.columns}
 
 
-def record(s, row, phase=None, raw_text=None):
+def record(s, row, phase=None, raw_text=None, draw_cache=None):
     if getattr(row, "id", None) is None:
         s.flush()
     now = now_local()
     entity = "draw" if isinstance(row, Draw) else "prediction"
     if phase is None:
-        draw = s.scalar(select(Draw).where(Draw.lottery == row.lottery, Draw.period == row.period))
+        key = (getattr(row, "lottery", None), getattr(row, "period", None))
+        if draw_cache is not None and key in draw_cache:
+            draw = draw_cache[key]
+        else:
+            draw = s.scalar(select(Draw).where(Draw.lottery == row.lottery, Draw.period == row.period))
+            if draw_cache is not None:
+                draw_cache[key] = draw
         phase = "after_draw" if draw else "unconfirmed"
     data = snapshot(row)
     if raw_text is not None:

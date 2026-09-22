@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.core.config import settings
@@ -11,16 +11,29 @@ from app.core.config import settings
 def create_app_engine(url: str | None = None):
     u = url or settings.DATABASE_URL
     kw: dict = {"pool_pre_ping": True, "echo": False}
-    if u.startswith("sqlite"):
+    is_sqlite = u.startswith("sqlite")
+    if is_sqlite:
         kw["connect_args"] = {"check_same_thread": False}
     else:
         kw.update(
-            pool_size=10,
-            max_overflow=20,
+            pool_size=20,
+            max_overflow=30,
             pool_recycle=1800,
             pool_timeout=30,
         )
-    return create_engine(u, **kw)
+    eng = create_engine(u, **kw)
+    if is_sqlite:
+        @event.listens_for(eng, "connect")
+        def _sqlite_connect(dbapi_conn, _rec):
+            cur = dbapi_conn.cursor()
+            cur.execute("PRAGMA foreign_keys=ON")
+            cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA synchronous=NORMAL")
+            cur.execute("PRAGMA busy_timeout=30000")
+            cur.execute("PRAGMA cache_size=-64000")
+            cur.execute("PRAGMA temp_store=MEMORY")
+            cur.close()
+    return eng
 
 
 engine = create_app_engine()

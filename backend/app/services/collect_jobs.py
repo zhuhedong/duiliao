@@ -137,7 +137,6 @@ class CollectJobWorker:
                     exit_code=result.get("exit_code"),
                     error_code=result.get("error_code"),
                     error_msg=result.get("error_msg"),
-                    data=result.get("data"),
                 )
 
             def on_phase(phase: str) -> None:
@@ -261,16 +260,12 @@ class CollectJobWorker:
                     free = MAX_CONCURRENT_JOBS - len(self._running_jobs)
                     if free <= 0:
                         continue
-                    # list_collect_jobs orders newest-first, so take a generous
-                    # page and reverse it to start the oldest queued job first
-                    # rather than starving early submissions.
-                    pending = await asyncio.to_thread(
-                        cb.list_collect_jobs, limit=50, status="queued"
+                    pending_ids = await asyncio.to_thread(
+                        cb.get_queued_job_ids, limit=free
                     )
-                    for item in reversed(pending.get("items", [])):
+                    for job_id in pending_ids:
                         if len(self._running_jobs) >= MAX_CONCURRENT_JOBS:
                             break
-                        job_id = item["id"]
                         if job_id in self._running_jobs:
                             continue
                         asyncio.create_task(self._run_job(job_id))

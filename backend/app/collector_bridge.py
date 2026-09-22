@@ -20,6 +20,7 @@ import logging
 import os
 import sys
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
@@ -1644,10 +1645,23 @@ JOB_TERMINAL_STATUSES = ("done", "failed", "cancelled", "interrupted")
 # Serialises the read-modify-write of the `progress` JSON column, which several
 # collection worker threads update at once. See update_collect_job_source.
 _progress_lock = threading.Lock()
+# In-memory live progress cache for active jobs to eliminate row-level lock contention and TOAST bloat
+_active_progress_cache: dict[int, dict[str, Any]] = {}
 
 
-def _job_to_dict(j: Any, include_result: bool = True) -> dict[str, Any]:
-    progress = j.progress if isinstance(j.progress, dict) else {}
+def _job_to_dict(
+    j: Any,
+    include_result: bool = True,
+    progress_override: dict[str, Any] | None = None,
+    source_done_override: int | None = None,
+    source_ok_override: int | None = None,
+) -> dict[str, Any]:
+    if progress_override is not None:
+        progress = progress_override
+    elif isinstance(j.progress, dict):
+        progress = j.progress
+    else:
+        progress = {}
     # Preserve the submitted source order so the UI list does not reshuffle
     # between polls as sources complete.
     ordered_ids = list(j.source_ids or []) or list(progress.keys())
@@ -1668,6 +1682,9 @@ def _job_to_dict(j: Any, include_result: bool = True) -> dict[str, Any]:
             }
         )
 
+    s_done = source_done_override if source_done_override is not None else j.source_done
+    s_ok = source_ok_override if source_ok_override is not None else j.source_ok
+
     out: dict[str, Any] = {
         "id": j.id,
         "lottery": j.lottery,
@@ -1680,8 +1697,8 @@ def _job_to_dict(j: Any, include_result: bool = True) -> dict[str, Any]:
         "phase": j.phase,
         "run_id": j.run_id,
         "source_total": j.source_total,
-        "source_done": j.source_done,
-        "source_ok": j.source_ok,
+        "source_done": s_done,
+        "source_ok": s_ok,
         "cancel_requested": bool(j.cancel_requested),
         "created_by": j.created_by,
         "schedule_id": j.schedule_id,
@@ -1765,6 +1782,14 @@ def create_collect_job(
         )
         s.add(job)
         s.flush()
+        with _progress_lock:
+            _active_progress_cache[job.id] = {
+                "progress": {k: dict(v) for k, v in progress.items()},
+                "source_done": 0,
+                "source_ok": 0,
+                "source_total": len(resolved_ids),
+                "last_flushed_at": time.monotonic(),
+            }
         return _job_to_dict(job)
 
 
@@ -1773,9 +1798,22 @@ def get_collect_job(job_id: int) -> dict[str, Any] | None:
     from db import session_scope
     from schema import CollectJob
 
+    with _progress_lock:
+        cached = _active_progress_cache.get(job_id)
+        cached_progress = dict(cached["progress"]) if cached else None
+        cached_done = cached.get("source_done") if cached else None
+        cached_ok = cached.get("source_ok") if cached else None
+
     with session_scope() as s:
         row = s.get(CollectJob, job_id)
-        return _job_to_dict(row) if row else None
+        if not row:
+            return None
+        return _job_to_dict(
+            row,
+            progress_override=cached_progress,
+            source_done_override=cached_done,
+            source_ok_override=cached_ok,
+        )
 
 
 def list_collect_jobs(
@@ -1876,6 +1914,21 @@ def set_collect_job_phase(job_id: int, phase: str) -> None:
         job.phase = phase
 
 
+def _flush_collect_job_progress_locked(job_id: int, cached: dict[str, Any]) -> None:
+    from db import session_scope
+    from schema import CollectJob
+    try:
+        with session_scope() as s:
+            job = s.get(CollectJob, job_id)
+            if job is None:
+                return
+            job.progress = dict(cached["progress"])
+            job.source_done = cached["source_done"]
+            job.source_ok = cached["source_ok"]
+    except Exception as exc:
+        logger.warning("failed to flush collect job %s progress to DB: %s", job_id, exc)
+
+
 def update_collect_job_source(
     job_id: int,
     source_id: str,
@@ -1886,56 +1939,67 @@ def update_collect_job_source(
     error_code: str | None = None,
     error_msg: str | None = None,
     data: Any = None,
+    force_flush: bool = False,
 ) -> None:
-    """Merge one source's progress into the job's progress map.
+    """Merge one source's progress into the in-memory cache and throttled DB write.
 
-    Called concurrently from ThreadPoolExecutor worker threads. ``progress`` is a
-    single JSON column, so this is a read-modify-write: without serialisation two
-    sources finishing at the same time each read the same map, add their own
-    entry, and the later write silently discards the earlier one — progress then
-    under-reports and ``source_done`` never reaches ``source_total``.
-
-    The lock makes the critical section atomic. It is process-local, which is
-    sufficient because collection jobs execute in the API process and the
-    in-memory session/nonce stores already constrain the deployment to a single
-    instance. If that ever changes, this needs a per-source row or a
-    dialect-native atomic JSON update instead.
-
-    ``progress`` is also reassigned wholesale rather than mutated in place,
-    because SQLAlchemy does not track in-place mutation of a plain JSON value.
+    Eliminates SQLite and PostgreSQL lock contention and TOAST bloat by:
+    1. Keeping live progress in memory so API poll reads and worker updates are instant.
+    2. NOT storing massive raw data objects into the progress JSON.
+    3. Throttling disk/network DB writes to at most once every 500ms, or when all sources complete.
     """
     bootstrap()
     from db import session_scope
     from schema import CollectJob
 
     with _progress_lock:
-        with session_scope() as s:
-            job = s.get(CollectJob, job_id)
-            if job is None:
-                return
-            progress = dict(job.progress or {})
-            entry = dict(progress.get(source_id) or {})
-            entry["state"] = state
-            if item_count is not None:
-                entry["item_count"] = item_count
-            if elapsed_ms is not None:
-                entry["elapsed_ms"] = elapsed_ms
-            if exit_code is not None:
-                entry["exit_code"] = exit_code
-            if data is not None:
-                entry["data"] = data
-            # Always assign the error fields so a retry clears a previous failure.
-            entry["error_code"] = error_code
-            entry["error_msg"] = (error_msg or None) and str(error_msg)[:500]
-            progress[source_id] = entry
-            job.progress = progress
-            if state in ("ok", "fail"):
-                job.source_done = sum(
-                    1 for e in progress.values() if (e or {}).get("state") in ("ok", "fail")
-                )
-                job.source_ok = sum(
-                    1 for e in progress.values() if (e or {}).get("state") == "ok"
-                )
+        cached = _active_progress_cache.get(job_id)
+        if cached is None:
+            with session_scope() as s:
+                job = s.get(CollectJob, job_id)
+                if job is None:
+                    return
+                progress = dict(job.progress or {})
+                cached = {
+                    "progress": progress,
+                    "source_done": job.source_done,
+                    "source_ok": job.source_ok,
+                    "source_total": job.source_total,
+                    "last_flushed_at": time.monotonic(),
+                }
+                _active_progress_cache[job_id] = cached
+        else:
+            progress = cached["progress"]
+
+        entry = dict(progress.get(source_id) or {})
+        entry["state"] = state
+        if item_count is not None:
+            entry["item_count"] = item_count
+        if elapsed_ms is not None:
+            entry["elapsed_ms"] = elapsed_ms
+        if exit_code is not None:
+            entry["exit_code"] = exit_code
+        entry["error_code"] = error_code
+        entry["error_msg"] = (error_msg or None) and str(error_msg)[:500]
+        # Notice: data is intentionally omitted from progress to avoid megabytes of TOAST/JSON bloat!
+        progress[source_id] = entry
+
+        if state in ("ok", "fail"):
+            cached["source_done"] = sum(
+                1 for e in progress.values() if (e or {}).get("state") in ("ok", "fail")
+            )
+            cached["source_ok"] = sum(
+                1 for e in progress.values() if (e or {}).get("state") == "ok"
+            )
+
+        now = time.monotonic()
+        total = cached.get("source_total", 0)
+        all_done = total > 0 and cached["source_done"] >= total
+        should_flush = force_flush or all_done or (now - cached.get("last_flushed_at", 0) >= 0.5)
+
+        if should_flush:
+            _flush_collect_job_progress_locked(job_id, cached)
+            cached["last_flushed_at"] = now
 
 
 def finish_collect_job(
@@ -1950,6 +2014,9 @@ def finish_collect_job(
     from db import session_scope
     from schema import CollectJob
 
+    with _progress_lock:
+        cached = _active_progress_cache.pop(job_id, None)
+
     with session_scope() as s:
         job = s.get(CollectJob, job_id)
         if job is None:
@@ -1957,6 +2024,10 @@ def finish_collect_job(
         job.status = status
         job.phase = "done"
         job.finished_at = datetime.now()
+        if cached is not None:
+            job.progress = dict(cached["progress"])
+            job.source_done = cached["source_done"]
+            job.source_ok = cached["source_ok"]
         if result is not None:
             job.result = result
         if run_id:
@@ -2358,3 +2429,20 @@ def source_miss_streaks(lottery: str, source_ids: list[str], play_type: str | No
         if streak > 0:
             streaks[source_id] = streak
     return streaks
+
+
+def get_queued_job_ids(limit: int = 5) -> list[int]:
+    """Return oldest queued job ids using an indexed query, without parsing progress."""
+    bootstrap()
+    from db import session_scope
+    from schema import CollectJob
+    from sqlalchemy import select
+
+    with session_scope() as s:
+        stmt = (
+            select(CollectJob.id)
+            .where(CollectJob.status == "queued")
+            .order_by(CollectJob.id.asc())
+            .limit(limit)
+        )
+        return list(s.scalars(stmt))

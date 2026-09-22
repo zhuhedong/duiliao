@@ -58,8 +58,8 @@ def get_engine(url: str | None = None) -> Engine:
         kw.update(
             pool_pre_ping=True,
             pool_recycle=_pool_setting("PRED_DB_POOL_RECYCLE_SEC", 1800, 60, 86400),
-            pool_size=_pool_setting("PRED_DB_POOL_SIZE", 5, 1, 100),
-            max_overflow=_pool_setting("PRED_DB_MAX_OVERFLOW", 10, 0, 200),
+            pool_size=_pool_setting("PRED_DB_POOL_SIZE", 20, 1, 100),
+            max_overflow=_pool_setting("PRED_DB_MAX_OVERFLOW", 30, 0, 200),
             pool_timeout=_pool_setting("PRED_DB_POOL_TIMEOUT_SEC", 30, 1, 600),
         )
     _ENGINE = create_engine(u, **kw)
@@ -69,6 +69,10 @@ def get_engine(url: str | None = None) -> Engine:
             cur = dbapi_conn.cursor()
             cur.execute("PRAGMA foreign_keys=ON")
             cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA synchronous=NORMAL")
+            cur.execute("PRAGMA busy_timeout=30000")
+            cur.execute("PRAGMA cache_size=-64000")
+            cur.execute("PRAGMA temp_store=MEMORY")
             cur.close()
     _SESSION = sessionmaker(_ENGINE, expire_on_commit=False)
     return _ENGINE
