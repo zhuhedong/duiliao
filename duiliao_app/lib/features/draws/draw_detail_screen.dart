@@ -64,7 +64,8 @@ class DrawDetailScreen extends ConsumerWidget {
       body: GlassBackground(
         child: RefreshIndicator(
           onRefresh: () async {
-            await ref.refresh(drawDetailProvider(key).future);
+            ref.invalidate(drawDetailProvider(key));
+            await ref.read(drawDetailProvider(key).future);
           },
           child: AsyncView<DrawRow?>(
             value: async,

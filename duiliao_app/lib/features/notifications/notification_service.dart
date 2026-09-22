@@ -155,6 +155,8 @@ class LocalNotificationPresenter implements NotificationPresenter {
 class RecordingPresenter implements NotificationPresenter {
   final List<AppEvent> shown = [];
   @override
+  bool get permissionDenied => false;
+  @override
   Future<void> initialize() async {}
   @override
   Future<void> show(AppEvent event, int id) async => shown.add(event);

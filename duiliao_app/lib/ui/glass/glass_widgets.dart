@@ -224,6 +224,8 @@ class GlassCard extends StatelessWidget {
     this.borderRadius,
     this.onTap,
     this.blur = 18.0,
+    this.borderColor,
+    this.fillColor,
   });
 
   final Widget child;
@@ -232,6 +234,8 @@ class GlassCard extends StatelessWidget {
   final BorderRadius? borderRadius;
   final VoidCallback? onTap;
   final double blur;
+  final Color? borderColor;
+  final Color? fillColor;
 
   @override
   Widget build(BuildContext context) {
@@ -241,6 +245,8 @@ class GlassCard extends StatelessWidget {
       borderRadius: borderRadius ?? BorderRadius.circular(20),
       onTap: onTap,
       blur: blur,
+      borderColor: borderColor,
+      fillColor: fillColor,
       child: child,
     );
   }

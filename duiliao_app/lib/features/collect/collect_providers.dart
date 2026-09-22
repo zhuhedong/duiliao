@@ -131,24 +131,66 @@ class ActiveJobId extends Notifier<int?> {
 /// waiting on the encrypted network round-trip.
 enum CollectionJobAction { cancel, retry }
 
-final collectionJobActionProvider =
-    StateProvider.autoDispose.family<CollectionJobAction?, int>((ref, _) => null);
+class CollectionJobActionNotifier
+    extends AutoDisposeFamilyNotifier<CollectionJobAction?, int> {
+  @override
+  CollectionJobAction? build(int arg) => null;
+
+  set state(CollectionJobAction? value) => super.state = value;
+  CollectionJobAction? get state => super.state;
+}
+
+final collectionJobActionProvider = NotifierProvider.autoDispose
+    .family<CollectionJobActionNotifier, CollectionJobAction?, int>(
+  CollectionJobActionNotifier.new,
+);
 
 /// True while the immediate collection form is submitting a new job.
+class CollectSubmitBusyNotifier extends AutoDisposeNotifier<bool> {
+  @override
+  bool build() => false;
+
+  set state(bool value) => super.state = value;
+  bool get state => super.state;
+}
+
 final collectSubmitBusyProvider =
-    StateProvider.autoDispose<bool>((ref) => false);
+    NotifierProvider.autoDispose<CollectSubmitBusyNotifier, bool>(
+  CollectSubmitBusyNotifier.new,
+);
 
 /// Prevents a schedule card from sending the same mutation more than once while
 /// the previous request is still in flight.
 enum ScheduleAction { toggle, trigger, logs }
 
-final scheduleActionProvider =
-    StateProvider.autoDispose.family<ScheduleAction?, int>((ref, _) => null);
+class ScheduleActionNotifier
+    extends AutoDisposeFamilyNotifier<ScheduleAction?, int> {
+  @override
+  ScheduleAction? build(int arg) => null;
+
+  set state(ScheduleAction? value) => super.state = value;
+  ScheduleAction? get state => super.state;
+}
+
+final scheduleActionProvider = NotifierProvider.autoDispose
+    .family<ScheduleActionNotifier, ScheduleAction?, int>(
+  ScheduleActionNotifier.new,
+);
 
 /// Number of consecutive transient poll failures for a job. The progress view
 /// uses this to show a reconnecting banner while the stream keeps retrying.
+class JobPollRetryNotifier extends AutoDisposeFamilyNotifier<int, int> {
+  @override
+  int build(int arg) => 0;
+
+  set state(int value) => super.state = value;
+  int get state => super.state;
+}
+
 final jobPollRetryProvider =
-    StateProvider.autoDispose.family<int, int>((ref, _) => 0);
+    NotifierProvider.autoDispose.family<JobPollRetryNotifier, int, int>(
+  JobPollRetryNotifier.new,
+);
 
 /// Polls one job until it reaches a terminal state.
 ///

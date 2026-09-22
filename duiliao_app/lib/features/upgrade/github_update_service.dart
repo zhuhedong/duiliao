@@ -291,7 +291,7 @@ class GitHubUpdateService {
     IOSink? sink;
     var received = 0;
     var digestClosed = false;
-    final digestSink = AccumulatorSink<Digest>();
+    final digestSink = _DigestSink();
     final digestInput = sha256.startChunkedConversion(digestSink);
 
     try {
@@ -314,7 +314,7 @@ class GitHubUpdateService {
       if (expectedSize > 0 && received != expectedSize) {
         throw const UpdateDownloadException('下载包大小与发布信息不一致');
       }
-      final actualHash = digestSink.events.single.toString().toLowerCase();
+      final actualHash = digestSink.value?.toString().toLowerCase();
       if (actualHash != normalizedHash) {
         throw const UpdateDownloadException('更新包 SHA-256 校验失败，已拒绝安装');
       }
@@ -347,3 +347,14 @@ final updateCheckProvider = FutureProvider.autoDispose<UpdateCheckResult>((ref) 
   final service = ref.watch(githubUpdateServiceProvider);
   return service.checkUpdate(currentVersion: current);
 });
+
+class _DigestSink implements Sink<Digest> {
+  Digest? value;
+
+  @override
+  void add(Digest data) => value = data;
+
+  @override
+  void close() {}
+}
+

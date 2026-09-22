@@ -1,8 +1,6 @@
 /// One source: configuration, health, and its prediction history.
 library;
 
-import 'dart:ui' show FontFeature;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -107,7 +105,8 @@ class _SourceDetailScreenState extends ConsumerState<SourceDetailScreen> {
       body: GlassBackground(
         child: RefreshIndicator(
           onRefresh: () async {
-            await ref.refresh(sourceDetailProvider(key).future);
+            ref.invalidate(sourceDetailProvider(key));
+            await ref.read(sourceDetailProvider(key).future);
           },
           child: AsyncView<({
             CollectorSource? source,

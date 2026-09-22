@@ -101,7 +101,8 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
       body: GlassBackground(
         child: RefreshIndicator(
           onRefresh: () async {
-            await ref.refresh(comparisonProvider(key).future);
+            ref.invalidate(comparisonProvider(key));
+            await ref.read(comparisonProvider(key).future);
           },
           child: AsyncView<({PeriodComparisonResult result, bool isStale, String? storedAt})>(
             value: async,

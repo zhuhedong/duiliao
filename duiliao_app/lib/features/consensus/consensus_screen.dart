@@ -88,7 +88,8 @@ class _ConsensusScreenState extends ConsumerState<ConsensusScreen> {
       body: GlassBackground(
         child: RefreshIndicator(
           onRefresh: () async {
-            await ref.refresh(consensusProvider(key).future);
+            ref.invalidate(consensusProvider(key));
+            await ref.read(consensusProvider(key).future);
           },
           child: AsyncView<({ConsensusResult result, bool isStale, String? storedAt})>(
             value: async,
