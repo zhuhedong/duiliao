@@ -7,6 +7,7 @@ import {
   collectorApi,
   LOTTERY_LABEL,
   type CollectResult,
+  type CollectJob,
   type CollectorSource,
   type Lottery,
   type ScriptRunResult,
@@ -126,6 +127,9 @@ export function CollectorSourcesPage() {
     sourceId: string;
     lottery: Lottery;
   } | null>(null);
+
+  // Active Background Collection Job
+  const [activeJob, setActiveJob] = useState<CollectJob | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -277,25 +281,92 @@ export function CollectorSourcesPage() {
     }
   };
 
+  const cancelJob = async () => {
+    if (!activeJob) return;
+    try {
+      await collectorApi.cancelCollectJob(activeJob.id);
+      setSuccessMsg("已发送取消请求，剩余未执行的来源将被跳过…");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "取消任务失败");
+    }
+  };
+
   const runCollect = async () => {
     setRunning(true);
     setError(null);
     setResult(null);
     setSuccessMsg(null);
+    setActiveJob(null);
+
+    // If offline fixture directory is specified, use direct collect endpoint
+    if (fixtureDir.trim()) {
+      try {
+        const res = await collectorApi.collect({
+          lottery,
+          period: period.trim() || undefined,
+          source_ids: selected.size ? [...selected] : undefined,
+          fixture_dir: fixtureDir.trim(),
+          ingest: true,
+        });
+        setResult(res);
+        setSuccessMsg(`离线样例采集完成：${res.source_ok}/${res.source_total} 个来源执行成功！`);
+        await load();
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "采集失败");
+      } finally {
+        setRunning(false);
+      }
+      return;
+    }
+
+    // Otherwise, submit an asynchronous background collection job to avoid any gateway timeouts
     try {
-      const res = await collectorApi.collect({
+      const job = await collectorApi.submitCollectJob({
         lottery,
         period: period.trim() || undefined,
         source_ids: selected.size ? [...selected] : undefined,
-        fixture_dir: fixtureDir.trim() || undefined,
         ingest: true,
+        auto_judge: true,
+        concurrency: 8,
       });
-      setResult(res);
-      setSuccessMsg(`批量采集完成：${res.source_ok}/${res.source_total} 个来源执行成功！已自动入库。`);
-      await load();
+      setActiveJob(job);
+
+      const poll = async () => {
+        try {
+          const current = await collectorApi.getCollectJob(job.id);
+          setActiveJob(current);
+          if (
+            current.status === "done" ||
+            current.status === "failed" ||
+            current.status === "cancelled" ||
+            current.status === "interrupted"
+          ) {
+            setRunning(false);
+            if (current.result) {
+              setResult(current.result);
+            }
+            if (current.status === "done") {
+              setSuccessMsg(
+                `批量采集完成：${current.source_ok}/${current.source_total} 个来源执行成功！已自动完成校验、入库与对奖。`
+              );
+            } else if (current.status === "cancelled") {
+              setError("采集任务已取消");
+            } else {
+              setError(current.error || "采集任务结束，部分来源失败");
+            }
+            await load();
+            return;
+          }
+          setTimeout(poll, 1500);
+        } catch (err) {
+          setError(err instanceof ApiError ? err.message : "获取采集进度失败");
+          setRunning(false);
+        }
+      };
+
+      setTimeout(poll, 1000);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "采集失败");
-    } finally {
+      setError(err instanceof ApiError ? err.message : "提交采集任务失败");
       setRunning(false);
     }
   };
@@ -651,6 +722,69 @@ export function CollectorSourcesPage() {
                 <span className="text-primary">💡 提示：</span>
                 <span>期号可留空，系统将自动抓取当前目标网站最新发布的所有期数预测入库并自动对奖；若填写期号（如 248），则精准抓取并过滤该指定期数。</span>
               </div>
+
+              {activeJob && running && (
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 space-y-2.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+                      </span>
+                      <span>
+                        {activeJob.phase === "queued" && "任务已排队，正在准备运行环境…"}
+                        {activeJob.phase === "collecting" &&
+                          `正在异步采集数据源 (${activeJob.source_done}/${activeJob.source_total} 完成)…`}
+                        {activeJob.phase === "ingesting" && "数据采集完成，正在执行校验入库…"}
+                        {activeJob.phase === "judging" && "正在进行官方对奖与自称核验…"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-primary">
+                        {Math.round((activeJob.source_done / (activeJob.source_total || 1)) * 100)}%
+                      </span>
+                      <button
+                        type="button"
+                        onClick={cancelJob}
+                        className="text-xs text-rose-500 hover:text-rose-600 font-medium underline cursor-pointer"
+                      >
+                        取消采集
+                      </button>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-primary h-full transition-all duration-300 rounded-full"
+                      style={{
+                        width: `${Math.max(
+                          5,
+                          Math.min(
+                            100,
+                            Math.round((activeJob.source_done / (activeJob.source_total || 1)) * 100)
+                          )
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                    <span>
+                      已成功: <strong className="text-emerald-600 font-semibold">{activeJob.source_ok}</strong>
+                      {" / "}
+                      已失败:{" "}
+                      <strong
+                        className={
+                          activeJob.source_done - activeJob.source_ok > 0
+                            ? "text-rose-500 font-semibold"
+                            : ""
+                        }
+                      >
+                        {activeJob.source_done - activeJob.source_ok}
+                      </strong>
+                    </span>
+                    <span>后台任务 #{activeJob.id}</span>
+                  </div>
+                </div>
+              )}
 
               {result && (
                 <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">

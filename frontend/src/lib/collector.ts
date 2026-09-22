@@ -60,6 +60,35 @@ export interface CollectResult {
   ingest?: IngestStats;
 }
 
+export interface CollectJobItem {
+  source_id: string;
+  source_name?: string;
+  state: "queued" | "running" | "ok" | "fail";
+  item_count?: number;
+  elapsed_ms?: number;
+  exit_code?: number;
+  error_code?: string;
+  error_msg?: string;
+}
+
+export interface CollectJob {
+  id: number;
+  lottery: string;
+  period?: string | null;
+  status: "queued" | "running" | "done" | "failed" | "cancelled" | "interrupted";
+  phase: "queued" | "collecting" | "ingesting" | "judging" | "done";
+  source_total: number;
+  source_done: number;
+  source_ok: number;
+  cancel_requested?: boolean;
+  items?: CollectJobItem[];
+  result?: CollectResult;
+  error?: string;
+  created_at?: string;
+  started_at?: string;
+  finished_at?: string;
+}
+
 export interface DrawSyncResult {
   ok: boolean;
   inserted: number;
@@ -534,6 +563,29 @@ export interface SchedulesResponse {
 
 export const collectorApi = {
   // --- pipeline ---
+  submitCollectJob(input: {
+    lottery: Lottery;
+    period?: string;
+    source_ids?: string[];
+    concurrency?: number;
+    ingest?: boolean;
+    auto_judge?: boolean;
+  }) {
+    return api.post<CollectJob>("/app/collect-jobs", input);
+  },
+  getCollectJob(jobId: number) {
+    return api.get<CollectJob>(`/app/collect-jobs/${jobId}`);
+  },
+  cancelCollectJob(jobId: number) {
+    return api.del<CollectJob>(`/app/collect-jobs/${jobId}`);
+  },
+  listCollectJobs(params?: { lottery?: Lottery; limit?: number; status?: string }) {
+    const q = new URLSearchParams();
+    if (params?.lottery) q.set("lottery", params.lottery);
+    if (params?.limit) q.set("limit", String(params.limit));
+    if (params?.status) q.set("status", params.status);
+    return api.get<{ ok: boolean; total: number; items: CollectJob[] }>(`/app/collect-jobs?${q}`);
+  },
   collect(input: {
     lottery: Lottery;
     period?: string;
