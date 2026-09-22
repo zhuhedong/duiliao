@@ -569,12 +569,13 @@ def _create_all_locked(conn) -> None:
     if tag_column_added:
         conn.execute(text(f"ALTER TABLE draw ADD COLUMN tag {kind} NOT NULL DEFAULT '{{}}'"))
     # Widen draw.source from VARCHAR(64) to VARCHAR(256) for existing databases.
-    for col_info in inspect(conn).get_columns("draw"):
-        if col_info["name"] == "source":
-            length = getattr(col_info.get("type"), "length", None)
-            if length is not None and length < 256:
-                conn.execute(text("ALTER TABLE draw ALTER COLUMN source TYPE VARCHAR(256)"))
-            break
+    if conn.dialect.name == "postgresql":
+        for col_info in inspect(conn).get_columns("draw"):
+            if col_info["name"] == "source":
+                length = getattr(col_info.get("type"), "length", None)
+                if length is not None and length < 256:
+                    conn.execute(text("ALTER TABLE draw ALTER COLUMN source TYPE VARCHAR(256)"))
+                break
     with Session(bind=conn) as session:
         tag_marker = session.get(Setting, "schema.draw_tags")
         marker_value = tag_marker.value if tag_marker and isinstance(tag_marker.value, dict) else {}

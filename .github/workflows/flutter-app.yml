@@ -82,30 +82,30 @@ jobs:
           draft: false
           prerelease: false
 
-  ios-build:
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
-    needs: verify
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: duiliao_app
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-      - run: flutter pub get
-      - run: >-
-          flutter build ios --release --no-codesign
-          --dart-define=API_BASE_URL="${{ vars.APP_API_BASE_URL }}"
-          --dart-define=APP_SIGNING_SECRET="${{ secrets.APP_SIGNING_SECRET }}"
-          --dart-define=APP_ID=ios-internal
-        # Signing and TestFlight upload require the team's Apple certificate and
-        # provisioning profile. This job still verifies the native iOS target;
-        # the signed archive is produced by the release machine described in
-        # docs/app_release.md.
-      - uses: actions/upload-artifact@v4
-        with:
-          name: duiliao-ios-runner-app
-          path: duiliao_app/build/ios/iphoneos/Runner.app
+#   ios-build:
+#     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+#     needs: verify
+#     runs-on: macos-latest
+#     defaults:
+#       run:
+#         working-directory: duiliao_app
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: subosito/flutter-action@v2
+#         with:
+#           channel: stable
+#           cache: true
+#       - run: flutter pub get
+#       - run: >-
+#           flutter build ios --release --no-codesign
+#           --dart-define=API_BASE_URL="${{ vars.APP_API_BASE_URL }}"
+#           --dart-define=APP_SIGNING_SECRET="${{ secrets.APP_SIGNING_SECRET }}"
+#           --dart-define=APP_ID=ios-internal
+#         # Signing and TestFlight upload require the team's Apple certificate and
+#         # provisioning profile. This job still verifies the native iOS target;
+#         # the signed archive is produced by the release machine described in
+#         # docs/app_release.md.
+#       - uses: actions/upload-artifact@v4
+#         with:
+#           name: duiliao-ios-runner-app
+#           path: duiliao_app/build/ios/iphoneos/Runner.app

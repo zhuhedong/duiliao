@@ -466,8 +466,8 @@ sources:
   hit_mode: any
   script_path: sources/wuma_zhongte.py
   timeout_sec: 30
-  enabled: true
-  remark: 每期五个特码候选号码
+  enabled: false
+  remark: 上游栏目 1789735528040 已下线
   extra:
     title: 五码中特
     upstream_id: '1789735528040'
@@ -519,8 +519,8 @@ sources:
   hit_mode: any
   script_path: sources/yunding_sima.py
   timeout_sec: 30
-  enabled: true
-  remark: 云顶心水四码及防肖
+  enabled: false
+  remark: 上游栏目 1787906588716 已下线
   extra:
     title: 云顶心水四码
     upstream_id: '1787906588716'
@@ -532,8 +532,8 @@ sources:
   hit_mode: any
   script_path: sources/fumen_tianji.py
   timeout_sec: 30
-  enabled: true
-  remark: 福门天机单吊一肖二码
+  enabled: false
+  remark: 上游栏目 1787658048244 已下线
   extra:
     title: 福门天机一肖二码
     upstream_id: '1787658048244'
@@ -558,8 +558,8 @@ sources:
   hit_mode: any
   script_path: sources/erxiao_sanma.py
   timeout_sec: 30
-  enabled: true
-  remark: 主攻二肖及重点三码
+  enabled: false
+  remark: 上游栏目 1789461263310 已下线
   extra:
     title: 二肖三码精研特供
     upstream_id: '1789461263310'
@@ -571,8 +571,8 @@ sources:
   hit_mode: any
   script_path: sources/tianxuan_zhiwang.py
   timeout_sec: 30
-  enabled: true
-  remark: 主推一肖一码及送码
+  enabled: false
+  remark: 上游栏目 1789557830644 已下线
   extra:
     title: 天选之王一肖一码
     upstream_id: '1789557830644'
@@ -584,8 +584,8 @@ sources:
   hit_mode: any
   script_path: sources/fumin_liuma.py
   timeout_sec: 30
-  enabled: true
-  remark: 每期六个特码候选号码
+  enabled: false
+  remark: 上游栏目 1789644918860 已下线
   extra:
     title: 富民六码
     upstream_id: '1789644918860'
@@ -597,8 +597,8 @@ sources:
   hit_mode: any
   script_path: sources/zhuanye_jingsuan.py
   timeout_sec: 30
-  enabled: true
-  remark: 准确命中一肖及重点三码
+  enabled: false
+  remark: 上游栏目 1789560406256 已下线
   extra:
     title: 专业精算一肖三码
     upstream_id: '1789560406256'
@@ -667,6 +667,58 @@ sources:
   extra:
     title: 投资内幕二肖
     upstream_id: '1789822727406'
+- source_id: jingsuan_sanma
+  source_name: 精算三码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/jingsuan_sanma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 588080.com精算三码
+  extra:
+    title: 精算三码
+    upstream_id: '1789991780509'
+- source_id: chanzhuang_miliao
+  source_name: 铲庄秘料一肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/chanzhuang_miliao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 588080.com铲庄秘料一肖二码
+  extra:
+    title: 铲庄秘料一肖二码
+    upstream_id: '1789990039716'
+- source_id: jingpin_7ma
+  source_name: 精品资讯报7码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/jingpin_7ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 588080.com精品资讯报7码
+  extra:
+    title: 精品资讯报7码
+    upstream_id: '1789992614043'
+- source_id: fanshen_erxiao
+  source_name: 翻身二肖
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/fanshen_erxiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 588080.com翻身二肖
+  extra:
+    title: 翻身二肖
+    upstream_id: '1784374826030'
 - source_id: tt_6xiao
   source_name: 通天必中六肖
   site_family: tongtian_83191
