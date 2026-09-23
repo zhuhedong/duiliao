@@ -12,7 +12,12 @@ from pydantic import BaseModel, Field, field_validator
 from app import collector_bridge as cb
 from app.api.deps import get_current_user, require_roles
 from app.models.user import User, UserRole
-from app.services.ai.analyzer import analyze_scraped_data, analyze_scraped_data_stream
+from app.services.ai.analyzer import (
+    analyze_scraped_data,
+    analyze_scraped_data_stream,
+    analyze_zodiac_streaks,
+    analyze_zodiac_streaks_stream,
+)
 from app.services.ai.prompts import list_prompt_templates
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -245,3 +250,124 @@ def generate_ai_report(
         generated_by=user.id,
     )
     return saved
+
+
+# --------------------------------------------------------------------------- #
+# Zodiac streak analysis (跨期连肖分析)
+# --------------------------------------------------------------------------- #
+class ZodiacStreakRequest(BaseModel):
+    lottery: str = Field(default="macau", description="彩种: macau, hk")
+    num_periods: int = Field(default=30, ge=5, le=500, description="查询最近 N 期（默认 30）")
+    min_streak: int = Field(default=3, ge=2, le=20, description="最小连码长度（默认 3，即三连起）")
+    prompt_id: str = Field(
+        default="zodiac_streak_analysis",
+        description="Prompt template ID for streak analysis",
+    )
+    custom_prompt: str | None = Field(
+        default=None,
+        max_length=12000,
+        description="Optional custom prompt overriding the preset template",
+    )
+    provider: str | None = Field(default=None, max_length=64)
+    model: str | None = Field(default=None, max_length=128)
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+
+
+@router.get("/zodiac-streak-data")
+def get_zodiac_streak_data(
+    lottery: str = "macau",
+    num_periods: int = 30,
+    min_streak: int = 3,
+    _: User = _user,
+) -> dict[str, Any]:
+    """Return pre-computed zodiac streak statistics without invoking AI.
+
+    Useful for previewing the data before running an AI analysis.
+    """
+    from app.services.ai.zodiac_streak import compute_streaks, get_zodiac_by_periods
+
+    num_periods = max(5, min(num_periods, 500))
+    min_streak = max(2, min(min_streak, 20))
+
+    period_data = get_zodiac_by_periods(lottery=lottery, num_periods=num_periods)
+    if not period_data:
+        raise HTTPException(status_code=404, detail="没有找到开奖记录，请先同步开奖数据")
+
+    streak_stats = compute_streaks(period_data, min_streak=min_streak)
+
+    # Remove the large presence matrix from the response to save bandwidth
+    # (the frontend can reconstruct it from period_data if needed)
+    response_stats = {k: v for k, v in streak_stats.items() if k != "xiao_presence"}
+
+    return {
+        "ok": True,
+        "lottery": lottery,
+        "num_periods": len(period_data),
+        "min_streak": min_streak,
+        "periods": period_data,
+        "streaks": response_stats,
+    }
+
+
+@router.post("/zodiac-streak-analyze")
+def zodiac_streak_analyze(
+    req: ZodiacStreakRequest = Body(...),
+    _: User = _staff,
+) -> dict[str, Any]:
+    """Synchronous AI analysis of zodiac streaks across N periods."""
+    if not _AI_CONCURRENCY.acquire(timeout=5):
+        raise HTTPException(status_code=429, detail="AI 分析任务较多，请稍后重试")
+    try:
+        result = analyze_zodiac_streaks(
+            lottery=req.lottery,
+            num_periods=req.num_periods,
+            min_streak=req.min_streak,
+            prompt_id=req.prompt_id,
+            custom_prompt=req.custom_prompt,
+            provider=req.provider,
+            model=req.model,
+            temperature=req.temperature,
+        )
+    finally:
+        _AI_CONCURRENCY.release()
+
+    if not result.ok:
+        raise HTTPException(status_code=502, detail=result.error)
+    return result.to_dict()
+
+
+@router.post("/zodiac-streak-stream")
+def zodiac_streak_stream(
+    req: ZodiacStreakRequest = Body(...),
+    _: User = _staff,
+):
+    """Stream zodiac streak AI analysis progress and tokens in real time (SSE)."""
+    if not _AI_CONCURRENCY.acquire(timeout=5):
+        raise HTTPException(status_code=429, detail="AI 分析任务较多，请稍后重试")
+
+    def event_stream():
+        try:
+            for event in analyze_zodiac_streaks_stream(
+                lottery=req.lottery,
+                num_periods=req.num_periods,
+                min_streak=req.min_streak,
+                prompt_id=req.prompt_id,
+                custom_prompt=req.custom_prompt,
+                provider=req.provider,
+                model=req.model,
+                temperature=req.temperature,
+            ):
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        finally:
+            _AI_CONCURRENCY.release()
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
