@@ -126,6 +126,22 @@ def test_missing_session_header_yields_no_session_in_plaintext(raw_client):
     assert body["code"] == "no_session"
 
 
+def test_zodiac_streak_stream_skips_encryption_session(raw_client):
+    """The streak SSE route is plaintext like /ai/analyze-stream.
+
+    A missing encryption session must not be reported as no_session, or the
+    web client treats the click as an expired identity.
+    """
+    res = raw_client.post(
+        f"{PREFIX}/ai/zodiac-streak-stream",
+        json={"lottery": "macau", "num_periods": 10, "min_streak": 3},
+    )
+    assert res.status_code == 401
+    body = res.json()
+    assert body.get("code") != "no_session"
+    assert body.get("detail") == "Not authenticated"
+
+
 def test_bad_signature_is_rejected(raw_client):
     from app.core.config import settings
 

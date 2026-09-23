@@ -43,7 +43,10 @@ def _exempt(path: str) -> bool:
         "/redoc",
         "/docs/oauth2-redirect",
         "/favicon.ico",
+        # SSE endpoints are sent as plaintext JSON by the web client. They stay
+        # behind JWT only; wrapping the stream would break the event channel.
         f"{_PREFIX}/ai/analyze-stream",
+        f"{_PREFIX}/ai/zodiac-streak-stream",
     }
     if path in exact:
         return True
