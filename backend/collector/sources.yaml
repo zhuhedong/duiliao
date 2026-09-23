@@ -623,8 +623,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_baoliao.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖爆料一肖二码及开奖验证
+  enabled: false
+  remark: 顶尖爆料一肖二码及开奖验证（上游已下线）
   extra:
     title: 顶尖爆料·一肖二码
     upstream_id: '1789907465205'
@@ -662,8 +662,8 @@ sources:
   hit_mode: any
   script_path: sources/touzi_neimu.py
   timeout_sec: 30
-  enabled: true
-  remark: 站长精准二肖及内幕开奖
+  enabled: false
+  remark: 站长精准二肖及内幕开奖（上游已下线）
   extra:
     title: 投资内幕二肖
     upstream_id: '1789822727406'
@@ -719,6 +719,58 @@ sources:
   extra:
     title: 翻身二肖
     upstream_id: '1784374826030'
+- source_id: jue_mi_mashi
+  source_name: 绝密码师
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/jue_mi_mashi.py
+  timeout_sec: 30
+  enabled: true
+  remark: 588080.com绝密码师二肖四码
+  extra:
+    title: 绝密码师
+    upstream_id: '1790067938745'
+- source_id: touzi_dashen
+  source_name: 澳彩投资大神
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/touzi_dashen.py
+  timeout_sec: 30
+  enabled: true
+  remark: 588080.com澳彩投资大神投资三码
+  extra:
+    title: 澳彩投资大神
+    upstream_id: '1790066325194'
+- source_id: jingzhun_liuma
+  source_name: 精准六码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/jingzhun_liuma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 588080.com精准六码
+  extra:
+    title: 精准六码
+    upstream_id: '1790066748533'
+- source_id: jingzhun_erxiao_sima
+  source_name: 精准二肖四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/jingzhun_erxiao_sima.py
+  timeout_sec: 30
+  enabled: true
+  remark: 588080.com精准二肖四码
+  extra:
+    title: 精准二肖四码
+    upstream_id: '1790067436523'
 - source_id: tt_6xiao
   source_name: 通天必中六肖
   site_family: tongtian_83191
@@ -1126,6 +1178,17 @@ sources:
   enabled: true
   remark: 83191.com通天四尾八码
   extra: {}
+- source_id: tt_yxym
+  source_name: 通天一肖一码
+  site_family: tongtian_83191
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/tt_yxym.py
+  timeout_sec: 30
+  enabled: true
+  remark: 83191.com通天一肖一码
+  extra: {}
 - source_id: dj_9xiao
   source_name: 顶级论坛九肖中特
   site_family: dingji_77452
@@ -1335,6 +1398,150 @@ sources:
   enabled: true
   remark: 77452.com澳门顶级阳光绝杀三肖
   extra: {}
+- source_id: dj_bandanshuang
+  source_name: 顶级论坛半单双
+  site_family: dingji_77452
+  lottery: macau
+  play_type: tema_twoface
+  hit_mode: any
+  script_path: sources/dj_bandanshuang.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛㈡半单双
+  extra:
+    path: /htm/tz/amtz/007.html
+- source_id: dj_2bo
+  source_name: 顶级论坛二波中特
+  site_family: dingji_77452
+  lottery: macau
+  play_type: tema_twoface
+  hit_mode: any
+  script_path: sources/dj_2bo.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛⒉波中特
+  extra:
+    path: /htm/tz/amtz/008.html
+- source_id: dj_4he
+  source_name: 顶级论坛四合中特
+  site_family: dingji_77452
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_4he.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛４合中特
+  extra:
+    path: /htm/tz/amtz/012.html
+- source_id: dj_tiandixiao
+  source_name: 顶级论坛天地肖中特
+  site_family: dingji_77452
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_tiandixiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛天地肖中特
+  extra:
+    path: /htm/tz/amtz/015.html
+- source_id: dj_yc_4xiao
+  source_name: 顶级论坛原创四肖
+  site_family: dingji_77452
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_yc_4xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛原创四肖
+  extra:
+    path: /htm/tz/amtz/022.html
+- source_id: dj_jp_6xiao
+  source_name: 顶级论坛金牌六肖
+  site_family: dingji_77452
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_jp_6xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛金牌六肖
+  extra:
+    path: /htm/tz/amtz/026.html
+- source_id: dj_danshuang
+  source_name: 顶级论坛单双中特
+  site_family: dingji_77452
+  lottery: macau
+  play_type: tema_twoface
+  hit_mode: any
+  script_path: sources/dj_danshuang.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛单双中特
+  extra:
+    path: /htm/tz/amtz/037.html
+- source_id: dj_ws_3xiao_44
+  source_name: 顶级论坛绝杀三肖
+  site_family: dingji_77452
+  lottery: macau
+  play_type: buzhong_xiao
+  hit_mode: none
+  script_path: sources/dj_ws_3xiao_44.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛绝杀三肖
+  extra:
+    path: /htm/tz/amtz/044.html
+- source_id: dj_ws_5ma
+  source_name: 顶级论坛稳杀五码
+  site_family: dingji_77452
+  lottery: macau
+  play_type: buzhong_num
+  hit_mode: none
+  script_path: sources/dj_ws_5ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛稳杀五码
+  extra:
+    path: /htm/tz/amtz/051.html
+- source_id: dj_6xiao_57
+  source_name: 顶级论坛六肖中特
+  site_family: dingji_77452
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_6xiao_57.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛六肖中特
+  extra:
+    path: /htm/tz/amtz/057.html
+- source_id: dj_ws_10ma
+  source_name: 顶级论坛绝杀十码
+  site_family: dingji_77452
+  lottery: macau
+  play_type: buzhong_num
+  hit_mode: none
+  script_path: sources/dj_ws_10ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛绝杀10码
+  extra:
+    path: /htm/tz/amtz/060.html
+- source_id: dj_5xiao_67
+  source_name: 顶级论坛五肖中特
+  site_family: dingji_77452
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_5xiao_67.py
+  timeout_sec: 30
+  enabled: true
+  remark: 77452.com顶级论坛五肖中特
+  extra:
+    path: /htm/tz/amtz/067.html
 draw:
   macau:
     adapter: getLastLottery
@@ -1371,6 +1578,16 @@ site_families:
     - https://59631a.com/
     - https://83191b.com/
     expected_title: 通天
+    catalog_ignore:
+      'wlj2.js': 优秀网站推广收录（广告外链）
+      'wlj02.js': 优秀网站推广收录（广告外链）
+      'zbrtu.js': 广告图片样式排版
+      'ttqw.js': 空白占位脚本
+      'tp5.js': 梦影逍遥跑马图（图谜需OCR，暂缓接入）
+      'tp6.js': 龙门客栈（图谜需OCR，暂缓接入）
+      'tp13.js': 解西游谜语（图谜需OCR，暂缓接入）
+      '1.js': 一语破天机（诗文玄机，不作为数字预测资料）
+      'ttjs.js': 通天金牌玄机（诗文玄机，不作为数字预测资料）
   dingji_77452:
     entry_urls:
     - https://77452.com/

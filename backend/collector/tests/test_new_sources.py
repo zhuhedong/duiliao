@@ -17,10 +17,15 @@ import dingjian_baoliao
 import fanshen_erxiao
 import jingsuan_sanma
 import jingpin_7ma
+import jingzhun_erxiao_sima
+import jingzhun_liuma
+import jue_mi_mashi
 import sima_shuju
+import touzi_dashen
 import touzi_neimu
 import tt_4wbm
 import tt_4x8m
+import tt_yxym
 import zengshi_xinshui
 
 
@@ -183,18 +188,87 @@ class TestNewSources(unittest.TestCase):
         self.assertEqual(rows[1].period_raw, "265")
         self.assertEqual(rows[1].claimed["status"], "pending")
 
+    def test_jue_mi_mashi_extract_structure(self):
+        sample = """
+        第262期
+        牛 猴
+        18-30-11-23
+        开奖:牛30中
+        第266期
+        天天爆庄狗庄发抖！
+        开奖:發88中
+        """
+        rows = jue_mi_mashi.extract(sample)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].period_raw, "262")
+        vals = [p["value"] for p in rows[0].preds]
+        self.assertIn("牛", vals)
+        self.assertIn("30", vals)
+        self.assertEqual(rows[0].claimed["status"], "hit")
+        self.assertEqual(rows[1].period_raw, "266")
+        self.assertEqual(rows[1].claimed["status"], "pending")
+
+    def test_touzi_dashen_extract_structure(self):
+        sample = """
+        261期 投资三码 【22.34.28】
+        266期 投资三码 【88.88.88】
+        """
+        rows = touzi_dashen.extract(sample)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].period_raw, "261")
+        self.assertEqual([p["value"] for p in rows[0].preds], ["22", "34", "28"])
+        self.assertEqual(rows[1].period_raw, "266")
+        self.assertEqual(rows[1].claimed["status"], "pending")
+
+    def test_jingzhun_liuma_extract_structure(self):
+        sample = """
+        262期✨精准六码✨
+        ☾31.26.02.06.01. 中奖 30 ☽
+        266期✨精准六码✨
+        ☾我们一起同行，中奖没那么困难☽
+        """
+        rows = jingzhun_liuma.extract(sample)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].period_raw, "262")
+        self.assertEqual(len(rows[0].preds), 6)
+        self.assertEqual(rows[0].claimed["status"], "hit")
+        self.assertEqual(rows[1].period_raw, "266")
+        self.assertEqual(rows[1].claimed["status"], "pending")
+
+    def test_jingzhun_erxiao_sima_extract_structure(self):
+        sample = """
+        262期 二肖四码 开：牛30🀄
+        重点二肖：【羊 / 猴】
+        旺码：【15、03、30、28】
+        266期 二肖四码 开：發88🀄
+        重点二肖：【发 / 财】
+        旺码：【88、88、88、88】
+        """
+        rows = jingzhun_erxiao_sima.extract(sample)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].period_raw, "262")
+        self.assertEqual(rows[0].claimed["status"], "hit")
+        vals = [p["value"] for p in rows[0].preds]
+        self.assertIn("羊", vals)
+        self.assertIn("15", vals)
+        self.assertEqual(rows[1].period_raw, "266")
+        self.assertEqual(rows[1].claimed["status"], "pending")
+
     def test_live_source_builds(self):
         for mod, sid in [
-            (dingjian_baoliao, "dingjian_baoliao"),
             (sima_shuju, "sima_shuju"),
             (zengshi_xinshui, "zengshi_xinshui"),
-            (touzi_neimu, "touzi_neimu"),
             (jingsuan_sanma, "jingsuan_sanma"),
             (chanzhuang_miliao, "chanzhuang_miliao"),
             (jingpin_7ma, "jingpin_7ma"),
             (fanshen_erxiao, "fanshen_erxiao"),
+            (jue_mi_mashi, "jue_mi_mashi"),
+            (touzi_dashen, "touzi_dashen"),
+            (jingzhun_liuma, "jingzhun_liuma"),
+            (jingzhun_erxiao_sima, "jingzhun_erxiao_sima"),
             (tt_4x8m, "tt_4x8m"),
             (tt_4wbm, "tt_4wbm"),
+            (tt_yxym, "tt_yxym"),
         ]:
             pred = mod.build("macau", None, None)
             self.assertTrue(pred.ok, f"{sid} build not ok")

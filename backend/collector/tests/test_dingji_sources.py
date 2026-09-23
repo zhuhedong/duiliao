@@ -200,6 +200,59 @@ class TestDingjiBuilderWithFixture(unittest.TestCase):
         self.assertEqual(pred.items[1].claimed.status, "pending")
         self.assertEqual(len(pred.items[1].preds), 9)
 
+    def test_build_dj_new_sources_fixtures(self):
+        # Test dj_bandanshuang (twoface)
+        rows_bds = [
+            {"period_raw": "265", "pred_raw": "大单 大双", "claim_raw": "开: 马49 准", "full_text": "265期: ㈡半单双 【 大单 大双】 开: 马49 准"}
+        ]
+        pred_bds = build_dj_pred(
+            source_id="dj_bandanshuang",
+            source_name="顶级论坛半单双",
+            play_type="tema_twoface",
+            hit_mode="any",
+            urls=["https://test.local/007.html"],
+            kind="twoface",
+            lottery="macau",
+            parsed_rows=rows_bds,
+        )
+        self.assertTrue(pred_bds.ok)
+        self.assertEqual(pred_bds.items[0].claimed.status, "hit")
+        self.assertGreater(len(pred_bds.items[0].preds), 0)
+
+        # Test dj_2bo (bose)
+        rows_2bo = [
+            {"period_raw": "265", "pred_raw": "绿 波 红波", "claim_raw": "开: 马49 准", "full_text": "265期: ⒉波中特 【 绿 波 红波】 开: 马49 准"}
+        ]
+        pred_2bo = build_dj_pred(
+            source_id="dj_2bo",
+            source_name="顶级论坛二波中特",
+            play_type="tema_twoface",
+            hit_mode="any",
+            urls=["https://test.local/008.html"],
+            kind="bose",
+            lottery="macau",
+            parsed_rows=rows_2bo,
+        )
+        self.assertTrue(pred_2bo.ok)
+        self.assertEqual(set(p.value for p in pred_2bo.items[0].preds), {"红波", "绿波"})
+
+        # Test dj_ws_5ma (buzhong_num)
+        rows_5ma = [
+            {"period_raw": "244", "pred_raw": "03.04.10.21.37", "claim_raw": "开: 鸡46 准", "full_text": "244期: 稳杀五码 【 03.04.10.21.37 】 开: 鸡46 准"}
+        ]
+        pred_5ma = build_dj_pred(
+            source_id="dj_ws_5ma",
+            source_name="顶级论坛稳杀五码",
+            play_type="buzhong_num",
+            hit_mode="none",
+            urls=["https://test.local/051.html"],
+            kind="num",
+            lottery="macau",
+            parsed_rows=rows_5ma,
+        )
+        self.assertTrue(pred_5ma.ok)
+        self.assertEqual(len(pred_5ma.items[0].preds), 5)
+
 
 if __name__ == "__main__":
     unittest.main()
