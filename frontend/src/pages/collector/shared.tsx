@@ -249,16 +249,19 @@ export function PageHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          {title}
-        </h1>
-        <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-          {desc}
-        </p>
+    <div className="glass-bar rounded-2xl px-4 py-3 sm:px-5 flex flex-col lg:flex-row lg:items-center gap-3 mb-1">
+      <div className="flex items-stretch gap-3 min-w-0 flex-1">
+        <span className="w-1 self-stretch rounded-full brand-gradient shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
+            {title}
+          </h1>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
+            {desc}
+          </p>
+        </div>
       </div>
-      {right && <div className="shrink-0 flex items-center gap-2 flex-wrap">{right}</div>}
+      {right && <div className="shrink-0 flex items-center gap-2 flex-wrap lg:justify-end">{right}</div>}
     </div>
   );
 }

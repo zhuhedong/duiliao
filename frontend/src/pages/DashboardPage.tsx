@@ -146,144 +146,104 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* 顶部玻璃全景横幅 */}
-      <div className="relative overflow-hidden rounded-3xl glass-panel p-6 sm:p-8">
-        {/* 内部氛围光 */}
-        <div className="absolute -top-24 -right-24 w-80 h-80 bg-violet-500/20 dark:bg-violet-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 left-1/4 w-72 h-72 bg-fuchsia-500/15 dark:bg-fuchsia-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+      <section className="xl:col-span-8 relative overflow-hidden rounded-[28px] glass-panel p-6 sm:p-8 min-h-[240px] flex flex-col justify-between">
+        <div className="absolute -top-20 -right-16 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">今日工作台</div>
+          <h2 className="mt-3 text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white max-w-xl">
+            {user.display_name ? (
+              <>{user.display_name}，从这里进入采集流水线</>
+            ) : (
+              <>从这里进入采集流水线</>
+            )}
+          </h2>
+          <p className="mt-3 max-w-lg text-sm text-slate-500 dark:text-slate-400">
+            左侧图标轨切换业务。请求仍走端到端信封加密，页面只展示你有权限看到的结果。
+          </p>
+        </div>
+        <div className="relative mt-8 flex flex-wrap gap-2">
+          {quickActions.slice(0, 3).map((action) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-full glass-subtle no-underline text-sm text-slate-700 dark:text-slate-200 hover:border-violet-400/40"
+            >
+              {action.icon}
+              {action.title}
+            </Link>
+          ))}
+        </div>
+      </section>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-400/40 dark:border-violet-400/25 backdrop-blur-md mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
-              <span>端到端加密安全工作台 · 已连接</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-              {user.display_name ? (
-                <>
-                  {user.display_name}，<span className="text-gradient">欢迎回来</span>
-                </>
-              ) : (
-                <>你好，<span className="text-gradient">欢迎回到对料工作台</span></>
-              )}
-            </h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              当前控制台所有 API 请求均受端到端混合加密与严格签名保护，数据在传输与存储全链路中保持安全密文。
-            </p>
+      <aside className="xl:col-span-4 flex flex-col gap-4">
+        <div className="rounded-[28px] glass-card p-5 flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl brand-gradient text-white text-xl font-bold flex items-center justify-center shrink-0">
+            {(user.display_name || user.email || "用").charAt(0).toUpperCase()}
           </div>
-
-          <div className="shrink-0 flex flex-col items-start md:items-end gap-1.5 text-xs text-slate-500 dark:text-slate-400 glass-subtle p-4 rounded-2xl">
-            <div className="text-slate-800 dark:text-slate-200 font-medium flex items-center gap-1.5">
-              <LockIcon size={14} className="text-emerald-500" />
-              <span>会话安全凭证有效</span>
+          <div className="min-w-0">
+            <div className="font-semibold truncate">{user.display_name || user.email}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{ROLE_LABEL[user.role] ?? user.role}</div>
+            <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-300">
+              <LockIcon size={12} />
+              上次登录 {lastLogin}
             </div>
-            <span>上次登录：{lastLogin}</span>
-            <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500">UID: {user.id.slice(0, 12)}…</span>
           </div>
         </div>
-      </div>
-
-      {/* 核心指标统计卡片 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="p-5 rounded-3xl glass-card hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-12px_rgba(139,92,246,0.25)] transition-all duration-200 flex flex-col justify-between"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{s.label}</span>
-              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${s.tone} border flex items-center justify-center backdrop-blur-sm`}>
+        <div className="grid grid-cols-2 gap-3 flex-1">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-3xl glass-card p-4 flex flex-col justify-between">
+              <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${s.tone} border flex items-center justify-center`}>
                 {s.icon}
               </div>
-            </div>
-            <div>
-              <div className="text-xl font-bold text-slate-900 dark:text-white mb-1">
-                {s.value}
+              <div className="mt-3">
+                <div className="text-[11px] text-slate-400">{s.label}</div>
+                <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{s.value}</div>
+                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 leading-snug">{s.desc}</div>
               </div>
-              <p className="text-xs text-slate-400 dark:text-slate-500 leading-tight">{s.desc}</p>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 业务快捷发射台 */}
-      <div>
-        <div className="flex items-center justify-between mb-3.5 px-1">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-            业务操作发射台
-          </h3>
-          <span className="text-xs text-slate-400 dark:text-slate-500">点击进入对应的业务管理流水线</span>
+          ))}
         </div>
+      </aside>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="xl:col-span-7 rounded-[28px] glass-card p-3 sm:p-4">
+        <div className="px-2 py-2 text-sm font-semibold">业务入口</div>
+        <div className="divide-y divide-slate-200/60 dark:divide-white/8">
           {quickActions.map((action) => (
             <Link
               key={action.to}
               to={action.to}
-              className="p-5 rounded-3xl glass-card hover:-translate-y-1 hover:shadow-[0_20px_44px_-14px_rgba(139,92,246,0.35)] hover:border-violet-400/40 dark:hover:border-violet-400/30 transition-all duration-200 group no-underline text-inherit flex flex-col justify-between relative overflow-hidden"
+              className="flex items-center gap-4 px-2 py-3 no-underline text-inherit rounded-2xl hover:bg-violet-500/5"
             >
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${action.accent} border flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform`}>
-                    {action.icon}
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md glass-subtle text-slate-500 dark:text-slate-400 font-semibold">
-                    {action.tag}
-                  </span>
-                </div>
-                <h4 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">
-                  {action.title}
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                  {action.desc}
-                </p>
+              <div className={`w-11 h-11 rounded-2xl bg-gradient-to-br ${action.accent} border flex items-center justify-center shrink-0`}>
+                {action.icon}
               </div>
-
-              <div className="mt-4 pt-3 border-t border-slate-200/50 dark:border-white/8 flex items-center justify-between text-xs font-medium text-slate-400 group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">
-                <span>进入管理</span>
-                <ArrowRightIcon size={14} className="group-hover:translate-x-1 transition-transform" />
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-sm">{action.title}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{action.desc}</div>
               </div>
+              <span className="hidden sm:inline text-[10px] font-mono text-slate-400">{action.tag}</span>
+              <ArrowRightIcon size={16} className="text-slate-400" />
             </Link>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* 端到端加密架构安全图谱卡片 */}
-      <div className="p-6 sm:p-7 rounded-3xl glass-card">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500/15 to-teal-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-400/30 flex items-center justify-center backdrop-blur-sm">
-              <ShieldIcon size={18} />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                六重全链路安全防御矩阵
-              </h3>
-              <span className="text-xs text-slate-400 dark:text-slate-500">已部署在当前的全部通信与数据存储链路</span>
-            </div>
-          </div>
-          <span className="hidden sm:inline-block text-xs font-mono text-emerald-600 dark:text-emerald-300 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
-            SECURE VERIFIED
-          </span>
+      <section className="xl:col-span-5 rounded-[28px] glass-card p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <ShieldIcon size={16} className="text-emerald-600 dark:text-emerald-300" />
+          <h3 className="text-sm font-semibold">链路防护</h3>
         </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mt-4">
+        <ol className="relative space-y-4 pl-4 border-l border-violet-400/30">
           {securityFeatures.map((f) => (
-            <div
-              key={f.title}
-              className="p-3.5 rounded-2xl glass-subtle hover:border-violet-400/30 transition-colors"
-            >
-              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">
-                {f.title}
-              </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                {f.desc}
-              </div>
-            </div>
+            <li key={f.title} className="relative">
+              <span className="absolute -left-[21px] top-1.5 w-2 h-2 rounded-full brand-gradient" />
+              <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">{f.title}</div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{f.desc}</div>
+            </li>
           ))}
-        </div>
-      </div>
+        </ol>
+      </section>
     </div>
   );
 }
