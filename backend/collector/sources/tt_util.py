@@ -284,6 +284,23 @@ def fetch_tt_text(urls: list[str], fixture: str | Path | None = None) -> tuple[s
     raise RuntimeError(f"请求所有通天镜像节点失败: {last_err}")
 
 
+def expand_period_ranges(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Expand 「261-265期」 bundles into one row per period, keeping the same pick."""
+    expanded: list[dict[str, Any]] = []
+    for row in rows:
+        match = re.search(r"(\d{1,7})\s*[-－~到至]\s*(\d{1,7})\s*期", row.get("full_text") or "")
+        if not match:
+            expanded.append(row)
+            continue
+        start, end = int(match.group(1)), int(match.group(2))
+        if end < start or end - start > 12:
+            expanded.append(row)
+            continue
+        for period_no in range(start, end + 1):
+            expanded.append({**row, "period_raw": str(period_no)})
+    return expanded
+
+
 def build_tt_pred(
     *,
     source_id: str,
@@ -295,11 +312,18 @@ def build_tt_pred(
     lottery: str = "macau",
     period: str | None = None,
     fixture: str | None = None,
+    parsed_rows: list[dict[str, Any]] | None = None,
+    final_url: str | None = None,
+    content_hash: str | None = None,
 ) -> PredV1:
     """Generic builder for tongtian_83191 prediction sources."""
-    raw_js, final_url, chash = fetch_tt_text(urls, fixture)
-    reconstructed_html = reconstruct_js_html(raw_js)
-    parsed_rows = parse_tt_rows(reconstructed_html)
+    if parsed_rows is None:
+        raw_js, final_url, content_hash = fetch_tt_text(urls, fixture)
+        reconstructed_html = reconstruct_js_html(raw_js)
+        parsed_rows = parse_tt_rows(reconstructed_html)
+    else:
+        final_url = final_url or (urls[0] if urls else "dynamic")
+        content_hash = content_hash or sha256_text(str(parsed_rows))
 
     if not parsed_rows:
         raise ValueError(f"{source_name} 未能解析出任何期数数据")
@@ -379,7 +403,7 @@ def build_tt_pred(
         hit_mode=hit_mode,
         fetched_at=now_cn(),
         final_url=final_url,
-        content_hash=chash,
+        content_hash=content_hash,
         items=items,
         error=None,
     )

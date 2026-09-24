@@ -95,17 +95,30 @@ def atoms_twoface(text: str) -> list[dict[str, str]]:
     elif "野兽" in clean or "野肖" in clean or "【野】" in clean:
         out.append({"kind": "xiao", "value": "野", "text": clean})
 
-    # 天肖 / 地肖
-    if "天肖" in clean:
-        out.append({"kind": "xiao", "value": "天", "text": clean})
-    elif "地肖" in clean:
-        out.append({"kind": "xiao", "value": "地", "text": clean})
+    # 天肖 / 地肖，以及判定规则已经接受的阴阳、男女、吉凶分组。
+    group_labels = (
+        ("天肖", "天"),
+        ("地肖", "地"),
+        ("阳肖", "阳"),
+        ("阴肖", "阴"),
+        ("男肖", "男"),
+        ("女肖", "女"),
+        ("吉肖", "吉"),
+        ("凶肖", "凶"),
+    )
+    for label, value in group_labels:
+        if label in clean:
+            out.append({"kind": "xiao", "value": value, "text": clean})
 
     return out
 
 
 def atoms_wei(text: str) -> list[dict[str, str]]:
     """Extract tails 0..9."""
+    compact = re.sub(r"\s+", "", text)
+    repeated = re.fullmatch(r"([0-9])\1{1,8}", compact)
+    if repeated:
+        return [{"kind": "wei", "value": repeated.group(1), "text": text}]
     out, seen = [], set()
     for m in re.finditer(r"\b([0-9])\b|([0-9])\s*[-－尾]", text):
         val = m.group(1) or m.group(2)

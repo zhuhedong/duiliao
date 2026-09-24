@@ -1,9 +1,8 @@
 {
   "schema": "tongtian-hosts.v1",
-  "updated_at": "2026-09-23T08:09:12.944042",
+  "updated_at": "2026-09-24T08:19:15.321613",
   "hosts": [
-    "https://tt822f.83191a.app:8443",
-    "https://tt726.www83191b.com:8443",
-    "https://tt91f.www59631.com:8443"
+    "https://tt923.www83191a.app:8443",
+    "https://tt726.www83191b.com:8443"
   ]
 }
