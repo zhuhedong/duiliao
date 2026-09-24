@@ -17,7 +17,7 @@ import {
 } from "../../lib/collector";
 import {
   LOTTERIES,
-  PageHeader,
+  PageWorkspace,
   Select,
   TextInput,
   Toolbar,
@@ -788,11 +788,7 @@ export function CollectorConsensusPage() {
   }, [consensusData]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="数据入库比对与多源对照"
-        desc="一站式呈现各采集源预测的官方对奖命中核验、虚假报喜识别，以及跨来源去重共识排行榜。"
-      />
+    <PageWorkspace summary="看各来源有没有对上开奖、有没有虚假报喜，以及多个来源去掉重复后的共识排名。">
 
       {/* 顶部 Tab 切换 */}
       <div className="flex items-center justify-between gap-4 flex-wrap pb-1">
@@ -1869,7 +1865,7 @@ export function CollectorConsensusPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageWorkspace>
   );
 }
 

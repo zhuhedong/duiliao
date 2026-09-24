@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, settingsApi, type AISettings } from "../../lib/api";
-import { PageHeader, Toolbar } from "./shared";
+import { PageWorkspace, Toolbar } from "./shared";
 import {
   SparklesIcon,
   DatabaseIcon,
@@ -537,40 +537,37 @@ export function CollectorAIAnalysisPage() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <PageHeader
-        title="AI研判"
-        desc="全量抓取多源预测模块（含 21 个核心懒加载卡片），并配合 DeepSeek / Gemini / Claude 多模型进行深度对料共识研判。"
-        right={
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/settings")}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
-              title="配置 AI 服务商地址与 API 密钥"
-            >
-              <SettingsIcon size={16} />
-              AI配置
-            </button>
-            <button
-              onClick={handleScrape588080}
-              disabled={isScraping}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50"
-            >
-              <DatabaseIcon size={16} />
-              {isScraping ? "正在抓取数据..." : "抓取最新数据"}
-            </button>
-            <button
-              onClick={handleRunAI}
-              disabled={isAnalyzing}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50"
-            >
-              <SparklesIcon size={16} />
-              {isAnalyzing ? "正在进行 AI 研判..." : "执行 AI 研判"}
-            </button>
-          </div>
-        }
-      />
+    <PageWorkspace
+      summary="先抓取预测栏目，再交给已配置的模型做对料。连肖分析在第三个页签。"
+      actions={
+        <>
+          <button
+            onClick={() => navigate("/settings")}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+            title="配置 AI 服务商地址与 API 密钥"
+          >
+            <SettingsIcon size={16} />
+            AI配置
+          </button>
+          <button
+            onClick={handleScrape588080}
+            disabled={isScraping}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50"
+          >
+            <DatabaseIcon size={16} />
+            {isScraping ? "正在抓取..." : "抓取最新数据"}
+          </button>
+          <button
+            onClick={handleRunAI}
+            disabled={isAnalyzing}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50"
+          >
+            <SparklesIcon size={16} />
+            {isAnalyzing ? "研判中..." : "执行 AI 研判"}
+          </button>
+        </>
+      }
+    >
 
       {/* Tabs Navigation */}
       <Toolbar>
@@ -1639,6 +1636,6 @@ export function CollectorAIAnalysisPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageWorkspace>
   );
 }

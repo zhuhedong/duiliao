@@ -142,7 +142,7 @@ export function AppLayout() {
   );
 
   return (
-    <div className="min-h-screen text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-100">
       <div className="app-aurora" />
       <div className="app-aurora-grid" />
 
@@ -191,13 +191,13 @@ export function AppLayout() {
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex flex-1 min-h-0 w-full">
         <aside className="hidden md:block w-[92px] shrink-0 sticky top-[4.75rem] h-[calc(100vh-5.75rem)] px-2 py-3">
           <div className="h-full glass-panel rounded-3xl p-2 overflow-y-auto">{rail}</div>
         </aside>
 
-        <main className="flex-1 min-w-0 px-3 sm:px-5 lg:px-6 pb-24 md:pb-8 pt-4">
-          <div className="max-w-[1400px] animate-fadeIn">
+        <main className="flex-1 min-w-0 w-full px-3 sm:px-4 pb-24 md:pb-4 pt-3">
+          <div className="w-full min-h-[calc(100vh-5.75rem)] animate-fadeIn">
             <Outlet />
           </div>
         </main>

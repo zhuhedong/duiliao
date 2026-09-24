@@ -5,7 +5,7 @@ import { ApiError } from "../../lib/api";
 import { collectorApi, type CatalogStatus, type Lottery, type MonitorResult } from "../../lib/collector";
 import {
   LOTTERIES,
-  PageHeader,
+  PageWorkspace,
   ReadOnlyNote,
   Select,
   playLabel,
@@ -80,12 +80,10 @@ export function CollectorMonitorPage() {
   const items = monitor?.items ?? [];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="缺期监控与栏目巡检"
-        desc="按实际官方已开奖期号统计各来源落后缺期情况，并定时核验上游网站栏目与目录结构的存活健康度。"
-        right={canWrite ? null : <ReadOnlyNote />}
-      />
+    <PageWorkspace
+      summary="对照已开奖期号看各来源缺了多少期，并检查上游栏目是否还在。"
+      actions={canWrite ? null : <ReadOnlyNote />}
+    >
 
       {error && (
         <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
@@ -282,6 +280,6 @@ export function CollectorMonitorPage() {
           </TableContainer>
         )}
       </SectionCard>
-    </div>
+    </PageWorkspace>
   );
 }

@@ -146,7 +146,7 @@ export function DashboardPage() {
   ];
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+    <div className="w-full min-h-[calc(100vh-6.25rem)] grid grid-cols-1 xl:grid-cols-12 gap-3 content-start">
       <section className="xl:col-span-8 relative overflow-hidden rounded-[28px] glass-panel p-6 sm:p-8 min-h-[240px] flex flex-col justify-between">
         <div className="absolute -top-20 -right-16 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">

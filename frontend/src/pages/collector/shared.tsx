@@ -266,6 +266,35 @@ export function PageHeader({
   );
 }
 
+/** 页面工作区：左侧说明与操作，右侧内容。顶栏已经显示页面名，这里不再重复大标题。 */
+export function PageWorkspace({
+  summary,
+  actions,
+  nav,
+  children,
+}: {
+  summary: string;
+  actions?: ReactNode;
+  nav?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="w-full min-h-[calc(100vh-6.25rem)] grid grid-cols-1 xl:grid-cols-[240px_minmax(0,1fr)] gap-3 items-stretch">
+      <aside className="xl:sticky xl:top-[5.5rem] xl:self-start flex flex-col gap-3">
+        <div className="rounded-3xl glass-card p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300">
+            本页
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{summary}</p>
+          {actions ? <div className="mt-4 flex flex-col gap-2">{actions}</div> : null}
+        </div>
+        {nav}
+      </aside>
+      <div className="min-w-0 w-full h-full flex flex-col gap-3">{children}</div>
+    </div>
+  );
+}
+
 /** 统一玻璃操作工具栏 */
 export function Toolbar({
   children,

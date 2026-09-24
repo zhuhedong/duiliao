@@ -102,9 +102,9 @@ export function ProfilePage() {
   const initial = (user?.display_name || user?.email || "用")?.charAt(0).toUpperCase();
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="w-full min-h-[calc(100vh-6.25rem)] grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch content-start">
       {/* 用户概览与基本资料卡片 */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card">
+      <div className="xl:col-span-5 xl:sticky xl:top-[5.5rem] p-6 sm:p-8 rounded-3xl glass-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/50 dark:border-white/8">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl brand-gradient flex items-center justify-center text-white font-bold text-2xl shadow-[0_8px_24px_-6px_rgba(139,92,246,0.5)]">
@@ -131,7 +131,7 @@ export function ProfilePage() {
           </div>
         </div>
 
-        <form onSubmit={onSave} className="mt-6 space-y-4 max-w-md">
+        <form onSubmit={onSave} className="mt-6 space-y-4">
           {savedMsg && (
             <Alert variant="success" className="rounded-xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 py-2.5 px-3 backdrop-blur-md">
               <AlertDescription className="text-xs leading-relaxed font-medium">{savedMsg}</AlertDescription>
@@ -336,7 +336,7 @@ export function ProfilePage() {
       </div>
 
       {/* 登录设备与安全会话管控 */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-card">
+      <div className="xl:col-span-7 p-6 sm:p-8 rounded-3xl glass-card">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <DevicesIcon size={18} className="text-violet-600 dark:text-violet-300" />

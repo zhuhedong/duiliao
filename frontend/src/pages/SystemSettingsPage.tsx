@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PageHeader } from "./collector/shared";
+import { PageWorkspace } from "./collector/shared";
 import {
   SparklesIcon,
   EyeIcon,
@@ -399,41 +399,64 @@ export function SystemSettingsPage() {
     setOpenaiModel(preset.model);
   };
 
+  const tabClass = (id: "ai" | "database" | "system") =>
+    `flex items-center gap-2 w-full px-3 py-2.5 rounded-2xl text-sm text-left cursor-pointer ${
+      activeTab === id
+        ? "bg-violet-500/15 text-violet-700 dark:text-violet-200 font-semibold"
+        : "text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5"
+    }`;
+
   return (
-    <div className="space-y-6 max-w-5xl">
-      {/* Top Header */}
-      <PageHeader
-        title="系统设置"
-        desc="配置大语言模型（LLM）调用地址、API 鉴权密钥、PostgreSQL 数据库及数据导入。"
-        right={
-          activeTab === "ai" ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSave}
-                disabled={saving || loading}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
-              >
-                <CheckBadgeIcon size={18} />
-                {saving ? "正在保存..." : "保存 AI 配置"}
-              </button>
-            </div>
-          ) : activeTab === "database" ? (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  loadDbStatus();
-                  loadSchemaReport();
-                }}
-                disabled={loadingDb || checkingSchema}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
-              >
-                <RefreshIcon size={16} className={loadingDb || checkingSchema ? "animate-spin" : ""} />
-                刷新数据库状态
-              </button>
-            </div>
-          ) : undefined
-        }
-      />
+    <PageWorkspace
+      summary="模型地址和密钥、数据库连接、导入，以及当前环境的安全说明。"
+      actions={
+        activeTab === "ai" ? (
+          <button
+            onClick={handleSave}
+            disabled={saving || loading}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <CheckBadgeIcon size={18} />
+            {saving ? "正在保存..." : "保存 AI 配置"}
+          </button>
+        ) : activeTab === "database" ? (
+          <button
+            onClick={() => {
+              loadDbStatus();
+              loadSchemaReport();
+            }}
+            disabled={loadingDb || checkingSchema}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+          >
+            <RefreshIcon size={16} className={loadingDb || checkingSchema ? "animate-spin" : ""} />
+            刷新数据库状态
+          </button>
+        ) : undefined
+      }
+      nav={
+        <div className="rounded-3xl glass-card p-2 flex flex-col gap-1">
+          <button onClick={() => setActiveTab("ai")} className={tabClass("ai")}>
+            <SparklesIcon size={16} />
+            模型与密钥
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("database");
+              loadDbStatus();
+              loadSchemaReport();
+            }}
+            className={tabClass("database")}
+          >
+            <DatabaseIcon size={16} />
+            数据库与导入
+          </button>
+          <button onClick={() => setActiveTab("system")} className={tabClass("system")}>
+            <ActivityIcon size={16} />
+            环境与安全
+          </button>
+        </div>
+      }
+    >
 
       {/* Status Alerts */}
       {saveSuccess && (
@@ -487,45 +510,7 @@ export function SystemSettingsPage() {
       )}
 
       {/* Tabs */}
-      <div className="inline-flex items-center gap-1 p-1 rounded-2xl glass-subtle max-w-full overflow-x-auto">
-        <button
-          onClick={() => setActiveTab("ai")}
-          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === "ai"
-              ? "text-violet-700 dark:text-violet-200 bg-gradient-to-r from-violet-500/15 via-fuchsia-500/10 to-transparent border border-violet-400/30 dark:border-violet-400/25 shadow-[0_4px_16px_-6px_rgba(139,92,246,0.35)] font-semibold"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
-          }`}
-        >
-          <SparklesIcon size={16} />
-          AI 模型与密钥设置
-        </button>
-        <button
-          onClick={() => {
-            setActiveTab("database");
-            loadDbStatus();
-            loadSchemaReport();
-          }}
-          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === "database"
-              ? "text-violet-700 dark:text-violet-200 bg-gradient-to-r from-violet-500/15 via-fuchsia-500/10 to-transparent border border-violet-400/30 dark:border-violet-400/25 shadow-[0_4px_16px_-6px_rgba(139,92,246,0.35)] font-semibold"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
-          }`}
-        >
-          <DatabaseIcon size={16} />
-          数据库与数据迁移
-        </button>
-        <button
-          onClick={() => setActiveTab("system")}
-          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === "system"
-              ? "text-violet-700 dark:text-violet-200 bg-gradient-to-r from-violet-500/15 via-fuchsia-500/10 to-transparent border border-violet-400/30 dark:border-violet-400/25 shadow-[0_4px_16px_-6px_rgba(139,92,246,0.35)] font-semibold"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
-          }`}
-        >
-          <ActivityIcon size={16} />
-          系统环境与安全
-        </button>
-      </div>
+
 
       {loading ? (
         <div className="py-24 flex flex-col items-center justify-center space-y-3 text-slate-400 dark:text-slate-500">
@@ -1709,6 +1694,6 @@ export function SystemSettingsPage() {
           )}
         </>
       )}
-    </div>
+    </PageWorkspace>
   );
 }

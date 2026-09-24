@@ -5,7 +5,7 @@ import { ApiError } from "../../lib/api";
 import { collectorApi, type Lottery, type RatingsResult, type RuleRow } from "../../lib/collector";
 import {
   LOTTERIES,
-  PageHeader,
+  PageWorkspace,
   Select,
   TextInput,
   SectionCard,
@@ -100,11 +100,7 @@ export function CollectorRatingsPage() {
   );
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="源可信评级度量"
-        desc="按所有来源共用的最近 N 个期号滑动窗口比较真实命中率，展示样本量、缺期、未对奖、连中连挂及自称不一致(虚假宣传)核验结果。"
-      />
+    <PageWorkspace summary="用同一段最近期号比较各来源的真实命中率、缺期、连中连挂和虚假报喜。">
 
       {error && (
         <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
@@ -263,6 +259,6 @@ export function CollectorRatingsPage() {
         isOpen={!!historyModal}
         onClose={() => setHistoryModal(null)}
       />
-    </div>
+    </PageWorkspace>
   );
 }

@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { ApiError } from "../../lib/api";
 import { collectorApi, type NumberAttr } from "../../lib/collector";
 import {
-  PageHeader,
+  PageWorkspace,
   SectionCard,
   TableContainer,
   tableThClass,
@@ -92,11 +92,7 @@ export function CollectorNumbersPage() {
   }, [items, boseFilter, genderFilter, keyword]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="号码资料属性字典"
-        desc="01–49 号码全属性划分字典。生肖与家野按所选参考日期计算（农历春节自动切换），波色、大小、单双、头尾、合数为数学固定属性。"
-      />
+    <PageWorkspace summary="01–49 的波色、单双、头尾、合数是固定的。生肖和家野跟着所选日期的农历年变。">
 
       {error && (
         <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
@@ -308,6 +304,6 @@ export function CollectorNumbersPage() {
           </div>
         )}
       </SectionCard>
-    </div>
+    </PageWorkspace>
   );
 }

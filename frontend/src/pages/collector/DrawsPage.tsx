@@ -20,7 +20,7 @@ import {
 } from "../../lib/lotteryAttr";
 import {
   LOTTERIES,
-  PageHeader,
+  PageWorkspace,
   ReadOnlyNote,
   ResultJson,
   Select,
@@ -214,12 +214,10 @@ export function CollectorDrawsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="官方开奖与自动更新"
-        desc="支持后台定时自动轮询开奖并自动重算对奖，或手动导入官方开奖号码。"
-        right={canWrite ? null : <ReadOnlyNote />}
-      />
+    <PageWorkspace
+      summary="定时轮询官方开奖并自动对奖，也可以按期号手动导入。"
+      actions={canWrite ? null : <ReadOnlyNote />}
+    >
 
       {error && (
         <Alert variant="error" className="rounded-2xl border bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md">
@@ -913,7 +911,7 @@ export function CollectorDrawsPage() {
           </div>
         )}
       </SectionCard>
-    </div>
+    </PageWorkspace>
   );
 }
 

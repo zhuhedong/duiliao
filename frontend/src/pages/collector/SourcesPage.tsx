@@ -15,7 +15,7 @@ import {
 } from "../../lib/collector";
 import {
   LOTTERIES,
-  PageHeader,
+  PageWorkspace,
   ReadOnlyNote,
   ResultJson,
   Select,
@@ -414,31 +414,29 @@ export function CollectorSourcesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={activeTab === "sources" ? "数据源与脚本采集" : "数据源定时采集任务"}
-        desc={
-          activeTab === "sources"
-            ? "支持录入自定义 Python 爬虫脚本、单脚本在线调试运行、批量采集与标准化入库。"
-            : "自动化定时采集调度系统，支持 Linux 5 段 Cron 表达式、指定时间延迟启动及自动对奖评测。"
-        }
-        right={
-          activeTab === "sources" ? (
-            canWrite ? (
-              <button
-                type="button"
-                onClick={() => setShowCreate(!showCreate)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 text-white transition-all cursor-pointer"
-              >
-                <SparklesIcon size={16} />
-                {showCreate ? "取消录入" : "+ 录入新脚本与数据源"}
-              </button>
-            ) : (
-              <ReadOnlyNote />
-            )
-          ) : null
-        }
-      />
+    <PageWorkspace
+      summary={
+        activeTab === "sources"
+          ? "录入脚本、在线试跑、批量采集，结果按统一格式入库。"
+          : "用 Cron 或指定时间启动采集，跑完后可以自动对奖。"
+      }
+      actions={
+        activeTab === "sources" ? (
+          canWrite ? (
+            <button
+              type="button"
+              onClick={() => setShowCreate(!showCreate)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 text-white transition-all cursor-pointer"
+            >
+              <SparklesIcon size={16} />
+              {showCreate ? "取消录入" : "录入脚本"}
+            </button>
+          ) : (
+            <ReadOnlyNote />
+          )
+        ) : null
+      }
+    >
 
       {/* 选项卡切换: 数据源管理 vs 定时采集任务 */}
       <div className="flex items-center justify-between gap-4 flex-wrap pb-1">
@@ -1217,6 +1215,6 @@ export function CollectorSourcesPage() {
         isOpen={!!historyModal}
         onClose={() => setHistoryModal(null)}
       />
-    </div>
+    </PageWorkspace>
   );
 }
