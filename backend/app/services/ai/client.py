@@ -13,6 +13,16 @@ import httpx
 
 log = logging.getLogger("duiliao.ai")
 
+# Gateways often cut a chunked SSE body without an error frame. Retry those,
+# then fall back to one non-streaming completion.
+_STREAM_DROPPED = (
+    httpx.RemoteProtocolError,
+    httpx.ReadError,
+    httpx.ConnectError,
+    httpx.ReadTimeout,
+    httpx.WriteError,
+)
+
 
 @dataclass
 class AIResponse:
@@ -148,8 +158,36 @@ class OpenAIProvider(BaseAIProvider):
         }
         if max_tokens:
             payload["max_tokens"] = max_tokens
+        # Some gateways gzip a chunked SSE body and then drop the connection.
+        headers["Accept-Encoding"] = "identity"
 
-        timeout = httpx.Timeout(180.0, connect=20.0, read=180.0)
+        last_error: Exception | None = None
+        for attempt in range(2):
+            emitted = False
+            try:
+                for piece in self._iter_chat_deltas(url, headers, payload):
+                    emitted = True
+                    yield piece
+                return
+            except _STREAM_DROPPED as exc:
+                last_error = exc
+                if emitted:
+                    log.warning("AI stream broke after partial output: %s", exc)
+                    raise
+                log.warning("AI stream closed before any token (attempt %s): %s", attempt + 1, exc)
+        log.warning("AI stream unavailable, requesting a single response: %s", last_error)
+        response = self.generate(
+            messages,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
+        if response.content:
+            yield response.content
+
+    def _iter_chat_deltas(self, url: str, headers: dict[str, str], payload: dict[str, Any]) -> Generator[str, None, None]:
+        timeout = httpx.Timeout(300.0, connect=20.0, read=300.0)
         with httpx.Client(timeout=timeout) as client:
             with client.stream("POST", url, headers=headers, json=payload) as resp:
                 resp.raise_for_status()

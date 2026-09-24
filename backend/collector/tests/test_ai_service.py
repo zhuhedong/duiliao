@@ -128,6 +128,57 @@ class TestAIService(unittest.TestCase):
         self.assertEqual(call_kwargs["headers"]["Authorization"], "Bearer test-key")
         self.assertEqual(call_kwargs["json"]["model"], "deepseek-chat")
 
+    def test_openai_stream_falls_back_when_peer_closes(self):
+        import httpx
+
+        class BrokenStream:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def raise_for_status(self):
+                return None
+
+            def iter_lines(self):
+                raise httpx.RemoteProtocolError("peer closed connection without sending complete message body")
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def stream(self, *args, **kwargs):
+                headers = kwargs.get("headers") or {}
+                self.stream_headers = headers
+                return BrokenStream()
+
+            def post(self, *args, **kwargs):
+                response = MagicMock()
+                response.status_code = 200
+                response.raise_for_status.return_value = None
+                response.json.return_value = {
+                    "choices": [{"message": {"content": "完整连肖报告"}}],
+                    "usage": {},
+                }
+                return response
+
+        with patch("httpx.Client", FakeClient):
+            provider = OpenAIProvider(
+                api_key="test-key",
+                base_url="https://api.deepseek.com/v1",
+                default_model="deepseek-chat",
+            )
+            text = "".join(provider.generate_stream([{"role": "user", "content": "分析连肖"}]))
+
+        self.assertEqual(text, "完整连肖报告")
+
     @patch("httpx.Client.post")
     def test_gemini_provider(self, mock_post):
         mock_resp = MagicMock()
