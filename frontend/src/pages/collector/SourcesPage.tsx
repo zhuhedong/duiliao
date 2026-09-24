@@ -40,7 +40,6 @@ import {
   PlayIcon,
   EditIcon,
   TrashIcon,
-  CheckBadgeIcon,
   SparklesIcon,
   RefreshIcon,
   ChevronDownIcon,
@@ -481,19 +480,18 @@ export function CollectorSourcesPage() {
       )}
 
       {successMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md text-sm flex items-center justify-between animate-fadeIn">
-          <div className="flex items-center gap-2">
-            <CheckBadgeIcon size={18} />
-            <span className="font-medium">{successMsg}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSuccessMsg(null)}
-            className="text-xs font-semibold hover:underline cursor-pointer"
-          >
-            关闭
-          </button>
-        </div>
+        <Alert variant="success" className="rounded-2xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 backdrop-blur-md">
+          <AlertDescription className="flex items-center justify-between gap-3 text-sm font-medium">
+            <span>{successMsg}</span>
+            <button
+              type="button"
+              onClick={() => setSuccessMsg(null)}
+              className="shrink-0 text-xs font-semibold hover:underline cursor-pointer"
+            >
+              关闭
+            </button>
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* TAB 2: 定时调度计划管理器 */}

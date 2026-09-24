@@ -6,7 +6,10 @@ import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { Spinner } from "@appica/ui-react/spinner";
 import { useAuth } from "../auth/AuthContext";
 import { userApi, type SessionInfo } from "../lib/api";
-import { DevicesIcon } from "../components/icons";
+import { ChevronDownIcon, DevicesIcon } from "../components/icons";
+import { UserAvatar } from "../components/UserAvatar";
+import { Select } from "./collector/shared";
+import { USER_ROLE_LABEL, USER_STATUS_LABEL, userStatusTone } from "../lib/userLabels";
 
 const PLATFORM_LABEL: Record<string, string> = { web: "网页", ios: "iOS", android: "安卓" };
 
@@ -99,24 +102,32 @@ export function ProfilePage() {
     await loadSessions();
   };
 
-  const initial = (user?.display_name || user?.email || "用")?.charAt(0).toUpperCase();
+  const statusTone = userStatusTone(user?.status ?? "");
+  const statusClass =
+    statusTone === "success"
+      ? "text-emerald-600 dark:text-emerald-300"
+      : statusTone === "warning"
+        ? "text-amber-600 dark:text-amber-300"
+        : "text-rose-600 dark:text-rose-300";
 
   return (
-    <div className="w-full min-h-[calc(100vh-6.25rem)] grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch content-start">
+    <div className="workspace-fill w-full grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch content-start">
       {/* 用户概览与基本资料卡片 */}
-      <div className="xl:col-span-5 xl:sticky xl:top-[5.5rem] p-6 sm:p-8 rounded-3xl glass-card">
+      <div className="xl:col-span-5 xl:sticky xl:top-[5rem] xl:self-start p-6 sm:p-8 rounded-3xl glass-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/50 dark:border-white/8">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl brand-gradient flex items-center justify-center text-white font-bold text-2xl shadow-[0_8px_24px_-6px_rgba(139,92,246,0.5)]">
-              {initial}
-            </div>
+            <UserAvatar
+              name={displayName || user?.display_name || user?.email}
+              url={avatarUrl || user?.avatar_url}
+              className="h-14 w-14 shrink-0 rounded-2xl text-2xl shadow-[0_8px_24px_-6px_rgba(139,92,246,0.5)]"
+            />
             <div>
               <div className="flex items-center gap-2.5">
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   {user?.display_name || "用户"}
                 </h2>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold border border-violet-400/40 dark:border-violet-400/25 backdrop-blur-md">
-                  {user?.role === "admin" ? "超级管理员" : "标准用户"}
+                  {USER_ROLE_LABEL[user?.role ?? ""] ?? user?.role ?? "普通用户"}
                 </span>
               </div>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-mono">
@@ -127,7 +138,9 @@ export function ProfilePage() {
 
           <div className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5 self-start sm:self-auto glass-subtle py-1.5 px-3 rounded-xl">
             <span>账号状态：</span>
-            <span className="text-emerald-600 dark:text-emerald-300 font-semibold">正常运行中</span>
+            <span className={`${statusClass} font-semibold`}>
+              {USER_STATUS_LABEL[user?.status ?? ""] ?? user?.status ?? "未知"}
+            </span>
           </div>
         </div>
 
@@ -187,31 +200,33 @@ export function ProfilePage() {
             <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">
               语言偏好 (Locale)
             </FieldLabel>
-            <select
+            <Select
               value={locale}
-              onChange={(e) => setLocale(e.target.value)}
-              className="w-full h-10 px-3 text-sm rounded-xl glass-input text-slate-900 dark:text-white"
-            >
-              <option value="zh-CN">zh-CN</option>
-              <option value="en-US">en-US</option>
-            </select>
+              onChange={setLocale}
+              className="w-full"
+              options={[
+                { value: "zh-CN", label: "zh-CN" },
+                { value: "en-US", label: "en-US" },
+              ]}
+            />
           </Field>
 
           <Field className="space-y-1">
             <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">
               时区 (Timezone)
             </FieldLabel>
-            <select
+            <Select
               value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="w-full h-10 px-3 text-sm rounded-xl glass-input text-slate-900 dark:text-white"
-            >
-              <option value="Asia/Shanghai">Asia/Shanghai</option>
-              <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
-              <option value="UTC">UTC</option>
-              <option value="America/New_York">America/New_York</option>
-              <option value="Europe/London">Europe/London</option>
-            </select>
+              onChange={setTimezone}
+              className="w-full"
+              options={[
+                { value: "Asia/Shanghai", label: "Asia/Shanghai" },
+                { value: "Asia/Hong_Kong", label: "Asia/Hong_Kong" },
+                { value: "UTC", label: "UTC" },
+                { value: "America/New_York", label: "America/New_York" },
+                { value: "Europe/London", label: "Europe/London" },
+              ]}
+            />
           </Field>
 
           <Button
@@ -239,7 +254,7 @@ export function ProfilePage() {
             onClick={() => setShowPasswordForm(!showPasswordForm)}
           >
             <span>修改密码</span>
-            <span className="text-xs">{showPasswordForm ? "▲" : "▼"}</span>
+            <ChevronDownIcon size={14} className={showPasswordForm ? "rotate-180" : ""} />
           </button>
           
           {showPasswordForm && (

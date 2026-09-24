@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, settingsApi, type AISettings } from "../../lib/api";
-import { PageWorkspace, Toolbar } from "./shared";
+import { PageWorkspace, SegmentedTabs, Toolbar } from "./shared";
 import {
   SparklesIcon,
   DatabaseIcon,
@@ -537,10 +537,28 @@ export function CollectorAIAnalysisPage() {
   });
 
   return (
-    <PageWorkspace
-      summary="先抓取预测栏目，再交给已配置的模型做对料。连肖分析在第三个页签。"
-      actions={
-        <>
+    <PageWorkspace summary="先抓取预测栏目，再交给已配置的模型做对料。连肖分析在第三个页签。">
+      <Toolbar className="justify-between">
+        <SegmentedTabs
+          tabs={[
+            { id: "ai", label: "AI研判", icon: <SparklesIcon size={16} /> },
+            {
+              id: "data",
+              label: "数据预览",
+              icon: <DatabaseIcon size={16} />,
+              count: scrapedData ? scrapedData.total_modules : undefined,
+            },
+            {
+              id: "streak",
+              label: "连肖分析",
+              icon: <ActivityIcon size={16} />,
+              count: streakData ? streakData.num_periods : undefined,
+            },
+          ]}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => navigate("/settings")}
             className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
@@ -565,83 +583,27 @@ export function CollectorAIAnalysisPage() {
             <SparklesIcon size={16} />
             {isAnalyzing ? "研判中..." : "执行 AI 研判"}
           </button>
-        </>
-      }
-    >
-
-      {/* Tabs Navigation */}
-      <Toolbar>
-        <div className="flex items-center gap-2 w-full justify-between">
-          <div className="flex items-center gap-1 glass-subtle p-1 rounded-2xl">
-            <button
-              onClick={() => setActiveTab("ai")}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "ai"
-                  ? "text-violet-700 dark:text-violet-200 bg-white/80 dark:bg-white/10 shadow-[0_2px_10px_-2px_rgba(139,92,246,0.3),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-violet-300/50 dark:border-violet-400/25 font-semibold"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
-              }`}
-            >
-              <SparklesIcon size={16} />
-              AI 智能研判与提示词
-            </button>
-            <button
-              onClick={() => setActiveTab("data")}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "data"
-                  ? "text-violet-700 dark:text-violet-200 bg-white/80 dark:bg-white/10 shadow-[0_2px_10px_-2px_rgba(139,92,246,0.3),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-violet-300/50 dark:border-violet-400/25 font-semibold"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
-              }`}
-            >
-              <DatabaseIcon size={16} />
-              数据源抓取与预览
-              {scrapedData && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full text-2xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  {scrapedData.total_modules} 模块
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab("streak")}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "streak"
-                  ? "text-violet-700 dark:text-violet-200 bg-white/80 dark:bg-white/10 shadow-[0_2px_10px_-2px_rgba(139,92,246,0.3),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-violet-300/50 dark:border-violet-400/25 font-semibold"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
-              }`}
-            >
-              <ActivityIcon size={16} />
-              生肖连码分析
-              {streakData && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full text-2xs bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400">
-                  {streakData.num_periods} 期
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Quick Status Stats */}
-          {scrapedData && (
-            <div className="hidden lg:flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-              <span>
-                目标集群: <strong className="text-slate-800 dark:text-slate-200">{scrapedData.app_base}</strong>
-              </span>
-              <span>•</span>
-              <span>
-                核心卡片:{" "}
-                <strong className="text-emerald-600 dark:text-emerald-400">
-                  {scrapedData.loaded_content_count}/{scrapedData.content_modules_count}
-                </strong>
-              </span>
-              <span>•</span>
-              <span>
-                页面体积:{" "}
-                <strong className="text-slate-800 dark:text-slate-200">
-                  {(scrapedData.html_size_bytes / 1024).toFixed(1)} KB
-                </strong>
-              </span>
-            </div>
-          )}
         </div>
       </Toolbar>
+      {scrapedData && (
+        <div className="flex flex-wrap items-center gap-3 px-1 text-xs text-slate-500 dark:text-slate-400">
+          <span>
+            目标集群: <strong className="text-slate-800 dark:text-slate-200">{scrapedData.app_base}</strong>
+          </span>
+          <span>
+            核心卡片:{" "}
+            <strong className="text-emerald-600 dark:text-emerald-400">
+              {scrapedData.loaded_content_count}/{scrapedData.content_modules_count}
+            </strong>
+          </span>
+          <span>
+            页面体积:{" "}
+            <strong className="text-slate-800 dark:text-slate-200">
+              {(scrapedData.html_size_bytes / 1024).toFixed(1)} KB
+            </strong>
+          </span>
+        </div>
+      )}
 
       {/* Scrape Error Message */}
       {scrapeError && (

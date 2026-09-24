@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { Button } from "@appica/ui-react/button";
 import { useTheme } from "@appica/ui-react/hooks/use-theme";
 import { useAuth } from "../auth/AuthContext";
+import { UserAvatar } from "./UserAvatar";
 import {
   DashboardIcon,
   DatabaseIcon,
@@ -66,17 +67,19 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 const PAGE_TITLES: Record<string, { title: string; group: string }> = {
-  "/": { title: "系统工作台", group: "概览" },
-  "/collector/ai-analysis": { title: "AI研判", group: "采集与对照" },
-  "/collector/sources": { title: "数据源采集", group: "采集与对照" },
-  "/collector/draws": { title: "开奖管理", group: "采集与对照" },
-  "/collector/consensus": { title: "多源数据对照", group: "采集与对照" },
-  "/collector/numbers": { title: "号码指标分析", group: "采集与对照" },
-  "/collector/ratings": { title: "源可信评级", group: "质量与度量" },
-  "/collector/monitor": { title: "节点服务监控", group: "质量与度量" },
-  "/profile": { title: "个人中心与设备安全", group: "账户与系统" },
-  "/settings": { title: "系统设置", group: "账户与系统" },
+  "/": { title: "工作台", group: "概览" },
+  "/collector/ai-analysis": { title: "AI研判", group: "业务" },
+  "/collector/sources": { title: "数据源采集", group: "业务" },
+  "/collector/draws": { title: "开奖管理", group: "业务" },
+  "/collector/consensus": { title: "多源对照", group: "业务" },
+  "/collector/numbers": { title: "号码分析", group: "业务" },
+  "/collector/ratings": { title: "源可信评级", group: "质量" },
+  "/collector/monitor": { title: "服务监控", group: "质量" },
+  "/profile": { title: "个人中心", group: "账户" },
+  "/settings": { title: "系统设置", group: "账户" },
 };
+
+const MOBILE_PRIMARY_COUNT = 4;
 
 export function AppLayout() {
   const { user, logout } = useAuth();
@@ -90,13 +93,24 @@ export function AppLayout() {
     return api.subscribeStatus(setSessionStatus);
   }, []);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileMenuOpen]);
+
   const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
 
   const page = PAGE_TITLES[location.pathname] || { title: "工作台", group: "概览" };
-  const initial = (user?.display_name || user?.email || "用")?.charAt(0).toUpperCase();
+  const mobileItems = NAV_GROUPS.flatMap((group) => group.items);
+  const mobilePrimary = mobileItems.slice(0, MOBILE_PRIMARY_COUNT);
+  const moreActive = !mobilePrimary.some((item) => item.to === location.pathname);
 
   const statusClass =
     sessionStatus === "connected"
@@ -174,10 +188,14 @@ export function AppLayout() {
           </Button>
           <Link
             to="/profile"
-            className="w-8 h-8 rounded-full brand-gradient flex items-center justify-center text-white text-xs font-bold no-underline"
+            className="no-underline"
             title={user?.display_name || user?.email || "个人中心"}
           >
-            {initial}
+            <UserAvatar
+              name={user?.display_name || user?.email}
+              url={user?.avatar_url}
+              className="h-8 w-8 rounded-full text-xs"
+            />
           </Link>
           <Button
             variant="ghost"
@@ -192,12 +210,12 @@ export function AppLayout() {
       </header>
 
       <div className="flex flex-1 min-h-0 w-full">
-        <aside className="hidden md:block w-[92px] shrink-0 sticky top-[4.75rem] h-[calc(100vh-5.75rem)] px-2 py-3">
+        <aside className="hidden md:block w-[92px] shrink-0 sticky top-[4.25rem] h-[calc(100vh-4.25rem)] px-2 py-3">
           <div className="h-full glass-panel rounded-3xl p-2 overflow-y-auto">{rail}</div>
         </aside>
 
         <main className="flex-1 min-w-0 w-full px-3 sm:px-4 pb-24 md:pb-4 pt-3">
-          <div className="w-full min-h-[calc(100vh-5.75rem)] animate-fadeIn">
+          <div className="workspace-fill w-full animate-fadeIn">
             <Outlet />
           </div>
         </main>
@@ -205,26 +223,30 @@ export function AppLayout() {
 
       <div className="md:hidden fixed inset-x-0 bottom-0 z-30 p-3">
         <div className="glass-panel rounded-2xl px-1.5 py-1.5 grid grid-cols-5 gap-1">
-          {NAV_GROUPS.flatMap((g) => g.items)
-            .slice(0, 4)
-            .map((item) => {
-              const active = location.pathname === item.to;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl no-underline text-[10px] ${
-                    active ? "bg-violet-500/15 text-violet-700 dark:text-violet-200" : "text-slate-500 dark:text-slate-400"
-                  }`}
-                >
-                  {item.icon}
-                  {item.short}
-                </Link>
-              );
-            })}
+          {mobilePrimary.map((item) => {
+            const active = location.pathname === item.to;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl no-underline text-[10px] ${
+                  active ? "bg-violet-500/15 text-violet-700 dark:text-violet-200" : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                {item.icon}
+                {item.short}
+              </Link>
+            );
+          })}
           <button
             type="button"
-            className="flex flex-col items-center justify-center gap-1 h-14 rounded-xl text-[10px] text-slate-500 dark:text-slate-400"
+            aria-expanded={mobileMenuOpen}
+            aria-haspopup="dialog"
+            className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl text-[10px] ${
+              moreActive || mobileMenuOpen
+                ? "bg-violet-500/15 text-violet-700 dark:text-violet-200"
+                : "text-slate-500 dark:text-slate-400"
+            }`}
             onClick={() => setMobileMenuOpen(true)}
           >
             <MenuIcon size={18} />
@@ -236,7 +258,11 @@ export function AppLayout() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <div className="absolute left-3 right-3 bottom-24 glass-panel rounded-3xl p-4 animate-glassPop">
+          <div
+            role="dialog"
+            aria-label="全部导航"
+            className="absolute left-3 right-3 bottom-24 glass-panel rounded-3xl p-4 animate-glassPop"
+          >
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-semibold">全部导航</span>
               <button type="button" className="p-1.5 rounded-lg glass-subtle" onClick={() => setMobileMenuOpen(false)} aria-label="关闭菜单">

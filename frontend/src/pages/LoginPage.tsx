@@ -134,7 +134,6 @@ export function LoginPage() {
               type="button"
               onClick={() => setShowForgotPassword((prev) => !prev)}
               className="text-[11px] text-primary hover:underline font-medium transition-colors cursor-pointer"
-              tabIndex={-1}
             >
               忘记密码？
             </button>

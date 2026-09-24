@@ -63,7 +63,7 @@ export function CollectorNumbersPage() {
       setItems(res.items);
       setWuxingAvailable(res.wuxing_available);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "加载号码资料失败");
+      setError(err instanceof ApiError ? err.message : "加载号码分析失败");
     } finally {
       setLoading(false);
     }

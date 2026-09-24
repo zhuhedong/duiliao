@@ -15,28 +15,17 @@ import {
   ArrowRightIcon,
   StarIcon,
   HashIcon,
+  SparklesIcon,
 } from "../components/icons";
-
-const STATUS_LABEL: Record<string, string> = {
-  active: "正常运行",
-  pending: "待验证",
-  suspended: "已停用",
-  banned: "已封禁",
-  deleted: "已注销",
-};
-
-const ROLE_LABEL: Record<string, string> = {
-  user: "普通用户",
-  staff: "技术员工",
-  admin: "超级管理员",
-};
-
-const SOURCE_LABEL: Record<string, string> = {
-  web: "Web 网页端",
-  ios: "iOS 客户端",
-  android: "Android 客户端",
-  api: "开放接口",
-};
+import { UserAvatar } from "../components/UserAvatar";
+import {
+  USER_ROLE_DESC,
+  USER_ROLE_LABEL,
+  USER_SOURCE_DESC,
+  USER_SOURCE_LABEL,
+  USER_STATUS_DESC,
+  USER_STATUS_LABEL,
+} from "../lib/userLabels";
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -52,23 +41,28 @@ export function DashboardPage() {
     {
       icon: <CheckBadgeIcon size={20} />,
       label: "账号状态",
-      value: STATUS_LABEL[user.status] ?? user.status,
-      tone: "from-emerald-500/15 to-teal-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-400/30",
-      desc: "鉴权正常 · 具备完整会话权限",
+      value: USER_STATUS_LABEL[user.status] ?? user.status,
+      tone:
+        user.status === "active"
+          ? "from-emerald-500/15 to-teal-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-400/30"
+          : user.status === "pending"
+            ? "from-amber-500/15 to-orange-500/10 text-amber-600 dark:text-amber-300 border-amber-400/30"
+            : "from-rose-500/15 to-orange-500/10 text-rose-600 dark:text-rose-300 border-rose-400/30",
+      desc: USER_STATUS_DESC[user.status] ?? "当前账号状态",
     },
     {
       icon: <UserIcon size={20} />,
       label: "账号角色",
-      value: ROLE_LABEL[user.role] ?? user.role,
+      value: USER_ROLE_LABEL[user.role] ?? user.role,
       tone: "from-violet-500/15 to-fuchsia-500/10 text-violet-600 dark:text-violet-300 border-violet-400/30",
-      desc: user.role === "admin" ? "系统最高控制权限" : "标准业务查询权限",
+      desc: USER_ROLE_DESC[user.role] ?? "当前角色权限",
     },
     {
       icon: <GlobeIcon size={20} />,
       label: "接入渠道",
-      value: SOURCE_LABEL[user.registration_source] ?? user.registration_source,
+      value: USER_SOURCE_LABEL[user.registration_source] ?? user.registration_source,
       tone: "from-sky-500/15 to-blue-500/10 text-sky-600 dark:text-sky-300 border-sky-400/30",
-      desc: "TLS 1.3 / WebSocket 接入",
+      desc: USER_SOURCE_DESC[user.registration_source] ?? "注册来源",
     },
     {
       icon: <MailIcon size={20} />,
@@ -82,6 +76,14 @@ export function DashboardPage() {
   ];
 
   const quickActions = [
+    {
+      to: "/collector/ai-analysis",
+      title: "AI研判",
+      desc: "抓取预测栏目，交给已配置的模型做对料",
+      icon: <SparklesIcon size={22} />,
+      tag: "AI",
+      accent: "from-violet-500/15 to-fuchsia-500/10 text-violet-600 dark:text-violet-300 border-violet-400/30",
+    },
     {
       to: "/collector/sources",
       title: "数据源采集",
@@ -116,7 +118,7 @@ export function DashboardPage() {
     },
     {
       to: "/collector/ratings",
-      title: "源评级",
+      title: "源可信评级",
       desc: "多维度评估数据源稳定性及准确率",
       icon: <StarIcon size={22} />,
       tag: "RATING",
@@ -124,8 +126,8 @@ export function DashboardPage() {
     },
     {
       to: "/collector/numbers",
-      title: "号码资料",
-      desc: "基础号码资料与属性分析检索",
+      title: "号码分析",
+      desc: "波色、生肖、头尾等号码属性检索",
       icon: <HashIcon size={22} />,
       tag: "DATA",
       accent: "from-fuchsia-500/15 to-violet-500/10 text-fuchsia-600 dark:text-fuchsia-300 border-fuchsia-400/30",
@@ -142,12 +144,12 @@ export function DashboardPage() {
     { title: "3. Argon2id 凭证保护", desc: "抗 GPU / ASIC 硬件暴力破解的顶级口令哈希，绝不存储任何原始口令。" },
     { title: "4. 设备细粒度会话吊销", desc: "多端独立 Refresh Token，支持随时随地远程一键吊销指定客户端。" },
     { title: "5. 速率限制与暴力防御", desc: "基于令牌桶算法的接口级限流策略与异常 IP 临时静默阻断机制。" },
-    { title: "6. 零知识架构原则", desc: "敏感业务与密钥仅掌握在终端节点手中，服务端不具备越权解密能力。" },
+    { title: "6. 传输信封加密", desc: "请求离开浏览器前套上 AES-256-GCM 信封。服务端只用本次会话密钥解密并处理业务，页面不保留明文密钥。" },
   ];
 
   return (
-    <div className="w-full min-h-[calc(100vh-6.25rem)] grid grid-cols-1 xl:grid-cols-12 gap-3 content-start">
-      <section className="xl:col-span-8 relative overflow-hidden rounded-[28px] glass-panel p-6 sm:p-8 min-h-[240px] flex flex-col justify-between">
+    <div className="workspace-fill w-full grid grid-cols-1 xl:grid-cols-12 gap-3 content-start">
+      <section className="xl:col-span-8 relative overflow-hidden rounded-[28px] glass-panel p-6 sm:p-8 min-h-[240px]">
         <div className="absolute -top-20 -right-16 w-72 h-72 bg-violet-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative">
           <div className="text-[11px] uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">今日工作台</div>
@@ -162,28 +164,18 @@ export function DashboardPage() {
             左侧图标轨切换业务。请求仍走端到端信封加密，页面只展示你有权限看到的结果。
           </p>
         </div>
-        <div className="relative mt-8 flex flex-wrap gap-2">
-          {quickActions.slice(0, 3).map((action) => (
-            <Link
-              key={action.to}
-              to={action.to}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-full glass-subtle no-underline text-sm text-slate-700 dark:text-slate-200 hover:border-violet-400/40"
-            >
-              {action.icon}
-              {action.title}
-            </Link>
-          ))}
-        </div>
       </section>
 
       <aside className="xl:col-span-4 flex flex-col gap-4">
         <div className="rounded-[28px] glass-card p-5 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl brand-gradient text-white text-xl font-bold flex items-center justify-center shrink-0">
-            {(user.display_name || user.email || "用").charAt(0).toUpperCase()}
-          </div>
+          <UserAvatar
+            name={user.display_name || user.email}
+            url={user.avatar_url}
+            className="h-14 w-14 shrink-0 rounded-2xl text-xl"
+          />
           <div className="min-w-0">
             <div className="font-semibold truncate">{user.display_name || user.email}</div>
-            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{ROLE_LABEL[user.role] ?? user.role}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{USER_ROLE_LABEL[user.role] ?? user.role}</div>
             <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] text-emerald-700 dark:text-emerald-300">
               <LockIcon size={12} />
               上次登录 {lastLogin}

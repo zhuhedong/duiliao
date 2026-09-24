@@ -238,34 +238,6 @@ export function TextInput({
   );
 }
 
-/** 统一页面顶部标题栏 */
-export function PageHeader({
-  title,
-  desc,
-  right,
-}: {
-  title: string;
-  desc: string;
-  right?: ReactNode;
-}) {
-  return (
-    <div className="glass-bar rounded-2xl px-4 py-3 sm:px-5 flex flex-col lg:flex-row lg:items-center gap-3 mb-1">
-      <div className="flex items-stretch gap-3 min-w-0 flex-1">
-        <span className="w-1 self-stretch rounded-full brand-gradient shrink-0" />
-        <div className="min-w-0">
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
-            {title}
-          </h1>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
-            {desc}
-          </p>
-        </div>
-      </div>
-      {right && <div className="shrink-0 flex items-center gap-2 flex-wrap lg:justify-end">{right}</div>}
-    </div>
-  );
-}
-
 /** 页面工作区：左侧说明与操作，右侧内容。顶栏已经显示页面名，这里不再重复大标题。 */
 export function PageWorkspace({
   summary,
@@ -279,8 +251,8 @@ export function PageWorkspace({
   children: ReactNode;
 }) {
   return (
-    <div className="w-full min-h-[calc(100vh-6.25rem)] grid grid-cols-1 xl:grid-cols-[240px_minmax(0,1fr)] gap-3 items-stretch">
-      <aside className="xl:sticky xl:top-[5.5rem] xl:self-start flex flex-col gap-3">
+    <div className="workspace-fill w-full grid grid-cols-1 xl:grid-cols-[240px_minmax(0,1fr)] gap-3 items-stretch">
+      <aside className="xl:sticky xl:top-[5rem] xl:self-start flex flex-col gap-3">
         <div className="rounded-3xl glass-card p-4">
           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300">
             本页
