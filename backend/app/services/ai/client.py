@@ -162,14 +162,18 @@ class OpenAIProvider(BaseAIProvider):
                         break
                     try:
                         chunk = json.loads(data_str)
-                        choices = chunk.get("choices", [])
-                        if choices:
-                            delta = choices[0].get("delta", {})
-                            content = delta.get("content", "")
-                            if content:
-                                yield content
                     except Exception:
                         continue
+                    error = chunk.get("error")
+                    if error:
+                        message = error.get("message") if isinstance(error, dict) else str(error)
+                        raise RuntimeError(message or "模型流式接口返回错误")
+                    choices = chunk.get("choices", [])
+                    if choices:
+                        delta = choices[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            yield content
 
     async def async_generate(
         self,
@@ -561,6 +565,11 @@ class AnthropicProvider(BaseAIProvider):
         )
 
 
+def _require_api_key(api_key: str, provider: str) -> None:
+    if not str(api_key or "").strip():
+        raise ValueError(f"未配置 {provider} 的 API Key，请先到系统设置填写后再研判")
+
+
 def get_ai_client(
     provider: str | None = None,
     *,
@@ -583,6 +592,7 @@ def get_ai_client(
         key = api_key if api_key is not None else cfg.get("api_key", "")
         url = base_url if base_url is not None else cfg.get("base_url", "https://api.openai.com/v1")
         default_model = model or cfg.get("model", "deepseek-chat")
+        _require_api_key(key, target_provider)
         return OpenAIProvider(api_key=key, base_url=url, default_model=default_model, timeout=timeout)
 
     elif target_provider == "gemini":
@@ -590,6 +600,7 @@ def get_ai_client(
         key = api_key if api_key is not None else cfg.get("api_key", "")
         url = base_url if base_url is not None else cfg.get("base_url", "https://generativelanguage.googleapis.com")
         default_model = model or cfg.get("model", "gemini-2.5-flash")
+        _require_api_key(key, target_provider)
         return GeminiProvider(api_key=key, base_url=url, default_model=default_model, timeout=timeout)
 
     elif target_provider in ("anthropic", "claude"):
@@ -597,6 +608,7 @@ def get_ai_client(
         key = api_key if api_key is not None else cfg.get("api_key", "")
         url = base_url if base_url is not None else cfg.get("base_url", "https://api.anthropic.com")
         default_model = model or cfg.get("model", "claude-3-5-sonnet-20241022")
+        _require_api_key(key, target_provider)
         return AnthropicProvider(api_key=key, base_url=url, default_model=default_model, timeout=timeout)
 
     else:

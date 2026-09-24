@@ -260,6 +260,20 @@ class ApiClient {
     return this.request<T>("DELETE", path, undefined, opts);
   }
 
+  private postPlain(path: string, body: unknown): Promise<Response> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.accessToken) {
+      headers["Authorization"] = `Bearer ${this.accessToken}`;
+    }
+    return fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+  }
+
   async stream(
     path: string,
     body: unknown,
@@ -270,19 +284,13 @@ class ApiClient {
       onError?: (err: Error) => void;
     },
   ): Promise<void> {
-    const url = `${API_BASE}${path}`;
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (this.accessToken) {
-      headers["Authorization"] = `Bearer ${this.accessToken}`;
+    let resp = await this.postPlain(path, body);
+    // SSE routes skip the encrypted request() path, so an expired access token
+    // has to be refreshed here or the click looks like a lost login.
+    if (resp.status === 401 && this.refreshToken) {
+      const refreshed = await this.tryRefresh();
+      if (refreshed) resp = await this.postPlain(path, body);
     }
-
-    const resp = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
 
     if (!resp.ok) {
       let errText = await resp.text();
@@ -324,9 +332,7 @@ class ApiClient {
             try {
               const data = JSON.parse(dataStr);
               if (data.stage === "error") {
-                const err = new Error(data.error || "大模型分析异常");
-                callbacks.onError?.(err);
-                throw err;
+                throw new Error(data.error || "大模型分析异常");
               }
               if (data.stage === "delta" && data.delta) {
                 callbacks.onChunk?.(data.delta);

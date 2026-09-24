@@ -39,6 +39,8 @@ interface ScrapedSummary {
   entry_url?: string;
   app_base?: string;
   html?: string;
+  raw_html?: string;
+  raw_html_error?: string | null;
   modules?: ScrapedModule[];
 }
 
@@ -161,7 +163,9 @@ export function CollectorAIAnalysisPage() {
   // Prompts & Config (persisted to localStorage across page reloads)
   const [prompts, setPrompts] = useState<PromptInfo[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string>(() => {
-    return localStorage.getItem("duiliao_prompt_id") || "macau_analyst_expert";
+    const saved = localStorage.getItem("duiliao_prompt_id") || "macau_analyst_expert";
+    // 连肖模板只吃按期开奖数据，放在帖文研判里会对空。
+    return saved === "zodiac_streak_analysis" ? "macau_analyst_expert" : saved;
   });
   const [period, setPeriod] = useState<string>(() => {
     return localStorage.getItem("duiliao_period") || "262";
@@ -213,6 +217,7 @@ export function CollectorAIAnalysisPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedModule, setSelectedModule] = useState<ScrapedModule | null>(null);
+  const [rawHtmlView, setRawHtmlView] = useState<"render" | "source">("source");
 
   // AI Execution State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -253,6 +258,20 @@ export function CollectorAIAnalysisPage() {
         console.warn("Failed to load prompts:", err);
       });
 
+    api
+      .get<{ items?: { period?: string }[] }>("/collector/draws?lottery=macau&limit=1")
+      .then((res) => {
+        const full = res.items?.[0]?.period || "";
+        const short = full.length >= 3 ? full.slice(-3) : "";
+        const latest = Number(short);
+        const saved = Number(localStorage.getItem("duiliao_period") || "");
+        if (!short || !Number.isFinite(latest)) return;
+        if (!Number.isFinite(saved) || latest - saved >= 2) {
+          setPeriod(short);
+        }
+      })
+      .catch(() => {});
+
     settingsApi
       .getAISettings()
       .then((cfg) => {
@@ -275,7 +294,7 @@ export function CollectorAIAnalysisPage() {
       const res = await api.post<ScrapedSummary>("/collector/site-dump/588080", {
         include_html: true,
         include_modules: true,
-        timeout: 15.0,
+        timeout: 45.0,
       });
       setScrapedData(res);
 
@@ -646,7 +665,7 @@ export function CollectorAIAnalysisPage() {
                   <SparklesIcon size={18} className="text-primary" />
                   提示词模板 (Prompt)
                 </h3>
-                <span className="text-xs text-slate-400">共 {prompts.length} 个内置模板</span>
+                <span className="text-xs text-slate-400">共 {prompts.filter((p) => p.id !== "zodiac_streak_analysis").length} 个内置模板</span>
               </div>
 
               {/* Dynamic Period Setting */}
@@ -689,7 +708,7 @@ export function CollectorAIAnalysisPage() {
 
               <div className="space-y-2">
 
-                {prompts.map((p) => {
+                {prompts.filter((p) => p.id !== "zodiac_streak_analysis").map((p) => {
                   const isSelected = selectedPromptId === p.id;
                   return (
                     <div
@@ -1156,6 +1175,66 @@ export function CollectorAIAnalysisPage() {
               >
                 {isScraping ? "正在获取中..." : "立即获取全量数据"}
               </button>
+            </div>
+          )}
+
+          {scrapedData && (
+            <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                    浏览器原始 HTML
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Playwright 打开当前线路后取到的页面 DOM，不是接口拼装稿。
+                    {scrapedData.raw_html
+                      ? ` ${(new TextEncoder().encode(scrapedData.raw_html).length / 1024).toFixed(1)} KB`
+                      : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRawHtmlView("source")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
+                      rawHtmlView === "source"
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent"
+                        : "border-slate-200 dark:border-slate-800 text-slate-500"
+                    }`}
+                  >
+                    源码
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRawHtmlView("render")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
+                      rawHtmlView === "render"
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent"
+                        : "border-slate-200 dark:border-slate-800 text-slate-500"
+                    }`}
+                  >
+                    静态预览
+                  </button>
+                </div>
+              </div>
+              {scrapedData.raw_html_error && !scrapedData.raw_html && (
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                  原始 HTML 没抓到：{scrapedData.raw_html_error}。模块清单仍来自接口。
+                </div>
+              )}
+              {scrapedData.raw_html && rawHtmlView === "source" && (
+                <pre className="p-3 rounded-xl bg-slate-950 text-slate-300 text-xs font-mono overflow-auto max-h-[420px] leading-relaxed whitespace-pre-wrap">
+                  {scrapedData.raw_html}
+                </pre>
+              )}
+              {scrapedData.raw_html && rawHtmlView === "render" && (
+                <iframe
+                  title="588080 原始页面"
+                  sandbox=""
+                  srcDoc={scrapedData.raw_html}
+                  className="w-full h-[520px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white"
+                />
+              )}
             </div>
           )}
 

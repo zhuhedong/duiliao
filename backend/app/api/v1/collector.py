@@ -564,6 +564,8 @@ def dump_588080(
     data: dict[str, Any] = result.to_summary()
     if req.include_html:
         data["html"] = result.html
+        data["raw_html"] = result.raw_html
+        data["raw_html_error"] = result.raw_html_error
     if req.include_modules:
         data["modules"] = result.modules
     return data

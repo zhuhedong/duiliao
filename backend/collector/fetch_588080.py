@@ -48,12 +48,16 @@ class FetchResult:
     html_size_bytes: int
     html: str
     modules: list[dict[str, Any]]
+    raw_html: str = ""
+    raw_html_error: str | None = None
     error: str | None = None
 
     def to_summary(self) -> dict[str, Any]:
         d = asdict(self)
         d.pop("html", None)
+        d.pop("raw_html", None)
         d.pop("modules", None)
+        d["raw_html_bytes"] = len((self.raw_html or "").encode("utf-8"))
         return d
 
 
@@ -260,6 +264,106 @@ def assemble_page_html(
     return "\n".join(parts)
 
 
+def resolve_page_base(api_base: str, *, timeout: float = 8.0) -> str:
+    """Pick a host that actually serves the SPA. Some API mirrors answer 403 for `/`."""
+    from common.sites.dingjian import STATIC_API_HOSTS
+
+    candidates = [api_base.rstrip("/"), *[host.rstrip("/") for host in STATIC_API_HOSTS]]
+    for host in dict.fromkeys(candidates):
+        try:
+            response = get(host + "/", timeout=timeout, retries=0)
+        except Exception:
+            continue
+        text = response.text or ""
+        if response.status_code == 200 and "<script" in text.lower() and "403 Forbidden" not in text[:200]:
+            return host
+    return api_base.rstrip("/")
+
+
+def fetch_rendered_html(
+    url: str,
+    *,
+    timeout: float = 45.0,
+    required_names: list[str] | None = None,
+) -> str:
+    """Open the live app and scroll until every catalog column is in the DOM.
+
+    The public entry is a JavaScript shell. Columns mount only as they enter
+    the viewport, so jumping straight to the bottom skips the ones in between.
+    """
+    from playwright.sync_api import sync_playwright
+
+    def _compact(value: str) -> str:
+        return re.sub(r"\s+", "", value)
+
+    names: list[str] = []
+    seen_names: set[str] = set()
+    for name in required_names or []:
+        text = str(name or "").strip()
+        key = _compact(text)
+        if len(key) < 2 or key in seen_names:
+            continue
+        seen_names.add(key)
+        names.append(text)
+
+    timeout_ms = int(max(timeout, 20) * 1000)
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(headless=True)
+        try:
+            page = browser.new_page(viewport={"width": 420, "height": 900})
+            page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+            page.wait_for_function(
+                "() => document.body && document.body.innerText.includes('期')",
+                timeout=timeout_ms,
+            )
+            missing = set(names)
+            last_height = -1
+            last_text = -1
+            stable_rounds = 0
+            for _ in range(100):
+                state = page.evaluate(
+                    """() => {
+                        const el = document.scrollingElement || document.documentElement;
+                        const view = window.innerHeight || 900;
+                        const next = Math.min((el.scrollTop || 0) + view * 0.75, el.scrollHeight || 0);
+                        window.scrollTo(0, next);
+                        return {
+                            height: el.scrollHeight || 0,
+                            text: (document.body && document.body.innerText || '').length,
+                            atBottom: next + 8 >= (el.scrollHeight || 0),
+                            body: document.body ? document.body.innerText : '',
+                        };
+                    }"""
+                )
+                page.wait_for_timeout(400)
+                body = _compact(state.get("body") or "")
+                if missing:
+                    missing = {name for name in missing if _compact(name) not in body}
+                at_bottom = bool(state.get("atBottom"))
+                unchanged = state.get("height") == last_height and state.get("text") == last_text
+                if not missing and at_bottom:
+                    break
+                if at_bottom and unchanged:
+                    stable_rounds += 1
+                    if stable_rounds >= 4:
+                        break
+                else:
+                    stable_rounds = 0
+                last_height = state.get("height") or 0
+                last_text = state.get("text") or 0
+            if names and missing:
+                log.warning(
+                    "rendered page missing %s/%s columns: %s",
+                    len(missing),
+                    len(names),
+                    "、".join(list(missing)[:8]),
+                )
+            page.evaluate("window.scrollTo(0, 0)")
+            return page.content()
+        finally:
+            browser.close()
+
+
 def fetch_588080_full_page(
     *,
     host: str | None = None,
@@ -280,11 +384,31 @@ def fetch_588080_full_page(
         else:
             app_base, site_config, entry_url = resolve_app_base(timeout=timeout)
 
-        # 1. Get modules catalog
+        # 1. Catalog first, so the browser knows which column titles must appear.
         modules = fetch_lazy_modules(app_base, timeout=timeout)
+        required_names = [
+            str(item.get("name") or "").strip()
+            for item in modules
+            if item.get("type") == "content" and str(item.get("name") or "").strip()
+        ]
 
-        # 2. Concurrently get all lazy content
-        loaded_contents = fetch_lazy_contents(app_base, modules, max_workers=max_workers, timeout=timeout)
+        # 2. Scroll the live page while the module bodies download.
+        raw_html = ""
+        raw_html_error = None
+        with ThreadPoolExecutor(max_workers=1) as raw_pool:
+            page_base = resolve_page_base(app_base, timeout=timeout)
+            raw_future = raw_pool.submit(
+                fetch_rendered_html,
+                page_base + "/",
+                timeout=90,
+                required_names=required_names,
+            )
+            loaded_contents = fetch_lazy_contents(app_base, modules, max_workers=max_workers, timeout=timeout)
+            try:
+                raw_html = raw_future.result(timeout=120)
+            except Exception as raw_exc:
+                raw_html_error = str(raw_exc)
+                log.warning("Playwright raw HTML failed: %s", raw_exc)
 
         # 3. Populate content into modules dict for structured output
         content_count = 0
@@ -315,6 +439,8 @@ def fetch_588080_full_page(
             elapsed_sec=round(elapsed, 2),
             html_size_bytes=len(full_html.encode("utf-8")),
             html=full_html,
+            raw_html=raw_html,
+            raw_html_error=raw_html_error,
             modules=enriched_modules,
             error=None,
         )
@@ -351,6 +477,7 @@ def fetch_588080_full_page(
             elapsed_sec=round(elapsed, 2),
             html_size_bytes=0,
             html="",
+            raw_html="",
             modules=[],
             error=str(e),
         )

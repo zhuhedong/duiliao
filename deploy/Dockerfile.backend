@@ -7,12 +7,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl tzdata build-essential libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ENV TZ=Asia/Shanghai
+ENV TZ=Asia/Shanghai \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    playwright install --with-deps chromium && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY backend/ ./
 

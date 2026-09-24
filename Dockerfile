@@ -45,14 +45,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV TZ=Asia/Shanghai \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    APP_ENV=production
+    APP_ENV=production \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Install Python backend dependencies
 COPY backend/requirements.txt ./backend/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r ./backend/requirements.txt
+    pip install --no-cache-dir -r ./backend/requirements.txt && \
+    playwright install --with-deps chromium && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy backend source code
 COPY backend/ ./backend/
