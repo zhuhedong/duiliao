@@ -1,4 +1,4 @@
-/// iOS 27 Liquid Glass Update Dialog.
+/// Aurora Glass update dialog.
 ///
 /// Features release note presentation, real-time chunked download progress,
 /// mirror acceleration, and dual-mode upgrade options (in-app download & browser).
@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../ui/glass/glass_widgets.dart';
+import '../../ui/theme.dart';
 import 'github_release.dart';
 import 'github_update_service.dart';
 
@@ -74,28 +75,23 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                     height: 48,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          primary.withValues(alpha: 0.3),
-                          primary.withValues(alpha: 0.1),
-                        ],
-                      ),
+                      gradient: DuiliaoColors.auroraGradient,
                       border: Border.all(
-                        color: primary.withValues(alpha: 0.5),
+                        color: Colors.white.withValues(alpha: 0.4),
                         width: 1.2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: primary.withValues(alpha: 0.25),
+                          color: DuiliaoColors.auroraViolet.withValues(alpha: 0.35),
                           blurRadius: 12,
-                          offset: const Offset(0, 3),
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: Icon(
+                    child: const Icon(
                       Icons.rocket_launch_rounded,
                       size: 24,
-                      color: isDark ? const Color(0xFF60A5FA) : primary,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -111,7 +107,7 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: -0.3,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark ? Colors.white : const Color(0xFF1E1B2E),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -130,7 +126,7 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? const Color(0xFF93C5FD) : primary,
+                                  color: isDark ? DuiliaoColors.primaryDark : primary,
                                 ),
                               ),
                             ),
@@ -142,7 +138,7 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                           '${_apk != null ? ' · 大小: ${_apk!.formattedSize}' : ''}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                            color: isDark ? Colors.white60 : const Color(0xFF5A5670),
                           ),
                         ),
                       ],
@@ -160,12 +156,12 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.04)
-                        : const Color(0xFF007AFF).withValues(alpha: 0.04),
+                        : DuiliaoColors.primary.withValues(alpha: 0.04),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isDark
                           ? Colors.white.withValues(alpha: 0.08)
-                          : const Color(0xFFCBD5E1).withValues(alpha: 0.5),
+                          : const Color(0xFFE3E0F0).withValues(alpha: 0.7),
                       width: 0.8,
                     ),
                   ),
@@ -178,12 +174,12 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                                 p: TextStyle(
                                   fontSize: 13,
                                   height: 1.45,
-                                  color: isDark ? Colors.white70 : const Color(0xFF334155),
+                                  color: isDark ? Colors.white70 : const Color(0xFF1E1B2E),
                                 ),
                                 h1: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                                 h2: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                                 listBullet: TextStyle(
-                                  color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                                  color: isDark ? Colors.white60 : const Color(0xFF5A5670),
                                 ),
                               ),
                             )
@@ -193,7 +189,7 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                                   : '优化应用性能与毛玻璃界面体验。',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isDark ? Colors.white70 : const Color(0xFF334155),
+                                color: isDark ? Colors.white70 : const Color(0xFF1E1B2E),
                               ),
                             ),
                     ),
@@ -241,7 +237,7 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                         '使用国内镜像加速下载 (ghproxy)',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                          color: isDark ? Colors.white60 : const Color(0xFF5A5670),
                         ),
                       ),
                     ],
@@ -323,7 +319,7 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white70 : const Color(0xFF334155),
+                color: isDark ? Colors.white70 : const Color(0xFF1E1B2E),
               ),
             ),
             Text(
@@ -342,7 +338,7 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
           child: LinearProgressIndicator(
             value: _progress > 0 ? _progress : null,
             minHeight: 8,
-            backgroundColor: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
+            backgroundColor: isDark ? Colors.white10 : const Color(0xFFE3E0F0),
             color: primary,
           ),
         ),

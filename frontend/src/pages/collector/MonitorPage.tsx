@@ -88,7 +88,7 @@ export function CollectorMonitorPage() {
       />
 
       {error && (
-        <Alert variant="error" className="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50/80 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200">
+        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}
@@ -107,7 +107,7 @@ export function CollectorMonitorPage() {
             type="button"
             onClick={scan}
             disabled={!canWrite || scanning}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
           >
             <RefreshIcon size={14} className={scanning ? "animate-spin" : ""} />
             <span>{scanning ? "巡检中…" : "立即巡检上游"}</span>
@@ -117,7 +117,7 @@ export function CollectorMonitorPage() {
         <div className="space-y-3">
           {catalog ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-3.5 glass-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">巡检状态</span>
                 <div className="mt-1">
                   {catalog.ok ? (
@@ -128,35 +128,35 @@ export function CollectorMonitorPage() {
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-3.5 glass-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">自动巡检频率</span>
                 <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block">
                   {catalog.enabled ? `每 ${catalog.interval_minutes} 分钟` : "已关闭"}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-3.5 glass-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">发现有效栏目</span>
                 <span className="text-sm font-bold mt-1 text-primary block font-mono">
                   {catalog.content_total} 个
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-3.5 glass-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">新发现待接入</span>
                 <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block font-mono">
                   {catalog.pending?.length ?? 0}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-3.5 glass-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">已消失栏目</span>
                 <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block font-mono">
                   {catalog.missing?.length ?? 0}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-3.5 glass-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">未处理异常</span>
                 <span className={`text-sm font-bold mt-1 block font-mono ${
                   (catalog.open_issue_count ?? 0) > 0 ? "text-rose-500" : "text-emerald-500"
@@ -170,7 +170,7 @@ export function CollectorMonitorPage() {
           )}
 
           {catalog?.last_error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-xs backdrop-blur-md">
               最近错误：{catalog.last_error}
             </div>
           )}
@@ -182,7 +182,7 @@ export function CollectorMonitorPage() {
         title={
           <div className="flex items-center gap-3">
             <span>各数据源缺期滞后监控</span>
-            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full glass-subtle text-slate-600 dark:text-slate-400">
               共 {items.length} 个来源
             </span>
           </div>
@@ -193,7 +193,7 @@ export function CollectorMonitorPage() {
             <button
               type="button"
               onClick={() => loadMonitor(lottery)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
             >
               <RefreshIcon size={14} className={loading ? "animate-spin" : ""} />
               <span>刷新</span>
@@ -232,7 +232,7 @@ export function CollectorMonitorPage() {
                     <div className="text-xs font-mono text-slate-400 mt-0.5">{m.source_id}</div>
                   </td>
                   <td className={tableTdClass}>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg glass-subtle text-slate-700 dark:text-slate-300">
                       {playLabel(m.play_type)}
                     </span>
                   </td>
@@ -264,7 +264,7 @@ export function CollectorMonitorPage() {
                         <button
                           type="button"
                           onClick={() => handleConfirmMissing(m.source_id, m.pending)}
-                          className="px-2.5 py-0.5 rounded-lg text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-200 dark:border-amber-800 transition-colors cursor-pointer"
+                          className="px-2.5 py-0.5 rounded-lg text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md transition-colors cursor-pointer"
                         >
                           确认缺期
                         </button>

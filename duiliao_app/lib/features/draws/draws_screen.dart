@@ -99,7 +99,7 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen>
                     dividerColor: Colors.transparent,
                     indicatorSize: TabBarIndicatorSize.tab,
                     labelColor: Theme.of(context).colorScheme.primary,
-                    unselectedLabelColor: Colors.grey,
+                    unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
                     labelStyle: const TextStyle(fontWeight: FontWeight.w800),
                     tabs: [for (final l in Lottery.all) Tab(text: l.label)],
                   ),
@@ -578,8 +578,9 @@ class _PeriodFilterSheetState extends State<_PeriodFilterSheet> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FilledButton(
+                child: GlassButton(
                   onPressed: _submit,
+                  height: 44,
                   child: const Text('应用'),
                 ),
               ),

@@ -148,6 +148,9 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen>
         backgroundColor: Colors.transparent,
         bottom: TabBar(
           controller: _tabs,
+          labelColor: Theme.of(context).colorScheme.primary,
+          unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          indicatorColor: Theme.of(context).colorScheme.primary,
           tabs: const [Tab(text: '属性总表'), Tab(text: '属性反查')],
         ),
         actions: [

@@ -94,7 +94,7 @@ function StreakBuckets({
         const rows = (buckets[kind] as StreakRow[] | undefined) || [];
         return (
           <div key={kind} className="space-y-1">
-            <div className="text-xs font-semibold text-purple-700 dark:text-purple-300">
+            <div className="text-xs font-semibold text-fuchsia-700 dark:text-fuchsia-300">
               {kind}
               <span className="ml-1 font-normal text-slate-400">{rows.length} 条</span>
             </div>
@@ -104,9 +104,9 @@ function StreakBuckets({
               rows.slice(0, 8).map((row, i) => (
                 <div
                   key={`${kind}-${row.xiao}-${row.start_period}-${i}`}
-                  className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-purple-500/5 border border-purple-500/15 text-xs"
+                  className="flex items-center justify-between px-3 py-1.5 rounded-lg glass-subtle text-xs"
                 >
-                  <span className="font-bold text-purple-700 dark:text-purple-300">
+                  <span className="font-bold text-fuchsia-700 dark:text-fuchsia-300">
                     {row.xiao}
                     {row.is_active ? (
                       <span className="ml-1.5 font-normal text-emerald-600 dark:text-emerald-400">活跃</span>
@@ -122,7 +122,7 @@ function StreakBuckets({
         );
       })}
       <div className="space-y-1.5">
-        <div className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">复式</div>
+        <div className="text-xs font-semibold text-violet-700 dark:text-violet-300">复式</div>
         {kinds.map((kind) => {
           const rows = fushi[kind] || [];
           return (
@@ -134,9 +134,9 @@ function StreakBuckets({
                 rows.slice(0, 6).map((row, i) => (
                   <div
                     key={`fushi-${kind}-${i}`}
-                    className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-indigo-500/5 border border-indigo-500/15 text-xs"
+                    className="flex items-center justify-between px-3 py-1.5 rounded-lg glass-subtle text-xs"
                   >
-                    <span className="font-bold text-indigo-700 dark:text-indigo-300">
+                    <span className="font-bold text-violet-700 dark:text-violet-300">
                       {(row.xiaos || []).join(" + ")}
                       {row.is_active ? (
                         <span className="ml-1.5 font-normal text-emerald-600 dark:text-emerald-400">活跃</span>
@@ -546,7 +546,7 @@ export function CollectorAIAnalysisPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate("/settings")}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
               title="配置 AI 服务商地址与 API 密钥"
             >
               <SettingsIcon size={16} />
@@ -555,7 +555,7 @@ export function CollectorAIAnalysisPage() {
             <button
               onClick={handleScrape588080}
               disabled={isScraping}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50"
             >
               <DatabaseIcon size={16} />
               {isScraping ? "正在抓取数据..." : "抓取最新数据"}
@@ -563,7 +563,7 @@ export function CollectorAIAnalysisPage() {
             <button
               onClick={handleRunAI}
               disabled={isAnalyzing}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50"
             >
               <SparklesIcon size={16} />
               {isAnalyzing ? "正在进行 AI 研判..." : "执行 AI 研判"}
@@ -575,13 +575,13 @@ export function CollectorAIAnalysisPage() {
       {/* Tabs Navigation */}
       <Toolbar>
         <div className="flex items-center gap-2 w-full justify-between">
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/60 p-1 rounded-xl">
+          <div className="flex items-center gap-1 glass-subtle p-1 rounded-2xl">
             <button
               onClick={() => setActiveTab("ai")}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "ai"
-                  ? "bg-white dark:bg-[#0c1220] text-primary shadow-xs font-semibold"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  ? "text-violet-700 dark:text-violet-200 bg-white/80 dark:bg-white/10 shadow-[0_2px_10px_-2px_rgba(139,92,246,0.3),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-violet-300/50 dark:border-violet-400/25 font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
               }`}
             >
               <SparklesIcon size={16} />
@@ -591,8 +591,8 @@ export function CollectorAIAnalysisPage() {
               onClick={() => setActiveTab("data")}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "data"
-                  ? "bg-white dark:bg-[#0c1220] text-primary shadow-xs font-semibold"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  ? "text-violet-700 dark:text-violet-200 bg-white/80 dark:bg-white/10 shadow-[0_2px_10px_-2px_rgba(139,92,246,0.3),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-violet-300/50 dark:border-violet-400/25 font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
               }`}
             >
               <DatabaseIcon size={16} />
@@ -607,14 +607,14 @@ export function CollectorAIAnalysisPage() {
               onClick={() => setActiveTab("streak")}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeTab === "streak"
-                  ? "bg-white dark:bg-[#0c1220] text-primary shadow-xs font-semibold"
-                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                  ? "text-violet-700 dark:text-violet-200 bg-white/80 dark:bg-white/10 shadow-[0_2px_10px_-2px_rgba(139,92,246,0.3),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-violet-300/50 dark:border-violet-400/25 font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
               }`}
             >
               <ActivityIcon size={16} />
               生肖连码分析
               {streakData && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full text-2xs bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                <span className="ml-1 px-1.5 py-0.5 rounded-full text-2xs bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400">
                   {streakData.num_periods} 期
                 </span>
               )}
@@ -648,7 +648,7 @@ export function CollectorAIAnalysisPage() {
 
       {/* Scrape Error Message */}
       {scrapeError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm backdrop-blur-md">
           {scrapeError}
         </div>
       )}
@@ -659,7 +659,7 @@ export function CollectorAIAnalysisPage() {
           {/* Left Column: Prompt Selector & Model Config */}
           <div className="xl:col-span-5 space-y-6">
             {/* Prompt Selector Card */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
+            <div className="p-5 rounded-3xl glass-card space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <SparklesIcon size={18} className="text-primary" />
@@ -669,7 +669,7 @@ export function CollectorAIAnalysisPage() {
               </div>
 
               {/* Dynamic Period Setting */}
-              <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3">
+              <div className="p-3.5 glass-subtle rounded-2xl flex items-center justify-between gap-3">
                 <div>
                   <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                     <span>🎯 目标期号 (Period)</span>
@@ -688,7 +688,7 @@ export function CollectorAIAnalysisPage() {
                     value={period}
                     onChange={(e) => setPeriod(e.target.value)}
                     placeholder="262"
-                    className="w-16 h-8 text-center rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-2xs"
+                    className="w-16 h-8 text-center rounded-lg glass-input text-sm font-bold text-primary"
                   />
                   <span className="text-xs text-slate-400 font-medium">期</span>
                 </div>
@@ -696,11 +696,11 @@ export function CollectorAIAnalysisPage() {
 
               {/* Dynamic Active Prompt Preview Box */}
               {selectedPromptId === "macau_analyst_expert" && (
-                <div className="p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md text-xs text-amber-800 dark:text-amber-200 space-y-1">
                   <div className="font-bold flex items-center gap-1 text-amber-700 dark:text-amber-300">
                     <SparklesIcon size={14} /> 当前激活的预设提示词 (已注入第 {period} 期)：
                   </div>
-                  <div className="font-mono text-2xs p-2 rounded-lg bg-white/80 dark:bg-slate-950/60 border border-amber-200/60 dark:border-amber-900/40 text-slate-700 dark:text-slate-300">
+                  <div className="font-mono text-2xs p-2 rounded-lg glass-subtle text-slate-700 dark:text-slate-300">
                     “你现在是专业的澳门六合彩分析师，只分析帖文里的实码和生肖，严格过滤所有“發”“猫”“？”“0O”，给出<strong className="text-primary font-bold mx-0.5">{period}</strong>期热度最高的5个生肖以及重点6个号码10个号码”
                   </div>
                 </div>
@@ -716,8 +716,8 @@ export function CollectorAIAnalysisPage() {
                       onClick={() => setSelectedPromptId(p.id)}
                       className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
                         isSelected
-                          ? "bg-primary/5 dark:bg-primary/10 border-primary shadow-xs"
-                          : "bg-slate-50/50 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700"
+                          ? "bg-white/75 dark:bg-violet-400/10 border-violet-400/45 dark:border-violet-400/30 text-violet-700 dark:text-violet-200 shadow-[0_2px_12px_-4px_rgba(139,92,246,0.35),inset_0_1px_0_rgba(255,255,255,0.5)]"
+                          : "glass-subtle hover:border-violet-400/40 dark:hover:border-violet-400/30"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -750,8 +750,8 @@ export function CollectorAIAnalysisPage() {
                   }}
                   className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
                     selectedPromptId === "custom"
-                      ? "bg-primary/5 dark:bg-primary/10 border-primary shadow-xs"
-                      : "bg-slate-50/50 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700"
+                      ? "bg-white/75 dark:bg-violet-400/10 border-violet-400/45 dark:border-violet-400/30 text-violet-700 dark:text-violet-200 shadow-[0_2px_12px_-4px_rgba(139,92,246,0.35),inset_0_1px_0_rgba(255,255,255,0.5)]"
+                      : "glass-subtle hover:border-violet-400/40 dark:hover:border-violet-400/30"
                   }`}
                 >
                   <div className="font-semibold text-sm text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
@@ -788,7 +788,7 @@ export function CollectorAIAnalysisPage() {
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
                     placeholder="例如：你现在是专业的澳门六合彩分析师，只分析帖文里的实码和生肖，严格过滤所有“發”“猫”“？”“0O”，给出262期热度最高的5个生肖以及重点6个号码10个号码"
-                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full p-3 rounded-xl glass-input text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                   <div className="text-2xs text-slate-400">
                     💡 提示：您编写的提示词将自动与抓取到的 21 个预测模块内容拼接发送给大模型，支持使用 <code className="text-primary font-mono font-semibold">{"{period}"}</code> 作为期号。
@@ -798,7 +798,7 @@ export function CollectorAIAnalysisPage() {
             </div>
 
             {/* Combined Payload Packaging Card */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-3">
+            <div className="p-4 rounded-3xl glass-card space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-base">📦</span>
@@ -823,13 +823,13 @@ export function CollectorAIAnalysisPage() {
               </p>
 
               {showCombinedPreview && (
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                <div className="mt-3 pt-3 border-t border-slate-200/50 dark:border-white/8 space-y-3">
                   <div>
                     <div className="text-2xs font-semibold text-slate-600 dark:text-slate-400 mb-1 flex items-center justify-between">
                       <span>1. 提示词指令部分 (Prompt)：</span>
                       <span className="text-slate-400">目标期号：第 {period || "262"} 期</span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 font-mono text-2xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-36 overflow-y-auto">
+                    <div className="p-2.5 rounded-xl glass-subtle font-mono text-2xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-36 overflow-y-auto">
                       {getCurrentPromptPreview()}
                     </div>
                   </div>
@@ -843,12 +843,12 @@ export function CollectorAIAnalysisPage() {
                           : "尚未抓取 (启动研判时自动抓取)"}
                       </span>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60 font-mono text-2xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    <div className="p-2.5 rounded-xl glass-subtle font-mono text-2xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap max-h-40 overflow-y-auto">
                       {getScrapedDataPreview()}
                     </div>
                   </div>
 
-                  <div className="p-2 rounded-lg bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 text-2xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                  <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md text-2xs text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
                     <CheckBadgeIcon size={14} className="text-emerald-500 shrink-0" />
                     <span>提示词与数据已正确组合为同一请求载荷，AI 可 100% 深度参考各模块进行分析。</span>
                   </div>
@@ -857,7 +857,7 @@ export function CollectorAIAnalysisPage() {
             </div>
 
             {/* Model & Config Card */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
+            <div className="p-5 rounded-3xl glass-card space-y-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <ActivityIcon size={18} className="text-amber-500" />
                 大模型服务商与参数
@@ -878,8 +878,8 @@ export function CollectorAIAnalysisPage() {
                         }}
                         className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all ${
                           provider === p
-                            ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-xs"
-                            : "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                            ? "glow-button border-0 shadow-xs"
+                            : "glass-subtle text-slate-600 dark:text-slate-400"
                         }`}
                       >
                         {p === "openai" ? "OpenAI/DeepSeek" : p === "gemini" ? "Google Gemini" : "Anthropic Claude"}
@@ -889,7 +889,7 @@ export function CollectorAIAnalysisPage() {
 
                   {/* Provider Key Status Pill */}
                   {aiSettings && (
-                    <div className="mt-2 flex items-center justify-between text-2xs px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800/60">
+                    <div className="mt-2 flex items-center justify-between text-2xs px-3 py-1.5 rounded-xl glass-subtle">
                       <div className="flex items-center gap-1.5">
                         <span className="text-slate-400">密钥状态:</span>
                         {aiSettings[provider]?.is_configured ? (
@@ -939,7 +939,7 @@ export function CollectorAIAnalysisPage() {
                         ? "默认: gemini-2.5-flash"
                         : "默认: claude-3-5-sonnet"
                     }
-                    className="w-full h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full h-9 px-3 rounded-xl glass-input text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                   <div className="flex items-center justify-between text-2xs text-slate-400 mt-1">
                     <span>
@@ -969,8 +969,8 @@ export function CollectorAIAnalysisPage() {
                       onClick={() => setFormatMode("modules_summary")}
                       className={`p-2.5 rounded-xl border text-left text-xs transition-all ${
                         formatMode === "modules_summary"
-                          ? "border-primary bg-primary/5 text-primary font-semibold"
-                          : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                          ? "border-violet-400/45 dark:border-violet-400/30 bg-white/75 dark:bg-violet-400/10 text-violet-700 dark:text-violet-200 font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
+                          : "glass-subtle text-slate-600 dark:text-slate-400"
                       }`}
                     >
                       <div>🚀 智能去噪 (推荐)</div>
@@ -980,8 +980,8 @@ export function CollectorAIAnalysisPage() {
                       onClick={() => setFormatMode("raw_html")}
                       className={`p-2.5 rounded-xl border text-left text-xs transition-all ${
                         formatMode === "raw_html"
-                          ? "border-primary bg-primary/5 text-primary font-semibold"
-                          : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                          ? "border-violet-400/45 dark:border-violet-400/30 bg-white/75 dark:bg-violet-400/10 text-violet-700 dark:text-violet-200 font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
+                          : "glass-subtle text-slate-600 dark:text-slate-400"
                       }`}
                     >
                       <div>🌐 原始全量 HTML</div>
@@ -1009,7 +1009,7 @@ export function CollectorAIAnalysisPage() {
 
               {/* Not Configured Notice Banner */}
               {aiSettings && !aiSettings[provider]?.is_configured && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md text-amber-700 dark:text-amber-300 text-xs flex items-center justify-between">
                   <span>当前 {provider === "openai" ? "OpenAI/DeepSeek" : provider} 服务商尚未配置 API Key。</span>
                   <button
                     onClick={() => navigate("/settings")}
@@ -1023,7 +1023,7 @@ export function CollectorAIAnalysisPage() {
               <button
                 onClick={handleRunAI}
                 disabled={isAnalyzing}
-                className="w-full py-3 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 <SparklesIcon size={18} />
                 {isAnalyzing ? "正在向大模型传输数据并研判中..." : "启动大模型智能研判"}
@@ -1033,16 +1033,16 @@ export function CollectorAIAnalysisPage() {
 
           {/* Right Column: AI Analysis Result Output */}
           <div className="xl:col-span-7 space-y-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs min-h-[500px] flex flex-col">
+            <div className="p-6 rounded-3xl glass-card min-h-[500px] flex flex-col">
               {/* Header Bar */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/60">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200/50 dark:border-white/8">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
                     <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
                     AI 研判分析报告
                   </h3>
                   {aiResult && (
-                    <span className="text-2xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
+                    <span className="text-2xs px-2 py-0.5 rounded-md glass-subtle text-slate-600 dark:text-slate-300 font-mono">
                       {aiResult.provider} / {aiResult.model} • {aiResult.elapsed_sec}s
                     </span>
                   )}
@@ -1052,7 +1052,7 @@ export function CollectorAIAnalysisPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={copyAnalysis}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium glass-subtle text-slate-700 dark:text-slate-300 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors cursor-pointer"
                     >
                       {copied ? <CheckBadgeIcon size={14} className="text-emerald-500" /> : null}
                       {copied ? "已复制" : "复制报告"}
@@ -1063,7 +1063,7 @@ export function CollectorAIAnalysisPage() {
 
               {/* Error Message */}
               {aiError && (
-                <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm">
+                <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm backdrop-blur-md">
                   {aiError}
                 </div>
               )}
@@ -1089,7 +1089,7 @@ export function CollectorAIAnalysisPage() {
                   <div className="space-y-4">
                     {/* Live streaming status bar */}
                     {isAnalyzing && (
-                      <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-primary/5 border border-primary/20 text-xs text-primary font-medium">
+                      <div className="flex items-center justify-between px-3.5 py-2 rounded-xl glass-subtle text-xs text-violet-700 dark:text-violet-300 font-medium">
                         <span className="flex items-center gap-2">
                           <span className="w-2 h-2 rounded-full bg-primary animate-ping" />
                           {streamStatus || "大模型正在实时流式推理输出中..."}
@@ -1100,7 +1100,7 @@ export function CollectorAIAnalysisPage() {
 
                     {/* Token Stats Bar */}
                     {!isAnalyzing && aiResult.usage && Object.keys(aiResult.usage).length > 0 && (
-                      <div className="flex items-center gap-4 text-xs font-mono text-slate-400 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/40">
+                      <div className="flex items-center gap-4 text-xs font-mono text-slate-400 px-3 py-2 rounded-xl glass-subtle">
                         <span>输入 Token: {aiResult.usage.prompt_tokens ?? "-"}</span>
                         <span>•</span>
                         <span>输出 Token: {aiResult.usage.completion_tokens ?? "-"}</span>
@@ -1138,40 +1138,40 @@ export function CollectorAIAnalysisPage() {
           {/* Stats Bar */}
           {scrapedData ? (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="p-4 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-4 rounded-3xl glass-card">
                 <div className="text-xs text-slate-400">页面模块总数</div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
                   {scrapedData.total_modules} <span className="text-xs font-normal text-slate-400">个</span>
                 </div>
               </div>
-              <div className="p-4 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-4 rounded-3xl glass-card">
                 <div className="text-xs text-slate-400">核心预测懒加载卡片</div>
                 <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
                   {scrapedData.loaded_content_count} / {scrapedData.content_modules_count}
                 </div>
               </div>
-              <div className="p-4 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-4 rounded-3xl glass-card">
                 <div className="text-xs text-slate-400">拼装 HTML 体积</div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
                   {(scrapedData.html_size_bytes / 1024).toFixed(1)}{" "}
                   <span className="text-xs font-normal text-slate-400">KB</span>
                 </div>
               </div>
-              <div className="p-4 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80">
+              <div className="p-4 rounded-3xl glass-card">
                 <div className="text-xs text-slate-400">抓取与组装耗时</div>
-                <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                <div className="text-2xl font-bold text-violet-600 dark:text-violet-400 mt-1">
                   {scrapedData.elapsed_sec} <span className="text-xs font-normal text-slate-400">秒</span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="p-8 rounded-2xl bg-white dark:bg-[#0c1220] border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-3">
+            <div className="p-8 rounded-3xl glass-card border-dashed text-center space-y-3">
               <DatabaseIcon size={36} className="text-slate-400 mx-auto" />
               <p className="text-sm text-slate-600 dark:text-slate-300">尚未加载网页数据</p>
               <button
                 onClick={handleScrape588080}
                 disabled={isScraping}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-primary text-white"
+                className="px-4 py-2 rounded-xl text-xs font-semibold glow-button border-0"
               >
                 {isScraping ? "正在获取中..." : "立即获取全量数据"}
               </button>
@@ -1179,7 +1179,7 @@ export function CollectorAIAnalysisPage() {
           )}
 
           {scrapedData && (
-            <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 space-y-3">
+            <div className="p-5 rounded-3xl glass-card space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="font-bold text-base text-slate-900 dark:text-white">
@@ -1198,8 +1198,8 @@ export function CollectorAIAnalysisPage() {
                     onClick={() => setRawHtmlView("source")}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
                       rawHtmlView === "source"
-                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent"
-                        : "border-slate-200 dark:border-slate-800 text-slate-500"
+                        ? "glow-button border-0"
+                        : "glass-subtle text-slate-500 dark:text-slate-400"
                     }`}
                   >
                     源码
@@ -1209,8 +1209,8 @@ export function CollectorAIAnalysisPage() {
                     onClick={() => setRawHtmlView("render")}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
                       rawHtmlView === "render"
-                        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent"
-                        : "border-slate-200 dark:border-slate-800 text-slate-500"
+                        ? "glow-button border-0"
+                        : "glass-subtle text-slate-500 dark:text-slate-400"
                     }`}
                   >
                     静态预览
@@ -1218,12 +1218,12 @@ export function CollectorAIAnalysisPage() {
                 </div>
               </div>
               {scrapedData.raw_html_error && !scrapedData.raw_html && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md text-amber-700 dark:text-amber-300 text-xs">
                   原始 HTML 没抓到：{scrapedData.raw_html_error}。模块清单仍来自接口。
                 </div>
               )}
               {scrapedData.raw_html && rawHtmlView === "source" && (
-                <pre className="p-3 rounded-xl bg-slate-950 text-slate-300 text-xs font-mono overflow-auto max-h-[420px] leading-relaxed whitespace-pre-wrap">
+                <pre className="p-3 rounded-xl bg-slate-950/90 backdrop-blur-md border border-white/10 text-slate-300 text-xs font-mono overflow-auto max-h-[420px] leading-relaxed whitespace-pre-wrap">
                   {scrapedData.raw_html}
                 </pre>
               )}
@@ -1232,7 +1232,7 @@ export function CollectorAIAnalysisPage() {
                   title="588080 原始页面"
                   sandbox=""
                   srcDoc={scrapedData.raw_html}
-                  className="w-full h-[520px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white"
+                  className="w-full h-[520px] rounded-xl border border-slate-200/50 dark:border-white/10 bg-white"
                 />
               )}
             </div>
@@ -1240,7 +1240,7 @@ export function CollectorAIAnalysisPage() {
 
           {/* Module List & Filter */}
           {scrapedData && (
-            <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 space-y-4">
+            <div className="p-5 rounded-3xl glass-card space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-base text-slate-900 dark:text-white">
@@ -1260,12 +1260,12 @@ export function CollectorAIAnalysisPage() {
                     placeholder="按栏目名称搜索..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200"
+                    className="h-8 px-3 rounded-lg glass-input text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs text-slate-800 dark:text-slate-200"
+                    className="h-8 px-2.5 rounded-lg glass-input text-xs text-slate-800 dark:text-slate-200"
                   >
                     <option value="all">全部类型</option>
                     <option value="content">核心预测 (content)</option>
@@ -1286,7 +1286,7 @@ export function CollectorAIAnalysisPage() {
                     <div
                       key={m.id}
                       onClick={() => setSelectedModule(m)}
-                      className="p-3 rounded-xl border border-slate-200/70 dark:border-slate-800/70 hover:border-primary/50 bg-slate-50/50 dark:bg-slate-900/30 cursor-pointer transition-all flex flex-col justify-between"
+                      className="p-3 rounded-xl glass-subtle hover:border-violet-400/40 dark:hover:border-violet-400/30 cursor-pointer transition-all flex flex-col justify-between"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="font-semibold text-xs text-slate-900 dark:text-white truncate">
@@ -1296,7 +1296,7 @@ export function CollectorAIAnalysisPage() {
                           className={`text-2xs px-1.5 py-0.5 rounded font-mono ${
                             isContent
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : "bg-slate-200/60 dark:bg-slate-800 text-slate-500"
+                              : "bg-slate-500/10 text-slate-500 dark:text-slate-400"
                           }`}
                         >
                           {m.type}
@@ -1315,8 +1315,8 @@ export function CollectorAIAnalysisPage() {
 
           {/* Module Detail Modal / Preview */}
           {selectedModule && (
-            <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1220] border border-primary/40 space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+            <div className="p-5 rounded-3xl glass-card space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-white/8 pb-2">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-slate-900 dark:text-white">
                     模块详情: 【{selectedModule.name}】
@@ -1335,7 +1335,7 @@ export function CollectorAIAnalysisPage() {
 
               <div className="space-y-2">
                 <div className="text-xs font-semibold text-slate-500">提取到的 HTML 片段预览：</div>
-                <pre className="p-3 rounded-xl bg-slate-950 text-slate-300 text-xs font-mono overflow-x-auto max-h-60 leading-relaxed">
+                <pre className="p-3 rounded-xl bg-slate-950/90 backdrop-blur-md border border-white/10 text-slate-300 text-xs font-mono overflow-x-auto max-h-60 leading-relaxed">
                   {selectedModule.content || "(空)"}
                 </pre>
               </div>
@@ -1350,9 +1350,9 @@ export function CollectorAIAnalysisPage() {
           {/* Left Column: Config & Data Preview */}
           <div className="xl:col-span-5 space-y-6">
             {/* Config Card */}
-            <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
+            <div className="p-5 rounded-3xl glass-card space-y-4">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <ActivityIcon size={18} className="text-purple-500" />
+                <ActivityIcon size={18} className="text-fuchsia-500" />
                 连肖走势参数配置
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
@@ -1371,8 +1371,8 @@ export function CollectorAIAnalysisPage() {
                       onClick={() => setStreakLottery(l)}
                       className={`py-2 px-3 rounded-xl border text-xs font-medium transition-all ${
                         streakLottery === l
-                          ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-transparent shadow-xs"
-                          : "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                          ? "glow-button border-0 shadow-xs"
+                          : "glass-subtle text-slate-600 dark:text-slate-400"
                       }`}
                     >
                       {l === "macau" ? "🇲🇴 澳门六合彩" : "🇭🇰 香港六合彩"}
@@ -1393,8 +1393,8 @@ export function CollectorAIAnalysisPage() {
                       onClick={() => setStreakNumPeriods(n)}
                       className={`py-2 rounded-xl border text-xs font-medium transition-all ${
                         streakNumPeriods === n
-                          ? "bg-purple-600 text-white border-transparent shadow-xs"
-                          : "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                          ? "glow-button border-0"
+                          : "glass-subtle text-slate-600 dark:text-slate-400"
                       }`}
                     >
                       {n} 期
@@ -1415,8 +1415,8 @@ export function CollectorAIAnalysisPage() {
                       onClick={() => setStreakMinStreak(n)}
                       className={`py-2 rounded-xl border text-xs font-medium transition-all ${
                         streakMinStreak === n
-                          ? "bg-purple-600 text-white border-transparent shadow-xs"
-                          : "bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400"
+                          ? "glow-button border-0"
+                          : "glass-subtle text-slate-600 dark:text-slate-400"
                       }`}
                     >
                       ≥ {n} 连
@@ -1430,7 +1430,7 @@ export function CollectorAIAnalysisPage() {
                 <button
                   onClick={handleLoadStreakData}
                   disabled={isLoadingStreakData}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold border border-purple-500/30 bg-purple-500/5 hover:bg-purple-500/10 text-purple-700 dark:text-purple-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <DatabaseIcon size={14} />
                   {isLoadingStreakData ? "正在查询..." : "查看连肖数据"}
@@ -1438,7 +1438,7 @@ export function CollectorAIAnalysisPage() {
                 <button
                   onClick={handleRunStreakAI}
                   disabled={isStreakAnalyzing}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold glow-button border-0 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <SparklesIcon size={14} />
                   {isStreakAnalyzing ? "AI 分析中..." : "AI 连肖研判"}
@@ -1448,13 +1448,13 @@ export function CollectorAIAnalysisPage() {
 
             {/* Data Preview Card */}
             {streakDataError && (
-              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm">
+              <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm backdrop-blur-md">
                 {streakDataError}
               </div>
             )}
 
             {streakData && (
-              <div className="p-5 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
+              <div className="p-5 rounded-3xl glass-card space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     📊 连肖统计概览
@@ -1477,7 +1477,7 @@ export function CollectorAIAnalysisPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                        <tr className="border-b border-slate-200/60 dark:border-white/8">
                           <th className="py-1.5 px-2 text-left text-slate-500">生肖</th>
                           <th className="py-1.5 px-2 text-center text-slate-500">出现次数</th>
                           <th className="py-1.5 px-2 text-center text-slate-500">出现率</th>
@@ -1487,12 +1487,12 @@ export function CollectorAIAnalysisPage() {
                       </thead>
                       <tbody>
                         {streakData.streaks?.summary && Object.entries(streakData.streaks.summary).map(([xiao, s]: [string, any]) => (
-                          <tr key={xiao} className={`border-b border-slate-100 dark:border-slate-800/50 ${s.current_streak >= 3 ? "bg-purple-500/5" : ""}`}>
+                          <tr key={xiao} className={`border-b border-slate-200/40 dark:border-white/5 ${s.current_streak >= 3 ? "bg-fuchsia-500/5" : ""}`}>
                             <td className="py-1.5 px-2 font-bold text-slate-900 dark:text-white">{xiao}</td>
                             <td className="py-1.5 px-2 text-center">{s.total_appearances}</td>
                             <td className="py-1.5 px-2 text-center">{s.appearance_rate}%</td>
                             <td className="py-1.5 px-2 text-center font-bold text-amber-600 dark:text-amber-400">{s.max_streak}</td>
-                            <td className={`py-1.5 px-2 text-center font-bold ${s.current_streak >= 3 ? "text-purple-600 dark:text-purple-400" : "text-slate-500"}`}>
+                            <td className={`py-1.5 px-2 text-center font-bold ${s.current_streak >= 3 ? "text-fuchsia-600 dark:text-fuchsia-400" : "text-slate-500 dark:text-slate-400"}`}>
                               {s.current_streak > 0 ? s.current_streak : "-"}
                             </td>
                           </tr>
@@ -1509,8 +1509,8 @@ export function CollectorAIAnalysisPage() {
                   </div>
                   <div className="overflow-x-auto max-h-64 overflow-y-auto">
                     <table className="w-full text-xs whitespace-nowrap">
-                      <thead className="sticky top-0 bg-white dark:bg-[#0c1220]">
-                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                      <thead className="sticky top-0 glass-panel">
+                        <tr className="border-b border-slate-200/60 dark:border-white/8">
                           <th className="py-1.5 px-2 text-left text-slate-500">期号</th>
                           <th className="py-1.5 px-1 text-center text-slate-500">正1</th>
                           <th className="py-1.5 px-1 text-center text-slate-500">正2</th>
@@ -1518,21 +1518,21 @@ export function CollectorAIAnalysisPage() {
                           <th className="py-1.5 px-1 text-center text-slate-500">正4</th>
                           <th className="py-1.5 px-1 text-center text-slate-500">正5</th>
                           <th className="py-1.5 px-1 text-center text-slate-500">正6</th>
-                          <th className="py-1.5 px-1 text-center text-slate-500 border-l border-slate-200 dark:border-slate-700">特码</th>
-                          <th className="py-1.5 px-2 text-left text-slate-500 border-l border-slate-200 dark:border-slate-700">去重生肖</th>
+                          <th className="py-1.5 px-1 text-center text-slate-500 border-l border-slate-200/60 dark:border-white/10">特码</th>
+                          <th className="py-1.5 px-2 text-left text-slate-500 border-l border-slate-200/60 dark:border-white/10">去重生肖</th>
                         </tr>
                       </thead>
                       <tbody>
                         {(streakData.periods || []).slice().reverse().map((p: any) => (
-                          <tr key={p.period} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-900/30">
+                          <tr key={p.period} className="border-b border-slate-200/40 dark:border-white/5 hover:bg-violet-500/5 dark:hover:bg-violet-400/5">
                             <td className="py-1 px-2 font-mono font-bold text-slate-900 dark:text-white">{p.period}</td>
                             {p.xiaos.slice(0, 6).map((x: string, i: number) => (
                               <td key={i} className="py-1 px-1 text-center">{x}</td>
                             ))}
-                            <td className="py-1 px-1 text-center border-l border-slate-200 dark:border-slate-700 font-bold text-amber-600 dark:text-amber-400">
+                            <td className="py-1 px-1 text-center border-l border-slate-200/60 dark:border-white/10 font-bold text-amber-600 dark:text-amber-400">
                               {p.xiaos[6] || "-"}
                             </td>
-                            <td className="py-1 px-2 border-l border-slate-200 dark:border-slate-700 text-slate-500">
+                            <td className="py-1 px-2 border-l border-slate-200/60 dark:border-white/10 text-slate-500">
                               {p.unique_xiaos?.join("、")}
                             </td>
                           </tr>
@@ -1547,16 +1547,16 @@ export function CollectorAIAnalysisPage() {
 
           {/* Right Column: AI Streak Analysis Result */}
           <div className="xl:col-span-7 space-y-6">
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs min-h-[500px] flex flex-col">
+            <div className="p-6 rounded-3xl glass-card min-h-[500px] flex flex-col">
               {/* Header Bar */}
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/60">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-200/50 dark:border-white/8">
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-                    <span className="flex h-2.5 w-2.5 rounded-full bg-purple-500 animate-pulse" />
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-fuchsia-500 animate-pulse" />
                     AI 连肖走势研判报告
                   </h3>
                   {streakAiResult && (
-                    <span className="text-2xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono">
+                    <span className="text-2xs px-2 py-0.5 rounded-md glass-subtle text-slate-600 dark:text-slate-300 font-mono">
                       {streakAiResult.provider} / {streakAiResult.model} • {streakAiResult.elapsed_sec}s
                     </span>
                   )}
@@ -1564,7 +1564,7 @@ export function CollectorAIAnalysisPage() {
                 {streakAiResult && (
                   <button
                     onClick={copyStreakAnalysis}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium glass-subtle text-slate-700 dark:text-slate-300 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors cursor-pointer"
                   >
                     {streakCopied ? <CheckBadgeIcon size={14} className="text-emerald-500" /> : null}
                     {streakCopied ? "已复制" : "复制报告"}
@@ -1574,7 +1574,7 @@ export function CollectorAIAnalysisPage() {
 
               {/* Error */}
               {streakAiError && (
-                <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm">
+                <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm backdrop-blur-md">
                   {streakAiError}
                 </div>
               )}
@@ -1584,8 +1584,8 @@ export function CollectorAIAnalysisPage() {
                 {isStreakAnalyzing && !streakAiResult?.analysis ? (
                   <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full border-4 border-purple-500/20 border-t-purple-500 animate-spin" />
-                      <ActivityIcon size={20} className="text-purple-500 absolute inset-0 m-auto" />
+                      <div className="w-12 h-12 rounded-full border-4 border-fuchsia-500/20 border-t-fuchsia-500 animate-spin" />
+                      <ActivityIcon size={20} className="text-fuchsia-500 absolute inset-0 m-auto" />
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -1599,9 +1599,9 @@ export function CollectorAIAnalysisPage() {
                 ) : streakAiResult && streakAiResult.analysis ? (
                   <div className="space-y-4">
                     {isStreakAnalyzing && (
-                      <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-purple-500/5 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 font-medium">
+                      <div className="flex items-center justify-between px-3.5 py-2 rounded-xl glass-subtle text-xs text-violet-700 dark:text-violet-300 font-medium">
                         <span className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-purple-500 animate-ping" />
+                          <span className="w-2 h-2 rounded-full bg-fuchsia-500 animate-ping" />
                           {streakStreamStatus || "大模型正在实时流式推理输出中..."}
                         </span>
                         <span className="font-mono text-2xs opacity-70">流式输出中</span>
@@ -1609,7 +1609,7 @@ export function CollectorAIAnalysisPage() {
                     )}
 
                     {!isStreakAnalyzing && streakAiResult.usage && Object.keys(streakAiResult.usage).length > 0 && (
-                      <div className="flex items-center gap-4 text-xs font-mono text-slate-400 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/40">
+                      <div className="flex items-center gap-4 text-xs font-mono text-slate-400 px-3 py-2 rounded-xl glass-subtle">
                         <span>输入 Token: {streakAiResult.usage.prompt_tokens ?? "-"}</span>
                         <span>•</span>
                         <span>输出 Token: {streakAiResult.usage.completion_tokens ?? "-"}</span>
@@ -1618,10 +1618,10 @@ export function CollectorAIAnalysisPage() {
                       </div>
                     )}
 
-                    <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed text-slate-800 dark:text-slate-200 font-sans whitespace-pre-wrap selection:bg-purple-500/20">
+                    <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed text-slate-800 dark:text-slate-200 font-sans whitespace-pre-wrap selection:bg-fuchsia-500/20">
                       {streakAiResult.analysis}
                       {isStreakAnalyzing && (
-                        <span className="inline-block w-2 h-4 ml-0.5 bg-purple-500 animate-pulse align-middle" />
+                        <span className="inline-block w-2 h-4 ml-0.5 bg-fuchsia-500 animate-pulse align-middle" />
                       )}
                     </div>
                   </div>

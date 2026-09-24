@@ -211,8 +211,6 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  // Implementation of helper methods like _setBiometric, _editProfile etc. omitted for brevity since they are identical logic
-  // but included fully below.
   Future<void> _setBiometric(BuildContext context, WidgetRef ref, bool enabled) async {
     if (enabled) {
       final auth = LocalAuthentication();
@@ -422,9 +420,9 @@ class _ProfileHeroHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark 
-              ? [const Color(0xFF1E293B).withValues(alpha: 0.8), const Color(0xFF0F172A).withValues(alpha: 0.8)]
-              : [const Color(0xFFEFF6FF).withValues(alpha: 0.8), const Color(0xFFDBEAFE).withValues(alpha: 0.8)],
+          colors: isDark
+              ? [DuiliaoColors.auroraViolet.withValues(alpha: 0.28), DuiliaoColors.backgroundDark.withValues(alpha: 0.88)]
+              : [DuiliaoColors.auroraIndigo.withValues(alpha: 0.16), DuiliaoColors.auroraFuchsia.withValues(alpha: 0.10)],
         ),
         boxShadow: [
           BoxShadow(
@@ -452,7 +450,7 @@ class _ProfileHeroHeader extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: [context.colors.primary, Colors.purpleAccent],
+                      colors: const [DuiliaoColors.auroraIndigo, DuiliaoColors.auroraFuchsia],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -588,7 +586,6 @@ class _SettingsToggleTile extends StatelessWidget {
   }
 }
 
-// SessionsScreen remains as it was but embedded in GlassBackground. I'll just leave it mostly as-is.
 class SessionsScreen extends ConsumerWidget {
   const SessionsScreen({super.key});
 
@@ -620,7 +617,7 @@ class SessionsScreen extends ConsumerWidget {
                         const Expanded(child: Text('设备会话', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
                         IconButton(
                           tooltip: '退出所有设备',
-                          icon: const Icon(Icons.logout_outlined),
+                          icon: const Icon(Icons.logout_outlined, color: DuiliaoColors.miss),
                           onPressed: () => _logoutAll(context, ref),
                         ),
                       ],
@@ -632,7 +629,13 @@ class SessionsScreen extends ConsumerWidget {
             async.when(
               loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
               error: (e, _) => SliverFillRemaining(child: Center(child: Text('加载失败：$e'))),
-              data: (sessions) => SliverList(
+              data: (sessions) {
+                if (sessions.isEmpty) {
+                  return const SliverFillRemaining(
+                    child: Center(child: Text('暂无设备会话')),
+                  );
+                }
+                return SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final session = sessions[index];
@@ -643,6 +646,12 @@ class SessionsScreen extends ConsumerWidget {
                     return GlassCard(
                       margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       padding: const EdgeInsets.all(16),
+                      borderColor: isThisDevice
+                          ? DuiliaoColors.auroraViolet.withValues(alpha: 0.45)
+                          : null,
+                      fillColor: isThisDevice
+                          ? DuiliaoColors.auroraViolet.withValues(alpha: 0.08)
+                          : null,
                       child: Row(
                         children: [
                           Container(
@@ -650,12 +659,22 @@ class SessionsScreen extends ConsumerWidget {
                             height: 46,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: context.colors.primary.withValues(alpha: 0.12),
-                              border: Border.all(color: context.colors.primary.withValues(alpha: 0.25)),
+                              gradient: DuiliaoColors.auroraGradient,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.4),
+                                width: 1.1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: DuiliaoColors.auroraViolet.withValues(alpha: 0.32),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
                             child: Icon(
                               session.platform == 'ios' ? Icons.phone_iphone : Icons.phone_android,
-                              color: context.colors.primary,
+                              color: Colors.white,
                               size: 24,
                             ),
                           ),
@@ -719,8 +738,10 @@ class SessionsScreen extends ConsumerWidget {
                   },
                   childCount: sessions.length,
                 ),
-              ),
+              );
+              },
             ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: 28)),
           ],
         ),
       ),

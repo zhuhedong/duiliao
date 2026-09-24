@@ -38,7 +38,7 @@ export function playLabel(pt: string): string {
   return PLAY_TYPE_LABEL[pt] ?? pt;
 }
 
-/** 统一卡片容器 */
+/** 统一玻璃卡片容器 */
 export function SectionCard({
   title,
   subtitle,
@@ -56,7 +56,7 @@ export function SectionCard({
 }) {
   return (
     <div
-      className={`rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs ${
+      className={`rounded-3xl glass-card ${
         compact ? "p-4 sm:p-5" : "p-5 sm:p-6"
       } ${className}`}
     >
@@ -82,7 +82,7 @@ export function SectionCard({
   );
 }
 
-/** 统一分段切换选项卡 */
+/** 统一玻璃分段切换选项卡 */
 export function SegmentedTabs<T extends string>({
   tabs,
   activeTab,
@@ -96,7 +96,7 @@ export function SegmentedTabs<T extends string>({
 }) {
   return (
     <div
-      className={`inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-900/70 border border-slate-200/60 dark:border-slate-800/60 max-w-full overflow-x-auto ${className}`}
+      className={`inline-flex items-center gap-1 p-1 rounded-2xl glass-subtle max-w-full overflow-x-auto ${className}`}
     >
       {tabs.map((tab) => {
         const active = activeTab === tab.id;
@@ -105,20 +105,20 @@ export function SegmentedTabs<T extends string>({
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
               active
-                ? "bg-white dark:bg-[#0c1220] text-primary shadow-xs font-semibold border border-slate-200/60 dark:border-slate-800/80"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                ? "text-violet-700 dark:text-violet-200 bg-white/80 dark:bg-white/10 shadow-[0_2px_10px_-2px_rgba(139,92,246,0.3),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.1)] border border-violet-300/50 dark:border-violet-400/25 font-semibold"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
             }`}
           >
-            {tab.icon && <span className={active ? "text-primary" : "text-slate-400"}>{tab.icon}</span>}
+            {tab.icon && <span className={active ? "text-violet-600 dark:text-violet-300" : "text-slate-400"}>{tab.icon}</span>}
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span
                 className={`ml-1 px-1.5 py-0.5 rounded-full text-2xs font-bold ${
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    ? "bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                    : "bg-slate-500/10 text-slate-500 dark:text-slate-400"
                 }`}
               >
                 {tab.count}
@@ -145,28 +145,28 @@ export function StatusPill({
 }) {
   const styles = {
     success:
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200/70 dark:border-emerald-800/60",
+      "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/40 dark:border-emerald-400/25",
     warning:
-      "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200/70 dark:border-amber-800/60",
+      "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-400/40 dark:border-amber-400/25",
     danger:
-      "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200/70 dark:border-rose-800/60",
+      "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25",
     info:
-      "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-400 border-cyan-200/70 dark:border-cyan-800/60",
+      "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-400/40 dark:border-violet-400/25",
     neutral:
-      "bg-slate-100 text-slate-700 dark:bg-slate-800/80 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/60",
+      "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-400/30 dark:border-slate-400/20",
   };
 
   const dots = {
-    success: "bg-emerald-500",
-    warning: "bg-amber-500",
-    danger: "bg-rose-500",
-    info: "bg-cyan-500",
+    success: "bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.7)]",
+    warning: "bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.7)]",
+    danger: "bg-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.7)]",
+    info: "bg-violet-500 shadow-[0_0_5px_rgba(139,92,246,0.7)]",
     neutral: "bg-slate-400",
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border shadow-2xs ${styles[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border backdrop-blur-md ${styles[variant]} ${className}`}
     >
       {dot && <span className={`w-1.5 h-1.5 rounded-full ${dots[variant]}`} />}
       <span>{children}</span>
@@ -174,7 +174,7 @@ export function StatusPill({
   );
 }
 
-/** 统一现代化下拉选择框 */
+/** 统一玻璃下拉选择框 */
 export function Select({
   value,
   onChange,
@@ -196,7 +196,7 @@ export function Select({
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       style={style}
-      className={`h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-colors cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed ${className || ""}`}
+      className={`h-10 px-3.5 rounded-xl glass-input text-sm font-medium text-slate-800 dark:text-slate-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${className || ""}`}
     >
       {options.map((o) => (
         <option key={o.value} value={o.value} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
@@ -207,7 +207,7 @@ export function Select({
   );
 }
 
-/** 统一文本输入框 */
+/** 统一玻璃文本输入框 */
 export function TextInput({
   value,
   onChange,
@@ -233,7 +233,7 @@ export function TextInput({
       placeholder={placeholder}
       disabled={disabled}
       style={style}
-      className={`h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-colors shadow-xs disabled:opacity-50 disabled:cursor-not-allowed ${className || ""}`}
+      className={`h-10 px-3.5 rounded-xl glass-input text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed ${className || ""}`}
     />
   );
 }
@@ -249,7 +249,7 @@ export function PageHeader({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-slate-200/50 dark:border-slate-800/50">
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
           {title}
@@ -263,7 +263,7 @@ export function PageHeader({
   );
 }
 
-/** 统一操作工具栏 */
+/** 统一玻璃操作工具栏 */
 export function Toolbar({
   children,
   className = "",
@@ -273,14 +273,14 @@ export function Toolbar({
 }) {
   return (
     <div
-      className={`flex items-center gap-3 flex-wrap p-4 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs ${className}`}
+      className={`flex items-center gap-3 flex-wrap p-4 rounded-2xl glass-bar ${className}`}
     >
       {children}
     </div>
   );
 }
 
-/** 统一表格容器 */
+/** 统一玻璃表格容器 */
 export function TableContainer({
   children,
   className = "",
@@ -290,7 +290,7 @@ export function TableContainer({
 }) {
   return (
     <div
-      className={`w-full overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0c1220] shadow-xs ${className}`}
+      className={`w-full overflow-x-auto rounded-3xl glass-card ${className}`}
     >
       <table className="w-full text-left text-sm border-collapse">{children}</table>
     </div>
@@ -298,17 +298,17 @@ export function TableContainer({
 }
 
 export const tableThClass =
-  "py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/80 dark:border-slate-800/80 select-none";
+  "py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-white/25 dark:bg-white/5 border-b border-slate-200/50 dark:border-white/8 select-none backdrop-blur-md";
 export const tableTdClass =
-  "py-3.5 px-4 text-sm text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800/60 align-middle";
+  "py-3.5 px-4 text-sm text-slate-800 dark:text-slate-200 border-b border-slate-200/40 dark:border-white/5 align-middle";
 export const tableRowClass =
-  "hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors";
+  "hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors";
 
 /** JSON 预览面板 */
 export function ResultJson({ data }: { data: unknown }) {
   if (data == null) return null;
   return (
-    <pre className="m-0 p-4 rounded-2xl bg-slate-950 text-emerald-400 border border-slate-800 text-xs font-mono leading-relaxed overflow-x-auto max-h-96 shadow-inner">
+    <pre className="m-0 p-4 rounded-2xl bg-slate-950/90 backdrop-blur-md text-emerald-300 border border-white/10 text-xs font-mono leading-relaxed overflow-x-auto max-h-96 shadow-inner">
       {JSON.stringify(data, null, 2)}
     </pre>
   );
@@ -321,9 +321,9 @@ export function Stats({ items }: { items: { label: string; value: ReactNode }[] 
       {items.map((s) => (
         <span
           key={s.label}
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium bg-slate-50 dark:bg-slate-900/70 border border-slate-200/80 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 shadow-2xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium glass-subtle text-slate-700 dark:text-slate-300"
         >
-          <span className="text-slate-400">{s.label}：</span>
+          <span className="text-slate-400 dark:text-slate-500">{s.label}：</span>
           <span className="font-semibold text-slate-900 dark:text-white">{s.value}</span>
         </span>
       ))}
@@ -339,7 +339,7 @@ export function useCanWrite(): boolean {
 
 export function ReadOnlyNote() {
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/70 dark:border-amber-800/60">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
       只读模式：需要员工 / 管理员角色方可执行采集操作
     </span>
   );

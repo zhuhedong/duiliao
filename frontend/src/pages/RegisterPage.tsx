@@ -49,7 +49,7 @@ export function RegisterPage() {
       title="创建新账号"
       description="加入对料，开启端到端加密的安全对话之旅"
       footer={
-        <div className="flex items-center justify-center gap-1.5 text-sm text-slate-500">
+        <div className="flex items-center justify-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
           <span>已经有账号了？</span>
           <Link to="/login" className="text-primary hover:underline font-semibold transition-colors">
             直接登录
@@ -59,13 +59,13 @@ export function RegisterPage() {
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-1">
         {error && (
-          <Alert variant="error" className="rounded-xl border border-red-200/80 bg-red-50/70 text-red-700">
+          <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
             <AlertDescription className="text-sm leading-relaxed">{error}</AlertDescription>
           </Alert>
         )}
 
         <Field className="space-y-1">
-          <FieldLabel className="text-xs font-medium text-slate-700">电子邮箱</FieldLabel>
+          <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">电子邮箱</FieldLabel>
           <Input
             type="email"
             value={email}
@@ -76,12 +76,12 @@ export function RegisterPage() {
             autoFocus
             inputSize="md"
             className="rounded-xl"
-            startSlot={<MailIcon size={16} className="text-slate-400" />}
+            startSlot={<MailIcon size={16} className="text-slate-400 dark:text-slate-500" />}
           />
         </Field>
 
         <Field className="space-y-1">
-          <FieldLabel className="text-xs font-medium text-slate-700">用户昵称（选填）</FieldLabel>
+          <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">用户昵称（选填）</FieldLabel>
           <Input
             type="text"
             value={displayName}
@@ -90,12 +90,12 @@ export function RegisterPage() {
             autoComplete="name"
             inputSize="md"
             className="rounded-xl"
-            startSlot={<UserIcon size={16} className="text-slate-400" />}
+            startSlot={<UserIcon size={16} className="text-slate-400 dark:text-slate-500" />}
           />
         </Field>
 
         <Field className="space-y-1">
-          <FieldLabel className="text-xs font-medium text-slate-700">登录密码</FieldLabel>
+          <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">登录密码</FieldLabel>
           <Input
             type="password"
             value={password}
@@ -105,13 +105,13 @@ export function RegisterPage() {
             required
             inputSize="md"
             className="rounded-xl"
-            startSlot={<LockIcon size={16} className="text-slate-400" />}
+            startSlot={<LockIcon size={16} className="text-slate-400 dark:text-slate-500" />}
           />
-          <FieldDescription className="text-[11px] text-slate-400 mt-0.5">至少 8 位字符，建议混合数字与字母</FieldDescription>
+          <FieldDescription className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">至少 8 位字符，建议混合数字与字母</FieldDescription>
         </Field>
 
         <Field className="space-y-1">
-          <FieldLabel className="text-xs font-medium text-slate-700">确认登录密码</FieldLabel>
+          <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">确认登录密码</FieldLabel>
           <Input
             type="password"
             value={confirm}
@@ -121,7 +121,7 @@ export function RegisterPage() {
             required
             inputSize="md"
             className="rounded-xl"
-            startSlot={<LockIcon size={16} className="text-slate-400" />}
+            startSlot={<LockIcon size={16} className="text-slate-400 dark:text-slate-500" />}
           />
         </Field>
 
@@ -129,7 +129,7 @@ export function RegisterPage() {
           type="submit"
           disabled={submitting}
           size="md"
-          className="w-full rounded-xl mt-2 font-semibold text-sm tracking-wide shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer h-10.5"
+          className="glow-button border-0 w-full rounded-xl mt-2 font-semibold text-sm tracking-wide shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer h-10.5"
         >
           {submitting ? (
             <>

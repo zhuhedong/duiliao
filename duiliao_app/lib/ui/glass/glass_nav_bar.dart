@@ -1,4 +1,4 @@
-/// iOS 27 Floating Island Glass Navigation Bar.
+/// Aurora Glass floating navigation bar.
 ///
 /// A sleek, floating frosted glass pill navigation capsule suspended above
 /// the bottom edge, allowing scrolled content to flow and refract beneath it.
@@ -6,6 +6,8 @@ library;
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+
+import '../theme.dart';
 
 class GlassNavItem {
   const GlassNavItem({
@@ -49,7 +51,7 @@ class GlassFloatingNavigationBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
                 color: isDark
-                    ? const Color(0xFF131A29).withValues(alpha: 0.78)
+                    ? const Color(0xFF1C1C2E).withValues(alpha: 0.78)
                     : Colors.white.withValues(alpha: 0.82),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
@@ -62,7 +64,7 @@ class GlassFloatingNavigationBar extends StatelessWidget {
                   BoxShadow(
                     color: isDark
                         ? Colors.black.withValues(alpha: 0.45)
-                        : const Color(0xFF334155).withValues(alpha: 0.14),
+                        : DuiliaoColors.auroraViolet.withValues(alpha: 0.16),
                     blurRadius: 28,
                     offset: const Offset(0, 10),
                   ),
@@ -115,10 +117,10 @@ class _GlassNavItemButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeColor = isDark ? const Color(0xFF60A5FA) : primary;
+    final activeColor = isDark ? DuiliaoColors.primaryDark : primary;
     final inactiveColor = isDark
         ? Colors.white.withValues(alpha: 0.45)
-        : const Color(0xFF64748B);
+        : const Color(0xFF5A5670);
 
     return Material(
       color: Colors.transparent,

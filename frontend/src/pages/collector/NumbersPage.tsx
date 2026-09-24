@@ -99,7 +99,7 @@ export function CollectorNumbersPage() {
       />
 
       {error && (
-        <Alert variant="error" className="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50/80 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200">
+        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}
@@ -123,12 +123,12 @@ export function CollectorNumbersPage() {
               min="2000-01-01"
               max="2040-12-31"
               onChange={(e) => setDate(e.target.value)}
-              className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs cursor-pointer"
+              className="h-10 px-3.5 rounded-xl glass-input text-sm font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
             />
             <button
               type="button"
               onClick={() => setDate(today())}
-              className="px-3 py-2 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              className="px-3 py-2 rounded-xl text-xs font-medium glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
             >
               设为今天
             </button>
@@ -139,7 +139,7 @@ export function CollectorNumbersPage() {
             <select
               value={boseFilter}
               onChange={(e) => setBoseFilter(e.target.value)}
-              className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs cursor-pointer"
+              className="h-10 px-3 rounded-xl glass-input text-sm font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
             >
               <option value="all">全部波色</option>
               <option value="红">红波 (17码)</option>
@@ -153,7 +153,7 @@ export function CollectorNumbersPage() {
             <select
               value={genderFilter}
               onChange={(e) => setGenderFilter(e.target.value)}
-              className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs cursor-pointer"
+              className="h-10 px-3 rounded-xl glass-input text-sm font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
             >
               <option value="all">全部生肖</option>
               <option value="男肖">男肖 (7肖)</option>
@@ -167,11 +167,11 @@ export function CollectorNumbersPage() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="搜索号码 / 生肖 / 男女肖 / 天地肖 / 五行 / 家野..."
-              className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs"
+              className="w-full h-10 px-3.5 rounded-xl glass-input text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
           </div>
 
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-slate-400 dark:text-slate-500">
             显示 {filteredItems.length} / {items.length} 个号码
           </span>
         </div>
@@ -182,7 +182,7 @@ export function CollectorNumbersPage() {
         title={
           <div className="flex items-center gap-3">
             <span>01–49 属性字典明细</span>
-            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full glass-subtle text-slate-600 dark:text-slate-400">
               农历基准: {date}
             </span>
           </div>
@@ -240,7 +240,7 @@ export function CollectorNumbersPage() {
                     <td className={tableTdClass}>
                       {n.wuxing ? (
                         <span
-                          className="font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-xs"
+                          className="font-bold px-2 py-0.5 rounded-md glass-subtle text-xs"
                           style={{ color: WUXING_COLORS[n.wuxing] ?? "inherit" }}
                         >
                           {n.wuxing}
@@ -253,7 +253,7 @@ export function CollectorNumbersPage() {
                       <span className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
                         n.jiaye === "家"
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                          : "glass-subtle text-slate-600 dark:text-slate-400"
                       }`}>
                         {n.jiaye === "家" ? "家禽" : "野兽"}
                       </span>
@@ -297,12 +297,12 @@ export function CollectorNumbersPage() {
             </TableContainer>
 
             {!wuxingAvailable && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs">
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 text-xs backdrop-blur-md">
                 ⚠️ 当前所选日期对应的农历年暂无五行对照表（只录入了有官方资料的年份）。切换到已录入年份即可显示五行。
               </div>
             )}
 
-            <div className="text-xs text-slate-400">
+            <div className="text-xs text-slate-400 dark:text-slate-500">
               💡 注：五行按农历年（春节切换）轮换，依据当年官方生肖灵码表逐年录入；未录入的年份显示为「—」。
             </div>
           </div>

@@ -261,7 +261,7 @@ class _RatingCard extends StatelessWidget {
         isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
         isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
       ]);
-      textColor = isDark ? Colors.white70 : const Color(0xFF475569);
+      textColor = isDark ? Colors.white70 : const Color(0xFF5A5670);
     }
 
     return Container(

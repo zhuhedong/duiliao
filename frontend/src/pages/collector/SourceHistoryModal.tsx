@@ -122,7 +122,7 @@ export function SourceHistoryModal({
       return (
         <span
           key={idx}
-          className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20"
+          className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-400/40 dark:border-violet-400/25 backdrop-blur-md"
         >
           {atom.value}
         </span>
@@ -131,7 +131,7 @@ export function SourceHistoryModal({
     return (
       <span
         key={idx}
-        className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono"
+        className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium glass-subtle text-slate-700 dark:text-slate-300 font-mono"
       >
         {atom.value}
       </span>
@@ -139,17 +139,17 @@ export function SourceHistoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-6xl max-h-[92vh] bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-6xl max-h-[92vh] glass-panel rounded-3xl animate-glassPop flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-white/8 px-6 py-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5 flex-wrap">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <CalendarIcon size={20} className="text-primary" />
                 <span>{source?.source_name || sourceId} · 全量历史对奖流水</span>
               </h3>
-              <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+              <span className="text-xs font-mono px-2 py-0.5 rounded-md glass-subtle text-slate-600 dark:text-slate-400">
                 ID: {sourceId}
               </span>
               {source && (
@@ -157,10 +157,10 @@ export function SourceHistoryModal({
                   <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary font-medium">
                     {LOTTERY_LABEL[source.lottery] || source.lottery}
                   </span>
-                  <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  <span className="text-xs px-2 py-0.5 rounded-md glass-subtle text-slate-700 dark:text-slate-300">
                     {playLabel(source.play_type)}
                   </span>
-                  <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500">
+                  <span className="text-xs font-mono px-2 py-0.5 rounded-md glass-subtle text-slate-500 dark:text-slate-400">
                     {source.hit_mode.toUpperCase()}
                   </span>
                 </>
@@ -176,7 +176,7 @@ export function SourceHistoryModal({
               type="button"
               onClick={() => void fetchHistory()}
               disabled={loading}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors cursor-pointer"
               title="刷新数据"
             >
               <RefreshIcon size={18} className={loading ? "animate-spin" : ""} />
@@ -184,7 +184,7 @@ export function SourceHistoryModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors cursor-pointer"
               title="关闭窗口"
             >
               <CloseIcon size={20} />
@@ -195,7 +195,7 @@ export function SourceHistoryModal({
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {error && (
-            <Alert variant="error" className="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50/80 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200">
+            <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 backdrop-blur-md text-rose-700 dark:text-rose-300">
               <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
           )}
@@ -203,14 +203,14 @@ export function SourceHistoryModal({
           {/* Aggregate Stats Bar */}
           {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/70">
+              <div className="p-3 rounded-2xl glass-subtle">
                 <span className="text-2xs font-semibold text-slate-400 uppercase block">历史总期数</span>
                 <span className="text-lg font-bold font-mono text-slate-900 dark:text-white mt-1 block">
                   {stats.total} 期
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/70">
+              <div className="p-3 rounded-2xl glass-subtle">
                 <span className="text-2xs font-semibold text-slate-400 uppercase block">官方判定命中率</span>
                 <div className="flex items-baseline gap-1 mt-1">
                   <span className={`text-lg font-bold font-mono ${stats.hit_rate >= 50 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-700 dark:text-slate-300"}`}>
@@ -220,28 +220,28 @@ export function SourceHistoryModal({
                 </div>
               </div>
 
-              <div className="p-3 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40">
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
                 <span className="text-2xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase block">命中次数</span>
                 <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1 block">
                   {stats.hits} 次
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/60 dark:border-rose-900/40">
+              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md">
                 <span className="text-2xs font-semibold text-rose-600 dark:text-rose-400 uppercase block">未中(挂)次数</span>
                 <span className="text-lg font-bold font-mono text-rose-600 dark:text-rose-400 mt-1 block">
                   {stats.misses} 次
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/70">
+              <div className="p-3 rounded-2xl glass-subtle">
                 <span className="text-2xs font-semibold text-slate-400 uppercase block">待对奖 / 缺期</span>
                 <span className="text-lg font-bold font-mono text-slate-700 dark:text-slate-300 mt-1 block">
                   {stats.pending} 待 / {stats.missing} 缺
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/70">
+              <div className="p-3 rounded-2xl glass-subtle">
                 <span className="text-2xs font-semibold text-slate-400 uppercase block">连中 / 连挂极限</span>
                 <div className="text-xs font-mono font-bold mt-1.5 space-x-2">
                   <span className="text-emerald-600 dark:text-emerald-400">连中 {stats.longest_hit}</span>
@@ -250,10 +250,10 @@ export function SourceHistoryModal({
                 </div>
               </div>
 
-              <div className={`p-3 rounded-2xl border ${
+              <div className={`p-3 rounded-2xl border backdrop-blur-md ${
                 stats.conflicts > 0
-                  ? "bg-amber-50/60 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800"
-                  : "bg-slate-50 dark:bg-slate-900/60 border-slate-200/70 dark:border-slate-800/70"
+                  ? "bg-amber-500/10 border-amber-400/40 dark:border-amber-400/25"
+                  : "bg-slate-500/5 border-slate-400/30 dark:border-slate-400/20"
               }`}>
                 <span className="text-2xs font-semibold text-slate-400 uppercase block">虚假自称(冲突)</span>
                 <span className={`text-lg font-bold font-mono mt-1 block ${stats.conflicts > 0 ? "text-amber-600 dark:text-amber-400 font-black" : "text-slate-400"}`}>
@@ -264,7 +264,7 @@ export function SourceHistoryModal({
           )}
 
           {/* Filter & Toolbar */}
-          <div className="flex items-center justify-between gap-3 flex-wrap bg-slate-50/80 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200/60 dark:border-slate-800/60">
+          <div className="flex items-center justify-between gap-3 flex-wrap glass-subtle p-3 rounded-2xl">
             {/* Status Pills */}
             <div className="flex items-center gap-1.5 flex-wrap">
               {[
@@ -286,8 +286,8 @@ export function SourceHistoryModal({
                     }}
                     className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                       isSelected
-                        ? "bg-primary text-white shadow-xs"
-                        : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200/80 dark:border-slate-700/80"
+                        ? "glow-button border-0 text-white"
+                        : "glass-subtle text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >
                     {tab.label}
@@ -303,7 +303,7 @@ export function SourceHistoryModal({
                 value={periodSearch}
                 onChange={(e) => setPeriodSearch(e.target.value)}
                 placeholder="搜索期号 (如 260)"
-                className="w-36 text-xs px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-36 text-xs px-3 py-1.5 rounded-xl glass-input text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
 
               <select
@@ -312,7 +312,7 @@ export function SourceHistoryModal({
                   setPageSize(Number(e.target.value));
                   setPage(1);
                 }}
-                className="text-xs px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
+                className="text-xs px-2.5 py-1.5 rounded-xl glass-input text-slate-700 dark:text-slate-300 cursor-pointer"
               >
                 <option value={20}>20 条/页</option>
                 <option value={50}>50 条/页</option>
@@ -353,13 +353,13 @@ export function SourceHistoryModal({
 
                   return (
                     <div key={item.id} style={{ display: "contents" }}>
-                      <tr className={`${tableRowClass} ${item.is_conflict ? "bg-amber-50/20 dark:bg-amber-950/10" : ""}`}>
+                      <tr className={`${tableRowClass} ${item.is_conflict ? "bg-amber-500/5 dark:bg-amber-400/5" : ""}`}>
                         {/* Period / Date */}
                         <td className={tableTdClass}>
                           <div className="font-mono font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
                             <span>{item.period}</span>
                             {item.group_key && item.group_key !== "default" && item.group_key !== "0" && (
-                              <span className="text-2xs font-normal px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                              <span className="text-2xs font-normal px-1.5 py-0.5 rounded bg-slate-500/10 text-slate-500 dark:text-slate-400">
                                 /{item.group_key}
                               </span>
                             )}
@@ -395,7 +395,7 @@ export function SourceHistoryModal({
                               <span className="text-slate-300 dark:text-slate-600 font-bold">+</span>
 
                               {/* Special Tema Ball */}
-                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700">
+                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full glass-subtle">
                                 <span
                                   className="inline-flex items-center justify-center w-5.5 h-5.5 rounded-full text-2xs font-mono font-bold text-white shadow-2xs"
                                   style={{ backgroundColor: BOSE_COLORS[temaDetail?.bose || getBose(tema)]?.bg || "#ef4444" }}
@@ -444,7 +444,7 @@ export function SourceHistoryModal({
                         {/* Claimed Status & Conflict check */}
                         <td className={tableTdClass}>
                           {item.is_conflict ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md">
                               <span>⚠️ 自称中 (实测挂)</span>
                             </span>
                           ) : (
@@ -465,7 +465,7 @@ export function SourceHistoryModal({
                           <button
                             type="button"
                             onClick={() => setExpandedRowId(isExpanded ? null : item.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                           >
                             <span>{isExpanded ? "收起" : "依据"}</span>
                             <ChevronDownIcon size={12} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
@@ -475,8 +475,8 @@ export function SourceHistoryModal({
 
                       {/* Expanded Evidence Drawer */}
                       {isExpanded && (
-                        <tr className="bg-slate-50/70 dark:bg-slate-900/40">
-                          <td colSpan={6} className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-slate-800/80">
+                        <tr className="bg-slate-500/5 dark:bg-white/[0.03]">
+                          <td colSpan={6} className="p-4 sm:p-5 border-b border-slate-200/50 dark:border-white/8">
                             <div className="space-y-3">
                               <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                                 <span className="font-semibold text-slate-800 dark:text-slate-200">
@@ -487,7 +487,7 @@ export function SourceHistoryModal({
 
                               {/* Explanation */}
                               {item.hit_detail && (
-                                <div className="p-3 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 space-y-1.5 text-xs">
+                                <div className="p-3 rounded-xl glass-subtle space-y-1.5 text-xs">
                                   <div className="flex items-center gap-2">
                                     <span className="font-bold text-slate-700 dark:text-slate-300">对奖结论说明：</span>
                                     <span className="text-slate-600 dark:text-slate-300">
@@ -509,7 +509,7 @@ export function SourceHistoryModal({
                                 <span className="text-2xs font-semibold text-slate-400 uppercase mb-1 block">
                                   网页爬虫原始解析文本 (Scraped Raw Text):
                                 </span>
-                                <pre className="p-3 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner border border-slate-800">
+                                <pre className="p-3 rounded-xl bg-slate-950/90 backdrop-blur-md text-emerald-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner border border-white/10">
                                   {item.raw_text || "无原始文本内容"}
                                 </pre>
                               </div>
@@ -540,7 +540,7 @@ export function SourceHistoryModal({
 
           {/* Pagination Footer */}
           {data && data.total > 0 && (
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80 flex-wrap gap-2">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-200/50 dark:border-white/8 flex-wrap gap-2">
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 显示第 {(page - 1) * pageSize + 1} - {Math.min(page * pageSize, data.total)} 条，共 {data.total} 期历史数据
               </span>
@@ -550,7 +550,7 @@ export function SourceHistoryModal({
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1 || loading}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
                 >
                   上一页
                 </button>
@@ -561,7 +561,7 @@ export function SourceHistoryModal({
                   type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages || loading}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
                 >
                   下一页
                 </button>

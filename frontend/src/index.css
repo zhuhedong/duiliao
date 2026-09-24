@@ -1,11 +1,153 @@
-/* Appica UI 设计令牌（同时会引入 Tailwind v4）。 */
+/* ============================================================
+   对料 · Aurora Glass 设计系统
+   玻璃拟态 + 极光渐变（靛蓝 → 紫罗兰 → 品红）
+   引入 Appica UI 令牌后在此全面覆盖品牌与背景体系。
+   ============================================================ */
 @import "@appica/ui-react/styles.css";
 
 /* 让 Tailwind 扫描已编译的 Appica UI 组件里用到的工具类，
-   与本项目的样式合并进同一次构建。路径中的 ../ 数量需从本文件
-   （src/index.css）能回到 node_modules。 */
+   与本项目的样式合并进同一次构建。 */
 @source "../node_modules/@appica/ui-react/dist";
 
+/* 补充设计令牌 */
+@theme {
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+}
+
+/* ————————————————————————————————————————————————
+   1. 品牌令牌覆盖（亮色）
+   ———————————————————————————————————————————————— */
+:root,
+.light {
+  /* 品牌主色：靛蓝 × 紫罗兰 */
+  --primary: oklch(0.558 0.245 280.5);
+  --primary-subtle: oklch(0.558 0.245 280.5 / 8%);
+  --primary-soft: oklch(0.558 0.245 280.5 / 16%);
+  --primary-muted: oklch(0.65 0.19 281.5);
+  --primary-strong: oklch(0.47 0.26 281);
+  --primary-foreground: oklch(1 0 0);
+
+  /* 辅助色：紫罗兰 */
+  --secondary: oklch(0.62 0.24 296);
+  --secondary-subtle: oklch(0.62 0.24 296 / 10%);
+  --secondary-soft: oklch(0.62 0.24 296 / 20%);
+  --secondary-muted: oklch(0.9 0.06 296);
+  --secondary-strong: oklch(0.68 0.2 296);
+  --secondary-emphasis: oklch(0.62 0.24 296);
+  --secondary-intense: oklch(0.52 0.27 296);
+  --secondary-foreground: oklch(1 0 0);
+
+  /* 信息色：天青（与主色互补的冷色） */
+  --info: oklch(0.72 0.15 222);
+  --info-subtle: oklch(0.66 0.17 232 / 10%);
+  --info-soft: oklch(0.66 0.17 232 / 20%);
+  --info-muted: oklch(0.92 0.04 230);
+  --info-strong: oklch(0.72 0.15 228);
+  --info-emphasis: oklch(0.66 0.17 232);
+  --info-intense: oklch(0.56 0.19 240);
+  --info-foreground: oklch(1 0 0);
+
+  /* 背景：微紫调的冷白 */
+  --background: oklch(0.978 0.007 285);
+  --background-subtle: oklch(0.968 0.009 285);
+  --background-muted: oklch(0.952 0.013 285);
+  --background-strong: oklch(0.922 0.016 285);
+  --background-inverse: oklch(0.17 0.03 285);
+
+  /* 边框带一点紫调 */
+  --border: oklch(0.918 0.014 285);
+  --border-muted: oklch(0.952 0.009 285);
+  --border-strong: oklch(0.862 0.02 282);
+  --border-emphasis: oklch(0.72 0.03 281);
+  --border-intense: oklch(0.58 0.04 280);
+
+  --focus-ring: oklch(0.558 0.245 280.5 / 35%);
+  --focus-ring-primary: oklch(0.558 0.245 280.5 / 30%);
+  --focus-ring-secondary: oklch(0.62 0.24 296 / 30%);
+  --focus-ring-info: oklch(0.66 0.17 232 / 30%);
+
+  --shadow-color: oklch(0.558 0.245 280.5 / 14%);
+  --selection-color: oklch(0.558 0.245 280.5 / 16%);
+
+  /* 玻璃材质令牌（亮色） */
+  --glass-bg: oklch(1 0 0 / 62%);
+  --glass-bg-strong: oklch(1 0 0 / 78%);
+  --glass-bg-subtle: oklch(1 0 0 / 42%);
+  --glass-border: oklch(1 0 0 / 70%);
+  --glass-highlight: oklch(1 0 0 / 85%);
+  --glass-shadow: 0 8px 32px -12px oklch(0.558 0.245 280.5 / 18%),
+    0 2px 8px -4px oklch(0.3 0.05 280 / 8%);
+}
+
+/* ————————————————————————————————————————————————
+   2. 品牌令牌覆盖（暗色）
+   ———————————————————————————————————————————————— */
+.dark {
+  /* 暗色下主色提亮，保证玻璃上可读 */
+  --primary: oklch(0.72 0.185 283);
+  --primary-subtle: oklch(0.72 0.185 283 / 14%);
+  --primary-soft: oklch(0.72 0.185 283 / 24%);
+  --primary-muted: oklch(0.6 0.2 283);
+  --primary-strong: oklch(0.8 0.14 284);
+  --primary-foreground: oklch(0.17 0.03 285);
+
+  --secondary: oklch(0.7 0.2 297);
+  --secondary-subtle: oklch(0.7 0.2 297 / 14%);
+  --secondary-soft: oklch(0.7 0.2 297 / 24%);
+  --secondary-muted: oklch(0.32 0.06 296);
+  --secondary-strong: oklch(0.78 0.15 297);
+  --secondary-emphasis: oklch(0.7 0.2 297);
+  --secondary-intense: oklch(0.8 0.14 297);
+  --secondary-foreground: oklch(0.17 0.03 285);
+
+  --info: oklch(0.75 0.13 225);
+  --info-subtle: oklch(0.7 0.15 230 / 14%);
+  --info-soft: oklch(0.7 0.15 230 / 24%);
+  --info-muted: oklch(0.3 0.05 235);
+  --info-strong: oklch(0.8 0.11 228);
+  --info-emphasis: oklch(0.7 0.15 230);
+  --info-intense: oklch(0.82 0.1 232);
+  --info-foreground: oklch(0.17 0.03 285);
+
+  /* 背景：深空靛蓝 */
+  --background: oklch(0.155 0.028 285);
+  --background-subtle: oklch(0.185 0.03 285);
+  --background-muted: oklch(0.215 0.032 285);
+  --background-strong: oklch(0.26 0.035 285);
+  --background-inverse: oklch(0.97 0.005 285);
+
+  --foreground: oklch(0.9 0.012 285);
+  --foreground-subtle: oklch(0.72 0.02 283);
+  --foreground-muted: oklch(0.64 0.022 283);
+  --foreground-strong: oklch(0.94 0.008 285);
+
+  --border: oklch(1 0 0 / 9%);
+  --border-muted: oklch(1 0 0 / 6%);
+  --border-strong: oklch(1 0 0 / 16%);
+  --border-emphasis: oklch(1 0 0 / 26%);
+
+  --focus-ring: oklch(0.72 0.185 283 / 40%);
+  --focus-ring-primary: oklch(0.72 0.185 283 / 35%);
+  --focus-ring-secondary: oklch(0.7 0.2 297 / 35%);
+  --focus-ring-info: oklch(0.7 0.15 230 / 35%);
+
+  --shadow-color: oklch(0 0 0 / 45%);
+  --selection-color: oklch(0.72 0.185 283 / 28%);
+
+  /* 玻璃材质令牌（暗色） */
+  --glass-bg: oklch(0.23 0.032 285 / 55%);
+  --glass-bg-strong: oklch(0.2 0.03 285 / 78%);
+  --glass-bg-subtle: oklch(1 0 0 / 5%);
+  --glass-border: oklch(1 0 0 / 10%);
+  --glass-highlight: oklch(1 0 0 / 8%);
+  --glass-shadow: 0 12px 40px -12px oklch(0 0 0 / 55%),
+    0 2px 8px -4px oklch(0 0 0 / 35%);
+}
+
+/* ————————————————————————————————————————————————
+   3. 基础
+   ———————————————————————————————————————————————— */
 html,
 body,
 #root {
@@ -14,8 +156,8 @@ body,
 
 body {
   margin: 0;
-  background-color: var(--color-background, #fff);
-  color: var(--color-foreground, #111);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
   font-family:
     "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Heiti SC",
     system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -23,22 +165,163 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* —— 设计辅助类 —— */
-
-/* 柔和的应用背景：在主题背景上叠加两团品牌色光晕 */
-.app-bg {
-  background-color: var(--color-background);
-  background-image:
-    radial-gradient(60rem 60rem at 110% -10%, color-mix(in oklch, var(--color-primary) 18%, transparent), transparent 60%),
-    radial-gradient(50rem 50rem at -10% 110%, color-mix(in oklch, var(--color-info) 14%, transparent), transparent 55%);
+::selection {
+  background: var(--selection-color);
 }
 
-/* 品牌渐变（用于 Logo 方块、品牌面板） */
+/* ————————————————————————————————————————————————
+   4. 极光背景系统（固定层，透过玻璃材质可见）
+   ———————————————————————————————————————————————— */
+.app-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background-color: var(--color-background);
+  pointer-events: none;
+}
+.app-aurora::before,
+.app-aurora::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background-image:
+    radial-gradient(42rem 42rem at 12% 8%, oklch(0.72 0.19 283 / 22%), transparent 62%),
+    radial-gradient(38rem 38rem at 88% 12%, oklch(0.68 0.22 310 / 18%), transparent 60%),
+    radial-gradient(46rem 46rem at 85% 88%, oklch(0.62 0.2 250 / 20%), transparent 62%),
+    radial-gradient(34rem 34rem at 8% 85%, oklch(0.7 0.16 200 / 14%), transparent 58%);
+  animation: auroraDrift 36s ease-in-out infinite alternate;
+}
+.app-aurora::after {
+  background-image:
+    radial-gradient(30rem 30rem at 55% 40%, oklch(0.66 0.24 296 / 12%), transparent 60%),
+    radial-gradient(26rem 26rem at 30% 70%, oklch(0.72 0.19 283 / 12%), transparent 58%);
+  animation: auroraDrift 48s ease-in-out infinite alternate-reverse;
+  opacity: 0.9;
+}
+.dark .app-aurora::before {
+  background-image:
+    radial-gradient(42rem 42rem at 12% 8%, oklch(0.62 0.22 283 / 30%), transparent 62%),
+    radial-gradient(38rem 38rem at 88% 12%, oklch(0.6 0.24 310 / 26%), transparent 60%),
+    radial-gradient(46rem 46rem at 85% 88%, oklch(0.55 0.22 250 / 28%), transparent 62%),
+    radial-gradient(34rem 34rem at 8% 85%, oklch(0.6 0.18 200 / 20%), transparent 58%);
+}
+.dark .app-aurora::after {
+  background-image:
+    radial-gradient(30rem 30rem at 55% 40%, oklch(0.6 0.26 296 / 16%), transparent 60%),
+    radial-gradient(26rem 26rem at 30% 70%, oklch(0.62 0.22 283 / 16%), transparent 58%);
+}
+/* 细腻网格纹理 */
+.app-aurora-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(oklch(0.558 0.245 280.5 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(0.558 0.245 280.5 / 4%) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, #000 30%, transparent 78%);
+}
+.dark .app-aurora-grid {
+  background-image:
+    linear-gradient(oklch(1 0 0 / 3%) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 3%) 1px, transparent 1px);
+}
+
+@keyframes auroraDrift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(2%, -2%, 0) rotate(3deg) scale(1.05); }
+  100% { transform: translate3d(-2%, 2%, 0) rotate(-3deg) scale(1.08); }
+}
+
+/* ————————————————————————————————————————————————
+   5. 玻璃材质工具类
+   ———————————————————————————————————————————————— */
+
+/* 标准玻璃卡片 */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+}
+
+/* 强玻璃（侧边栏、顶栏、弹层） */
+.glass-panel {
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(28px) saturate(1.8);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+}
+
+/* 轻玻璃（表格头、内嵌块、输入底色） */
+.glass-subtle {
+  background: var(--glass-bg-subtle);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  border: 1px solid var(--glass-border);
+}
+
+/* 玻璃输入控件 */
+.glass-input {
+  background: var(--glass-bg-subtle);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.glass-input:focus-within,
+.glass-input:focus {
+  border-color: color-mix(in oklch, var(--color-primary) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 18%, transparent);
+  outline: none;
+}
+
+/* 玻璃悬浮条（工具栏 / 胶囊容器） */
+.glass-bar {
+  background: var(--glass-bg);
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 20px -8px oklch(0.4 0.1 282 / 14%),
+    inset 0 1px 0 var(--glass-highlight);
+}
+
+/* ————————————————————————————————————————————————
+   6. 品牌元素
+   ———————————————————————————————————————————————— */
+
+/* 品牌渐变：靛蓝 → 紫罗兰 → 品红 */
 .brand-gradient {
   background-image: linear-gradient(
     135deg,
-    var(--color-primary),
-    color-mix(in oklch, var(--color-primary) 55%, var(--color-info))
+    oklch(0.62 0.24 272),
+    oklch(0.585 0.26 290) 52%,
+    oklch(0.62 0.27 322)
+  );
+}
+
+/* 品牌渐变文字 */
+.text-gradient {
+  background-image: linear-gradient(
+    120deg,
+    oklch(0.58 0.24 275),
+    oklch(0.56 0.26 295) 50%,
+    oklch(0.6 0.27 320)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.dark .text-gradient {
+  background-image: linear-gradient(
+    120deg,
+    oklch(0.78 0.16 278),
+    oklch(0.74 0.2 296) 50%,
+    oklch(0.76 0.2 322)
   );
 }
 
@@ -49,22 +332,64 @@ body {
   width: 2rem;
   height: 2rem;
   border-radius: var(--radius-lg, 0.75rem);
-  color: var(--color-primary-foreground, #fff);
+  color: #fff;
   font-weight: 800;
-  box-shadow: 0 6px 16px -6px color-mix(in oklch, var(--color-primary) 60%, transparent);
+  background-image: linear-gradient(
+    135deg,
+    oklch(0.62 0.24 272),
+    oklch(0.585 0.26 290) 52%,
+    oklch(0.62 0.27 322)
+  );
+  box-shadow:
+    0 6px 20px -6px oklch(0.585 0.26 290 / 55%),
+    inset 0 1px 0 oklch(1 0 0 / 30%);
 }
 
-/* 玻璃拟态的粘性导航 */
+/* 品牌光晕按钮（主操作） */
+.glow-button {
+  background-image: linear-gradient(
+    135deg,
+    oklch(0.62 0.24 272),
+    oklch(0.585 0.26 290) 52%,
+    oklch(0.62 0.27 322)
+  );
+  color: #fff;
+  box-shadow:
+    0 8px 24px -8px oklch(0.585 0.26 290 / 55%),
+    inset 0 1px 0 oklch(1 0 0 / 25%);
+  transition: transform 0.15s, box-shadow 0.2s, filter 0.15s;
+}
+.glow-button:hover {
+  filter: brightness(1.06);
+  box-shadow:
+    0 12px 32px -8px oklch(0.585 0.26 290 / 65%),
+    inset 0 1px 0 oklch(1 0 0 / 30%);
+}
+.glow-button:active {
+  transform: scale(0.98);
+}
+.glow-button:disabled {
+  opacity: 0.55;
+  filter: saturate(0.6);
+}
+
+/* ————————————————————————————————————————————————
+   7. 兼容类（保留旧类名，指向新体系）
+   ———————————————————————————————————————————————— */
+.app-bg {
+  background-color: transparent;
+}
+
 .app-header {
   position: sticky;
   top: 0;
   z-index: 20;
-  backdrop-filter: saturate(1.4) blur(10px);
-  background-color: color-mix(in oklch, var(--color-background) 78%, transparent);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(28px) saturate(1.8);
+  -webkit-backdrop-filter: blur(28px) saturate(1.8);
+  border-bottom: 1px solid var(--glass-border);
 }
 
-/* 导航胶囊 */
 .nav-pill {
   padding: 0.375rem 0.75rem;
   border-radius: 999px;
@@ -82,7 +407,6 @@ body {
   font-weight: 600;
 }
 
-/* 统计卡内的图标圆底 */
 .icon-badge {
   display: grid;
   place-items: center;
@@ -100,8 +424,6 @@ body {
 .auth-mobile-brand {
   display: block;
 }
-
-/* 品牌面板：默认隐藏（窄屏），宽屏显示 */
 .auth-aside {
   display: none;
   position: relative;
@@ -111,7 +433,6 @@ body {
   padding: 52px 48px;
   color: var(--color-primary-foreground, #fff);
 }
-/* 细网格底纹 */
 .auth-aside-grid {
   position: absolute;
   inset: 0;
@@ -121,7 +442,6 @@ body {
   background-size: 28px 28px;
   mask-image: radial-gradient(120% 100% at 100% 0%, #000 30%, transparent 75%);
 }
-/* 右上角光晕 */
 .auth-aside-glow {
   position: absolute;
   top: -120px;
@@ -145,7 +465,9 @@ body {
   }
 }
 
-/* 统一轻量细滚动条 */
+/* ————————————————————————————————————————————————
+   8. 滚动条与动效
+   ———————————————————————————————————————————————— */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -154,11 +476,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: oklch(0.6 0.1 283 / 28%);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+  background: oklch(0.58 0.16 283 / 45%);
 }
 
 @keyframes fadeIn {
@@ -168,4 +490,18 @@ body {
 
 .animate-fadeIn {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes glassFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* 弹层进入动效 */
+@keyframes glassPop {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-glassPop {
+  animation: glassPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

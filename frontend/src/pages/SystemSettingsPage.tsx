@@ -411,7 +411,7 @@ export function SystemSettingsPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || loading}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
               >
                 <CheckBadgeIcon size={18} />
                 {saving ? "正在保存..." : "保存 AI 配置"}
@@ -425,7 +425,7 @@ export function SystemSettingsPage() {
                   loadSchemaReport();
                 }}
                 disabled={loadingDb || checkingSchema}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
               >
                 <RefreshIcon size={16} className={loadingDb || checkingSchema ? "animate-spin" : ""} />
                 刷新数据库状态
@@ -437,21 +437,21 @@ export function SystemSettingsPage() {
 
       {/* Status Alerts */}
       {saveSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-2 animate-fadeIn">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-sm flex items-center gap-2 animate-fadeIn backdrop-blur-md">
           <CheckBadgeIcon size={18} />
           <span>系统 AI 配置已成功保存并立即全局生效！</span>
         </div>
       )}
 
       {dbSaveSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm flex items-center gap-2 animate-fadeIn">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-sm flex items-center gap-2 animate-fadeIn backdrop-blur-md">
           <CheckBadgeIcon size={18} />
           <span>数据库配置已成功应用并重新建立连接池！</span>
         </div>
       )}
 
       {saveError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between backdrop-blur-md">
           <span>{saveError}</span>
           <button
             onClick={() => setSaveError(null)}
@@ -463,7 +463,7 @@ export function SystemSettingsPage() {
       )}
 
       {dbError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between backdrop-blur-md">
           <span>{dbError}</span>
           <button
             onClick={() => setDbError(null)}
@@ -475,7 +475,7 @@ export function SystemSettingsPage() {
       )}
 
       {schemaError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between backdrop-blur-md">
           <span>{schemaError}</span>
           <button
             onClick={() => setSchemaError(null)}
@@ -487,13 +487,13 @@ export function SystemSettingsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="inline-flex items-center gap-1 p-1 rounded-2xl glass-subtle max-w-full overflow-x-auto">
         <button
           onClick={() => setActiveTab("ai")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "ai"
-              ? "bg-primary/10 text-primary"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "text-violet-700 dark:text-violet-200 bg-gradient-to-r from-violet-500/15 via-fuchsia-500/10 to-transparent border border-violet-400/30 dark:border-violet-400/25 shadow-[0_4px_16px_-6px_rgba(139,92,246,0.35)] font-semibold"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
           }`}
         >
           <SparklesIcon size={16} />
@@ -505,10 +505,10 @@ export function SystemSettingsPage() {
             loadDbStatus();
             loadSchemaReport();
           }}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "database"
-              ? "bg-primary/10 text-primary"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "text-violet-700 dark:text-violet-200 bg-gradient-to-r from-violet-500/15 via-fuchsia-500/10 to-transparent border border-violet-400/30 dark:border-violet-400/25 shadow-[0_4px_16px_-6px_rgba(139,92,246,0.35)] font-semibold"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
           }`}
         >
           <DatabaseIcon size={16} />
@@ -516,10 +516,10 @@ export function SystemSettingsPage() {
         </button>
         <button
           onClick={() => setActiveTab("system")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+          className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
             activeTab === "system"
-              ? "bg-primary/10 text-primary"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              ? "text-violet-700 dark:text-violet-200 bg-gradient-to-r from-violet-500/15 via-fuchsia-500/10 to-transparent border border-violet-400/30 dark:border-violet-400/25 shadow-[0_4px_16px_-6px_rgba(139,92,246,0.35)] font-semibold"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-transparent"
           }`}
         >
           <ActivityIcon size={16} />
@@ -528,8 +528,8 @@ export function SystemSettingsPage() {
       </div>
 
       {loading ? (
-        <div className="py-24 flex flex-col items-center justify-center space-y-3 text-slate-400">
-          <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="py-24 flex flex-col items-center justify-center space-y-3 text-slate-400 dark:text-slate-500">
+          <div className="w-10 h-10 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin" />
           <p className="text-sm">正在加载系统配置...</p>
         </div>
       ) : (
@@ -538,10 +538,10 @@ export function SystemSettingsPage() {
           {activeTab === "ai" && (
             <div className="space-y-6">
               {/* Default Provider Card */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
+              <div className="p-6 rounded-3xl glass-card space-y-4">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <SparklesIcon size={18} className="text-primary" />
+                    <SparklesIcon size={18} className="text-violet-600 dark:text-violet-300" />
                     系统默认 AI 研判服务商
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -573,10 +573,10 @@ export function SystemSettingsPage() {
                     <div
                       key={item.id}
                       onClick={() => setDefaultProvider(item.id)}
-                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                      className={`p-4 rounded-2xl glass-subtle transition-all cursor-pointer flex flex-col justify-between ${
                         defaultProvider === item.id
-                          ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-xs"
-                          : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/30"
+                          ? "border-violet-400/50 dark:border-violet-400/35 shadow-[0_8px_24px_-8px_rgba(139,92,246,0.35)] ring-1 ring-violet-400/30"
+                          : "hover:border-violet-400/40 dark:hover:border-violet-400/30"
                       }`}
                     >
                       <div>
@@ -589,22 +589,22 @@ export function SystemSettingsPage() {
                             name="default_provider"
                             checked={defaultProvider === item.id}
                             onChange={() => setDefaultProvider(item.id)}
-                            className="text-primary focus:ring-primary h-4 w-4"
+                            className="accent-violet-600 dark:accent-violet-400 h-4 w-4"
                           />
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
                           {item.desc}
                         </p>
                       </div>
-                      <div className="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-2xs">
-                        <span className="text-slate-400">密钥状态</span>
+                      <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-white/8 flex items-center justify-between text-2xs">
+                        <span className="text-slate-400 dark:text-slate-500">密钥状态</span>
                         {item.configured ? (
                           <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             已配置
                           </span>
                         ) : (
-                          <span className="text-amber-500 font-medium flex items-center gap-1">
+                          <span className="text-amber-600 dark:text-amber-300 font-medium flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                             未配置
                           </span>
@@ -616,7 +616,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* CARD 1: OpenAI / DeepSeek / 兼容 */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-5">
+              <div className="p-6 rounded-3xl glass-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
@@ -624,11 +624,11 @@ export function SystemSettingsPage() {
                         OpenAI / DeepSeek / 兼容协议配置
                       </h3>
                       {openaiConfigured ? (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
                           已配置密钥
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
                           待配置
                         </span>
                       )}
@@ -641,7 +641,7 @@ export function SystemSettingsPage() {
                   <button
                     onClick={() => handleTestConnection("openai")}
                     disabled={testing["openai"]}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <ActivityIcon size={14} />
                     {testing["openai"] ? "正在测试连通性..." : "测试连接"}
@@ -658,10 +658,10 @@ export function SystemSettingsPage() {
                       <button
                         key={preset.name}
                         onClick={() => applyPreset(preset)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-50 hover:bg-primary/10 hover:text-primary dark:bg-slate-800/60 dark:hover:bg-primary/20 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium glass-subtle hover:bg-violet-500/10 hover:text-violet-700 dark:hover:bg-violet-400/10 dark:hover:text-violet-300 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
                       >
                         <span>{preset.name}</span>
-                        <span className="text-2xs text-slate-400 font-mono">({preset.badge})</span>
+                        <span className="text-2xs text-slate-400 dark:text-slate-500 font-mono">({preset.badge})</span>
                       </button>
                     ))}
                   </div>
@@ -678,14 +678,14 @@ export function SystemSettingsPage() {
                       value={openaiBaseUrl}
                       onChange={(e) => setOpenaiBaseUrl(e.target.value)}
                       placeholder="例如：https://api.deepseek.com/v1 或 https://api.openai.com/v1"
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                       <span>API 密钥 (API Key)</span>
-                      <span className="text-2xs font-normal text-slate-400">
+                      <span className="text-2xs font-normal text-slate-400 dark:text-slate-500">
                         留空或保留••••掩码即表示不修改原密钥
                       </span>
                     </label>
@@ -695,14 +695,14 @@ export function SystemSettingsPage() {
                         value={openaiKey}
                         onChange={(e) => setOpenaiKey(e.target.value)}
                         placeholder="sk-..."
-                        className="w-full h-10 pl-3.5 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-full h-10 pl-3.5 pr-10 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setShowKey((prev) => ({ ...prev, openai: !prev.openai }))
                         }
-                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        className="absolute right-3 top-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-200"
                       >
                         {showKey["openai"] ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
                       </button>
@@ -718,7 +718,7 @@ export function SystemSettingsPage() {
                       value={openaiModel}
                       onChange={(e) => setOpenaiModel(e.target.value)}
                       placeholder="deepseek-chat, gpt-4o, qwen-plus..."
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
                 </div>
@@ -728,8 +728,8 @@ export function SystemSettingsPage() {
                   <div
                     className={`p-3 rounded-xl text-xs flex items-center justify-between ${
                       testResult["openai"].ok
-                        ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                        : "bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300"
+                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
+                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 backdrop-blur-md"
                     }`}
                   >
                     <span>{testResult["openai"].message}</span>
@@ -741,7 +741,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* CARD 2: Google Gemini */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-5">
+              <div className="p-6 rounded-3xl glass-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
@@ -749,11 +749,11 @@ export function SystemSettingsPage() {
                         Google Gemini 配置
                       </h3>
                       {geminiConfigured ? (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
                           已配置密钥
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
                           待配置
                         </span>
                       )}
@@ -766,7 +766,7 @@ export function SystemSettingsPage() {
                   <button
                     onClick={() => handleTestConnection("gemini")}
                     disabled={testing["gemini"]}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <ActivityIcon size={14} />
                     {testing["gemini"] ? "正在测试连通性..." : "测试连接"}
@@ -783,14 +783,14 @@ export function SystemSettingsPage() {
                       value={geminiBaseUrl}
                       onChange={(e) => setGeminiBaseUrl(e.target.value)}
                       placeholder="https://generativelanguage.googleapis.com"
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                       <span>API 密钥 (API Key)</span>
-                      <span className="text-2xs font-normal text-slate-400">
+                      <span className="text-2xs font-normal text-slate-400 dark:text-slate-500">
                         留空或保留••••掩码即不修改
                       </span>
                     </label>
@@ -800,14 +800,14 @@ export function SystemSettingsPage() {
                         value={geminiKey}
                         onChange={(e) => setGeminiKey(e.target.value)}
                         placeholder="AIzaSy..."
-                        className="w-full h-10 pl-3.5 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-full h-10 pl-3.5 pr-10 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setShowKey((prev) => ({ ...prev, gemini: !prev.gemini }))
                         }
-                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        className="absolute right-3 top-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-200"
                       >
                         {showKey["gemini"] ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
                       </button>
@@ -823,7 +823,7 @@ export function SystemSettingsPage() {
                       value={geminiModel}
                       onChange={(e) => setGeminiModel(e.target.value)}
                       placeholder="gemini-2.5-flash, gemini-1.5-pro..."
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
                 </div>
@@ -832,8 +832,8 @@ export function SystemSettingsPage() {
                   <div
                     className={`p-3 rounded-xl text-xs flex items-center justify-between ${
                       testResult["gemini"].ok
-                        ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                        : "bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300"
+                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
+                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 backdrop-blur-md"
                     }`}
                   >
                     <span>{testResult["gemini"].message}</span>
@@ -845,7 +845,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* CARD 3: Anthropic Claude */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-5">
+              <div className="p-6 rounded-3xl glass-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
@@ -853,11 +853,11 @@ export function SystemSettingsPage() {
                         Anthropic Claude 配置
                       </h3>
                       {anthropicConfigured ? (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
                           已配置密钥
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
                           待配置
                         </span>
                       )}
@@ -870,7 +870,7 @@ export function SystemSettingsPage() {
                   <button
                     onClick={() => handleTestConnection("anthropic")}
                     disabled={testing["anthropic"]}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <ActivityIcon size={14} />
                     {testing["anthropic"] ? "正在测试连通性..." : "测试连接"}
@@ -887,14 +887,14 @@ export function SystemSettingsPage() {
                       value={anthropicBaseUrl}
                       onChange={(e) => setAnthropicBaseUrl(e.target.value)}
                       placeholder="https://api.anthropic.com"
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                       <span>API 密钥 (API Key)</span>
-                      <span className="text-2xs font-normal text-slate-400">
+                      <span className="text-2xs font-normal text-slate-400 dark:text-slate-500">
                         留空或保留••••掩码即不修改
                       </span>
                     </label>
@@ -904,14 +904,14 @@ export function SystemSettingsPage() {
                         value={anthropicKey}
                         onChange={(e) => setAnthropicKey(e.target.value)}
                         placeholder="sk-ant-..."
-                        className="w-full h-10 pl-3.5 pr-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        className="w-full h-10 pl-3.5 pr-10 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setShowKey((prev) => ({ ...prev, anthropic: !prev.anthropic }))
                         }
-                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        className="absolute right-3 top-2.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-200"
                       >
                         {showKey["anthropic"] ? (
                           <EyeOffIcon size={16} />
@@ -931,7 +931,7 @@ export function SystemSettingsPage() {
                       value={anthropicModel}
                       onChange={(e) => setAnthropicModel(e.target.value)}
                       placeholder="claude-3-5-sonnet-20241022..."
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
                 </div>
@@ -940,8 +940,8 @@ export function SystemSettingsPage() {
                   <div
                     className={`p-3 rounded-xl text-xs flex items-center justify-between ${
                       testResult["anthropic"].ok
-                        ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                        : "bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300"
+                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
+                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 backdrop-blur-md"
                     }`}
                   >
                     <span>{testResult["anthropic"].message}</span>
@@ -954,7 +954,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* Bottom Action Bar */}
-              <div className="p-4 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-4 rounded-2xl glass-bar flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="text-xs text-slate-500 dark:text-slate-400">
                   <span>💡 提示：配置保存后将通过<strong>数据库 + .env 双重持久化</strong>，无论重启后端、重启前端或切换运行目录均永久有效。</span>
                 </div>
@@ -968,7 +968,7 @@ export function SystemSettingsPage() {
                   <button
                     onClick={handleSave}
                     disabled={saving || loading}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
                   >
                     <CheckBadgeIcon size={18} />
                     {saving ? "正在保存中..." : "保存所有配置"}
@@ -982,10 +982,10 @@ export function SystemSettingsPage() {
           {activeTab === "database" && (
             <div className="space-y-6">
               {/* Card 1: Database Status & Stats */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-5">
+              <div className="p-6 rounded-3xl glass-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <DatabaseIcon size={20} className="text-primary" />
+                    <DatabaseIcon size={20} className="text-violet-600 dark:text-violet-300" />
                     <div>
                       <h3 className="text-base font-bold text-slate-900 dark:text-white">
                         当前数据库状态与统计
@@ -997,12 +997,12 @@ export function SystemSettingsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {dbStatus?.mode === "postgresql" ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         PostgreSQL 企业级模式
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
                         <span className="w-2 h-2 rounded-full bg-amber-500" />
                         SQLite 本地存储模式
                       </span>
@@ -1013,7 +1013,7 @@ export function SystemSettingsPage() {
                 {/* DB Connection Indicators */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* App DB */}
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2">
+                  <div className="p-4 rounded-2xl glass-subtle space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                         主数据库 (App Database)
@@ -1033,13 +1033,13 @@ export function SystemSettingsPage() {
                     <div className="text-xs font-mono text-slate-600 dark:text-slate-400 truncate" title={dbStatus?.app_db.url}>
                       {dbStatus?.app_db.url || "未连接"}
                     </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200/50 dark:border-slate-800/50 text-2xs text-slate-500">
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200/50 dark:border-white/8 text-2xs text-slate-500 dark:text-slate-400">
                       <span>驱动方言: <strong className="uppercase font-mono">{dbStatus?.app_db.engine || "-"}</strong></span>
                     </div>
                   </div>
 
                   {/* Collector DB */}
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2">
+                  <div className="p-4 rounded-2xl glass-subtle space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                         采集业务库 (Collector Database)
@@ -1059,7 +1059,7 @@ export function SystemSettingsPage() {
                     <div className="text-xs font-mono text-slate-600 dark:text-slate-400 truncate" title={dbStatus?.collector_db.url}>
                       {dbStatus?.collector_db.url || "未连接"}
                     </div>
-                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200/50 dark:border-slate-800/50 text-2xs text-slate-500">
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-200/50 dark:border-white/8 text-2xs text-slate-500 dark:text-slate-400">
                       <span>驱动方言: <strong className="uppercase font-mono">{dbStatus?.collector_db.engine || "-"}</strong></span>
                     </div>
                   </div>
@@ -1069,7 +1069,7 @@ export function SystemSettingsPage() {
                 <div className="space-y-2">
                   <div className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                     <span>核心数据表记录行数</span>
-                    <span className="text-2xs font-normal text-slate-400">
+                    <span className="text-2xs font-normal text-slate-400 dark:text-slate-500">
                       合计 {dbStatus?.total_tables ?? 0} 个数据表，{dbStatus?.total_records?.toLocaleString() ?? 0} 条数据
                     </span>
                   </div>
@@ -1091,9 +1091,9 @@ export function SystemSettingsPage() {
                     ].map((item, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/50 flex flex-col justify-between"
+                        className="p-3 rounded-xl glass-subtle flex flex-col justify-between"
                       >
-                        <span className="text-2xs text-slate-500 truncate" title={item.label}>
+                        <span className="text-2xs text-slate-500 dark:text-slate-400 truncate" title={item.label}>
                           {item.label}
                         </span>
                         <span className="text-base font-bold font-mono text-slate-900 dark:text-white mt-1">
@@ -1106,10 +1106,10 @@ export function SystemSettingsPage() {
               </div>
 
               {/* Card 1.5: Schema Verification & Repair */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-5">
+              <div className="p-6 rounded-3xl glass-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <ShieldIcon size={20} className="text-primary" />
+                    <ShieldIcon size={20} className="text-violet-600 dark:text-violet-300" />
                     <div>
                       <h3 className="text-base font-bold text-slate-900 dark:text-white">
                         表结构自检与修复
@@ -1123,8 +1123,8 @@ export function SystemSettingsPage() {
                     <span
                       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
                         schemaReport.ok
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
-                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20"
+                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md"
+                          : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md"
                       }`}
                     >
                       <span
@@ -1147,7 +1147,7 @@ export function SystemSettingsPage() {
                   ] as const).map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-2"
+                      className="p-4 rounded-2xl glass-subtle space-y-2"
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -1174,14 +1174,14 @@ export function SystemSettingsPage() {
 
                       {item.rep && item.rep.missing.length > 0 ? (
                         <div className="space-y-1.5">
-                          <span className="text-2xs text-slate-500">
+                          <span className="text-2xs text-slate-500 dark:text-slate-400">
                             缺失表（按外键依赖顺序建立）：
                           </span>
                           <div className="flex flex-wrap gap-1.5">
                             {item.rep.missing.map((name) => (
                               <span
                                 key={name}
-                                className="px-2 py-0.5 rounded-md text-2xs font-mono bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                className="px-2 py-0.5 rounded-md text-2xs font-mono bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md"
                               >
                                 {name}
                               </span>
@@ -1190,14 +1190,14 @@ export function SystemSettingsPage() {
                         </div>
                       ) : (
                         item.rep && (
-                          <div className="text-2xs text-slate-500">
+                          <div className="text-2xs text-slate-500 dark:text-slate-400">
                             声明的表均已存在
                           </div>
                         )
                       )}
 
                       {item.rep && item.rep.unmanaged.length > 0 && (
-                        <div className="text-2xs text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-800/50">
+                        <div className="text-2xs text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-200/50 dark:border-white/8">
                           库中另有 {item.rep.unmanaged.length} 张非本项目声明的表（不会被改动）
                         </div>
                       )}
@@ -1206,7 +1206,7 @@ export function SystemSettingsPage() {
                 </div>
 
                 {schemaReport?.shared_database && (
-                  <div className="text-2xs text-slate-500 dark:text-slate-400 px-3 py-2 rounded-lg bg-slate-100/70 dark:bg-slate-900/40">
+                  <div className="text-2xs text-slate-500 dark:text-slate-400 px-3 py-2 rounded-lg glass-subtle">
                     当前主库与采集库指向同一个数据库，两套表共存于其中。
                   </div>
                 )}
@@ -1216,8 +1216,8 @@ export function SystemSettingsPage() {
                   <div
                     className={`p-3.5 rounded-xl text-xs space-y-2 animate-fadeIn ${
                       repairResult.ok
-                        ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                        : "bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300"
+                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
+                        : "bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 backdrop-blur-md"
                     }`}
                   >
                     <div className="font-semibold">
@@ -1231,7 +1231,7 @@ export function SystemSettingsPage() {
                         {[...repairResult.created.app, ...repairResult.created.collector].map((name) => (
                           <span
                             key={name}
-                            className="px-2 py-0.5 rounded-md text-2xs font-mono bg-white/60 dark:bg-slate-900/40 border border-current/20"
+                            className="px-2 py-0.5 rounded-md text-2xs font-mono glass-subtle"
                           >
                             {name}
                           </span>
@@ -1261,7 +1261,7 @@ export function SystemSettingsPage() {
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-                  <span className="text-2xs text-slate-400">
+                  <span className="text-2xs text-slate-400 dark:text-slate-500">
                     后端启动时会自动执行同样的检测与补齐，此处用于手动复查。
                   </span>
                   <div className="flex items-center gap-2">
@@ -1269,7 +1269,7 @@ export function SystemSettingsPage() {
                       type="button"
                       onClick={loadSchemaReport}
                       disabled={checkingSchema || repairingSchema}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       <RefreshIcon size={16} className={checkingSchema ? "animate-spin" : ""} />
                       {checkingSchema ? "正在检测..." : "重新检测"}
@@ -1283,7 +1283,7 @@ export function SystemSettingsPage() {
                         !schemaReport ||
                         schemaReport.missing_total === 0
                       }
-                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
                       title={
                         schemaReport && schemaReport.missing_total === 0
                           ? "当前没有缺失表"
@@ -1302,9 +1302,9 @@ export function SystemSettingsPage() {
               </div>
 
               {/* Card 2: PostgreSQL Configuration & Switching */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
+              <div className="p-6 rounded-3xl glass-card space-y-4">
                 <div className="flex items-center gap-2">
-                  <DatabaseIcon size={20} className="text-primary" />
+                  <DatabaseIcon size={20} className="text-violet-600 dark:text-violet-300" />
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-white">
                       PostgreSQL 数据库配置与切换
@@ -1323,15 +1323,15 @@ export function SystemSettingsPage() {
                         <button
                           type="button"
                           onClick={() => setPgUrl("postgresql://postgres:postgres@localhost:5432/duiliao")}
-                          className="text-2xs text-primary hover:underline cursor-pointer"
+                          className="text-2xs text-violet-600 dark:text-violet-300 hover:underline cursor-pointer"
                         >
                           填入本地 PG 默认
                         </button>
-                        <span className="text-slate-300 dark:text-slate-700">|</span>
+                        <span className="text-slate-300 dark:text-white/25">|</span>
                         <button
                           type="button"
                           onClick={() => setPgUrl("sqlite:///./duiliao.db")}
-                          className="text-2xs text-slate-500 hover:underline cursor-pointer"
+                          className="text-2xs text-slate-500 dark:text-slate-400 hover:underline cursor-pointer"
                         >
                           恢复默认 SQLite
                         </button>
@@ -1342,21 +1342,21 @@ export function SystemSettingsPage() {
                       value={pgUrl}
                       onChange={(e) => setPgUrl(e.target.value)}
                       placeholder="postgresql://user:password@localhost:5432/duiliao 或 sqlite:///./duiliao.db"
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                       <span>独立采集库地址 (COLLECTOR_DATABASE_URL，可选)</span>
-                      <span className="text-2xs font-normal text-slate-400">留空则自动复用主数据库</span>
+                      <span className="text-2xs font-normal text-slate-400 dark:text-slate-500">留空则自动复用主数据库</span>
                     </label>
                     <input
                       type="text"
                       value={collectorPgUrl}
                       onChange={(e) => setCollectorPgUrl(e.target.value)}
                       placeholder="可选：若采集表存放在独立数据库则填写，否则留空"
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
@@ -1365,8 +1365,8 @@ export function SystemSettingsPage() {
                     <div
                       className={`p-3.5 rounded-xl text-xs flex items-center justify-between animate-fadeIn ${
                         pgTestResult.ok
-                          ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                          : "bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300"
+                          ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
+                          : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 backdrop-blur-md"
                       }`}
                     >
                       <div className="space-y-0.5">
@@ -1389,7 +1389,7 @@ export function SystemSettingsPage() {
                       type="button"
                       onClick={handleTestPg}
                       disabled={testingPg || !pgUrl.trim()}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {testingPg ? "正在测试连通性..." : "测试数据库连接"}
                     </button>
@@ -1397,7 +1397,7 @@ export function SystemSettingsPage() {
                       type="button"
                       onClick={handleSaveDbConfig}
                       disabled={savingDb || !pgUrl.trim()}
-                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       <CheckBadgeIcon size={16} />
                       {savingDb ? "正在保存并初始化表..." : "保存并切换数据库"}
@@ -1407,9 +1407,9 @@ export function SystemSettingsPage() {
               </div>
 
               {/* Card 3: SQLite File Upload & Data Import */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
+              <div className="p-6 rounded-3xl glass-card space-y-4">
                 <div className="flex items-center gap-2">
-                  <UploadIcon size={20} className="text-primary" />
+                  <UploadIcon size={20} className="text-violet-600 dark:text-violet-300" />
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-white">
                       上传 SQLite 文件并导入数据
@@ -1434,10 +1434,10 @@ export function SystemSettingsPage() {
                       const file = e.dataTransfer.files?.[0];
                       if (file) handleFileSelected(file);
                     }}
-                    className={`p-8 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                    className={`p-8 rounded-2xl glass-subtle border-dashed! flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
                       isDragOver
-                        ? "border-primary bg-primary/5"
-                        : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/50 dark:bg-slate-900/20"
+                        ? "border-violet-400/70 dark:border-violet-400/50"
+                        : "hover:border-violet-400/50 dark:hover:border-violet-400/35"
                     }`}
                     onClick={() => {
                       const input = document.getElementById("sqlite-file-input") as HTMLInputElement;
@@ -1454,7 +1454,7 @@ export function SystemSettingsPage() {
                         if (file) handleFileSelected(file);
                       }}
                     />
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-3">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/15 to-fuchsia-500/10 text-violet-600 dark:text-violet-300 border border-violet-400/30 flex items-center justify-center mb-3 backdrop-blur-sm">
                       <UploadIcon size={24} />
                     </div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -1468,14 +1468,14 @@ export function SystemSettingsPage() {
 
                 {/* File Inspection Result */}
                 {inspectResult && (
-                  <div className="space-y-4 p-4 rounded-xl bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-800/70">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+                  <div className="space-y-4 p-4 rounded-2xl glass-subtle">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200/50 dark:border-white/8">
                       <div>
                         <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-primary" />
+                          <span className="w-2 h-2 rounded-full bg-violet-500 shadow-[0_0_6px_rgba(139,92,246,0.8)]" />
                           已解析文件: {inspectResult.filename}
                         </div>
-                        <div className="text-2xs text-slate-500 mt-0.5">
+                        <div className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
                           文件大小: {(inspectResult.file_size / 1024).toFixed(1)} KB | 数据表: {inspectResult.total_tables} 个 | 总记录: {inspectResult.total_rows.toLocaleString()} 条
                         </div>
                       </div>
@@ -1487,7 +1487,7 @@ export function SystemSettingsPage() {
                           setFileBase64("");
                           setImportResult(null);
                         }}
-                        className="text-xs text-rose-500 hover:underline self-start sm:self-auto cursor-pointer"
+                        className="text-xs text-rose-600 dark:text-rose-300 hover:underline self-start sm:self-auto cursor-pointer"
                       >
                         重新选择文件
                       </button>
@@ -1500,17 +1500,17 @@ export function SystemSettingsPage() {
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label
-                          className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                          className={`p-3 rounded-2xl glass-subtle transition-all cursor-pointer flex items-center justify-between ${
                             importMode === "skip"
-                              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-xs"
-                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220]"
+                              ? "border-violet-400/50 dark:border-violet-400/35 shadow-[0_8px_24px_-8px_rgba(139,92,246,0.35)] ring-1 ring-violet-400/30"
+                              : "hover:border-violet-400/40 dark:hover:border-violet-400/30"
                           }`}
                         >
                           <div>
                             <div className="text-xs font-bold text-slate-900 dark:text-white">
                               增量合并 (跳过冲突，推荐)
                             </div>
-                            <div className="text-2xs text-slate-500 mt-0.5">
+                            <div className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
                               若主键已存在则跳过，保留现有数据，仅插入新增数据。
                             </div>
                           </div>
@@ -1520,22 +1520,22 @@ export function SystemSettingsPage() {
                             value="skip"
                             checked={importMode === "skip"}
                             onChange={() => setImportMode("skip")}
-                            className="text-primary focus:ring-primary h-4 w-4"
+                            className="accent-violet-600 dark:accent-violet-400 h-4 w-4"
                           />
                         </label>
 
                         <label
-                          className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                          className={`p-3 rounded-2xl glass-subtle transition-all cursor-pointer flex items-center justify-between ${
                             importMode === "overwrite"
-                              ? "border-primary bg-primary/5 dark:bg-primary/10 shadow-xs"
-                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220]"
+                              ? "border-violet-400/50 dark:border-violet-400/35 shadow-[0_8px_24px_-8px_rgba(139,92,246,0.35)] ring-1 ring-violet-400/30"
+                              : "hover:border-violet-400/40 dark:hover:border-violet-400/30"
                           }`}
                         >
                           <div>
                             <div className="text-xs font-bold text-slate-900 dark:text-white">
                               覆盖更新 (冲突更新)
                             </div>
-                            <div className="text-2xs text-slate-500 mt-0.5">
+                            <div className="text-2xs text-slate-500 dark:text-slate-400 mt-0.5">
                               若主键已存在则更新替换现有记录，同步最新数据。
                             </div>
                           </div>
@@ -1545,7 +1545,7 @@ export function SystemSettingsPage() {
                             value="overwrite"
                             checked={importMode === "overwrite"}
                             onChange={() => setImportMode("overwrite")}
-                            className="text-primary focus:ring-primary h-4 w-4"
+                            className="accent-violet-600 dark:accent-violet-400 h-4 w-4"
                           />
                         </label>
                       </div>
@@ -1561,22 +1561,22 @@ export function SystemSettingsPage() {
                           <button
                             type="button"
                             onClick={() => setSelectedTables(inspectResult.tables.map((t) => t.name))}
-                            className="text-primary hover:underline cursor-pointer"
+                            className="text-violet-600 dark:text-violet-300 hover:underline cursor-pointer"
                           >
                             全选
                           </button>
-                          <span className="text-slate-300 dark:text-slate-700">|</span>
+                          <span className="text-slate-300 dark:text-white/25">|</span>
                           <button
                             type="button"
                             onClick={() => setSelectedTables([])}
-                            className="text-slate-500 hover:underline cursor-pointer"
+                            className="text-slate-500 dark:text-slate-400 hover:underline cursor-pointer"
                           >
                             全不选
                           </button>
                         </div>
                       </div>
 
-                      <div className="max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2 rounded-xl bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800">
+                      <div className="max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2 rounded-xl glass-subtle">
                         {inspectResult.tables.map((tbl) => {
                           const isSelected = selectedTables.includes(tbl.name);
                           return (
@@ -1584,8 +1584,8 @@ export function SystemSettingsPage() {
                               key={tbl.name}
                               className={`p-2.5 rounded-lg border text-xs flex items-center justify-between transition-all cursor-pointer ${
                                 isSelected
-                                  ? "border-primary/40 bg-primary/5 text-slate-900 dark:text-white font-semibold"
-                                  : "border-slate-100 dark:border-slate-800/80 text-slate-600 dark:text-slate-400 opacity-60"
+                                  ? "border-violet-400/40 bg-violet-500/10 dark:bg-violet-400/10 text-slate-900 dark:text-white font-semibold"
+                                  : "border-slate-200/50 dark:border-white/8 text-slate-600 dark:text-slate-400"
                               }`}
                             >
                               <div className="flex items-center gap-2 truncate">
@@ -1599,11 +1599,11 @@ export function SystemSettingsPage() {
                                       setSelectedTables((prev) => prev.filter((n) => n !== tbl.name));
                                     }
                                   }}
-                                  className="text-primary rounded-sm h-3.5 w-3.5"
+                                  className="accent-violet-600 dark:accent-violet-400 rounded-sm h-3.5 w-3.5"
                                 />
                                 <span className="truncate">{tbl.name}</span>
                               </div>
-                              <span className="font-mono text-2xs text-slate-400 shrink-0 ml-1">
+                              <span className="font-mono text-2xs text-slate-400 dark:text-slate-500 shrink-0 ml-1">
                                 {tbl.rows} 行
                               </span>
                             </label>
@@ -1614,14 +1614,14 @@ export function SystemSettingsPage() {
 
                     {/* Import Execution Button */}
                     <div className="pt-2 flex items-center justify-between">
-                      <div className="text-2xs text-slate-400">
+                      <div className="text-2xs text-slate-400 dark:text-slate-500">
                         目标数据库模式: <strong className="uppercase font-mono">{dbStatus?.mode || "SQLITE"}</strong>
                       </div>
                       <button
                         type="button"
                         onClick={handleStartImport}
                         disabled={importing || selectedTables.length === 0}
-                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
                       >
                         <UploadIcon size={16} />
                         {importing ? "正在导入数据中，请稍候..." : `开始导入 (${selectedTables.length} 个表)`}
@@ -1632,7 +1632,7 @@ export function SystemSettingsPage() {
 
                 {/* Import Result Feedback */}
                 {importResult && (
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs space-y-2 animate-fadeIn">
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-xs space-y-2 animate-fadeIn backdrop-blur-md">
                     <div className="font-bold flex items-center gap-2 text-sm">
                       <CheckBadgeIcon size={18} />
                       <span>数据导入成功！</span>
@@ -1640,7 +1640,7 @@ export function SystemSettingsPage() {
                     <div className="text-xs">
                       耗时 <strong>{importResult.elapsed_ms}ms</strong>，成功写入 <strong>{importResult.total_inserted.toLocaleString()}</strong> 条数据，跳过 <strong>{importResult.total_skipped.toLocaleString()}</strong> 条重复记录。
                     </div>
-                    <div className="pt-2 border-t border-emerald-500/20 max-h-40 overflow-y-auto space-y-1 text-2xs font-mono">
+                    <div className="pt-2 border-t border-emerald-400/30 dark:border-emerald-400/20 max-h-40 overflow-y-auto space-y-1 text-2xs font-mono">
                       {Object.entries(importResult.summary).map(([tname, sinfo]) => (
                         <div key={tname} className="flex items-center justify-between">
                           <span>{tname}</span>
@@ -1654,7 +1654,7 @@ export function SystemSettingsPage() {
                 )}
 
                 {importError && (
-                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-xs animate-fadeIn">
+                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-xs animate-fadeIn backdrop-blur-md">
                     {importError}
                   </div>
                 )}
@@ -1665,40 +1665,40 @@ export function SystemSettingsPage() {
           {/* TAB 3: System Environment & Security */}
           {activeTab === "system" && (
             <div className="space-y-6">
-              <div className="p-6 rounded-2xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs space-y-4">
+              <div className="p-6 rounded-3xl glass-card space-y-4">
                 <div className="flex items-center gap-2">
-                  <ShieldIcon size={20} className="text-primary" />
+                  <ShieldIcon size={20} className="text-violet-600 dark:text-violet-300" />
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
                     安全传输与环境架构
                   </h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-1">
-                    <div className="text-xs text-slate-400">应用层加密通道</div>
+                  <div className="p-4 rounded-2xl glass-subtle space-y-1">
+                    <div className="text-xs text-slate-400 dark:text-slate-500">应用层加密通道</div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       RSA 2048 + AES-256-GCM 会话密钥协商
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-1">
-                    <div className="text-xs text-slate-400">防重放与请求验签</div>
+                  <div className="p-4 rounded-2xl glass-subtle space-y-1">
+                    <div className="text-xs text-slate-400 dark:text-slate-500">防重放与请求验签</div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
                       HMAC-SHA256 签名校验
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-1">
-                    <div className="text-xs text-slate-400">动态配置存储</div>
+                  <div className="p-4 rounded-2xl glass-subtle space-y-1">
+                    <div className="text-xs text-slate-400 dark:text-slate-500">动态配置存储</div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       SQLite / PostgreSQL 数据库（system_settings）
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/60 space-y-1">
-                    <div className="text-xs text-slate-400">API 服务网关</div>
+                  <div className="p-4 rounded-2xl glass-subtle space-y-1">
+                    <div className="text-xs text-slate-400 dark:text-slate-500">API 服务网关</div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       FastAPI v1 (/api/v1)
                     </div>

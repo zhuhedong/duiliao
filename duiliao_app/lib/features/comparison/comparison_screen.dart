@@ -491,12 +491,12 @@ class _AtomRow extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isDark
                       ? Colors.white.withValues(alpha: 0.08)
-                      : const Color(0xFF007AFF).withValues(alpha: 0.08),
+                      : DuiliaoColors.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.14)
-                        : const Color(0xFF007AFF).withValues(alpha: 0.20),
+                        : DuiliaoColors.primary.withValues(alpha: 0.20),
                     width: 0.8,
                   ),
                 ),
@@ -505,7 +505,7 @@ class _AtomRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : const Color(0xFF007AFF),
+                    color: isDark ? Colors.white : DuiliaoColors.primary,
                   ),
                 ),
               ),
@@ -553,7 +553,7 @@ class _EvidenceDrawer extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return GlassContainer(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      fillColor: isDark ? const Color(0xFF090D16).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.85),
+      fillColor: isDark ? DuiliaoColors.backgroundDark.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.85),
       child: ListView(
         controller: controller,
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),

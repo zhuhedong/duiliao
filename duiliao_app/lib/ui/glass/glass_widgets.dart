@@ -1,17 +1,24 @@
-/// iOS 27 Liquid Glass Foundation Widgets.
+/// Aurora Glass Foundation Widgets.
 ///
-/// Provides ambient aurora backgrounds, frosted glass cards, glass containers,
-/// glass pills, and specular highlight treatments.
+/// Provides the ambient aurora background (slowly drifting violet / fuchsia /
+/// indigo / sky orbs), frosted glass cards with real backdrop blur, specular
+/// 1px highlight borders, and soft brand-tinted shadows.
 library;
+
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-/// Ambient canvas with glowing aurora orbs beneath a frosted glass layer.
+import '../theme.dart';
+
+/// Ambient canvas with glowing aurora orbs beneath the frosted glass layer.
 ///
-/// In iOS 27 glassmorphism, frosted glass requires vibrant underlying light
+/// In Aurora Glass design, frosted glass requires vibrant underlying light
 /// sources to refract; without ambient glowing orbs, blur over flat surfaces
-/// loses depth.
-class GlassBackground extends StatelessWidget {
+/// loses depth. The orbs drift very slowly (one full loop every ~28s), like
+/// the Web端的 auroraDrift animation.
+class GlassBackground extends StatefulWidget {
   const GlassBackground({
     super.key,
     required this.child,
@@ -22,52 +29,121 @@ class GlassBackground extends StatelessWidget {
   final bool showOrbs;
 
   @override
+  State<GlassBackground> createState() => _GlassBackgroundState();
+}
+
+class _GlassBackgroundState extends State<GlassBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _drift;
+
+  @override
+  void initState() {
+    super.initState();
+    _drift = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 28),
+    );
+    if (widget.showOrbs) _drift.repeat();
+  }
+
+  @override
+  void didUpdateWidget(GlassBackground oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.showOrbs && !_drift.isAnimating) {
+      _drift.repeat();
+    } else if (!widget.showOrbs && _drift.isAnimating) {
+      _drift.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _drift.dispose();
+    super.dispose();
+  }
+
+  /// Elliptical drift offset for an orb. [phase] spreads the orbs around the
+  /// loop so they never move in lockstep; sin/cos over a repeating 0→1
+  /// controller keeps the motion perfectly smooth (no turnaround snap).
+  Offset _offset(double phase, double radiusX, double radiusY) {
+    final t = (_drift.value + phase) * 2 * math.pi;
+    return Offset(math.sin(t) * radiusX, math.cos(t) * radiusY);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final bgColor = isDark ? const Color(0xFF090D16) : const Color(0xFFF3F6FD);
+    final bgColor =
+        isDark ? DuiliaoColors.backgroundDark : DuiliaoColors.backgroundLight;
 
     return ColoredBox(
       color: bgColor,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (showOrbs) ...[
-            // Top-right electric blue / indigo glow
-            Positioned(
-              top: -80,
-              right: -60,
-              child: _AmbientOrb(
-                size: 320,
-                color: isDark
-                    ? const Color(0xFF3B82F6).withValues(alpha: 0.22)
-                    : const Color(0xFF007AFF).withValues(alpha: 0.16),
+          if (widget.showOrbs)
+            AnimatedBuilder(
+              animation: _drift,
+              builder: (context, _) => Stack(
+                fit: StackFit.expand,
+                children: [
+                  // Top-left violet glow
+                  Positioned(
+                    top: -70,
+                    left: -50,
+                    child: Transform.translate(
+                      offset: _offset(0.0, 22, 16),
+                      child: _AmbientOrb(
+                        size: 330,
+                        color: DuiliaoColors.auroraViolet
+                            .withValues(alpha: isDark ? 0.26 : 0.18),
+                      ),
+                    ),
+                  ),
+                  // Top-right fuchsia glow
+                  Positioned(
+                    top: -40,
+                    right: -80,
+                    child: Transform.translate(
+                      offset: _offset(0.25, 18, 24),
+                      child: _AmbientOrb(
+                        size: 290,
+                        color: DuiliaoColors.auroraFuchsia
+                            .withValues(alpha: isDark ? 0.22 : 0.15),
+                      ),
+                    ),
+                  ),
+                  // Bottom-right indigo glow
+                  Positioned(
+                    bottom: 60,
+                    right: -70,
+                    child: Transform.translate(
+                      offset: _offset(0.5, 24, 18),
+                      child: _AmbientOrb(
+                        size: 310,
+                        color: DuiliaoColors.auroraIndigo
+                            .withValues(alpha: isDark ? 0.24 : 0.15),
+                      ),
+                    ),
+                  ),
+                  // Bottom-left sky glow
+                  Positioned(
+                    bottom: -60,
+                    left: -80,
+                    child: Transform.translate(
+                      offset: _offset(0.75, 16, 22),
+                      child: _AmbientOrb(
+                        size: 280,
+                        color: DuiliaoColors.auroraSky
+                            .withValues(alpha: isDark ? 0.18 : 0.12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            // Middle-left nebula violet / magenta glow
-            Positioned(
-              top: 260,
-              left: -90,
-              child: _AmbientOrb(
-                size: 280,
-                color: isDark
-                    ? const Color(0xFF8B5CF6).withValues(alpha: 0.18)
-                    : const Color(0xFFC084FC).withValues(alpha: 0.14),
-              ),
-            ),
-            // Bottom-right cyan / emerald glow
-            Positioned(
-              bottom: 80,
-              right: -70,
-              child: _AmbientOrb(
-                size: 300,
-                color: isDark
-                    ? const Color(0xFF06B6D4).withValues(alpha: 0.16)
-                    : const Color(0xFF2DD4BF).withValues(alpha: 0.13),
-              ),
-            ),
-          ],
-          child,
+          widget.child,
         ],
       ),
     );
@@ -102,8 +178,8 @@ class _AmbientOrb extends StatelessWidget {
   }
 }
 
-/// A liquid frosted glass container with real backdrop blur, specular edge
-/// highlight, and soft ambient drop shadow.
+/// An aurora frosted glass container with real backdrop blur, a 1px specular
+/// edge highlight, and a soft brand-tinted ambient shadow.
 class GlassContainer extends StatelessWidget {
   const GlassContainer({
     super.key,
@@ -137,25 +213,22 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final radius = borderRadius ?? BorderRadius.circular(20);
+    final radius = borderRadius ?? BorderRadius.circular(24);
 
-    // Liquid glass gradient surface
+    // Aurora glass surface — semi-transparent material that lets the
+    // ambient orbs refract through.
     final defaultBg = isDark
-        ? const Color(0xFF141A28).withValues(alpha: 0.65)
-        : Colors.white.withValues(alpha: 0.72);
+        ? const Color(0xFF1C1C2E).withValues(alpha: 0.55)
+        : Colors.white.withValues(alpha: 0.62);
 
     final effectiveBg = fillColor ?? defaultBg;
 
-    // Specular highlight border color
+    // 1px specular highlight border
     final defaultBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.14)
+        ? Colors.white.withValues(alpha: 0.10)
         : Colors.white.withValues(alpha: 0.70);
 
     final effectiveBorderColor = borderColor ?? defaultBorderColor;
-
-    final shadowColor = isDark
-        ? Colors.black.withValues(alpha: 0.38)
-        : const Color(0xFF475569).withValues(alpha: 0.08);
 
     Widget content = Container(
       width: width,
@@ -169,17 +242,28 @@ class GlassContainer extends StatelessWidget {
           width: borderWidth,
         ),
         boxShadow: [
+          // Soft ambient shadow, tinted with the brand violet in light mode
           BoxShadow(
-            color: shadowColor,
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-            spreadRadius: 0,
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.45)
+                : DuiliaoColors.auroraViolet.withValues(alpha: 0.12),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+            spreadRadius: -4,
+          ),
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : DuiliaoColors.auroraViolet.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+            spreadRadius: -2,
           ),
           // Subtle inner top specular highlight
           BoxShadow(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.white.withValues(alpha: 0.45),
+                ? Colors.white.withValues(alpha: 0.06)
+                : Colors.white.withValues(alpha: 0.55),
             blurRadius: 1,
             spreadRadius: 0.5,
             offset: const Offset(0, 1),
@@ -204,7 +288,12 @@ class GlassContainer extends StatelessWidget {
 
     final frosted = ClipRRect(
       borderRadius: radius,
-      child: content,
+      child: blur > 0
+          ? BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+              child: content,
+            )
+          : content,
     );
 
     if (margin != null) {
@@ -214,7 +303,7 @@ class GlassContainer extends StatelessWidget {
   }
 }
 
-/// A drop-in replacement or wrapper for [Card] using the iOS 27 glass styling.
+/// A drop-in replacement or wrapper for [Card] using the Aurora Glass styling.
 class GlassCard extends StatelessWidget {
   const GlassCard({
     super.key,
@@ -242,7 +331,7 @@ class GlassCard extends StatelessWidget {
     return GlassContainer(
       margin: margin,
       padding: padding,
-      borderRadius: borderRadius ?? BorderRadius.circular(20),
+      borderRadius: borderRadius ?? BorderRadius.circular(24),
       onTap: onTap,
       blur: blur,
       borderColor: borderColor,
@@ -252,7 +341,7 @@ class GlassCard extends StatelessWidget {
   }
 }
 
-/// A liquid frosted segmented pill selector.
+/// A frosted segmented pill selector.
 class GlassSegmentedControl<T> extends StatelessWidget {
   const GlassSegmentedControl({
     super.key,
@@ -279,7 +368,7 @@ class GlassSegmentedControl<T> extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       borderWidth: 1.0,
       fillColor: isDark
-          ? const Color(0xFF131926).withValues(alpha: 0.55)
+          ? const Color(0xFF1A1A2E).withValues(alpha: 0.55)
           : Colors.white.withValues(alpha: 0.60),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -326,7 +415,7 @@ class _GlassSegmentItem<T> extends StatelessWidget {
     final activeTextColor = isDark ? Colors.white : primary;
     final inactiveTextColor = isDark
         ? Colors.white.withValues(alpha: 0.60)
-        : const Color(0xFF475569);
+        : const Color(0xFF5A5670);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
@@ -349,9 +438,7 @@ class _GlassSegmentItem<T> extends StatelessWidget {
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: isDark
-                      ? primary.withValues(alpha: 0.25)
-                      : const Color(0xFF007AFF).withValues(alpha: 0.12),
+                  color: primary.withValues(alpha: isDark ? 0.25 : 0.16),
                   blurRadius: 10,
                   offset: const Offset(0, 3),
                 ),
@@ -393,7 +480,7 @@ class _GlassSegmentItem<T> extends StatelessWidget {
   }
 }
 
-/// A liquid glass pill badge for status flags (Hit, Miss, Pending, Bose, etc.).
+/// A glass pill badge for status flags (Hit, Miss, Pending, Bose, etc.).
 class GlassBadge extends StatelessWidget {
   const GlassBadge({
     super.key,
@@ -454,7 +541,8 @@ class GlassBadge extends StatelessWidget {
   }
 }
 
-/// An iOS 27 Liquid Glass Button with glossy sheen and specular gradient.
+/// An Aurora Glass Button with the signature indigo → violet → fuchsia
+/// brand gradient, glossy border, and colored ambient shadow.
 class GlassButton extends StatelessWidget {
   const GlassButton({
     super.key,
@@ -481,18 +569,23 @@ class GlassButton extends StatelessWidget {
     final baseColor = color ?? themePrimary;
     final radius = borderRadius ?? BorderRadius.circular(16);
 
+    final gradient = color == null
+        ? DuiliaoColors.auroraGradient
+        : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              baseColor.withValues(alpha: 0.92),
+              Color.lerp(baseColor, DuiliaoColors.auroraFuchsia, 0.25)!
+                  .withValues(alpha: 0.95),
+            ],
+          );
+
     return Container(
       height: height,
       decoration: BoxDecoration(
         borderRadius: radius,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            baseColor.withValues(alpha: 0.92),
-            Color.lerp(baseColor, Colors.indigoAccent, 0.25)!.withValues(alpha: 0.95),
-          ],
-        ),
+        gradient: gradient,
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.35),
           width: 1.2,
@@ -539,7 +632,7 @@ class GlassButton extends StatelessWidget {
   }
 }
 
-/// An iOS Settings-style grouped glass card.
+/// A Settings-style grouped glass card.
 ///
 /// Wraps children (such as [ListTile]s) in a frosted glass card and automatically
 /// places a semi-transparent specular divider between items.
@@ -563,7 +656,7 @@ class GlassGroup extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final dividerColor = isDark
         ? Colors.white.withValues(alpha: 0.08)
-        : const Color(0xFF007AFF).withValues(alpha: 0.08);
+        : DuiliaoColors.auroraViolet.withValues(alpha: 0.10);
 
     return GlassCard(
       margin: margin,
@@ -589,7 +682,7 @@ class GlassGroup extends StatelessWidget {
   }
 }
 
-/// A liquid crystal filter pill for filters, chips, and segment toggles.
+/// A crystal filter pill for filters, chips, and segment toggles.
 class GlassFilterPill extends StatelessWidget {
   const GlassFilterPill({
     super.key,
@@ -631,7 +724,7 @@ class GlassFilterPill extends StatelessWidget {
 
     final textColor = isSelected
         ? (isDark ? Colors.white : primary)
-        : (isDark ? Colors.white.withValues(alpha: 0.70) : const Color(0xFF475569));
+        : (isDark ? Colors.white.withValues(alpha: 0.70) : const Color(0xFF5A5670));
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -710,7 +803,7 @@ class GlassFilterPill extends StatelessWidget {
   }
 }
 
-/// A liquid crystal linear progress bar with specular highlight and ambient glow.
+/// An aurora linear progress bar with specular highlight and ambient glow.
 class GlassLinearProgress extends StatelessWidget {
   const GlassLinearProgress({
     super.key,
@@ -738,6 +831,16 @@ class GlassLinearProgress extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.06)
         : Colors.black.withValues(alpha: 0.05);
 
+    final effectiveGradient = gradient ??
+        (color == null
+            ? DuiliaoColors.auroraGradient
+            : LinearGradient(
+                colors: [
+                  primary.withValues(alpha: 0.85),
+                  Color.lerp(primary, DuiliaoColors.auroraFuchsia, 0.35)!,
+                ],
+              ));
+
     return Container(
       height: height,
       decoration: BoxDecoration(
@@ -759,13 +862,7 @@ class GlassLinearProgress extends StatelessWidget {
               heightFactor: 1.0,
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: gradient ??
-                      LinearGradient(
-                        colors: [
-                          primary.withValues(alpha: 0.85),
-                          Color.lerp(primary, Colors.cyanAccent, 0.35)!,
-                        ],
-                      ),
+                  gradient: effectiveGradient,
                   boxShadow: [
                     BoxShadow(
                       color: primary.withValues(alpha: 0.35),

@@ -79,27 +79,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             height: 64,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  context.colors.primary.withValues(alpha: 0.25),
-                                  context.colors.primary.withValues(alpha: 0.08),
-                                ],
-                              ),
+                              gradient: DuiliaoColors.auroraGradient,
                               border: Border.all(
-                                color: context.colors.primary.withValues(alpha: 0.4),
-                                width: 1.5,
+                                color: Colors.white.withValues(alpha: 0.45),
+                                width: 1.2,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: context.colors.primary.withValues(alpha: 0.25),
+                                  color: DuiliaoColors.auroraViolet.withValues(alpha: 0.35),
                                   blurRadius: 18,
-                                  offset: const Offset(0, 4),
+                                  offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
-                            child: Icon(Icons.insights, size: 36, color: context.colors.primary),
+                            child: const Icon(Icons.insights, size: 36, color: Colors.white),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -321,13 +314,31 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
+      backgroundColor: Colors.transparent,
+      body: GlassBackground(
+        child: Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.fingerprint, size: 72, color: context.colors.primary),
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: DuiliaoColors.auroraGradient,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: DuiliaoColors.auroraViolet.withValues(alpha: 0.35),
+                      blurRadius: 22,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.fingerprint, size: 52, color: Colors.white),
+              ),
               const SizedBox(height: 16),
               Text('已锁定', style: context.texts.titleLarge),
               const SizedBox(height: 6),
@@ -341,10 +352,17 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                 Text(_message!, style: TextStyle(color: context.colors.error)),
               ],
               const SizedBox(height: 24),
-              FilledButton.icon(
+              GlassButton(
                 onPressed: _attempting ? null : _attempt,
-                icon: const Icon(Icons.lock_open),
-                label: Text(_attempting ? '验证中…' : '解锁'),
+                isLoading: _attempting,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock_open, size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('解锁'),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               TextButton(
@@ -353,6 +371,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

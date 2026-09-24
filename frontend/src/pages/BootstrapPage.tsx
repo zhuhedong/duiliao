@@ -74,7 +74,7 @@ export function BootstrapPage() {
   if (checking) {
     return (
       <AuthShell title="初始化管理员账户" description="正在检查初始化状态…">
-        <div style={{ display: "grid", placeItems: "center", padding: 24 }}>
+        <div className="grid place-items-center py-6">
           <Spinner aria-label="检查中" />
         </div>
       </AuthShell>
@@ -89,7 +89,7 @@ export function BootstrapPage() {
         footer={
           <>
             返回{" "}
-            <Link to="/login" style={{ color: "var(--color-primary)", fontWeight: 600 }}>
+            <Link to="/login" className="text-primary hover:underline font-semibold">
               登录
             </Link>
           </>
@@ -107,7 +107,7 @@ export function BootstrapPage() {
       title="初始化管理员账户"
       description="首次启动：配置初始超级管理员凭证，完成后将自动建立加密会话并登录。"
       footer={
-        <div className="flex items-center justify-center gap-1.5 text-sm text-slate-500">
+        <div className="flex items-center justify-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
           <span>已有账户？</span>
           <Link to="/login" className="text-primary hover:underline font-semibold transition-colors">
             直接登录
@@ -117,13 +117,13 @@ export function BootstrapPage() {
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-1">
         {error && (
-          <Alert variant="error" className="rounded-xl border border-red-200/80 bg-red-50/70 text-red-700">
+          <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
             <AlertDescription className="text-sm leading-relaxed">{error}</AlertDescription>
           </Alert>
         )}
 
         <Field className="space-y-1">
-          <FieldLabel className="text-xs font-medium text-slate-700">超级管理员用户名</FieldLabel>
+          <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">超级管理员用户名</FieldLabel>
           <Input
             type="text"
             value={username}
@@ -134,12 +134,12 @@ export function BootstrapPage() {
             autoFocus
             inputSize="md"
             className="rounded-xl"
-            startSlot={<UserIcon size={16} className="text-slate-400" />}
+            startSlot={<UserIcon size={16} className="text-slate-400 dark:text-slate-500" />}
           />
         </Field>
 
         <Field className="space-y-1">
-          <FieldLabel className="text-xs font-medium text-slate-700">管理员密码</FieldLabel>
+          <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">管理员密码</FieldLabel>
           <Input
             type="password"
             value={password}
@@ -149,12 +149,12 @@ export function BootstrapPage() {
             required
             inputSize="md"
             className="rounded-xl"
-            startSlot={<LockIcon size={16} className="text-slate-400" />}
+            startSlot={<LockIcon size={16} className="text-slate-400 dark:text-slate-500" />}
           />
         </Field>
 
         <Field className="space-y-1">
-          <FieldLabel className="text-xs font-medium text-slate-700">确认管理员密码</FieldLabel>
+          <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">确认管理员密码</FieldLabel>
           <Input
             type="password"
             value={confirm}
@@ -164,7 +164,7 @@ export function BootstrapPage() {
             required
             inputSize="md"
             className="rounded-xl"
-            startSlot={<LockIcon size={16} className="text-slate-400" />}
+            startSlot={<LockIcon size={16} className="text-slate-400 dark:text-slate-500" />}
           />
         </Field>
 
@@ -172,7 +172,7 @@ export function BootstrapPage() {
           type="submit"
           disabled={submitting}
           size="md"
-          className="w-full rounded-xl mt-2 font-semibold text-sm tracking-wide shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer h-10.5"
+          className="glow-button border-0 w-full rounded-xl mt-2 font-semibold text-sm tracking-wide shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer h-10.5"
         >
           {submitting ? (
             <>

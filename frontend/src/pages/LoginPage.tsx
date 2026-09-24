@@ -100,13 +100,13 @@ export function LoginPage() {
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3.5 mt-1">
         {error && (
-          <Alert variant="error" className="rounded-xl border border-red-200/80 bg-red-50/80 text-red-700 py-2.5 px-3">
+          <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md py-2.5 px-3">
             <AlertDescription className="text-xs leading-relaxed">{error}</AlertDescription>
           </Alert>
         )}
 
         <Field className="space-y-1">
-          <FieldLabel className="text-xs font-medium text-slate-700">
+          <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">
             账号 / 邮箱 / 手机号
           </FieldLabel>
           <Input
@@ -121,13 +121,13 @@ export function LoginPage() {
             onClear={() => setIdentifier("")}
             inputSize="md"
             className="rounded-xl"
-            startSlot={<UserIcon size={16} className="text-slate-400" />}
+            startSlot={<UserIcon size={16} className="text-slate-400 dark:text-slate-500" />}
           />
         </Field>
 
         <Field className="space-y-1">
           <div className="flex items-center justify-between">
-            <FieldLabel className="text-xs font-medium text-slate-700">
+            <FieldLabel className="text-xs font-medium text-slate-700 dark:text-slate-300">
               登录密码
             </FieldLabel>
             <button
@@ -140,7 +140,7 @@ export function LoginPage() {
             </button>
           </div>
           {showForgotPassword && (
-            <div className="text-[11px] bg-blue-50/50 text-blue-600/90 p-2.5 rounded-lg border border-blue-100/50 leading-relaxed">
+            <div className="text-[11px] bg-sky-500/10 text-sky-700 dark:text-sky-300 p-2.5 rounded-lg border border-sky-400/30 dark:border-sky-400/25 backdrop-blur-md leading-relaxed">
               本系统采用零知识端到端加密架构，密码仅在您的设备上解密，服务端无法恢复。如需重置密码，请联系系统管理员。
             </div>
           )}
@@ -154,12 +154,12 @@ export function LoginPage() {
             autoFocus={!!identifier}
             inputSize="md"
             className="rounded-xl"
-            startSlot={<LockIcon size={16} className="text-slate-400" />}
+            startSlot={<LockIcon size={16} className="text-slate-400 dark:text-slate-500" />}
             endSlot={
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="text-slate-400 hover:text-slate-700 transition-colors p-1 flex items-center justify-center cursor-pointer pointer-events-auto"
+                className="text-slate-400 hover:text-slate-700 dark:text-slate-500 dark:hover:text-slate-300 transition-colors p-1 flex items-center justify-center cursor-pointer pointer-events-auto"
                 title={showPassword ? "隐藏密码" : "显示密码"}
                 tabIndex={-1}
               >
@@ -171,7 +171,7 @@ export function LoginPage() {
 
         {/* 记住账号选项 */}
         <div className="flex items-center justify-between pt-0.5">
-          <label className="inline-flex items-center gap-2 text-xs text-slate-600 hover:text-slate-900 cursor-pointer select-none">
+          <label className="inline-flex items-center gap-2 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer select-none">
             <Checkbox
               checked={rememberMe}
               onCheckedChange={(checked) => setRememberMe(!!checked)}
@@ -184,7 +184,7 @@ export function LoginPage() {
           type="submit"
           disabled={submitting}
           size="md"
-          className="w-full rounded-xl mt-2 font-semibold text-sm tracking-wide shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer h-10.5"
+          className="glow-button border-0 w-full rounded-xl mt-2 font-semibold text-sm tracking-wide shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer h-10.5"
         >
           {submitting ? (
             <>

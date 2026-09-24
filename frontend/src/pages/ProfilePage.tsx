@@ -104,10 +104,10 @@ export function ProfilePage() {
   return (
     <div className="space-y-6 max-w-4xl">
       {/* 用户概览与基本资料卡片 */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800/80">
+      <div className="p-6 sm:p-8 rounded-3xl glass-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/50 dark:border-white/8">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl brand-gradient flex items-center justify-center text-white font-bold text-2xl shadow-md shadow-cyan-500/20">
+            <div className="w-14 h-14 rounded-2xl brand-gradient flex items-center justify-center text-white font-bold text-2xl shadow-[0_8px_24px_-6px_rgba(139,92,246,0.5)]">
               {initial}
             </div>
             <div>
@@ -115,25 +115,25 @@ export function ProfilePage() {
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   {user?.display_name || "用户"}
                 </h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold border border-cyan-500/20">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold border border-violet-400/40 dark:border-violet-400/25 backdrop-blur-md">
                   {user?.role === "admin" ? "超级管理员" : "标准用户"}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-1 font-mono">
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-mono">
                 UID: {user?.id}
               </p>
             </div>
           </div>
 
-          <div className="text-xs text-slate-400 font-mono flex items-center gap-1.5 self-start sm:self-auto bg-slate-50 dark:bg-slate-900/60 py-1.5 px-3 rounded-xl border border-slate-100 dark:border-slate-800">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1.5 self-start sm:self-auto glass-subtle py-1.5 px-3 rounded-xl">
             <span>账号状态：</span>
-            <span className="text-emerald-500 font-semibold">正常运行中</span>
+            <span className="text-emerald-600 dark:text-emerald-300 font-semibold">正常运行中</span>
           </div>
         </div>
 
         <form onSubmit={onSave} className="mt-6 space-y-4 max-w-md">
           {savedMsg && (
-            <Alert variant="success" className="rounded-xl border border-emerald-200 bg-emerald-50/80 text-emerald-800 py-2.5 px-3">
+            <Alert variant="success" className="rounded-xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 py-2.5 px-3 backdrop-blur-md">
               <AlertDescription className="text-xs leading-relaxed font-medium">{savedMsg}</AlertDescription>
             </Alert>
           )}
@@ -148,9 +148,9 @@ export function ProfilePage() {
               disabled
               inputProps={{ readOnly: true }}
               inputSize="md"
-              className="rounded-xl bg-slate-50 dark:bg-slate-900/40 text-slate-500 cursor-not-allowed"
+              className="rounded-xl glass-input text-slate-500 dark:text-slate-400 cursor-not-allowed"
             />
-            <span className="text-[11px] text-slate-400 block mt-0.5">
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 block mt-0.5">
               邮箱作为底层主身份标识，不可直接更改
             </span>
           </Field>
@@ -165,7 +165,7 @@ export function ProfilePage() {
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="请输入您的显示昵称"
               inputSize="md"
-              className="rounded-xl"
+              className="rounded-xl glass-input text-slate-800 dark:text-slate-200"
             />
           </Field>
 
@@ -179,7 +179,7 @@ export function ProfilePage() {
               onChange={(e) => setAvatarUrl(e.target.value)}
               placeholder="请输入头像 URL"
               inputSize="md"
-              className="rounded-xl"
+              className="rounded-xl glass-input text-slate-800 dark:text-slate-200"
             />
           </Field>
 
@@ -190,7 +190,7 @@ export function ProfilePage() {
             <select
               value={locale}
               onChange={(e) => setLocale(e.target.value)}
-              className="w-full h-10 px-3 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full h-10 px-3 text-sm rounded-xl glass-input text-slate-900 dark:text-white"
             >
               <option value="zh-CN">zh-CN</option>
               <option value="en-US">en-US</option>
@@ -204,7 +204,7 @@ export function ProfilePage() {
             <select
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
-              className="w-full h-10 px-3 text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-transparent text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full h-10 px-3 text-sm rounded-xl glass-input text-slate-900 dark:text-white"
             >
               <option value="Asia/Shanghai">Asia/Shanghai</option>
               <option value="Asia/Hong_Kong">Asia/Hong_Kong</option>
@@ -218,7 +218,7 @@ export function ProfilePage() {
             type="submit"
             disabled={saving}
             size="md"
-            className="rounded-xl px-5 font-semibold text-xs tracking-wide shadow-sm hover:shadow-md cursor-pointer"
+            className="glow-button border-0 rounded-xl px-5 font-semibold text-xs tracking-wide cursor-pointer"
           >
             {saving ? (
               <>
@@ -232,10 +232,10 @@ export function ProfilePage() {
         </form>
 
         {/* 修改密码折叠面板 */}
-        <div className="mt-8 border-t border-slate-100 dark:border-slate-800/80 pt-6">
+        <div className="mt-8 border-t border-slate-200/50 dark:border-white/8 pt-6">
           <button
             type="button"
-            className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-primary transition-colors cursor-pointer"
+            className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-300 transition-colors cursor-pointer"
             onClick={() => setShowPasswordForm(!showPasswordForm)}
           >
             <span>修改密码</span>
@@ -243,14 +243,14 @@ export function ProfilePage() {
           </button>
           
           {showPasswordForm && (
-            <form onSubmit={onPasswordSubmit} className="mt-4 space-y-4 max-w-md">
+            <form onSubmit={onPasswordSubmit} className="mt-4 space-y-4 max-w-md p-5 rounded-2xl glass-subtle">
               {passwordError && (
-                <Alert variant="error" className="rounded-xl py-2.5 px-3">
+                <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 py-2.5 px-3 backdrop-blur-md">
                   <AlertDescription className="text-xs leading-relaxed font-medium">{passwordError}</AlertDescription>
                 </Alert>
               )}
               {passwordSuccess && (
-                <Alert variant="success" className="rounded-xl border border-emerald-200 bg-emerald-50/80 text-emerald-800 py-2.5 px-3">
+                <Alert variant="success" className="rounded-xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 py-2.5 px-3 backdrop-blur-md">
                   <AlertDescription className="text-xs leading-relaxed font-medium">{passwordSuccess}</AlertDescription>
                 </Alert>
               )}
@@ -266,10 +266,10 @@ export function ProfilePage() {
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="请输入当前密码"
                     inputSize="md"
-                    className="rounded-xl pr-10"
+                    className="rounded-xl glass-input pr-10 text-slate-800 dark:text-slate-200"
                     required
                   />
-                  <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                  <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
                     {showCurrent ? "隐藏" : "显示"}
                   </button>
                 </div>
@@ -286,10 +286,10 @@ export function ProfilePage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="请输入新密码"
                     inputSize="md"
-                    className="rounded-xl pr-10"
+                    className="rounded-xl glass-input pr-10 text-slate-800 dark:text-slate-200"
                     required
                   />
-                  <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                  <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
                     {showNew ? "隐藏" : "显示"}
                   </button>
                 </div>
@@ -306,10 +306,10 @@ export function ProfilePage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="请再次输入新密码"
                     inputSize="md"
-                    className="rounded-xl pr-10"
+                    className="rounded-xl glass-input pr-10 text-slate-800 dark:text-slate-200"
                     required
                   />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer">
                     {showConfirm ? "隐藏" : "显示"}
                   </button>
                 </div>
@@ -319,7 +319,7 @@ export function ProfilePage() {
                 type="submit"
                 disabled={passwordSaving}
                 size="md"
-                className="rounded-xl px-5 font-semibold text-xs tracking-wide shadow-sm hover:shadow-md cursor-pointer"
+                className="glow-button border-0 rounded-xl px-5 font-semibold text-xs tracking-wide cursor-pointer"
               >
                 {passwordSaving ? (
                   <>
@@ -336,10 +336,10 @@ export function ProfilePage() {
       </div>
 
       {/* 登录设备与安全会话管控 */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#0c1220] border border-slate-200/80 dark:border-slate-800/80 shadow-xs">
+      <div className="p-6 sm:p-8 rounded-3xl glass-card">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
-            <DevicesIcon size={18} className="text-primary" />
+            <DevicesIcon size={18} className="text-violet-600 dark:text-violet-300" />
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
               登录设备与加密会话管控
             </h3>
@@ -350,7 +350,7 @@ export function ProfilePage() {
         </div>
 
         {loadingSessions ? (
-          <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400 text-xs">
+          <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-slate-500 text-xs">
             <Spinner className="size-5" />
             <span>正在同步设备安全凭据...</span>
           </div>
@@ -359,10 +359,10 @@ export function ProfilePage() {
             {sessions.map((s) => (
               <div
                 key={s.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 hover:border-slate-200 dark:hover:border-slate-700 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl glass-subtle hover:border-violet-400/40 dark:hover:border-violet-400/30 transition-colors"
               >
                 <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-slate-200/60 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-400/30 flex items-center justify-center shrink-0 backdrop-blur-sm">
                     <DevicesIcon size={20} />
                   </div>
                   <div>
@@ -371,17 +371,17 @@ export function ProfilePage() {
                         {s.device_name || "未知设备终端"}
                       </span>
                       {s.platform && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium">
+                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-600 dark:text-slate-300 font-medium border border-slate-400/30 dark:border-slate-400/20 backdrop-blur-md">
                           {PLATFORM_LABEL[s.platform] ?? s.platform}
                         </span>
                       )}
                       {s.current && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/30">
+                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
                           当前会话
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-slate-400 mt-1 flex items-center gap-2 flex-wrap">
+                    <div className="text-xs text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
                       <span>IP: {s.ip_address || "内网回环地址"}</span>
                       <span>·</span>
                       <span>
@@ -395,7 +395,7 @@ export function ProfilePage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-xl text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 border-red-200 dark:border-red-900/60 cursor-pointer"
+                    className="rounded-xl text-xs text-rose-700 dark:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md cursor-pointer"
                     onClick={() => revoke(s.id)}
                   >
                     吊销凭据
@@ -405,7 +405,7 @@ export function ProfilePage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-xs text-slate-400">
+          <div className="text-center py-8 text-xs text-slate-400 dark:text-slate-500">
             暂无活跃会话记录。
           </div>
         )}

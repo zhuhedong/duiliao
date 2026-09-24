@@ -168,37 +168,66 @@ class _ForceUpdateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.system_update, size: 64),
-                const SizedBox(height: 16),
-                const Text('需要更新应用', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('当前版本已不再支持，请安装 ${info.latest ?? '最新版本'}。', textAlign: TextAlign.center),
-                if (info.releaseNotes != null) ...[
-                  const SizedBox(height: 10),
-                  Text(info.releaseNotes!, textAlign: TextAlign.center),
-                ],
-                if (info.downloadUrl != null) ...[
-                  const SizedBox(height: 14),
-                  FilledButton.icon(
-                    onPressed: () {
-                      final uri = Uri.tryParse(info.downloadUrl!);
-                      if (uri != null &&
-                          isAllowedUpdateUri(uri, allowMirrors: true)) {
-                        launchUrl(uri, mode: LaunchMode.externalApplication);
-                      }
-                    },
-                    icon: const Icon(Icons.download),
-                    label: const Text('打开下载地址'),
+        backgroundColor: Colors.transparent,
+        body: GlassBackground(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: DuiliaoColors.auroraGradient,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: DuiliaoColors.auroraViolet.withValues(alpha: 0.35),
+                          blurRadius: 22,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.system_update, size: 40, color: Colors.white),
                   ),
-                  SelectableText(info.downloadUrl!, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  const Text('需要更新应用', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('当前版本已不再支持，请安装 ${info.latest ?? '最新版本'}。', textAlign: TextAlign.center),
+                  if (info.releaseNotes != null) ...[
+                    const SizedBox(height: 10),
+                    Text(info.releaseNotes!, textAlign: TextAlign.center),
+                  ],
+                  if (info.downloadUrl != null) ...[
+                    const SizedBox(height: 18),
+                    GlassButton(
+                      onPressed: () {
+                        final uri = Uri.tryParse(info.downloadUrl!);
+                        if (uri != null &&
+                            isAllowedUpdateUri(uri, allowMirrors: true)) {
+                          launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.download, size: 18, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('打开下载地址'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SelectableText(info.downloadUrl!, textAlign: TextAlign.center),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

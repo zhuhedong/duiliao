@@ -343,7 +343,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
     <div className="space-y-6">
       {/* Alerts */}
       {error && (
-        <Alert variant="error" className="flex items-center justify-between">
+        <Alert variant="error" className="flex items-center justify-between rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 backdrop-blur-md text-rose-700 dark:text-rose-300">
           <AlertDescription>{error}</AlertDescription>
           <button onClick={() => setError(null)} className="text-xs hover:underline cursor-pointer">
             关闭
@@ -352,7 +352,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
       )}
 
       {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md text-sm flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckBadgeIcon size={18} />
             <span>{successMsg}</span>
@@ -364,7 +364,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
       )}
 
       {/* Scheduler Status Header Card */}
-      <Card className="p-5 bg-gradient-to-r from-slate-50 to-indigo-50/30 dark:from-[#0d1527] dark:to-[#0f172a] border border-slate-200 dark:border-slate-800">
+      <Card className="p-5 rounded-3xl glass-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start md:items-center gap-3">
             <div className="p-3 rounded-2xl bg-primary/10 text-primary">
@@ -381,7 +381,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     服务运行中
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-slate-500">
+                  <Badge variant="outline" className="bg-transparent text-slate-500 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 backdrop-blur-md">
                     等待初始化
                   </Badge>
                 )}
@@ -400,7 +400,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               variant="outline"
               size="sm"
               onClick={() => void loadData()}
-              className="gap-1.5 text-xs rounded-xl"
+              className="gap-1.5 text-xs rounded-xl bg-transparent text-slate-700 dark:text-slate-300 shadow-none before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 hover:before:bg-violet-500/5 hover:before:border-slate-200/50 dark:hover:before:border-white/8"
             >
               <RefreshIcon size={14} />
               刷新
@@ -409,7 +409,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               <Button
                 size="sm"
                 onClick={openCreateModal}
-                className="gap-1.5 text-xs rounded-xl bg-primary hover:bg-primary/90 text-white font-medium shadow-xs"
+                className="gap-1.5 text-xs rounded-xl glow-button border-0 bg-transparent text-white font-medium shadow-none before:opacity-0 hover:before:opacity-0"
               >
                 <PlayIcon size={14} />
                 新建定时任务
@@ -419,7 +419,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
         </div>
 
         {/* Quick Stats bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800/60 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-200/50 dark:border-white/8 text-xs">
           <div>
             <span className="text-slate-400 block">已注册任务</span>
             <span className="text-base font-bold text-slate-800 dark:text-slate-100">
@@ -468,13 +468,13 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
       {/* Schedules Table / Empty State */}
       {loading ? (
-        <Card className="p-12 flex flex-col items-center justify-center text-slate-400">
+        <Card className="p-12 flex flex-col items-center justify-center text-slate-400 rounded-3xl glass-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
           <Spinner className="w-8 h-8 text-primary mb-3" />
           <p className="text-sm">正在加载定时采集任务...</p>
         </Card>
       ) : filteredSchedules.length === 0 ? (
-        <Card className="p-12 text-center text-slate-400 border-dashed border-2 border-slate-200 dark:border-slate-800">
-          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+        <Card className="p-12 text-center text-slate-400 rounded-3xl glass-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
+          <div className="w-12 h-12 mx-auto mb-3 rounded-2xl glass-subtle flex items-center justify-center text-slate-400">
             <ClockIcon size={24} />
           </div>
           <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -484,7 +484,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
             您可以添加周期性 Cron 采集任务（如每 15 分钟执行），或指定在未来特定时间启动采集。
           </p>
           {canWrite && (
-            <Button size="sm" onClick={openCreateModal} className="rounded-xl">
+            <Button size="sm" onClick={openCreateModal} className="rounded-xl glow-button border-0 bg-transparent text-white shadow-none before:opacity-0 hover:before:opacity-0">
               立即创建第一个定时任务
             </Button>
           )}
@@ -499,7 +499,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
             return (
               <Card
                 key={sched.id}
-                className="p-5 border border-slate-200 dark:border-slate-800 hover:border-primary/40 transition-colors shadow-xs"
+                className="p-5 rounded-3xl glass-card hover:border-violet-400/40 dark:hover:border-violet-400/30 transition-colors [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none"
               >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   {/* Left: Task info */}
@@ -511,24 +511,24 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                       <h4 className="text-base font-bold text-slate-900 dark:text-white">
                         {sched.name}
                       </h4>
-                      <Badge variant="outline" className="uppercase font-mono text-[11px]">
+                      <Badge variant="outline" className="uppercase font-mono text-[11px] bg-transparent text-slate-600 dark:text-slate-300 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 backdrop-blur-md">
                         {sched.lottery}
                       </Badge>
                       {sched.period ? (
-                        <Badge variant="secondary" className="text-[11px]">
+                        <Badge variant="secondary" className="text-[11px] bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-400/30 dark:border-violet-400/20">
                           指定期数: {sched.period}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[11px] text-slate-500">
+                        <Badge variant="outline" className="text-[11px] bg-transparent text-slate-500 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 backdrop-blur-md">
                           最新期 (自动识别)
                         </Badge>
                       )}
                       {sched.spec?.time_window_start && (
-                        <Badge variant="secondary" className="text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        <Badge variant="secondary" className="text-[11px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
                           {sched.spec.window_date === "daily" ? "每日" : "当天"} {sched.spec.time_window_start}-{sched.spec.time_window_end} (每{sched.spec.interval_minutes}分)
                         </Badge>
                       )}
-                      <Badge variant="outline" className="text-[11px] text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800 flex items-center gap-1">
+                      <Badge variant="outline" className="text-[11px] text-violet-600 dark:text-violet-300 bg-violet-500/10 border-violet-400/30 dark:border-violet-400/25 flex items-center gap-1">
                         <span>⚡</span>
                         <span>{sched.spec?.concurrency || 8} 线程</span>
                       </Badge>
@@ -537,7 +537,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           已启用
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[11px] text-slate-400">
+                        <Badge variant="outline" className="text-[11px] bg-transparent text-slate-400 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 backdrop-blur-md">
                           已暂停
                         </Badge>
                       )}
@@ -547,7 +547,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs text-slate-600 dark:text-slate-300 pt-1">
                       <div>
                         <span className="text-slate-400 block text-[11px]">调度规则 (Cron)</span>
-                        <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[11px] text-primary font-bold" title={sched.cron || ""}>
+                        <code className="font-mono glass-subtle px-1.5 py-0.5 rounded text-[11px] text-primary font-bold" title={sched.cron || ""}>
                           {sched.cron || "单次执行"}
                         </code>
                       </div>
@@ -573,7 +573,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
                     {/* Last run status info */}
                     {sched.last_run_at && (
-                      <div className="flex items-center gap-3 text-xs text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800/60 mt-2">
+                      <div className="flex items-center gap-3 text-xs text-slate-500 pt-1 border-t border-slate-200/50 dark:border-white/8 mt-2">
                         <span>上次运行：{sched.last_run_at}</span>
                         {sched.last_status === "success" ? (
                           <Badge variant="success" className="py-0 text-[10px]">
@@ -603,7 +603,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           variant="outline"
                           disabled={isRunning}
                           onClick={() => void handleTriggerNow(sched)}
-                          className="gap-1 text-xs rounded-xl hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                          className="gap-1 text-xs rounded-xl bg-transparent text-slate-700 dark:text-slate-300 shadow-none before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 hover:before:bg-violet-500/10 hover:before:border-violet-400/30 hover:text-violet-700 dark:hover:text-violet-300"
                         >
                           {isRunning ? (
                             <>
@@ -623,7 +623,9 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           variant="ghost"
                           onClick={() => void handleToggleEnabled(sched)}
                           className={`text-xs rounded-xl ${
-                            sched.enabled ? "text-amber-600 hover:text-amber-700" : "text-emerald-600 hover:text-emerald-700"
+                            sched.enabled
+                              ? "text-amber-600 hover:text-amber-700 hover:before:bg-amber-500/10"
+                              : "text-emerald-600 hover:text-emerald-700 hover:before:bg-emerald-500/10"
                           }`}
                         >
                           {sched.enabled ? "暂停" : "启用"}
@@ -633,7 +635,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           size="sm"
                           variant="ghost"
                           onClick={() => openEditModal(sched)}
-                          className="text-xs rounded-xl text-slate-600 dark:text-slate-300"
+                          className="text-xs rounded-xl text-slate-600 dark:text-slate-300 hover:before:bg-violet-500/10"
                         >
                           <EditIcon size={14} />
                         </Button>
@@ -642,7 +644,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           size="sm"
                           variant="ghost"
                           onClick={() => setActiveLogSchedule(sched)}
-                          className="text-xs rounded-xl text-slate-600 dark:text-slate-300"
+                          className="text-xs rounded-xl text-slate-600 dark:text-slate-300 hover:before:bg-violet-500/10"
                           title="查看执行日志"
                         >
                           <ActivityIcon size={14} />
@@ -652,7 +654,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           size="sm"
                           variant="ghost"
                           onClick={() => void handleDelete(sched)}
-                          className="text-xs rounded-xl text-rose-500 hover:text-rose-600"
+                          className="text-xs rounded-xl text-rose-500 hover:text-rose-600 hover:before:bg-rose-500/10"
                         >
                           <TrashIcon size={14} />
                         </Button>
@@ -668,9 +670,9 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
       {/* Create / Edit Schedule Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-0 bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-0 glass-panel rounded-3xl overflow-hidden animate-glassPop [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/50 dark:border-white/8 shrink-0">
               <div className="flex items-center gap-2">
                 <ClockIcon size={20} className="text-primary" />
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -679,7 +681,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1 rounded-lg hover:bg-violet-500/10 transition-colors"
               >
                 <CloseIcon size={20} />
               </button>
@@ -736,8 +738,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     onClick={() => setScheduleMode("time_window")}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       scheduleMode === "time_window"
-                        ? "bg-primary/10 border-primary text-primary font-semibold shadow-xs ring-1 ring-primary/30"
-                        : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300"
+                        ? "bg-violet-500/10 border-violet-400/40 text-violet-700 dark:text-violet-300 font-semibold ring-1 ring-violet-400/30"
+                        : "glass-subtle text-slate-600 dark:text-slate-300 hover:border-violet-400/40"
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs font-bold mb-1">
@@ -754,8 +756,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     onClick={() => setScheduleMode("cron")}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       scheduleMode === "cron"
-                        ? "bg-primary/10 border-primary text-primary font-semibold shadow-xs ring-1 ring-primary/30"
-                        : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300"
+                        ? "bg-violet-500/10 border-violet-400/40 text-violet-700 dark:text-violet-300 font-semibold ring-1 ring-violet-400/30"
+                        : "glass-subtle text-slate-600 dark:text-slate-300 hover:border-violet-400/40"
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs font-bold mb-1">
@@ -772,8 +774,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     onClick={() => setScheduleMode("once")}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                       scheduleMode === "once"
-                        ? "bg-primary/10 border-primary text-primary font-semibold shadow-xs ring-1 ring-primary/30"
-                        : "bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300"
+                        ? "bg-violet-500/10 border-violet-400/40 text-violet-700 dark:text-violet-300 font-semibold ring-1 ring-violet-400/30"
+                        : "glass-subtle text-slate-600 dark:text-slate-300 hover:border-violet-400/40"
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs font-bold mb-1">
@@ -789,8 +791,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
               {/* Mode 1: Time Window Mode Settings */}
               {scheduleMode === "time_window" && (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3.5 animate-fadeIn">
-                  <div className="flex items-center justify-between pb-1 border-b border-slate-200/60 dark:border-slate-800/60">
+                <div className="p-4 rounded-2xl glass-subtle space-y-3.5 animate-fadeIn">
+                  <div className="flex items-center justify-between pb-1 border-b border-slate-200/50 dark:border-white/8">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                       <ClockIcon size={14} className="text-primary" />
                       时间段窗口配置 (如：当天 21:00-21:30 每 5 分钟)
@@ -832,7 +834,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                         max={60}
                         value={twInterval}
                         onChange={(e) => setTwInterval(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                        className="w-full px-3 py-1.5 rounded-lg glass-input text-xs font-mono"
                       />
                     </div>
                   </div>
@@ -847,8 +849,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                         onClick={() => setTwInterval(mins)}
                         className={`text-xs px-2.5 py-0.5 rounded-lg border transition-colors cursor-pointer ${
                           twInterval === mins
-                            ? "bg-primary/10 border-primary text-primary font-semibold"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300"
+                            ? "bg-violet-500/10 border-violet-400/40 text-violet-700 dark:text-violet-300 font-semibold"
+                            : "glass-subtle text-slate-600 dark:text-slate-300 hover:border-violet-400/40"
                         }`}
                       >
                         每 {mins} 分钟
@@ -857,15 +859,15 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                   </div>
 
                   {/* Scope: Today vs Daily */}
-                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                  <div className="pt-2 border-t border-slate-200/50 dark:border-white/8">
                     <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1.5">
                       重复周期
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <label className={`flex items-start gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
                         twScope === "today"
-                          ? "bg-primary/5 border-primary/40 text-primary shadow-2xs"
-                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                          ? "bg-violet-500/10 border-violet-400/40 text-violet-700 dark:text-violet-300"
+                          : "glass-subtle text-slate-600 dark:text-slate-300"
                       }`}>
                         <input
                           type="radio"
@@ -884,8 +886,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
                       <label className={`flex items-start gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${
                         twScope === "daily"
-                          ? "bg-primary/5 border-primary/40 text-primary shadow-2xs"
-                          : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                          ? "bg-violet-500/10 border-violet-400/40 text-violet-700 dark:text-violet-300"
+                          : "glass-subtle text-slate-600 dark:text-slate-300"
                       }`}>
                         <input
                           type="radio"
@@ -906,7 +908,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
                   {/* Timeline Preview */}
                   {timelinePreview.length > 0 && (
-                    <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                    <div className="pt-2 border-t border-slate-200/50 dark:border-white/8">
                       <div className="flex items-center justify-between mb-1.5">
                         <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                           执行时刻点预览 (共 {timelinePreview.length} 次采集)：
@@ -915,11 +917,11 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           {twStart} ~ {twEnd}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-2 rounded-lg glass-subtle">
                         {timelinePreview.map((pt, i) => (
                           <span
                             key={i}
-                            className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 font-mono text-[11px] text-slate-700 dark:text-slate-200 font-semibold"
+                            className="px-2 py-0.5 rounded-md glass-subtle font-mono text-[11px] text-slate-700 dark:text-slate-200 font-semibold"
                           >
                             {pt}
                           </span>
@@ -932,7 +934,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
               {/* Mode 2: Cron Mode Settings */}
               {scheduleMode === "cron" && (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 animate-fadeIn">
+                <div className="p-4 rounded-2xl glass-subtle space-y-3 animate-fadeIn">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                       <SparklesIcon size={14} className="text-primary" />
@@ -959,8 +961,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           onClick={() => setFormCron(p.cron)}
                           className={`text-xs px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
                             formCron === p.cron
-                              ? "bg-primary/10 border-primary text-primary font-semibold"
-                              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300"
+                              ? "bg-violet-500/10 border-violet-400/40 text-violet-700 dark:text-violet-300 font-semibold"
+                              : "glass-subtle text-slate-600 dark:text-slate-300 hover:border-violet-400/40"
                           }`}
                           title={p.desc}
                         >
@@ -971,7 +973,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                   </div>
 
                   {/* Optional start/end for cron */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200/50 dark:border-white/8">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400 mb-1">
                         起效时间 (Start At，可选)
@@ -1000,7 +1002,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
               {/* Mode 3: Once Mode Settings */}
               {scheduleMode === "once" && (
-                <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3 animate-fadeIn">
+                <div className="p-4 rounded-2xl glass-subtle space-y-3 animate-fadeIn">
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
                     <CalendarIcon size={14} className="text-primary" />
                     单次特定执行时间 (Start At) <span className="text-rose-500">*</span>
@@ -1018,13 +1020,13 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               )}
 
               {/* Thread Pool Concurrency Configuration */}
-              <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/50 space-y-2.5">
+              <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-400/30 dark:border-violet-400/25 backdrop-blur-md space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+                  <label className="text-xs font-bold text-violet-950 dark:text-violet-200 flex items-center gap-1.5">
                     <span>⚡</span>
                     线程池并发采集设置 (ThreadPoolExecutor)
                   </label>
-                  <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                  <span className="text-xs font-mono font-bold text-violet-600 dark:text-violet-300">
                     {formConcurrency} 线程
                   </span>
                 </div>
@@ -1036,7 +1038,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     max={20}
                     value={formConcurrency}
                     onChange={(e) => setFormConcurrency(parseInt(e.target.value) || 8)}
-                    className="flex-1 accent-indigo-600 cursor-pointer"
+                    className="flex-1 accent-violet-600 cursor-pointer"
                   />
                   <input
                     type="number"
@@ -1044,13 +1046,13 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     max={20}
                     value={formConcurrency}
                     onChange={(e) => setFormConcurrency(Math.min(20, Math.max(1, parseInt(e.target.value) || 8)))}
-                    className="w-16 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-slate-800 text-xs font-mono text-center font-bold"
+                    className="w-16 px-2.5 py-1 rounded-lg glass-input text-xs font-mono text-center font-bold"
                   />
                 </div>
 
                 <div className="flex items-center justify-between flex-wrap gap-2 pt-1 text-xs">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-indigo-600/70 dark:text-indigo-400/70">快捷配置：</span>
+                    <span className="text-[11px] text-violet-600/70 dark:text-violet-300/70">快捷配置：</span>
                     {[4, 8, 12, 16].map((num) => (
                       <button
                         key={num}
@@ -1058,8 +1060,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                         onClick={() => setFormConcurrency(num)}
                         className={`text-[11px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
                           formConcurrency === num
-                            ? "bg-indigo-600 text-white border-indigo-600 font-bold"
-                            : "bg-white dark:bg-slate-800 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300"
+                            ? "glow-button border-0 font-bold"
+                            : "glass-subtle text-violet-700 dark:text-violet-300"
                         }`}
                       >
                         {num} 线程{num === 8 ? " (推荐)" : ""}
@@ -1101,7 +1103,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                 </div>
 
                 {sourceMode === "custom" && (
-                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 space-y-2">
+                  <div className="p-3 rounded-2xl glass-subtle space-y-2">
                     <div className="flex items-center justify-between pb-1 text-xs">
                       <span className="text-slate-500 font-medium">选择需要采集的对料源：</span>
                       <div className="flex items-center gap-2">
@@ -1142,8 +1144,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                             key={s.source_id}
                             className={`flex items-center gap-1.5 p-1.5 rounded-lg text-xs cursor-pointer border transition-colors ${
                               checked
-                                ? "bg-primary/10 border-primary/40 text-primary font-medium"
-                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                                ? "bg-violet-500/10 border-violet-400/40 text-violet-700 dark:text-violet-300 font-medium"
+                                : "glass-subtle text-slate-600 dark:text-slate-300"
                             }`}
                           >
                             <input
@@ -1170,7 +1172,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               </div>
 
               {/* Execution Options */}
-              <div className="flex items-center gap-6 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
+              <div className="flex items-center gap-6 pt-2 border-t border-slate-200/50 dark:border-white/8 text-xs">
                 <label className="inline-flex items-center gap-2 text-slate-700 dark:text-slate-300 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1202,7 +1204,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
             </div>
 
             {/* Modal Footer - Pinned at Bottom */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/95 dark:bg-slate-900/90 backdrop-blur-xs shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-200/50 dark:border-white/8 glass-subtle shrink-0">
               <div className="text-xs text-slate-500 dark:text-slate-400 hidden sm:flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
                 <span className="truncate max-w-[320px]">
@@ -1219,7 +1221,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                   size="sm"
                   onClick={() => setShowModal(false)}
                   disabled={submitting}
-                  className="rounded-xl px-4"
+                  className="rounded-xl px-4 bg-transparent text-slate-700 dark:text-slate-300 shadow-none before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 hover:before:bg-violet-500/5 hover:before:border-slate-200/50 dark:hover:before:border-white/8"
                 >
                   取消
                 </Button>
@@ -1227,7 +1229,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                   size="sm"
                   onClick={() => void handleSave()}
                   disabled={submitting}
-                  className="rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold px-5 shadow-sm hover:shadow transition-all"
+                  className="rounded-xl glow-button border-0 bg-transparent text-white font-semibold px-5 shadow-none before:opacity-0 hover:before:opacity-0"
                 >
                   {submitting ? "正在保存..." : editingId !== null ? "保存修改" : "确认创建并启动"}
                 </Button>
@@ -1239,9 +1241,9 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
       {/* Execution Logs Drawer / Modal */}
       {activeLogSchedule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-6 bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-6 glass-panel rounded-3xl animate-glassPop [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200/50 dark:border-white/8">
               <div className="flex items-center gap-2">
                 <ActivityIcon size={20} className="text-primary" />
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -1258,7 +1260,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
             <div className="flex-1 overflow-y-auto py-4 space-y-3">
               {/* Task Details Summary */}
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-xs grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="p-3 rounded-2xl glass-subtle text-xs grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
                   <span className="text-slate-400 block">Cron 规则:</span>
                   <span className="font-mono font-bold text-primary">{activeLogSchedule.cron || "无"}</span>
@@ -1299,13 +1301,13 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     {logs.map((l, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1.5"
+                        className="p-3 rounded-2xl glass-subtle text-xs space-y-1.5"
                       >
                         <div className="flex items-center justify-between">
                           <span className="font-mono text-slate-400">{l.timestamp}</span>
                           <div className="flex items-center gap-2">
                             {l.concurrency && (
-                              <span className="text-[10px] text-indigo-500 font-mono font-semibold">
+                              <span className="text-[10px] text-violet-500 dark:text-violet-300 font-mono font-semibold">
                                 ⚡{l.concurrency}线程
                               </span>
                             )}
@@ -1329,7 +1331,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           {l.detail || (l as any).message}
                         </p>
                         {(l as any).result && (
-                          <pre className="p-2 rounded-lg bg-slate-900 text-slate-200 text-[11px] overflow-x-auto">
+                          <pre className="p-2 rounded-lg bg-slate-950/90 backdrop-blur-md text-emerald-400 border border-white/10 text-[11px] overflow-x-auto">
                             {JSON.stringify((l as any).result, null, 2)}
                           </pre>
                         )}
@@ -1340,8 +1342,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               })()}
             </div>
 
-            <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-              <Button size="sm" variant="outline" onClick={() => setActiveLogSchedule(null)} className="rounded-xl">
+            <div className="pt-3 border-t border-slate-200/50 dark:border-white/8 flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => setActiveLogSchedule(null)} className="rounded-xl bg-transparent text-slate-700 dark:text-slate-300 shadow-none before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 hover:before:bg-violet-500/5 hover:before:border-slate-200/50 dark:hover:before:border-white/8">
                 关闭
               </Button>
             </div>

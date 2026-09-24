@@ -428,7 +428,7 @@ export function CollectorSourcesPage() {
               <button
                 type="button"
                 onClick={() => setShowCreate(!showCreate)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 text-white transition-all cursor-pointer"
               >
                 <SparklesIcon size={16} />
                 {showCreate ? "取消录入" : "+ 录入新脚本与数据源"}
@@ -466,7 +466,7 @@ export function CollectorSourcesPage() {
               type="button"
               onClick={load}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
             >
               <RefreshIcon size={14} className={loading ? "animate-spin" : ""} />
               <span>刷新列表</span>
@@ -477,13 +477,13 @@ export function CollectorSourcesPage() {
 
       {/* 状态提示信息 */}
       {error && (
-        <Alert variant="error" className="rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/80 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200">
+        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 backdrop-blur-md text-rose-700 dark:text-rose-300">
           <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
         </Alert>
       )}
 
       {successMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm flex items-center justify-between animate-fadeIn">
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md text-sm flex items-center justify-between animate-fadeIn">
           <div className="flex items-center gap-2">
             <CheckBadgeIcon size={18} />
             <span className="font-medium">{successMsg}</span>
@@ -520,7 +520,7 @@ export function CollectorSourcesPage() {
                     <select
                       onChange={(e) => handleApplyTemplate(e.target.value)}
                       defaultValue=""
-                      className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0c1220] text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer shadow-2xs"
+                      className="h-8 px-2.5 rounded-lg glass-input text-xs font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
                     >
                       <option value="" disabled>-- 选择代码模版快速填入 --</option>
                       {templates.map((t) => (
@@ -648,7 +648,7 @@ export function CollectorSourcesPage() {
                     placeholder="# 录入您的 Python 采集脚本代码，或直接留空按默认模版自动生成..."
                     rows={12}
                     spellCheck={false}
-                    className="w-full font-mono text-xs sm:text-sm p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-950 text-emerald-400 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-inner"
+                    className="w-full font-mono text-xs sm:text-sm p-4 rounded-2xl bg-slate-950/90 backdrop-blur-md text-emerald-400 border border-white/10 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-inner"
                   />
                 </div>
 
@@ -656,7 +656,7 @@ export function CollectorSourcesPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreate(false)}
-                    className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                   >
                     取消
                   </button>
@@ -664,7 +664,7 @@ export function CollectorSourcesPage() {
                     type="button"
                     onClick={handleCreate}
                     disabled={creating || !createForm.source_id || !createForm.source_name}
-                    className="px-5 py-2 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                    className="px-5 py-2 rounded-xl text-sm font-semibold glow-button border-0 text-white transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {creating ? "保存录入中..." : "保存并注册脚本"}
                   </button>
@@ -707,7 +707,7 @@ export function CollectorSourcesPage() {
                   type="button"
                   onClick={runCollect}
                   disabled={!canWrite || running}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer whitespace-nowrap"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 text-white transition-all disabled:opacity-50 cursor-pointer whitespace-nowrap"
                 >
                   <PlayIcon size={16} />
                   {running
@@ -724,7 +724,7 @@ export function CollectorSourcesPage() {
               </div>
 
               {activeJob && running && (
-                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 dark:bg-primary/10 space-y-2.5">
+                <div className="p-4 rounded-2xl border border-violet-400/30 dark:border-violet-400/20 bg-violet-500/5 dark:bg-violet-400/5 backdrop-blur-md space-y-2.5">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
                       <span className="relative flex h-2.5 w-2.5">
@@ -752,7 +752,7 @@ export function CollectorSourcesPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                  <div className="w-full bg-slate-500/15 dark:bg-white/10 h-2 rounded-full overflow-hidden">
                     <div
                       className="bg-primary h-full transition-all duration-300 rounded-full"
                       style={{
@@ -787,7 +787,7 @@ export function CollectorSourcesPage() {
               )}
 
               {result && (
-                <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                <div className="space-y-3 pt-2 border-t border-slate-200/50 dark:border-white/8">
                   <Stats
                     items={[
                       { label: "运行标识", value: result.run_id },
@@ -808,7 +808,7 @@ export function CollectorSourcesPage() {
             title={
               <div className="flex items-center gap-3">
                 <span>{LOTTERY_LABEL[lottery]}数据源列表</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold border border-slate-200 dark:border-slate-700">
+                <span className="text-xs px-2.5 py-0.5 rounded-full glass-subtle text-slate-600 dark:text-slate-300 font-semibold">
                   共 {visible.length} 个
                 </span>
                 {selected.size > 0 && (
@@ -826,7 +826,7 @@ export function CollectorSourcesPage() {
                     if (selected.size === visible.length) setSelected(new Set());
                     else setSelected(new Set(visible.map((s) => s.source_id)));
                   }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                 >
                   {selected.size === visible.length ? "取消全选" : "全选当前"}
                 </button>
@@ -896,7 +896,7 @@ export function CollectorSourcesPage() {
                             <div className="text-xs font-mono text-slate-400 mt-0.5">{s.source_id}</div>
                           </td>
                           <td className={tableTdClass}>
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-lg glass-subtle text-slate-700 dark:text-slate-300">
                               {playLabel(s.play_type)}
                             </span>
                           </td>
@@ -919,8 +919,8 @@ export function CollectorSourcesPage() {
                               disabled={!canWrite}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer transition-all ${
                                 s.enabled
-                                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
-                                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700"
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md"
+                                  : "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-400/30 dark:border-slate-400/20 backdrop-blur-md"
                               }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${s.enabled ? "bg-emerald-500" : "bg-slate-400"}`} />
@@ -946,7 +946,7 @@ export function CollectorSourcesPage() {
                               <button
                                 type="button"
                                 onClick={() => openTestModal(s)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md transition-colors cursor-pointer"
                                 title="调试运行此脚本"
                               >
                                 <PlayIcon size={13} />
@@ -955,7 +955,7 @@ export function CollectorSourcesPage() {
                               <button
                                 type="button"
                                 onClick={() => openScriptEditor(s)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 border border-slate-200/50 dark:border-white/8 transition-colors cursor-pointer"
                                 title="编辑 Python 脚本"
                               >
                                 <EditIcon size={13} />
@@ -965,7 +965,7 @@ export function CollectorSourcesPage() {
                                 <button
                                   type="button"
                                   onClick={() => handleDelete(s.source_id)}
-                                  className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                  className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
                                   title="删除数据源"
                                 >
                                   <TrashIcon size={15} />
@@ -977,8 +977,8 @@ export function CollectorSourcesPage() {
 
                         {/* 展开的详情配置面板 */}
                         {isExpanded && (
-                          <tr className="bg-slate-50/70 dark:bg-slate-900/40">
-                            <td colSpan={7} className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-slate-800/80">
+                          <tr className="bg-slate-500/5 dark:bg-white/[0.03]">
+                            <td colSpan={7} className="p-4 sm:p-5 border-b border-slate-200/50 dark:border-white/8">
                               {detailLoading ? (
                                 <div className="py-4 flex justify-center">
                                   <Spinner aria-label="加载详情中" />
@@ -998,7 +998,7 @@ export function CollectorSourcesPage() {
                                             lottery: (s.lottery as Lottery) || lottery,
                                           })
                                         }
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-colors cursor-pointer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold glow-button border-0 text-white transition-colors cursor-pointer"
                                       >
                                         <CalendarIcon size={13} />
                                         <span>查看该源所有历史对奖数据</span>
@@ -1006,7 +1006,7 @@ export function CollectorSourcesPage() {
                                       <button
                                         type="button"
                                         onClick={() => void openScriptEditor(s)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                                       >
                                         <EditIcon size={13} />
                                         <span>查看/编辑源文件</span>
@@ -1031,9 +1031,9 @@ export function CollectorSourcesPage() {
 
       {/* 脚本代码查看与在线编辑弹窗 */}
       {scriptModal?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden p-6 gap-4">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/80 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-4xl max-h-[90vh] glass-panel rounded-3xl animate-glassPop flex flex-col overflow-hidden p-6 gap-4">
+            <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-white/8 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <EditIcon size={18} className="text-primary" />
@@ -1046,7 +1046,7 @@ export function CollectorSourcesPage() {
               <button
                 type="button"
                 onClick={() => setScriptModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 cursor-pointer"
               >
                 <CloseIcon size={20} />
               </button>
@@ -1061,11 +1061,11 @@ export function CollectorSourcesPage() {
                 value={scriptModal.content}
                 onChange={(e) => setScriptModal({ ...scriptModal, content: e.target.value })}
                 spellCheck={false}
-                className="flex-1 min-h-[380px] font-mono text-xs sm:text-sm p-4 rounded-2xl bg-slate-950 text-emerald-400 border border-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none shadow-inner"
+                className="flex-1 min-h-[380px] font-mono text-xs sm:text-sm p-4 rounded-2xl bg-slate-950/90 backdrop-blur-md text-emerald-400 border border-white/10 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none shadow-inner"
               />
             </div>
 
-            <div className="flex justify-between items-center border-t border-slate-100 dark:border-slate-800/80 pt-4">
+            <div className="flex justify-between items-center border-t border-slate-200/50 dark:border-white/8 pt-4">
               <span className="text-xs text-slate-400">
                 保存后将立即写入服务器 sources/ 目录，下次采集或测试时生效。
               </span>
@@ -1073,7 +1073,7 @@ export function CollectorSourcesPage() {
                 <button
                   type="button"
                   onClick={() => setScriptModal(null)}
-                  className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                 >
                   取消
                 </button>
@@ -1081,7 +1081,7 @@ export function CollectorSourcesPage() {
                   type="button"
                   onClick={saveScriptContent}
                   disabled={scriptModal.saving}
-                  className="px-5 py-2 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-sm font-semibold glow-button border-0 text-white transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {scriptModal.saving ? "保存中..." : "保存脚本代码"}
                 </button>
@@ -1093,9 +1093,9 @@ export function CollectorSourcesPage() {
 
       {/* 单脚本调试执行弹窗 */}
       {testModal?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-[#0c1220] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden p-6 gap-4">
-            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/80 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-4xl max-h-[90vh] glass-panel rounded-3xl animate-glassPop flex flex-col overflow-hidden p-6 gap-4">
+            <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-white/8 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <PlayIcon size={18} className="text-emerald-500" />
@@ -1108,14 +1108,14 @@ export function CollectorSourcesPage() {
               <button
                 type="button"
                 onClick={() => setTestModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 cursor-pointer"
               >
                 <CloseIcon size={20} />
               </button>
             </div>
 
             {/* 控制参数条 */}
-            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 flex items-center gap-4 flex-wrap">
+            <div className="p-3.5 rounded-2xl glass-subtle flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">彩种:</span>
                 <Select
@@ -1147,7 +1147,7 @@ export function CollectorSourcesPage() {
                 type="button"
                 onClick={executeTestRun}
                 disabled={testModal.running}
-                className="ml-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                className="ml-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
               >
                 <PlayIcon size={14} />
                 {testModal.running ? "子进程运行中..." : "启动测试运行"}
@@ -1174,14 +1174,14 @@ export function CollectorSourcesPage() {
                     提取预测项: <strong className="text-slate-700 dark:text-slate-200">{testModal.result.item_count} 条</strong>
                   </span>
                   {testModal.result.ingest && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-semibold border border-cyan-500/20">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold border border-violet-400/40 dark:border-violet-400/25 backdrop-blur-md">
                       入库: 新增 {testModal.result.ingest.inserted}, 更新 {testModal.result.ingest.updated}
                     </span>
                   )}
                 </div>
 
                 {testModal.result.error_msg && (
-                  <Alert variant="error" className="rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50/80 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 py-2.5 px-3">
+                  <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 backdrop-blur-md text-rose-700 dark:text-rose-300 py-2.5 px-3">
                     <AlertDescription className="text-xs">{testModal.result.error_msg}</AlertDescription>
                   </Alert>
                 )}
@@ -1190,7 +1190,7 @@ export function CollectorSourcesPage() {
                   <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
                     标准输出与错误日志 (Stdout & Stderr):
                   </div>
-                  <pre className="m-0 p-3.5 rounded-2xl bg-slate-950 text-slate-300 border border-slate-800 text-xs font-mono max-h-48 overflow-y-auto leading-relaxed shadow-inner">
+                  <pre className="m-0 p-3.5 rounded-2xl bg-slate-950/90 backdrop-blur-md text-slate-300 border border-white/10 text-xs font-mono max-h-48 overflow-y-auto leading-relaxed shadow-inner">
                     {testModal.result.stdout || "(无 stdout 输出)"}
                     {testModal.result.stderr ? `\n--- STDERR ---\n${testModal.result.stderr}` : ""}
                   </pre>

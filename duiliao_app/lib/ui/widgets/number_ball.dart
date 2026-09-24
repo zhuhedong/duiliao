@@ -1,4 +1,4 @@
-/// The lottery number ball — iOS 27 Liquid Crystal Glass Edition.
+/// The lottery number ball — Aurora Glass edition.
 library;
 
 import 'package:flutter/material.dart';

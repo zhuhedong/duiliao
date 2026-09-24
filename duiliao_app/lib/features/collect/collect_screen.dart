@@ -39,8 +39,12 @@ class _CollectScreenState extends ConsumerState<CollectScreen>
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('采集'),
+        backgroundColor: Colors.transparent,
         bottom: TabBar(
           controller: _tabs,
+          labelColor: Theme.of(context).colorScheme.primary,
+          unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
+          indicatorColor: Theme.of(context).colorScheme.primary,
           tabs: const [
             Tab(text: '立即采集'),
             Tab(text: '定时任务'),

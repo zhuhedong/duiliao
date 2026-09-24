@@ -194,22 +194,16 @@ class _DynamicIslandHeader extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      context.colors.primaryContainer,
-                      context.colors.primary.withValues(alpha: 0.5),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: DuiliaoColors.auroraGradient,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.45), width: 1),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   initial,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: context.colors.onPrimaryContainer,
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -262,9 +256,9 @@ class _HeroDrawBanner extends StatelessWidget {
           ),
         ),
         // A subtle gradient fill for the hero banner
-        fillColor: isDark 
-            ? const Color(0xFF1D283A).withValues(alpha: 0.65)
-            : const Color(0xFFE0E7FF).withValues(alpha: 0.55),
+        fillColor: isDark
+            ? DuiliaoColors.auroraViolet.withValues(alpha: 0.18)
+            : DuiliaoColors.auroraIndigo.withValues(alpha: 0.10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -673,7 +667,7 @@ class _ControlCenterPanel extends StatelessWidget {
                 _ControlButton(
                   icon: Icons.auto_awesome,
                   label: 'AI 研判',
-                  color: Colors.purpleAccent,
+                  color: DuiliaoColors.auroraFuchsia,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => AiScreen(initialPeriod: home.consensusPeriod)),
                   ),
@@ -681,7 +675,7 @@ class _ControlCenterPanel extends StatelessWidget {
                 _ControlButton(
                   icon: Icons.grid_view_rounded,
                   label: '号码百科',
-                  color: Colors.blueAccent,
+                  color: DuiliaoColors.auroraIndigo,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const NumbersScreen()),
                   ),
@@ -689,7 +683,7 @@ class _ControlCenterPanel extends StatelessWidget {
                 _ControlButton(
                   icon: Icons.rule_rounded,
                   label: '玩法规则',
-                  color: Colors.teal,
+                  color: DuiliaoColors.auroraSky,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const RulesScreen()),
                   ),

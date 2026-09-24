@@ -1,4 +1,4 @@
-/// App theme, and the semantic colours the domain needs — iOS 27 Liquid Glass Edition.
+/// App theme, and the semantic colours the domain needs — Aurora Glass Edition.
 library;
 
 import 'package:flutter/material.dart';
@@ -9,8 +9,32 @@ import 'package:flutter/material.dart';
 /// as red in both themes. These are therefore fixed values, chosen to stay
 /// legible on both backgrounds, rather than being derived from the colour scheme.
 abstract final class DuiliaoColors {
-  /// iOS 27 Liquid Electric Azure / Blue.
-  static const Color primary = Color(0xFF007AFF);
+  /// Aurora brand violet (primary).
+  static const Color primary = Color(0xFF8B5CF6);
+
+  /// Aurora brand violet, lightened for dark-mode legibility.
+  static const Color primaryDark = Color(0xFFA78BFA);
+
+  /// Aurora gradient stops: 靛蓝 → 紫罗兰 → 品红.
+  static const Color auroraIndigo = Color(0xFF6366F1);
+  static const Color auroraViolet = Color(0xFF8B5CF6);
+  static const Color auroraFuchsia = Color(0xFFD946EF);
+
+  /// Aurora ambient sky glow (used for background orbs and accents).
+  static const Color auroraSky = Color(0xFF38BDF8);
+
+  /// The signature brand gradient.
+  static const LinearGradient auroraGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [auroraIndigo, auroraViolet, auroraFuchsia],
+  );
+
+  /// Deep-space indigo app background (dark theme).
+  static const Color backgroundDark = Color(0xFF12121F);
+
+  /// Cool violet-white app background (light theme).
+  static const Color backgroundLight = Color(0xFFF5F4FB);
 
   /// 红波 — 晶莹红宝石.
   static const Color boseRed = Color(0xFFE53935);
@@ -45,8 +69,8 @@ abstract final class DuiliaoColors {
 }
 
 abstract final class DuiliaoTheme {
-  /// iOS 27 Electric Azure / Indigo seed.
-  static const Color _seed = Color(0xFF007AFF);
+  /// Aurora violet seed.
+  static const Color _seed = DuiliaoColors.auroraViolet;
 
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark() => _build(Brightness.dark);
@@ -56,13 +80,34 @@ abstract final class DuiliaoTheme {
     final scheme = ColorScheme.fromSeed(
       seedColor: _seed,
       brightness: brightness,
-      surface: isDark ? const Color(0xFF0F1522) : const Color(0xFFF6F8FD),
+    ).copyWith(
+      // violet primary — lightened in dark mode for legibility on glass
+      primary: isDark ? DuiliaoColors.primaryDark : DuiliaoColors.primary,
+      onPrimary: isDark ? const Color(0xFF2A1A52) : Colors.white,
+      primaryContainer: isDark ? const Color(0xFF4C2E8C) : const Color(0xFFE9E4FD),
+      onPrimaryContainer: isDark ? const Color(0xFFEDE9FE) : const Color(0xFF3B1470),
+      secondary: isDark ? const Color(0xFF818CF8) : DuiliaoColors.auroraIndigo,
+      onSecondary: isDark ? const Color(0xFF1E1B4B) : Colors.white,
+      secondaryContainer: isDark ? const Color(0xFF3730A3) : const Color(0xFFE0E7FF),
+      onSecondaryContainer: isDark ? const Color(0xFFE0E7FF) : const Color(0xFF1E1B4B),
+      tertiary: isDark ? const Color(0xFFE879F9) : DuiliaoColors.auroraFuchsia,
+      onTertiary: isDark ? const Color(0xFF4A044E) : Colors.white,
+      tertiaryContainer: isDark ? const Color(0xFF86198F) : const Color(0xFFFAE8FF),
+      onTertiaryContainer: isDark ? const Color(0xFFFAE8FF) : const Color(0xFF701A75),
+      surface: isDark ? DuiliaoColors.backgroundDark : DuiliaoColors.backgroundLight,
+      onSurface: isDark ? const Color(0xFFE6E4F2) : const Color(0xFF1E1B2E),
+      onSurfaceVariant: isDark ? const Color(0xFFA9A4C0) : const Color(0xFF5A5670),
+      outline: isDark ? const Color(0xFF4A4767) : const Color(0xFF8F8AAC),
+      outlineVariant: isDark ? const Color(0xFF2C2B44) : const Color(0xFFE3E0F0),
+      surfaceContainerHighest:
+          isDark ? const Color(0xFF23233A) : const Color(0xFFEBE9F6),
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: isDark ? const Color(0xFF090D16) : const Color(0xFFF3F6FD),
+      scaffoldBackgroundColor:
+          isDark ? DuiliaoColors.backgroundDark : DuiliaoColors.backgroundLight,
       fontFamilyFallback: const [
         'SF Pro Display',
         'PingFang SC',
@@ -75,7 +120,7 @@ abstract final class DuiliaoTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         backgroundColor: isDark
-            ? const Color(0xFF0F1522).withValues(alpha: 0.75)
+            ? const Color(0xFF16162A).withValues(alpha: 0.75)
             : Colors.white.withValues(alpha: 0.75),
         foregroundColor: scheme.onSurface,
         titleTextStyle: TextStyle(
@@ -89,14 +134,14 @@ abstract final class DuiliaoTheme {
         elevation: 0,
         margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         color: isDark
-            ? const Color(0xFF141B2A).withValues(alpha: 0.68)
-            : Colors.white.withValues(alpha: 0.78),
+            ? const Color(0xFF1C1C2E).withValues(alpha: 0.62)
+            : Colors.white.withValues(alpha: 0.72),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(24),
           side: BorderSide(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.12)
-                : Colors.white.withValues(alpha: 0.85),
+                ? Colors.white.withValues(alpha: 0.10)
+                : Colors.white.withValues(alpha: 0.75),
             width: 1.0,
           ),
         ),
@@ -105,7 +150,7 @@ abstract final class DuiliaoTheme {
         side: BorderSide(
           color: isDark ? Colors.white.withValues(alpha: 0.15) : scheme.outlineVariant,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       ),
       listTileTheme: const ListTileThemeData(
@@ -115,11 +160,11 @@ abstract final class DuiliaoTheme {
         filled: true,
         fillColor: isDark
             ? Colors.white.withValues(alpha: 0.05)
-            : Colors.white.withValues(alpha: 0.65),
+            : Colors.white.withValues(alpha: 0.62),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.12) : const Color(0xFFE2E8F0),
+            color: isDark ? Colors.white.withValues(alpha: 0.12) : scheme.outlineVariant,
           ),
         ),
         enabledBorder: OutlineInputBorder(
@@ -132,7 +177,7 @@ abstract final class DuiliaoTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF007AFF), width: 1.5),
+          borderSide: const BorderSide(color: DuiliaoColors.primary, width: 1.5),
         ),
         isDense: true,
       ),
@@ -141,7 +186,7 @@ abstract final class DuiliaoTheme {
         thickness: 0.8,
         color: isDark
             ? Colors.white.withValues(alpha: 0.08)
-            : const Color(0xFFE2E8F0).withValues(alpha: 0.6),
+            : scheme.outlineVariant.withValues(alpha: 0.7),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,

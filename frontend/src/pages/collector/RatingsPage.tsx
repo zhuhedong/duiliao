@@ -84,7 +84,7 @@ export function CollectorRatingsPage() {
 
   const renderTh = (col: string, label: string) => (
     <th
-      className={`${tableThClass} cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors select-none`}
+      className={`${tableThClass} cursor-pointer hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors select-none`}
       onClick={() => handleSort(col)}
       title="点击按此列排序"
     >
@@ -107,7 +107,7 @@ export function CollectorRatingsPage() {
       />
 
       {error && (
-        <Alert variant="error" className="rounded-2xl border border-rose-200 dark:border-rose-900 bg-rose-50/80 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200">
+        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}
@@ -135,7 +135,7 @@ export function CollectorRatingsPage() {
             type="button"
             onClick={run}
             disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary hover:bg-primary/90 text-white shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
           >
             {loading ? "计算评级中…" : "计算评级矩阵"}
           </button>
@@ -148,7 +148,7 @@ export function CollectorRatingsPage() {
           title={
             <div className="flex items-center gap-3">
               <span>评级排行榜明细</span>
-              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-full glass-subtle text-slate-600 dark:text-slate-400">
                 样本期号：{data.periods.length} 期 ({data.period_from ?? "—"} ~ {data.period_to ?? "—"})
               </span>
             </div>
@@ -241,7 +241,7 @@ export function CollectorRatingsPage() {
                       <button
                         type="button"
                         onClick={() => setHistoryModal({ sourceId: s.source_id, lottery })}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 border border-primary/30 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold glass-subtle text-violet-700 dark:text-violet-300 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors cursor-pointer"
                         title="查看该源全部历史对奖与预测数据"
                       >
                         <CalendarIcon size={12} />
