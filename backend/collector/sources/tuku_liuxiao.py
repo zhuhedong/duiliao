@@ -21,7 +21,7 @@ PLAY_TYPE = "texiao"
 HIT_MODE = "any"
 URLS = urls_for("/api/v1/index/config/byid/1690557551507")
 
-HEADER_RE = re.compile(r"^\s*(?P<period>\d{1,7})\s*期\s+六肖\s+【(?P<candidates>[^】]+)】")
+HEADER_RE = re.compile(r"^\s*(?P<period>\d{1,7})\s*期\s*六肖\s*【(?P<candidates>[^】]+)】")
 
 
 def extract(raw: str) -> list[ParsedRow]:

@@ -78,6 +78,7 @@ export function CollectorMonitorPage() {
   };
 
   const items = monitor?.items ?? [];
+  const siteStatuses = catalog?.sites ? Object.values(catalog.sites) : [];
 
   return (
     <PageWorkspace
@@ -96,7 +97,7 @@ export function CollectorMonitorPage() {
         title={
           <div className="flex items-center gap-2">
             <ActivityIcon size={18} className="text-primary" />
-            <span>上游站群栏目巡检 (588080 / 顶尖大师)</span>
+            <span>三站点上游栏目巡检</span>
           </div>
         }
         subtitle="实时嗅探网站是否发生改版、栏目下架、URL变更或接口不可用"
@@ -129,7 +130,7 @@ export function CollectorMonitorPage() {
               <div className="p-3.5 glass-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">自动巡检频率</span>
                 <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block">
-                  {catalog.enabled ? `每 ${catalog.interval_minutes} 分钟` : "已关闭"}
+                  {catalog.enabled ? `每 ${catalog.interval_minutes ?? 15} 分钟` : "已关闭"}
                 </span>
               </div>
 
@@ -170,6 +171,29 @@ export function CollectorMonitorPage() {
           {catalog?.last_error && (
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-xs backdrop-blur-md">
               最近错误：{catalog.last_error}
+            </div>
+          )}
+
+          {siteStatuses.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              {siteStatuses.map((site) => (
+                <div key={site.site_family} className="p-3.5 glass-subtle rounded-2xl">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                      {site.site_label || site.site_family}
+                    </span>
+                    <StatusPill variant={site.ok ? "success" : "danger"}>
+                      {site.ok ? "正常" : "异常"}
+                    </StatusPill>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
+                    <div><span className="text-slate-400 block">栏目</span><b>{site.content_total}</b></div>
+                    <div><span className="text-slate-400 block">待接入</span><b>{site.pending?.length ?? 0}</b></div>
+                    <div><span className="text-slate-400 block">下架</span><b>{site.missing?.length ?? 0}</b></div>
+                  </div>
+                  {site.last_error && <p className="text-[11px] text-rose-500 mt-2 truncate" title={site.last_error}>{site.last_error}</p>}
+                </div>
+              ))}
             </div>
           )}
         </div>

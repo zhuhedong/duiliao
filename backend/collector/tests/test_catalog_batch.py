@@ -16,7 +16,10 @@ from dingji_util import atoms_twoface, atoms_wei
 from dingjian_shenwei import extract as extract_shenwei
 from dingjian_vip import extract as extract_vip
 from dingjian_wuma import extract as extract_wuma
-from tongtian_catalog import compare_inventory, extract_script_paths
+from tongtian_catalog import compare_inventory, discover_homepage_scripts, extract_iframe_paths, extract_script_paths
+import tongtian_catalog
+import site_catalog
+from registry import render_template
 from tt_util import expand_period_ranges
 
 
@@ -62,6 +65,30 @@ class TestTongtianCatalog(unittest.TestCase):
         html = '<script src="/chajie/6xiao.js"></script><script src="/chajie/5qi.js"></script><script src="/chajie/6xiao.js"></script>'
         self.assertEqual(extract_script_paths(html), ["/chajie/6xiao.js", "/chajie/5qi.js"])
 
+    def test_extract_nested_iframe_paths(self):
+        html = "<iframe src='/83191.html'></iframe><script src='/chajie/x.js?v=1'></script>"
+        self.assertEqual(extract_iframe_paths(html), ["/83191.html"])
+        self.assertEqual(extract_script_paths(html), ["/chajie/x.js"])
+
+    def test_discover_nested_homepage(self):
+        class Response:
+            def __init__(self, url, text):
+                self.url, self.text = url, text
+
+        pages = {
+            "https://mirror/": "<iframe src='/83191.html'></iframe>",
+            "https://mirror/83191.html": "<script>document.write('<script src=\"/chajie/6xiao.js?v=1\"></script>')</script>",
+        }
+        old_get = tongtian_catalog.get
+        tongtian_catalog.get = lambda url, **_: Response(url, pages[url])
+        try:
+            paths, scanned, errors = discover_homepage_scripts("https://mirror")
+        finally:
+            tongtian_catalog.get = old_get
+        self.assertEqual(paths, ["/chajie/6xiao.js"])
+        self.assertEqual(len(scanned), 2)
+        self.assertEqual(errors, [])
+
     def test_compare_enabled_ignored_pending_and_missing(self):
         cfg = {
             "sources": [
@@ -88,6 +115,51 @@ class TestTongtianCatalog(unittest.TestCase):
 
         removed = compare_inventory(["/chajie/gsb.js"], cfg, ignored={"gsb.js": "导航"})
         self.assertEqual(removed["missing"][0]["path"], "/chajie/5qi.js")
+
+
+class TestSiteCatalog(unittest.TestCase):
+    def test_aggregate_keeps_family_identity(self):
+        old = site_catalog.FAMILY_MODULES.copy()
+
+        class Module:
+            @staticmethod
+            def status():
+                return {"ok": True, "content_total": 2, "enabled_components": 1, "known_components": 2, "items": [], "pending": [], "missing": []}
+
+            @staticmethod
+            def scan(record=True):
+                return Module.status()
+
+        site_catalog.FAMILY_MODULES.clear()
+        site_catalog.FAMILY_MODULES.update({"fake": "fake_module"})
+        site_catalog.FAMILY_LABELS["fake"] = "测试站"
+        old_load = site_catalog._load
+        site_catalog._load = lambda _: Module
+        try:
+            result = site_catalog.status()
+        finally:
+            site_catalog._load = old_load
+            site_catalog.FAMILY_MODULES.clear()
+            site_catalog.FAMILY_MODULES.update(old)
+            site_catalog.FAMILY_LABELS.pop("fake", None)
+        self.assertEqual(result["site_family"], "all")
+        self.assertEqual(result["content_total"], 2)
+        self.assertEqual(result["sites"]["fake"]["site_family"], "fake")
+
+    def test_batch_template_uses_dynamic_site_builder(self):
+        script = render_template(
+            {
+                "source_id": "tt_new_column",
+                "source_name": "通天新栏目",
+                "site_family": "tongtian_83191",
+                "play_type": "tema_n",
+                "hit_mode": "any",
+                "extra": {"path": "/chajie/new.js", "kind": "num"},
+            }
+        )
+        self.assertIn("build_tt_pred", script)
+        self.assertIn('PATH = "/chajie/new.js"', script)
+        self.assertIn('KIND = "num"', script)
 
     def test_expand_five_period_bundle(self):
         rows = expand_period_ranges(

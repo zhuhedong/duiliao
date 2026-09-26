@@ -7,9 +7,11 @@ import json
 import os
 import re
 import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urljoin, urlparse
 
 from common import ROOT
 from common.http import get
@@ -29,6 +31,8 @@ TZ8 = timezone(timedelta(hours=8))
 SETTING_KEY = "tongtian_catalog"
 SITE_FAMILY = "tongtian_83191"
 SCRIPT_RE = re.compile(r"/chajie/[A-Za-z0-9_]+\.js")
+IFRAME_RE = re.compile(r"<iframe[^>]+(?:src|data-src)\s*=\s*['\"]([^'\"]+)['\"]", re.I)
+EMBED_RE = re.compile(r"(?:src|data-src)\s*=\s*['\"]([^'\"]+)['\"]", re.I)
 URL_RE = re.compile(r"""urls_for\(\s*['"]([^'"]+)['"]\s*\)""")
 
 
@@ -38,6 +42,17 @@ def now_iso() -> str:
 
 def _split_env(name: str) -> list[str]:
     return [value for value in re.split(r"[,;\s]+", os.getenv(name, "").strip()) if value]
+
+
+def watcher_enabled() -> bool:
+    return os.getenv("PRED_TONGTIAN_CATALOG_ENABLED", "1").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def interval_minutes() -> int:
+    try:
+        return max(5, min(int(os.getenv("PRED_CATALOG_INTERVAL_MIN", "15")), 1440))
+    except ValueError:
+        return 15
 
 
 def catalog_config(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -56,8 +71,78 @@ def catalog_config(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
 
 
 def extract_script_paths(html: str) -> list[str]:
-    """Keep homepage script order and drop duplicates."""
-    return list(dict.fromkeys(SCRIPT_RE.findall(html or "")))
+    """Keep homepage/script order, normalize query strings, and drop duplicates."""
+    paths: list[str] = []
+    for value in SCRIPT_RE.findall(html or ""):
+        path = "/" + value.lstrip("/")
+        if path not in paths:
+            paths.append(path)
+    return paths
+
+
+def extract_iframe_paths(html: str) -> list[str]:
+    """Return local iframe paths in source order."""
+    result: list[str] = []
+    normalized = (html or "").replace("\\'", "'").replace('\\"', '"')
+    for value in IFRAME_RE.findall(normalized):
+        value = value.strip()
+        if not value or value.startswith(("#", "javascript:", "data:")):
+            continue
+        path = urlparse(value).path or "/"
+        if path not in result:
+            result.append(path)
+    return result
+
+
+def discover_homepage_scripts(
+    host: str,
+    *,
+    max_pages: int = 4,
+    timeout: float = 12.0,
+) -> tuple[list[str], list[str], list[str]]:
+    """Walk the landing page and local iframes to find live column scripts."""
+    root = host.rstrip("/") + "/"
+    base_origin = urlparse(root).netloc
+    queue: list[str] = [root]
+    visited: set[str] = set()
+    paths: list[str] = []
+    pages: list[str] = []
+    errors: list[str] = []
+    while queue and len(pages) < max(1, max_pages):
+        page_url = queue.pop(0)
+        if page_url in visited:
+            continue
+        visited.add(page_url)
+        try:
+            response = get(page_url, timeout=timeout, retries=1)
+        except Exception as exc:
+            errors.append(f"{page_url}: {exc}")
+            continue
+        html = response.text or ""
+        pages.append(str(response.url))
+        for path in extract_script_paths(html):
+            if path not in paths:
+                paths.append(path)
+        if len(pages) >= max_pages:
+            continue
+        # The public landing page currently loads ``yjjy/wenzhang.js``;
+        # that document writes the actual 83191.html iframe.  Follow only
+        # local wrapper documents, never the dozens of prediction scripts.
+        html_links = html.replace("\\'", "'").replace('\\"', '"')
+        for path in extract_iframe_paths(html_links):
+            child = urljoin(page_url, path)
+            if urlparse(child).netloc == base_origin and child not in visited:
+                queue.append(child)
+        for value in EMBED_RE.findall(html_links):
+            path = urlparse(value).path or ""
+            if not path or "/chajie/" in path or "/tp/" in path:
+                continue
+            if not path.endswith((".html", ".htm", ".js")):
+                continue
+            child = urljoin(page_url, value)
+            if urlparse(child).netloc == base_origin and child not in visited:
+                queue.append(child)
+    return paths, pages, errors
 
 
 def local_inventory(cfg: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
@@ -155,6 +240,7 @@ def _sample(host: str, path: str) -> str:
 
 def scan(*, record: bool = True) -> dict[str, Any]:
     started_at = now_iso()
+    started = time.monotonic()
     cfg = load_config()
     settings = catalog_config(cfg)
     hosts, discovery_errors = discover_api_hosts(
@@ -165,17 +251,24 @@ def scan(*, record: bool = True) -> dict[str, Any]:
     if not hosts:
         raise RuntimeError("未发现可用的 83191.com 线路")
     active_host = hosts[0]
-    page = get(active_host.rstrip("/") + "/", timeout=12, retries=1)
-    compared = compare_inventory(extract_script_paths(page.text or ""), cfg, ignored=settings["ignored"])
+    paths, pages_scanned, page_errors = discover_homepage_scripts(active_host)
+    compared = compare_inventory(paths, cfg, ignored=settings["ignored"])
     for item in compared["pending"]:
         item["sample"] = _sample(active_host, item["path"])
     result = {
         "ok": True,
+        "enabled": watcher_enabled(),
+        "interval_minutes": interval_minutes(),
         "active_host": active_host,
         "hosts": hosts,
         "last_attempt_at": started_at,
         "last_success_at": now_iso(),
         "last_error": None,
+        "homepage_pages": pages_scanned,
+        "pages_scanned": pages_scanned,
+        "script_paths": paths,
+        "homepage_errors": page_errors[-10:],
+        "scan_duration_ms": int((time.monotonic() - started) * 1000),
         "discovery_warnings": discovery_errors[-10:],
         **compared,
     }
@@ -202,6 +295,7 @@ def _write_report(result: dict[str, Any]) -> None:
         "",
         f"- 巡检时间：{result['last_success_at']}",
         f"- 当前线路：`{result['active_host']}`",
+        f"- 深度页面：{len(result.get('homepage_pages') or [])}；扫描耗时：{result.get('scan_duration_ms', 0)} ms",
         f"- 首页脚本：{result['content_total']}；已纳管/已知：{result['known_components']}；已启用：{result['enabled_components']}；待接入：{len(result['pending'])}；首页已下架：{len(result['missing'])}",
         "",
         "| 脚本 | 状态 | 本地来源 | 说明 |",
@@ -227,6 +321,9 @@ def status() -> dict[str, Any]:
         row = session.get(Setting, SETTING_KEY)
         value = dict(row.value or {}) if row else {}
     value.setdefault("ok", False)
+    value["enabled"] = watcher_enabled()
+    value["interval_minutes"] = interval_minutes()
+    value.setdefault("open_issue_count", 0)
     value.setdefault("items", [])
     value.setdefault("pending", [])
     value.setdefault("missing", [])

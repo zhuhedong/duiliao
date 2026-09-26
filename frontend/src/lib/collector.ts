@@ -205,16 +205,23 @@ export interface MonitorResult {
 export interface CatalogStatus {
   ok: boolean;
   enabled: boolean;
-  interval_minutes: number;
+  interval_minutes?: number;
+  site_family?: string;
+  site_label?: string;
   active_host?: string;
   last_success_at?: string;
   last_attempt_at?: string;
   last_error?: string | null;
+  sites?: Record<string, CatalogStatus>;
+  families?: Record<string, CatalogStatus>;
   content_total: number;
+  enabled_components?: number;
+  known_components?: number;
   open_issue_count?: number;
   items: Record<string, unknown>[];
   pending: Record<string, unknown>[];
   missing: Record<string, unknown>[];
+  ignored?: Record<string, unknown>[];
   renamed: Record<string, unknown>[];
 }
 
@@ -561,6 +568,133 @@ export interface SchedulesResponse {
   schedules: CollectionSchedule[];
 }
 
+// --- Workbench overview (dashboard aggregation) ---
+
+export interface OverviewTotals {
+  sources: number;
+  sources_enabled: number;
+  predictions: number;
+  draws: number;
+  judge_results: number;
+  schedules: number;
+  schedules_enabled: number;
+  crawl_runs: number;
+}
+
+export interface OverviewJudge {
+  judged: number;
+  hits: number;
+  misses: number;
+  hit_rate: number | null;
+  today_judged: number;
+  today_hits: number;
+  today_hit_rate: number | null;
+  pending_judge: number;
+}
+
+export interface OverviewToday {
+  date: string;
+  crawl_runs: number;
+  source_ok: number;
+  source_total: number;
+  new_predictions: number;
+}
+
+export interface OverviewTrendPoint {
+  date: string;
+  judged: number;
+  hits: number;
+  hit_rate: number | null;
+}
+
+export interface OverviewLeaderboardRow {
+  source_id: string;
+  source_name: string;
+  lottery: string | null;
+  play_type: string | null;
+  judged: number;
+  hits: number;
+  hit_rate: number | null;
+  current_streak: number;
+  streak_hit: boolean | null;
+  recent: boolean[];
+}
+
+export interface OverviewPlayTypeRow {
+  play_type: string;
+  judged: number;
+  hits: number;
+  hit_rate: number | null;
+}
+
+export interface OverviewAlertItem {
+  source_id: string;
+  source_name: string;
+  lottery: string;
+  play_type: string;
+  latest_period: string;
+  lag: number;
+  missing: number;
+}
+
+export interface OverviewAlerts {
+  lagging_sources: number;
+  never_collected: number;
+  confirmed_missing_total: number;
+  items: OverviewAlertItem[];
+}
+
+export interface OverviewScheduler {
+  draw: {
+    enabled: boolean;
+    in_window: boolean;
+    next_run_at: string | null;
+    last_run_at: string | null;
+    last_success_at: string | null;
+    last_error: string | null;
+    sync_count: number;
+    lotteries: string[];
+    recent_logs: DrawSchedulerLog[];
+  };
+  source: {
+    running: boolean;
+    active_tasks_count: number;
+    running_task_ids: number[];
+  };
+}
+
+export interface OverviewRecentLog {
+  id: number;
+  schedule_id: number;
+  schedule_name: string;
+  lottery: string;
+  period: string | null;
+  action: string;
+  status: string;
+  detail: string;
+  duration_sec: number | null;
+  source_total: number;
+  source_ok: number;
+  source_fail: number;
+  created_at: string | null;
+}
+
+export interface OverviewResult {
+  ok: boolean;
+  generated_at: string;
+  totals: OverviewTotals;
+  judge: OverviewJudge;
+  today: OverviewToday;
+  trend_7d: OverviewTrendPoint[];
+  latest_draws: DrawRow[];
+  leaderboard: OverviewLeaderboardRow[];
+  play_type_dist: OverviewPlayTypeRow[];
+  alerts: OverviewAlerts;
+  upcoming_schedules: CollectionSchedule[];
+  recent_logs: OverviewRecentLog[];
+  scheduler?: OverviewScheduler;
+}
+
 export const collectorApi = {
   // --- pipeline ---
   submitCollectJob(input: {
@@ -607,6 +741,9 @@ export const collectorApi = {
   },
 
   // --- read models ---
+  overview() {
+    return api.get<OverviewResult>("/collector/overview");
+  },
   consensus(lottery: Lottery, period: string, playType?: string) {
     const q = new URLSearchParams({ lottery, period });
     if (playType) q.set("play_type", playType);
@@ -767,10 +904,12 @@ export const collectorApi = {
   },
 
   // --- catalog ---
-  catalogStatus() {
-    return api.get<CatalogStatus>("/collector/catalog/status");
+  catalogStatus(siteFamily?: string) {
+    const q = siteFamily ? `?site_family=${encodeURIComponent(siteFamily)}` : "";
+    return api.get<CatalogStatus>(`/collector/catalog/status${q}`);
   },
-  catalogScan(record = true) {
-    return api.post<CatalogStatus>(`/collector/catalog/scan?record=${record}`);
+  catalogScan(record = true, siteFamily?: string) {
+    const family = siteFamily ? `&site_family=${encodeURIComponent(siteFamily)}` : "";
+    return api.post<CatalogStatus>(`/collector/catalog/scan?record=${record}${family}`);
   },
 };

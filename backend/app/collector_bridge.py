@@ -1061,6 +1061,307 @@ def rules_catalog() -> list[dict[str, Any]]:
 
 
 # --------------------------------------------------------------------------- #
+# Workbench overview (dashboard aggregation)
+# --------------------------------------------------------------------------- #
+def overview() -> dict[str, Any]:
+    """Aggregate the workbench headline business stats in a single read.
+
+    One call powers the whole dashboard: headline counters, judge hit-rate
+    (overall / today), a 7-day per-draw-day trend, latest draw per lottery,
+    a source hit-rate leaderboard, play-type distribution, coverage alerts
+    (lag / missing / never-collected) and schedule bookkeeping. Everything is
+    a read; datetimes are naive CN-local like the rest of the collector schema.
+    """
+    bootstrap()
+    from bisect import bisect_right
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import case, func, select
+
+    from db import session_scope
+    from schema import (
+        CrawlRun,
+        Draw,
+        JudgeResult,
+        Prediction,
+        Schedule,
+        ScheduleLog,
+        Source,
+    )
+
+    now = datetime.now(timezone(timedelta(hours=8))).replace(tzinfo=None)
+    today = now.date()
+    day_start = datetime.combine(today, datetime.min.time())
+    week_start = today - timedelta(days=6)
+
+    with session_scope(guard=False) as s:
+        # --- headline counters ------------------------------------------- #
+        src_total, src_enabled = s.execute(
+            select(func.count(), func.coalesce(func.sum(Source.enabled), 0)).select_from(Source)
+        ).one()
+        pred_total = s.scalar(select(func.count()).select_from(Prediction)) or 0
+        draw_total = s.scalar(select(func.count()).select_from(Draw)) or 0
+        judge_total = s.scalar(select(func.count()).select_from(JudgeResult)) or 0
+        sched_total, sched_enabled = s.execute(
+            select(func.count(), func.coalesce(func.sum(Schedule.enabled), 0)).select_from(Schedule)
+        ).one()
+        run_total = s.scalar(select(func.count()).select_from(CrawlRun)) or 0
+
+        hit_case = case((JudgeResult.official_hit == 1, 1), else_=0)
+
+        # --- judge hit stats ---------------------------------------------- #
+        hits, misses = s.execute(
+            select(
+                func.coalesce(func.sum(hit_case), 0),
+                func.coalesce(func.sum(case((JudgeResult.official_hit == 0, 1), else_=0)), 0),
+            )
+        ).one()
+        today_judged, today_hits = s.execute(
+            select(func.count(), func.coalesce(func.sum(hit_case), 0)).where(
+                JudgeResult.judged_at >= day_start
+            )
+        ).one()
+        # Predictions that cover an already-drawn period but have no verdict yet.
+        pending_judge = s.scalar(
+            select(func.count())
+            .select_from(Prediction)
+            .join(Draw, (Draw.lottery == Prediction.lottery) & (Draw.period == Prediction.period))
+            .outerjoin(JudgeResult, JudgeResult.prediction_id == Prediction.id)
+            .where(JudgeResult.id.is_(None))
+        ) or 0
+
+        # --- today's collection activity ---------------------------------- #
+        today_runs, today_src_ok, today_src_total = s.execute(
+            select(
+                func.count(),
+                func.coalesce(func.sum(CrawlRun.source_ok), 0),
+                func.coalesce(func.sum(CrawlRun.source_total), 0),
+            )
+            .select_from(CrawlRun)
+            .where(CrawlRun.run_at >= day_start)
+        ).one()
+        today_new_preds = s.scalar(
+            select(func.count()).select_from(Prediction).where(Prediction.first_seen_at >= day_start)
+        ) or 0
+
+        # --- 7-day trend, grouped by official draw date -------------------- #
+        trend_rows = s.execute(
+            select(Draw.draw_date, func.count(), func.coalesce(func.sum(JudgeResult.official_hit), 0))
+            .join(Draw, (Draw.lottery == JudgeResult.lottery) & (Draw.period == JudgeResult.period))
+            .where(Draw.draw_date >= week_start)
+            .group_by(Draw.draw_date)
+            .order_by(Draw.draw_date)
+        ).all()
+        trend_by_day = {d: (int(n), int(h)) for d, n, h in trend_rows}
+        trend = []
+        for i in range(7):
+            day = week_start + timedelta(days=i)
+            n, h = trend_by_day.get(day, (0, 0))
+            trend.append(
+                {
+                    "date": day.isoformat(),
+                    "judged": n,
+                    "hits": h,
+                    "hit_rate": round(h / n, 4) if n else None,
+                }
+            )
+
+        # --- latest draw per lottery (enriched) ---------------------------- #
+        latest_draws = []
+        for lot in list(s.scalars(select(Draw.lottery).group_by(Draw.lottery))):
+            row = s.scalar(
+                select(Draw).where(Draw.lottery == lot).order_by(Draw.period.desc()).limit(1)
+            )
+            if row:
+                latest_draws.append(enrich_draw_row(row))
+        latest_draws.sort(key=lambda d: d["period"], reverse=True)
+
+        # --- source leaderboard (min 10 judged, by hit rate) --------------- #
+        lb_rows = s.execute(
+            select(
+                JudgeResult.source_id,
+                func.count(),
+                func.coalesce(func.sum(JudgeResult.official_hit), 0),
+            )
+            .group_by(JudgeResult.source_id)
+            .having(func.count() >= 10)
+            .order_by((func.sum(JudgeResult.official_hit) * 1.0 / func.count()).desc())
+            .limit(8)
+        ).all()
+        lb_source_ids = [r[0] for r in lb_rows]
+        src_meta = {
+            row.source_id: row
+            for row in s.scalars(select(Source).where(Source.source_id.in_(lb_source_ids)))
+        } if lb_source_ids else {}
+        leaderboard = []
+        for sid, n, h in lb_rows:
+            recent = list(
+                s.scalars(
+                    select(JudgeResult.official_hit)
+                    .where(JudgeResult.source_id == sid)
+                    .order_by(JudgeResult.period.desc(), JudgeResult.id.desc())
+                    .limit(12)
+                )
+            )
+            streak_count = 0
+            streak_hit: bool | None = None
+            if recent:
+                streak_hit = bool(recent[0])
+                for v in recent:
+                    if bool(v) == streak_hit:
+                        streak_count += 1
+                    else:
+                        break
+            meta = src_meta.get(sid)
+            leaderboard.append(
+                {
+                    "source_id": sid,
+                    "source_name": meta.source_name if meta else sid,
+                    "lottery": meta.lottery if meta else None,
+                    "play_type": meta.play_type if meta else None,
+                    "judged": int(n),
+                    "hits": int(h),
+                    "hit_rate": round(int(h) / int(n), 4) if n else None,
+                    "current_streak": streak_count,
+                    "streak_hit": streak_hit,
+                    "recent": [bool(v) for v in recent],
+                }
+            )
+
+        # --- play-type distribution ---------------------------------------- #
+        pt_rows = s.execute(
+            select(
+                JudgeResult.play_type,
+                func.count(),
+                func.coalesce(func.sum(JudgeResult.official_hit), 0),
+            )
+            .group_by(JudgeResult.play_type)
+            .order_by(func.count().desc())
+        ).all()
+        play_type_dist = [
+            {
+                "play_type": pt,
+                "judged": int(n),
+                "hits": int(h),
+                "hit_rate": round(int(h) / int(n), 4) if n else None,
+            }
+            for pt, n, h in pt_rows
+        ]
+
+        # --- coverage alerts ------------------------------------------------ #
+        draw_periods_by_lottery: dict[str, list[str]] = {}
+        for lot, period in s.execute(select(Draw.lottery, Draw.period)).all():
+            draw_periods_by_lottery.setdefault(lot, []).append(period)
+        for periods in draw_periods_by_lottery.values():
+            periods.sort()
+
+        enabled_sources = list(s.scalars(select(Source).where(Source.enabled == 1)))
+        max_real_period = {
+            sid: maxp
+            for sid, maxp in s.execute(
+                select(
+                    Prediction.source_id,
+                    func.max(case((Prediction.claimed_status != "missing", Prediction.period))),
+                ).group_by(Prediction.source_id)
+            ).all()
+        }
+        missing_by_source = {
+            sid: int(n)
+            for sid, n in s.execute(
+                select(Prediction.source_id, func.count())
+                .where(Prediction.claimed_status == "missing")
+                .group_by(Prediction.source_id)
+            ).all()
+        }
+
+        lag_sources = []
+        never_collected = 0
+        confirmed_missing_total = 0
+        for src in enabled_sources:
+            maxp = max_real_period.get(src.source_id)
+            missing_n = missing_by_source.get(src.source_id, 0)
+            confirmed_missing_total += missing_n
+            if not maxp:
+                never_collected += 1
+                continue
+            periods = draw_periods_by_lottery.get(src.lottery, [])
+            lag = len(periods) - bisect_right(periods, maxp)
+            if lag > 0 or missing_n > 0:
+                lag_sources.append(
+                    {
+                        "source_id": src.source_id,
+                        "source_name": src.source_name,
+                        "lottery": src.lottery,
+                        "play_type": src.play_type,
+                        "latest_period": maxp,
+                        "lag": int(lag),
+                        "missing": missing_n,
+                    }
+                )
+        lag_sources.sort(key=lambda r: (-r["lag"], -r["missing"], r["source_id"]))
+        lagging_total = sum(1 for r in lag_sources if r["lag"] > 0)
+
+        # --- schedule bookkeeping ------------------------------------------- #
+        upcoming = [
+            _schedule_to_dict(r)
+            for r in s.scalars(
+                select(Schedule)
+                .where(Schedule.enabled == 1, Schedule.next_run_at.is_not(None))
+                .order_by(Schedule.next_run_at)
+                .limit(3)
+            )
+        ]
+        recent_logs = [
+            _schedule_log_to_dict(r)
+            for r in s.scalars(select(ScheduleLog).order_by(ScheduleLog.created_at.desc()).limit(6))
+        ]
+
+    return {
+        "ok": True,
+        "generated_at": now.strftime("%Y-%m-%d %H:%M:%S"),
+        "totals": {
+            "sources": int(src_total),
+            "sources_enabled": int(src_enabled),
+            "predictions": int(pred_total),
+            "draws": int(draw_total),
+            "judge_results": int(judge_total),
+            "schedules": int(sched_total),
+            "schedules_enabled": int(sched_enabled),
+            "crawl_runs": int(run_total),
+        },
+        "judge": {
+            "judged": int(hits) + int(misses),
+            "hits": int(hits),
+            "misses": int(misses),
+            "hit_rate": round(int(hits) / (int(hits) + int(misses)), 4) if (int(hits) + int(misses)) else None,
+            "today_judged": int(today_judged),
+            "today_hits": int(today_hits),
+            "today_hit_rate": round(int(today_hits) / int(today_judged), 4) if today_judged else None,
+            "pending_judge": int(pending_judge),
+        },
+        "today": {
+            "date": today.isoformat(),
+            "crawl_runs": int(today_runs),
+            "source_ok": int(today_src_ok),
+            "source_total": int(today_src_total),
+            "new_predictions": int(today_new_preds),
+        },
+        "trend_7d": trend,
+        "latest_draws": latest_draws,
+        "leaderboard": leaderboard,
+        "play_type_dist": play_type_dist,
+        "alerts": {
+            "lagging_sources": lagging_total,
+            "never_collected": never_collected,
+            "confirmed_missing_total": int(confirmed_missing_total),
+            "items": lag_sources[:8],
+        },
+        "upcoming_schedules": upcoming,
+        "recent_logs": recent_logs,
+    }
+
+
+# --------------------------------------------------------------------------- #
 # Source management (registry) + catalog
 # --------------------------------------------------------------------------- #
 def registry_module():
@@ -1070,18 +1371,18 @@ def registry_module():
     return registry
 
 
-def catalog_status() -> dict[str, Any]:
+def catalog_status(site_family: str | None = None) -> dict[str, Any]:
     bootstrap()
-    import source_catalog
+    import site_catalog
 
-    return source_catalog.status()
+    return site_catalog.status(site_family)
 
 
-def catalog_scan(record: bool = True) -> dict[str, Any]:
+def catalog_scan(record: bool = True, site_family: str | None = None) -> dict[str, Any]:
     bootstrap()
-    import source_catalog
+    import site_catalog
 
-    return source_catalog.scan(record=record)
+    return site_catalog.scan(site_family=site_family, record=record)
 
 
 def test_source_script(

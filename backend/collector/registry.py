@@ -135,6 +135,81 @@ if __name__ == "__main__":
 )
 
 
+def _render_dynamic_site_template(body: dict[str, Any]) -> str | None:
+    """Render a thin typed wrapper for the two mirror-backed site families.
+
+    Catalog onboarding supplies a stable path while the shared parser carries
+    the site-specific HTTP and ``pred.v1`` details.  Keeping this wrapper in
+    the source file means the collector's subprocess isolation is preserved.
+    """
+    family = str(body.get("site_family") or "")
+    extra = dict(body.get("extra") or {})
+    path = str(extra.get("path") or "").strip()
+    if family not in {"tongtian_83191", "dingji_77452"} or not path:
+        return None
+    sid = validate_source_id(str(body.get("source_id") or ""))
+    name = str(body.get("source_name") or sid)
+    play_type = str(body.get("play_type") or "texiao")
+    hit_mode = str(body.get("hit_mode") or "any")
+    kind = str(extra.get("kind") or ("num" if "码" in name or "ma" in path else "xiao"))
+    if kind not in {"xiao", "num", "twoface", "wei", "head", "bose", "all"}:
+        raise RegistryError("bad_kind", "动态站点脚本 kind 不受支持")
+    q = lambda value: json.dumps(value, ensure_ascii=False)
+    if family == "tongtian_83191":
+        imports = "from tt_util import build_tt_pred, urls_for"
+        call = "build_tt_pred"
+    else:
+        imports = "from dingji_util import build_dj_pred, urls_for"
+        call = "build_dj_pred"
+    return f'''from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from common.source_base import emit, fail, parse_common_args
+{imports}
+
+SOURCE_ID = {q(sid)}
+SOURCE_NAME = {q(name)}
+SITE_FAMILY = {q(family)}
+PLAY_TYPE = {q(play_type)}
+HIT_MODE = {q(hit_mode)}
+PATH = {q(path)}
+KIND = {q(kind)}
+
+
+def build(lottery: str, period: str | None, fixture: str | None):
+    return {call}(
+        source_id=SOURCE_ID,
+        source_name=SOURCE_NAME,
+        play_type=PLAY_TYPE,
+        hit_mode=HIT_MODE,
+        urls=urls_for(PATH),
+        kind=KIND,
+        lottery=lottery,
+        period=period,
+        fixture=fixture,
+    )
+
+
+def main() -> None:
+    args = parse_common_args(SOURCE_NAME)
+    try:
+        emit(build(args.lottery, args.period, args.fixture), ok=True)
+    except Exception as exc:
+        fail(SOURCE_ID, SOURCE_NAME, SITE_FAMILY, args.lottery, PLAY_TYPE, HIT_MODE, "fetch", str(exc))
+
+
+if __name__ == "__main__":
+    main()
+'''
+
+
 class RegistryError(ValueError):
     def __init__(self, code: str, message: str):
         super().__init__(message)
@@ -286,6 +361,9 @@ def _urls_literal(extra: dict[str, Any]) -> str:
 def render_template(body: dict[str, Any]) -> str:
     if (body.get("play_type") or "pingte_xiao") not in PLAY_TYPES:
         raise RegistryError("bad_play", "该玩法不存在或已移除")
+    dynamic = _render_dynamic_site_template(body)
+    if dynamic is not None:
+        return dynamic
     sid = validate_source_id(body["source_id"])
     extra = body.get("extra") or {}
     return SCRIPT_TEMPLATE.substitute(

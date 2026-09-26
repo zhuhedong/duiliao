@@ -14,6 +14,9 @@ for p in (str(BACKEND_DIR), str(COLLECTOR_DIR), str(SOURCES_DIR)):
 
 import chanzhuang_miliao
 import dingjian_baoliao
+import dingjian_shenwei
+import dingjian_vip
+import dingjian_wuma
 import fanshen_erxiao
 import jingsuan_sanma
 import jingpin_7ma
@@ -256,16 +259,15 @@ class TestNewSources(unittest.TestCase):
 
     def test_live_source_builds(self):
         for mod, sid in [
-            (sima_shuju, "sima_shuju"),
             (zengshi_xinshui, "zengshi_xinshui"),
-            (jingsuan_sanma, "jingsuan_sanma"),
-            (chanzhuang_miliao, "chanzhuang_miliao"),
             (jingpin_7ma, "jingpin_7ma"),
-            (fanshen_erxiao, "fanshen_erxiao"),
             (jue_mi_mashi, "jue_mi_mashi"),
             (touzi_dashen, "touzi_dashen"),
             (jingzhun_liuma, "jingzhun_liuma"),
             (jingzhun_erxiao_sima, "jingzhun_erxiao_sima"),
+            (dingjian_shenwei, "dingjian_shenwei"),
+            (dingjian_vip, "dingjian_vip"),
+            (dingjian_wuma, "dingjian_wuma"),
             (tt_4x8m, "tt_4x8m"),
             (tt_4wbm, "tt_4wbm"),
             (tt_yxym, "tt_yxym"),

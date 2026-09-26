@@ -58,7 +58,7 @@ GET  /collector/rules
 GET  /collector/sources  /sources/{id}  /families
 GET  /collector/schedules  /schedules/{id}  /schedules/{id}/logs
 GET  /collector/draw-scheduler
-GET  /collector/catalog/status
+GET  /collector/catalog/status ?site_family (默认返回 588080 / 83191 / 77452 聚合状态)
 GET  /ai/prompts
 ```
 
@@ -75,7 +75,8 @@ POST /collector/scripts/{name}/run
 POST /collector/schedules  PUT/DELETE /schedules/{id}
 POST /collector/schedules/{id}/trigger
 POST /collector/missing/confirm
-POST /collector/catalog/scan
+POST /collector/catalog/scan ?site_family（指定站点或三站点批量巡检）
+POST /collector/sources/batch（批量接入已审核的来源脚本）
 ```
 
 ### 3.3 前端已有的完整类型契约

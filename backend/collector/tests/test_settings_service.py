@@ -17,8 +17,14 @@ class TestSettingsService(unittest.TestCase):
     def setUp(self):
         init_db()
         self.db = SessionLocal()
+        self.dns_patcher = patch(
+            "socket.getaddrinfo",
+            return_value=[(2, 1, 6, "", ("104.26.0.1", 443))],
+        )
+        self.dns_patcher.start()
 
     def tearDown(self):
+        self.dns_patcher.stop()
         self.db.close()
 
     def test_mask_api_key(self):

@@ -214,8 +214,14 @@ Read endpoints require a logged-in user; mutating / operational endpoints requir
 | GET | `/families` | user | Site families |
 | GET | `/scripts`, GET/PUT `/scripts/{name}` | user / staff | List / read / write source scripts |
 | GET/PUT | `/draw-config[/{lottery}]` | user / staff | Draw-fetch adapter config |
-| GET | `/catalog/status` | user | 588080 / 顶尖大师 catalog scan status |
-| POST | `/catalog/scan` | staff | Run a catalog discovery scan |
+| GET | `/catalog/status[?site_family=...]` | user | 588080 / 83191 / 77452 catalog status (aggregate by default) |
+| POST | `/catalog/scan[?site_family=...]` | staff | Run one or all dynamic catalog discovery scans |
+| POST | `/sources/batch` | staff | Create reviewed source/script rows in one batch (supports `dry_run`) |
+
+The catalog aggregate walks 83191's wrapper page and local iframe before
+comparing the generated `/chajie/*.js` list, and probes 77452's 69 subpages
+concurrently.  New or disappeared columns stay visible as `pending` / `missing`
+until a reviewed source batch is attached.
 
 ### Offline try-out
 

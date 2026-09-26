@@ -8,6 +8,8 @@ import json
 import os
 import re
 import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -43,8 +45,22 @@ def _split_env(name: str) -> list[str]:
     return [value for value in re.split(r"[,;\s]+", os.getenv(name, "").strip()) if value]
 
 
+def scan_concurrency() -> int:
+    try:
+        return max(1, min(int(os.getenv("PRED_DINGJI_SCAN_CONCURRENCY", "12")), 32))
+    except ValueError:
+        return 12
+
+
 def watcher_enabled() -> bool:
     return os.getenv("PRED_DINGJI_CATALOG_ENABLED", "1").strip().lower() not in {"0", "false", "no", "off"}
+
+
+def interval_minutes() -> int:
+    try:
+        return max(5, min(int(os.getenv("PRED_CATALOG_INTERVAL_MIN", "15")), 1440))
+    except ValueError:
+        return 15
 
 
 def catalog_config(cfg: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -128,6 +144,7 @@ def scan_amtz_page(host: str, page_idx: int) -> dict[str, Any]:
 
 def scan(*, record: bool = True) -> dict[str, Any]:
     started_at = now_iso()
+    started = time.monotonic()
     cfg = load_config()
     settings = catalog_config(cfg)
     hosts, discovery_errors = discover_api_hosts(
@@ -141,10 +158,16 @@ def scan(*, record: bool = True) -> dict[str, Any]:
     registered = local_inventory(cfg)
     ignored = settings["ignored"]
 
+    # The 69 fixed subpages are independent.  Parallel probes keep a full
+    # catalog sweep within a practical interval while each request retains its
+    # own timeout and failure record.
+    with ThreadPoolExecutor(max_workers=min(scan_concurrency(), TOTAL_AMTZ_PAGES)) as executor:
+        infos = list(executor.map(lambda idx: scan_amtz_page(active_host, idx), range(1, TOTAL_AMTZ_PAGES + 1)))
+
     items: list[dict[str, Any]] = []
-    for idx in range(1, TOTAL_AMTZ_PAGES + 1):
-        info = scan_amtz_page(active_host, idx)
+    for info in infos:
         path = info["path"]
+        idx = int(info.get("page_idx") or 0)
         sources = registered.get(path, [])
         if path in ignored or str(idx) in ignored:
             coverage = "ignored"
@@ -171,11 +194,20 @@ def scan(*, record: bool = True) -> dict[str, Any]:
     result = {
         "ok": True,
         "enabled": watcher_enabled(),
+        "interval_minutes": interval_minutes(),
         "active_host": active_host,
         "hosts": hosts,
         "last_attempt_at": started_at,
         "last_success_at": now_iso(),
         "last_error": None,
+        "scan_concurrency": min(scan_concurrency(), TOTAL_AMTZ_PAGES),
+        "scan_duration_ms": int((time.monotonic() - started) * 1000),
+        "failed_components": sum(not item.get("ok") for item in items),
+        "scan_errors": [
+            {"path": item["path"], "error": item.get("sample", "")}
+            for item in items
+            if not item.get("ok")
+        ],
         "content_total": len(items),
         "enabled_components": enabled_count,
         "known_components": known_count,
@@ -213,7 +245,8 @@ def _write_report(result: dict[str, Any]) -> None:
         "",
         f"- 巡检时间：{result['last_success_at']}",
         f"- 当前线路：`{result['active_host']}`",
-        f"- 总子栏目页：{result['content_total']}；已纳管/已知：{result['known_components']}；已启用：{result['enabled_components']}；待接入：{len(result['pending'])}",
+        f"- 总子栏目页：{result['content_total']}；已纳管/已知：{result['known_components']}；已启用：{result['enabled_components']}；待接入：{len(result['pending'])}；失败：{result.get('failed_components', 0)}",
+        f"- 并发探测：{result.get('scan_concurrency', 1)}；扫描耗时：{result.get('scan_duration_ms', 0)} ms",
         "",
         "| 序号 | 相对路径 | 栏目推断 | 状态 | 本地来源 | 样本片段 |",
         "|---|---|---|---|---|---|",
@@ -235,6 +268,9 @@ def status() -> dict[str, Any]:
         row = session.get(Setting, SETTING_KEY)
         value = dict(row.value or {}) if row else {}
     value.setdefault("ok", False)
+    value["enabled"] = watcher_enabled()
+    value["interval_minutes"] = interval_minutes()
+    value.setdefault("open_issue_count", 0)
     value.setdefault("items", [])
     value.setdefault("pending", [])
     value["enabled"] = watcher_enabled()

@@ -401,3 +401,11 @@ body {
 .animate-glassPop {
   animation: glassPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes briefWrite {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+.brief-write {
+  animation: briefWrite 1.15s ease-in-out infinite;
+}

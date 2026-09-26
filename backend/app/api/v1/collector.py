@@ -80,6 +80,17 @@ class SourceCreate(BaseModel):
     create_script: bool = True
 
 
+class SourceBatchCreate(BaseModel):
+    """Create several validated source/script pairs in one request.
+
+    The individual source shape is deliberately the same as ``POST /sources``
+    so a catalog operator can copy a reviewed batch directly from a scan.
+    """
+
+    sources: list[SourceCreate] = Field(..., min_length=1, max_length=200)
+    dry_run: bool = False
+
+
 class SourceUpdate(BaseModel):
     source_name: str | None = None
     site_family: str | None = None
@@ -249,6 +260,36 @@ def monitor(lottery: Lottery | None = None, _: User = _user) -> dict[str, Any]:
     return cb.monitor(lottery)
 
 
+@router.get("/overview")
+def collector_overview(_: User = _user) -> dict[str, Any]:
+    """Workbench dashboard: headline business stats in one round-trip."""
+    from app.services.draw_scheduler import draw_scheduler
+    from app.services.source_scheduler import source_scheduler
+
+    data = cb.overview()
+    draw_status = draw_scheduler.get_status()
+    source_status = source_scheduler.get_status()
+    data["scheduler"] = {
+        "draw": {
+            "enabled": draw_status.get("enabled"),
+            "in_window": draw_status.get("in_window"),
+            "next_run_at": draw_status.get("next_run_at"),
+            "last_run_at": draw_status.get("last_run_at"),
+            "last_success_at": draw_status.get("last_success_at"),
+            "last_error": draw_status.get("last_error"),
+            "sync_count": draw_status.get("sync_count"),
+            "lotteries": draw_status.get("lotteries"),
+            "recent_logs": (draw_status.get("recent_logs") or [])[:5],
+        },
+        "source": {
+            "running": source_status.get("running"),
+            "active_tasks_count": source_status.get("active_tasks_count"),
+            "running_task_ids": source_status.get("running_task_ids"),
+        },
+    }
+    return data
+
+
 @router.get("/draws")
 def list_draws(
     lottery: Lottery | None = None,
@@ -352,6 +393,44 @@ def create_source(body: SourceCreate, _: User = _staff) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=exc.message)
 
 
+@router.post("/sources/batch", status_code=201)
+def create_sources_batch(body: SourceBatchCreate, _: User = _staff) -> dict[str, Any]:
+    """Bulk attach reviewed catalog columns to source scripts."""
+    reg = cb.registry_module()
+    payloads = [item.model_dump(exclude_none=True) for item in body.sources]
+    ids = [str(item.get("source_id") or "") for item in payloads]
+    if len(ids) != len(set(ids)):
+        raise HTTPException(status_code=400, detail="批量源中 source_id 不能重复")
+    if body.dry_run:
+        existing = {item.get("source_id") for item in reg.list_sources()}
+        return {
+            "ok": True,
+            "dry_run": True,
+            "items": [
+                {"source_id": sid, "exists": sid in existing, "will_create": sid not in existing}
+                for sid in ids
+            ],
+        }
+    created: list[dict[str, Any]] = []
+    try:
+        existing = {item.get("source_id") for item in reg.list_sources()}
+        if any(sid in existing for sid in ids):
+            duplicate = next(sid for sid in ids if sid in existing)
+            raise reg.RegistryError("exists", f"源 {duplicate} 已存在")
+        # Validate the whole batch before the first write so a bad play type,
+        # id or script path cannot leave a half-attached batch behind.
+        for payload in payloads:
+            if (payload.get("play_type") or "pingte_xiao") not in reg.PLAY_TYPES:
+                raise reg.RegistryError("bad_play", "该玩法不存在或已移除")
+            reg.validate_source_id(payload.get("source_id") or "")
+            reg.canonical_script_path(payload.get("script_path") or f"sources/{payload['source_id']}.py")
+        for payload in payloads:
+            created.append(reg.create_source(payload))
+    except reg.RegistryError as exc:
+        raise HTTPException(status_code=400, detail=exc.message)
+    return {"ok": True, "dry_run": False, "created": created}
+
+
 @router.patch("/sources/{source_id}")
 def update_source(source_id: str, body: SourceUpdate, _: User = _staff) -> dict[str, Any]:
     reg = cb.registry_module()
@@ -416,17 +495,24 @@ def update_draw_config(lottery: str, body: DrawConfigUpdate, _: User = _staff) -
 
 
 # --------------------------------------------------------------------------- #
-# Source catalog (588080 / 顶尖大师 auto-discovery)
+# Source catalog (588080 / 83191 / 77452 dynamic discovery)
 # --------------------------------------------------------------------------- #
 @router.get("/catalog/status")
-def catalog_status(_: User = _user) -> dict[str, Any]:
-    return cb.catalog_status()
+def catalog_status(site_family: str | None = Query(None), _: User = _user) -> dict[str, Any]:
+    try:
+        return cb.catalog_status(site_family=site_family)
+    except ValueError as exc:
+        raise _bad_request(exc)
 
 
 @router.post("/catalog/scan")
-def catalog_scan(record: bool = True, _: User = _staff) -> dict[str, Any]:
+def catalog_scan(
+    record: bool = True,
+    site_family: str | None = Query(None),
+    _: User = _staff,
+) -> dict[str, Any]:
     try:
-        return cb.catalog_scan(record=record)
+        return cb.catalog_scan(record=record, site_family=site_family)
     except (ValueError, RuntimeError) as exc:
         raise _bad_request(exc)
 
@@ -803,5 +889,3 @@ def get_collection_schedule_logs(
         "total": res["total"],
         "logs": res["items"],
     }
-
-
