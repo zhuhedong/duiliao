@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@appica/ui-react/badge";
 import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { ApiError } from "../../lib/api";
@@ -412,6 +412,7 @@ export function CollectorConsensusPage() {
   const [comparison, setComparison] = useState<PeriodComparisonResult | null>(null);
   const [consensusData, setConsensusData] = useState<ConsensusResult | null>(null);
   const [expandedJsonId, setExpandedJsonId] = useState<number | null>(null);
+  const requestSeq = useRef(0);
 
   // Load live play rules catalog
   useEffect(() => {
@@ -423,8 +424,11 @@ export function CollectorConsensusPage() {
     async (lot: Lottery, targetPeriod: string) => {
       const p = targetPeriod.trim();
       if (!p) return;
+      const requestId = ++requestSeq.current;
       setLoading(true);
       setError(null);
+      setComparison(null);
+      setConsensusData(null);
       try {
         // Query comparison and consensus concurrently to keep both tabs fresh
         const [compRes, consRes] = await Promise.allSettled([
@@ -432,16 +436,13 @@ export function CollectorConsensusPage() {
           collectorApi.consensus(lot, p, playFilter || undefined),
         ]);
 
+        if (requestId !== requestSeq.current) return;
         if (compRes.status === "fulfilled") {
           setComparison(compRes.value);
-        } else {
-          setComparison(null);
         }
 
         if (consRes.status === "fulfilled") {
           setConsensusData(consRes.value);
-        } else {
-          setConsensusData(null);
         }
 
         if (compRes.status === "rejected" && consRes.status === "rejected") {
@@ -449,24 +450,27 @@ export function CollectorConsensusPage() {
           setError(err instanceof ApiError ? err.message : "数据查询失败");
         }
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "查询失败");
+        if (requestId === requestSeq.current) {
+          setError(err instanceof ApiError ? err.message : "查询失败");
+        }
       } finally {
-        setLoading(false);
+        if (requestId === requestSeq.current) setLoading(false);
       }
     },
     [playFilter]
   );
 
-  // Initial mount & lottery switch: Auto-fetch latest period for immediate display
+  // Initial mount & lottery switch: prefer the latest prediction period, which
+  // may still be awaiting the official draw. Once a draw exists, the same
+  // period transparently switches from live rankings to its frozen snapshot.
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const latest = await collectorApi.listDraws(lottery, 1, 0);
-        if (active && latest.items && latest.items.length > 0) {
-          const latestPeriod = latest.items[0].period;
-          setPeriod(latestPeriod);
-          void executeQuery(lottery, latestPeriod);
+        const latest = await collectorApi.consensusLatest(lottery);
+        if (active && latest.current_period) {
+          setPeriod(latest.current_period);
+          void executeQuery(lottery, latest.current_period);
         }
       } catch {
         // Ignore fallback
@@ -502,9 +506,9 @@ export function CollectorConsensusPage() {
   // Stepper: Latest Period
   const handleLatestPeriod = async () => {
     try {
-      const latest = await collectorApi.listDraws(lottery, 1, 0);
-      if (latest.items && latest.items.length > 0) {
-        const latestPeriod = latest.items[0].period;
+      const latest = await collectorApi.consensusLatest(lottery);
+      if (latest.current_period) {
+        const latestPeriod = latest.current_period;
         setPeriod(latestPeriod);
         void executeQuery(lottery, latestPeriod);
       }
@@ -559,6 +563,62 @@ export function CollectorConsensusPage() {
   // Frequency aggregation for 特码 (tema_n) and 特肖 (texiao)
   const frequencyStats = useMemo(() => {
     const items = comparison?.items ?? [];
+    const drawnDetails = officialDraw ? ensureDrawDetails(officialDraw) : null;
+    const drawnTemaNum = drawnDetails ? padNum(drawnDetails.temaDetail.num) : null;
+    const drawnTemaXiao = drawnDetails ? drawnDetails.temaDetail.xiao : null;
+
+    // The server owns the frequency calculation for both live and frozen
+    // periods. For a frozen period this payload comes from the immutable row;
+    // for the latest period it is recalculated from current predictions.
+    // The comparison tab remains live, so late-arriving predictions can still
+    // be inspected without changing a sealed period's ranks.
+    const frequencyPayload = consensusData?.frequency;
+    if (frequencyPayload) {
+      const toSources = (sources: Array<string | { id: string; name: string; group_key?: string }> | undefined) =>
+        (sources ?? []).map((source) =>
+          typeof source === "string"
+            ? { id: source, name: source }
+            : { id: source.id, name: source.name, groupKey: source.group_key }
+        );
+      const temaList: FrequencyItem[] = (frequencyPayload.tema_n ?? []).map((item) => ({
+        value: padNum(item.value),
+        kind: "num" as const,
+        count: item.votes,
+        percentage: item.percentage,
+        sources: toSources(item.sources) as FrequencyItem["sources"],
+        isHit: drawnTemaNum !== null && padNum(item.value) === drawnTemaNum,
+        bose: getBose(item.value),
+        xiao: getXiao(item.value, 2026),
+        wuxing: getWuxing(item.value),
+        size: getSize(item.value),
+        odd: getOdd(item.value),
+      }));
+      const texiaoList: FrequencyItem[] = (frequencyPayload.texiao ?? []).map((item) => {
+        const sampleNums: string[] = [];
+        for (let n = 1; n <= 49; n++) {
+          const p = padNum(n);
+          if (getXiao(p, 2026) === item.value) sampleNums.push(p);
+        }
+        return {
+          value: item.value,
+          kind: "xiao" as const,
+          count: item.votes,
+          percentage: item.percentage,
+          sources: toSources(item.sources) as FrequencyItem["sources"],
+          isHit: drawnTemaXiao !== null && item.value === drawnTemaXiao,
+          jiaye: getJiaye(item.value),
+          sampleNums,
+        };
+      });
+      return {
+        temaList,
+        texiaoList,
+        totalTemaSources: frequencyPayload.totals?.tema_n ?? 0,
+        totalTexiaoSources: frequencyPayload.totals?.texiao ?? 0,
+        drawnTemaNum,
+        drawnTemaXiao,
+      };
+    }
 
     // --- 1. 特码 (tema_n) ---
     const temaItems = items.filter(
@@ -636,7 +696,9 @@ export function CollectorConsensusPage() {
         const pNum = padNum(at.value);
         temaMap.set(pNum, {
           count: at.votes,
-          sources: at.sources.map((s) => ({ id: s, name: s })),
+          sources: at.sources.map((s) =>
+            typeof s === "string" ? { id: s, name: s } : { id: s.id, name: s.name, groupKey: s.group_key }
+          ),
         });
       }
     }
@@ -644,16 +706,14 @@ export function CollectorConsensusPage() {
       for (const at of consensusData.atom_tallies.texiao) {
         texiaoMap.set(at.value, {
           count: at.votes,
-          sources: at.sources.map((s) => ({ id: s, name: s })),
+          sources: at.sources.map((s) =>
+            typeof s === "string" ? { id: s, name: s } : { id: s.id, name: s.name, groupKey: s.group_key }
+          ),
         });
       }
     }
 
     // Official draw target values
-    const drawnDetails = officialDraw ? ensureDrawDetails(officialDraw) : null;
-    const drawnTemaNum = drawnDetails ? padNum(drawnDetails.temaDetail.num) : null;
-    const drawnTemaXiao = drawnDetails ? drawnDetails.temaDetail.xiao : null;
-
     const resolvedTotalTema =
       totalTemaSources ||
       (consensusData?.atom_tallies?.tema_n && consensusData.atom_tallies.tema_n.length > 0
@@ -823,6 +883,12 @@ export function CollectorConsensusPage() {
       <div className="space-y-6">
         <Toolbar>
           <div className="flex items-center gap-2 flex-wrap">
+            {consensusData?.snapshot?.frozen && (
+              <Badge size="sm" variant="soft" className="text-emerald-700 dark:text-emerald-300">
+                🔒 榜单已冻结{consensusData.snapshot.quality === "approximate" ? "（补冻）" : ""}
+                {consensusData.snapshot.frozen_at ? ` · ${consensusData.snapshot.frozen_at.slice(0, 16).replace("T", " ")}` : ""}
+              </Badge>
+            )}
             <Select
               value={lottery}
               onChange={(v) => setLottery(v as Lottery)}
@@ -861,7 +927,7 @@ export function CollectorConsensusPage() {
               <button
                 type="button"
                 onClick={handleLatestPeriod}
-                title="载入最新开奖期号"
+                title="载入最新预测/开奖期号"
                 disabled={loading}
                 className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-colors cursor-pointer disabled:opacity-50"
               >

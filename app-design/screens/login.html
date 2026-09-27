@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>登录 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <div class="screen-body no-tabbar" style="display:flex;flex-direction:column">
+    <!-- 品牌区 -->
+    <div class="tc animate-fadeIn" style="margin-top:56px">
+      <div class="brand-logo animate-float" style="width:76px;height:76px;border-radius:22px;font-size:34px;margin:0 auto">对</div>
+      <div class="text-gradient" style="font-size:30px;font-weight:800;letter-spacing:0.14em;margin-top:18px">对料</div>
+      <div class="fs-12 t-muted mt-8" style="letter-spacing:0.08em">加密数据采集控制台</div>
+    </div>
+
+    <!-- 登录卡片 -->
+    <div class="glass-panel card-pad animate-fadeIn d2" style="margin-top:36px;padding:22px 20px">
+      <div style="font-size:19px;font-weight:700" class="t-strong">欢迎回来</div>
+      <div class="fs-12 t-muted mt-8">登录后进入你的专属数据工作台</div>
+
+      <div class="field" style="margin-top:20px">
+        <label>账号</label>
+        <div class="input">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <input type="text" placeholder="请输入账号" value="collector">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>密码</label>
+        <div class="input">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          <input type="password" placeholder="请输入密码" value="••••••••">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+      </div>
+
+      <div class="flex aic jcb" style="margin:4px 2px 18px">
+        <span class="flex aic gap-6 fs-12 t-sub">
+          <span class="switch on" style="width:34px;height:20px"></span>记住账号
+        </span>
+        <a href="#" class="fs-12 t-primary" style="text-decoration:none">忘记密码?</a>
+      </div>
+
+      <a class="glow-button" href="dashboard.html">安全登录</a>
+
+      <div class="tc fs-11 t-muted mt-16">正在验证身份并建立端到端加密会话</div>
+    </div>
+
+    <!-- 底部说明 -->
+    <div class="tc animate-fadeIn d3" style="margin-top:auto;padding-top:32px">
+      <div class="flex aic" style="gap:10px">
+        <span style="flex:1;height:1px;background:var(--border)"></span>
+        <span class="fs-11 t-muted">多源对料 · 一体研判</span>
+        <span style="flex:1;height:1px;background:var(--border)"></span>
+      </div>
+      <div class="flex aic gap-12 mt-16" style="justify-content:center">
+        <span class="chip">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          端到端加密
+        </span>
+        <span class="chip">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/></svg>
+          私有化部署
+        </span>
+      </div>
+      <div class="fs-11 t-muted" style="margin-top:22px">首次部署?<a href="#" class="t-primary" style="text-decoration:none"> 初始化管理员</a></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -406,6 +406,18 @@ def sync_draws(rows: list[dict[str, Any]]) -> dict[str, Any]:
         for key in ("judged", "hits", "dirty_claimed"):
             stats[key] += result[key]
         stats["deadletter"].extend(result["deadletter"])
+
+    # Freeze the frequency board only after the official draw and any available
+    # re-judging have committed. The helper is idempotent and deliberately skips
+    # an empty board so a deployment that syncs draws before collecting sources
+    # can create its first snapshot when the first complete ingest arrives.
+    from consensus import freeze_frequency_snapshot
+
+    frozen = 0
+    for lottery, period in sorted(keys):
+        if freeze_frequency_snapshot(lottery, period, reason="draw_sync"):
+            frozen += 1
+    stats["snapshots_frozen"] = frozen
     return stats
 
 

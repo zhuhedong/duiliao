@@ -1,18 +1,20 @@
-/// Home: everything an operator wants at a glance, in one request.
+/// Mobile workbench: a calm, priority-first operator overview.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/net/api_client.dart';
 import '../../core/providers.dart';
 import '../../domain/json.dart';
 import '../../domain/lottery.dart';
-import '../../domain/models/app_event.dart';
 import '../../domain/models/collect_job.dart';
+import '../../domain/models/draw.dart';
 import '../../domain/play_type.dart';
-import '../../ui/glass/glass_widgets.dart';
+import '../../ui/mobile/mobile_components.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
+import '../../ui/tokens.dart';
 import '../../ui/widgets/number_ball.dart';
 import '../ai/ai_screen.dart';
 import '../auth/auth_providers.dart';
@@ -24,10 +26,7 @@ import '../notifications/notification_service.dart';
 import '../numbers/numbers_screen.dart';
 import '../profile/profile_screen.dart';
 import '../ratings/ratings_screen.dart';
-import '../rules/rules_screen.dart';
 
-/// The aggregated home payload. One request rather than five, because five
-/// sequential encrypted round-trips is a visible delay on a mobile link.
 final homeProvider = FutureProvider.family<
     ({HomeSnapshot snapshot, bool isStale, String? storedAt}),
     ({Lottery lottery, String playType})>((ref, key) async {
@@ -53,643 +52,315 @@ class HomeScreen extends ConsumerWidget {
     final async = ref.watch(homeProvider(key));
     final user = ref.watch(authStateProvider).user;
     final unread = ref.watch(messageCentreProvider).unreadCount;
+    final session = ref.watch(sessionStatusProvider).value ?? SessionStatus.disconnected;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: RefreshIndicator(
+        notificationPredicate: (notification) => notification.depth <= 1,
         onRefresh: () async {
-          await ref
-              .read(collectorRepositoryProvider)
-              .home(lottery: lottery.code, playType: playType, forceRefresh: true);
+          await ref.read(collectorRepositoryProvider).home(
+                lottery: lottery.code,
+                playType: playType,
+                forceRefresh: true,
+              );
           ref.invalidate(homeProvider(key));
         },
-        child: AsyncView<({HomeSnapshot snapshot, bool isStale, String? storedAt})>(
-          value: async,
-          loading: const SkeletonList(itemHeight: 110),
-          onRetry: () => ref.invalidate(homeProvider(key)),
-          builder: (data) {
-            final home = data.snapshot;
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: SafeArea(
-                    bottom: false,
-                    child: _DynamicIslandHeader(unread: unread, initial: user?.initial ?? '?'),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _LotterySelector(selected: lottery),
-                ),
-                if (data.isStale)
-                  SliverToBoxAdapter(
-                    child: OfflineBanner(
-                      storedAtLabel: data.storedAt,
-                      onRetry: () => ref.invalidate(homeProvider(key)),
-                    ),
-                  ),
-                if (!home.hasAnyData)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: EmptyState(
-                        message: '暂无数据',
-                        detail: '该彩种还没有开奖或采集记录',
-                      ),
-                    ),
-                  ),
-                if (home.latestDraw != null)
-                  SliverToBoxAdapter(child: _HeroDrawBanner(home: home)),
-                
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  sliver: SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  if (home.comparisonSummary != null) _ComparisonBentoBox(home: home),
-                                  const SizedBox(height: 10),
-                                  if (home.recentJobs.isNotEmpty) _JobsBentoBox(home: home),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                children: [
-                                  if (home.ratingsTop.isNotEmpty) _RatingsBentoBox(home: home),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        if (home.consensusGroups.isNotEmpty) _ConsensusBentoBox(home: home),
-                      ],
-                    ),
-                  ),
-                ),
-                
-                SliverToBoxAdapter(
-                  child: _ControlCenterPanel(home: home),
-                ),
-                const SliverPadding(padding: EdgeInsets.only(bottom: 120)),
-              ],
-            );
-          },
+        child: async.when(
+          loading: () => const _HomeLoadingState(),
+          error: (error, _) => _RefreshableHomeState(
+            child: ErrorState(
+              error: error,
+              onRetry: () => ref.invalidate(homeProvider(key)),
+            ),
+          ),
+          data: (data) => _WorkbenchContent(
+            data: data,
+            lottery: lottery,
+            userInitial: user?.initial ?? '?',
+            unread: unread,
+            session: session,
+            onRetry: () => ref.invalidate(homeProvider(key)),
+            onLotteryChanged: (next) => ref.read(selectedLotteryProvider.notifier).set(next),
+          ),
+          skipLoadingOnRefresh: true,
+          skipLoadingOnReload: true,
         ),
       ),
     );
   }
 }
 
-class _DynamicIslandHeader extends StatelessWidget {
-  const _DynamicIslandHeader({required this.unread, required this.initial});
-  final int unread;
-  final String initial;
+class _HomeLoadingState extends StatelessWidget {
+  const _HomeLoadingState();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-      child: GlassContainer(
-        height: 54,
-        borderRadius: BorderRadius.circular(999),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Row(
-          children: [
-            const SizedBox(width: 12),
-            Text(
-              'Duiliao',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const Spacer(),
-            IconButton(
-              tooltip: '消息中心',
-              icon: Badge(
-                isLabelVisible: unread > 0,
-                label: Text('$unread'),
-                child: const Icon(Icons.notifications_outlined, size: 22),
-              ),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const MessagesScreen()),
-              ),
-            ),
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-              ),
-              child: Container(
-                margin: const EdgeInsets.only(right: 6, left: 4),
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: DuiliaoColors.auroraGradient,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.45), width: 1),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  initial,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LotterySelector extends ConsumerWidget {
-  const _LotterySelector({required this.selected});
-
-  final Lottery selected;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        child: GlassSegmentedControl<Lottery>(
-          items: Lottery.all,
-          selected: selected,
-          labelBuilder: (l) => l.label,
-          onChanged: (lottery) =>
-              ref.read(selectedLotteryProvider.notifier).set(lottery),
-        ),
-      );
-}
-
-class _HeroDrawBanner extends StatelessWidget {
-  const _HeroDrawBanner({required this.home});
-  final HomeSnapshot home;
-
-  @override
-  Widget build(BuildContext context) {
-    final draw = home.latestDraw!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      child: GlassContainer(
-        borderRadius: BorderRadius.circular(28),
-        padding: const EdgeInsets.all(20),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DrawDetailScreen(
-              lottery: Lottery.parse(draw.lottery),
-              period: draw.period,
-            ),
-          ),
-        ),
-        // A subtle gradient fill for the hero banner
-        fillColor: isDark
-            ? DuiliaoColors.auroraViolet.withValues(alpha: 0.18)
-            : DuiliaoColors.auroraIndigo.withValues(alpha: 0.10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                GlassBadge(label: '最新开奖', color: Theme.of(context).colorScheme.primary, small: true),
-                const SizedBox(width: 10),
-                Text(
-                  Period.compact(draw.period),
-                  style: context.texts.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const Spacer(),
-                if (draw.drawDate != null)
-                  Text(
-                    draw.drawDate!,
-                    style: context.texts.labelSmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // We use standard DrawBallRow here but wrapped to look more spacious
-            DrawBallRow(draw: draw, ballSize: 42),
-            if (draw.summary != null) ...[
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.insights, size: 14, color: context.colors.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      '和值 ${draw.summary!.sum7}（${draw.summary!.sum7Size}${draw.summary!.sum7Odd}） · 特码 ${draw.summary!.temaXiao} · ${draw.summary!.temaHalfwave}',
-                      style: context.texts.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ComparisonBentoBox extends StatelessWidget {
-  const _ComparisonBentoBox({required this.home});
-  final HomeSnapshot home;
-
-  @override
-  Widget build(BuildContext context) {
-    final summary = home.comparisonSummary!;
-    final hasConflict = summary.conflicts > 0;
-    
-    return GlassContainer(
-      padding: const EdgeInsets.all(14),
-      borderRadius: BorderRadius.circular(24),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ComparisonScreen(
-            lottery: Lottery.parse(home.lottery),
-            initialPeriod: home.consensusPeriod,
-          ),
-        ),
-      ),
-      borderColor: hasConflict ? DuiliaoColors.conflict.withValues(alpha: 0.5) : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.compare_arrows_rounded, size: 18),
-              const SizedBox(width: 6),
-              Text('对照视界', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // A mini grid of stats
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _MiniStat('总数', '${summary.total}', context),
-              _MiniStat('命中', '${summary.hits}', context, color: DuiliaoColors.hit),
-              _MiniStat('未中', '${summary.misses}', context, color: DuiliaoColors.miss),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (hasConflict)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: DuiliaoColors.conflict.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: DuiliaoColors.conflict.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, size: 12, color: DuiliaoColors.conflict),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      '${summary.conflicts} 冲突预警',
-                      style: const TextStyle(fontSize: 11, color: DuiliaoColors.conflict, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text('数据一致无异常', style: TextStyle(fontSize: 11, color: Colors.grey)),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  const _MiniStat(this.label, this.value, this.context, {this.color});
-  final String label;
-  final String value;
-  final BuildContext context;
-  final Color? color;
-
-  @override
-  Widget build(BuildContext _) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final color = context.colors.surfaceContainerHighest;
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(DuiliaoTokens.space4),
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: color ?? context.colors.onSurface,
+        for (final height in [92.0, 64.0, 156.0, 120.0, 120.0])
+          Container(
+            height: height,
+            margin: const EdgeInsets.only(bottom: DuiliaoTokens.space3),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(DuiliaoTokens.radiusLarge),
+            ),
           ),
-        ),
       ],
     );
   }
 }
 
-class _RatingsBentoBox extends StatelessWidget {
-  const _RatingsBentoBox({required this.home});
-  final HomeSnapshot home;
+class _RefreshableHomeState extends StatelessWidget {
+  const _RefreshableHomeState({required this.child});
+
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final window = home.ratingsWindows.isEmpty ? 30 : home.ratingsWindows.first;
-    return GlassContainer(
-      padding: const EdgeInsets.all(14),
-      borderRadius: BorderRadius.circular(24),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const RatingsScreen()),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          Row(
-            children: [
-              const Icon(Icons.insights_rounded, size: 18),
-              const SizedBox(width: 6),
-              Text('评级 Top 5', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-            ],
+          ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: child,
           ),
-          const SizedBox(height: 10),
-          for (var i = 0; i < home.ratingsTop.length; i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: i == 0 ? Colors.amber : (i == 1 ? Colors.grey[400] : (i == 2 ? Colors.brown[300] : Colors.transparent)),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: i < 3 
-                        ? Text('${i+1}', style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold))
-                        : Text('${i+1}', style: const TextStyle(fontSize: 9, color: Colors.grey)),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      home.ratingsTop[i].sourceName,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    formatRate(home.ratingsTop[i].hitRate(window)),
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
   }
 }
 
-class _ConsensusBentoBox extends StatelessWidget {
-  const _ConsensusBentoBox({required this.home});
-  final HomeSnapshot home;
+class _WorkbenchContent extends StatelessWidget {
+  const _WorkbenchContent({
+    required this.data,
+    required this.lottery,
+    required this.userInitial,
+    required this.unread,
+    required this.session,
+    required this.onRetry,
+    required this.onLotteryChanged,
+  });
+
+  final ({HomeSnapshot snapshot, bool isStale, String? storedAt}) data;
+  final Lottery lottery;
+  final String userInitial;
+  final int unread;
+  final SessionStatus session;
+  final VoidCallback onRetry;
+  final ValueChanged<Lottery> onLotteryChanged;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GlassContainer(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      borderRadius: BorderRadius.circular(24),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => ConsensusScreen(
-            lottery: Lottery.parse(home.lottery),
-            initialPeriod: home.consensusPeriod,
+    final home = data.snapshot;
+    final wide = MediaQuery.sizeOf(context).width >= DuiliaoTokens.tabletBreakpoint;
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: DuiliaoPage(
+            child: _WorkbenchHeader(
+              userInitial: userInitial,
+              unread: unread,
+              session: session,
+            ),
           ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                const Icon(Icons.pie_chart_rounded, size: 18),
-                const SizedBox(width: 6),
-                Text('共识热力池', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-              ],
+        SliverToBoxAdapter(
+          child: DuiliaoPage(
+            child: _LotteryStrip(selected: lottery, onChanged: onLotteryChanged),
+          ),
+        ),
+        if (data.isStale)
+          SliverToBoxAdapter(
+            child: DuiliaoPage(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: DuiliaoTokens.space4, vertical: DuiliaoTokens.space2),
+                child: OfflineBanner(
+                  storedAtLabel: data.storedAt,
+                  onRetry: onRetry,
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                for (final group in home.consensusGroups)
-                  Container(
-                    width: 130,
-                    margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              PlayTypes.labelFor(group.playType),
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                            const Spacer(),
-                            if (group.leaderHit != null)
-                              Icon(
-                                group.leaderHit! ? Icons.check_circle : Icons.cancel,
-                                size: 12,
-                                color: group.leaderHit! ? DuiliaoColors.hit : DuiliaoColors.miss,
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                group.leader == null || group.leader!.isEmpty
-                                    ? '—'
-                                    : group.leader!.map((a) => a.value).join(' '),
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              '${group.leaderVotes}/${group.nVotes}',
-                              style: const TextStyle(fontSize: 10, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        GlassLinearProgress(
-                          value: group.nVotes > 0 ? group.leaderVotes / group.nVotes : 0,
-                          height: 5,
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
+        if (!home.hasAnyData)
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: MobileEmptyState(
+              title: '暂无工作台数据',
+              detail: '开奖、采集或评级数据出现后，会在这里聚合展示。',
+            ),
+          )
+        else ...[
+          if (home.latestDraw != null)
+            SliverToBoxAdapter(
+              child: DuiliaoPage(child: _LatestDrawCard(draw: home.latestDraw!)),
+            ),
+          SliverToBoxAdapter(
+            child: DuiliaoPage(
+              child: _PrioritySection(home: home, wide: wide),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: DuiliaoPage(
+              child: _InsightSection(home: home, wide: wide),
             ),
           ),
         ],
-      ),
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+      ],
     );
   }
 }
 
-class _JobsBentoBox extends StatelessWidget {
-  const _JobsBentoBox({required this.home});
-  final HomeSnapshot home;
+class _WorkbenchHeader extends StatelessWidget {
+  const _WorkbenchHeader({required this.userInitial, required this.unread, required this.session});
+
+  final String userInitial;
+  final int unread;
+  final SessionStatus session;
 
   @override
   Widget build(BuildContext context) {
-    return GlassContainer(
-      padding: const EdgeInsets.all(14),
-      borderRadius: BorderRadius.circular(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final (status, color, icon) = switch (session) {
+      SessionStatus.connected => ('链路正常', DuiliaoColors.hit, Icons.check_circle_outline),
+      SessionStatus.connecting => ('连接中', DuiliaoColors.warning, Icons.sync),
+      SessionStatus.disconnected => ('链路断开', DuiliaoColors.offline, Icons.cloud_off_outlined),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(DuiliaoTokens.space4, DuiliaoTokens.space4, DuiliaoTokens.space4, DuiliaoTokens.space2),
+      child: Row(
         children: [
-          Row(
-            children: [
-              const Icon(Icons.cloud_download_rounded, size: 18),
-              const SizedBox(width: 6),
-              Text('近期采集', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-              const Spacer(),
-              if (home.worker != null)
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: home.worker!.running ? DuiliaoColors.hit : DuiliaoColors.pending,
-                  ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('对料工作台', style: context.texts.headlineSmall),
+                const SizedBox(height: 4),
+                Text('今天先看关键变化，再处理需要动作的事项。', style: context.texts.bodySmall),
+                const SizedBox(height: 8),
+                Semantics(
+                  label: '连接状态：$status',
+                  child: MobileStatusChip(label: status, color: color, icon: icon),
                 ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
-          for (final job in home.recentJobs.take(3))
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Icon(
-                    job.status == JobStatus.done ? Icons.check_circle : Icons.autorenew,
-                    size: 12,
-                    color: job.status == JobStatus.done ? DuiliaoColors.hit : DuiliaoColors.pending,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      '#${job.id}',
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                  Text(
-                    job.successRatioLabel,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ],
+          IconButton(
+            tooltip: '消息中心${unread > 0 ? '，$unread 条未读' : ''}',
+            onPressed: () => _push(context, const MessagesScreen()),
+            icon: Badge(
+              isLabelVisible: unread > 0,
+              label: Text('$unread'),
+              child: const Icon(Icons.notifications_none_rounded),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Semantics(
+            button: true,
+            label: '个人中心',
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () => _push(context, const ProfileScreen()),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: context.colors.primaryContainer,
+                child: Text(userInitial, style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.w800)),
               ),
             ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _ControlCenterPanel extends StatelessWidget {
-  const _ControlCenterPanel({required this.home});
-  final HomeSnapshot home;
+class _LotteryStrip extends StatelessWidget {
+  const _LotteryStrip({required this.selected, required this.onChanged});
+
+  final Lottery selected;
+  final ValueChanged<Lottery> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 62,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: DuiliaoTokens.space4, vertical: 8),
+        scrollDirection: Axis.horizontal,
+        itemCount: Lottery.all.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final item = Lottery.all[index];
+          final active = item == selected;
+          return Semantics(
+            button: true,
+            selected: active,
+            label: '${item.label}${active ? '，当前彩种' : ''}',
+            child: ChoiceChip(
+              selected: active,
+              label: Text(item.label),
+              onSelected: (_) => onChanged(item),
+              avatar: Icon(active ? Icons.radio_button_checked : Icons.radio_button_unchecked, size: 16),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LatestDrawCard extends StatelessWidget {
+  const _LatestDrawCard({required this.draw});
+
+  final DrawRow draw;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: GlassContainer(
-        borderRadius: BorderRadius.circular(24),
-        padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(DuiliaoTokens.space4, DuiliaoTokens.space3, DuiliaoTokens.space4, DuiliaoTokens.space2),
+      child: MobileSurface(
+        color: context.colors.primaryContainer,
+        padding: const EdgeInsets.all(DuiliaoTokens.space6),
+        onTap: () => _push(
+          context,
+          DrawDetailScreen(lottery: Lottery.parse(draw.lottery), period: draw.period),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('控制中心', style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _ControlButton(
-                  icon: Icons.auto_awesome,
-                  label: 'AI 研判',
-                  color: DuiliaoColors.auroraFuchsia,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => AiScreen(initialPeriod: home.consensusPeriod)),
+                Expanded(
+                  child: Text(
+                    '最新开奖 · ${draw.drawDate ?? '刚刚更新'}',
+                    style: context.texts.labelSmall?.copyWith(
+                      color: context.colors.primary,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
-                _ControlButton(
-                  icon: Icons.grid_view_rounded,
-                  label: '号码百科',
-                  color: DuiliaoColors.auroraIndigo,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const NumbersScreen()),
-                  ),
-                ),
-                _ControlButton(
-                  icon: Icons.rule_rounded,
-                  label: '玩法规则',
-                  color: DuiliaoColors.auroraSky,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const RulesScreen()),
-                  ),
-                ),
+                const Icon(Icons.chevron_right_rounded),
               ],
             ),
+            const SizedBox(height: DuiliaoTokens.space2),
+            Text(Period.compact(draw.period), style: context.texts.headlineSmall),
+            const SizedBox(height: DuiliaoTokens.space4),
+            DrawBallRow(draw: draw, ballSize: 30, showColorNames: false),
+            if (draw.summary != null) ...[
+              const SizedBox(height: DuiliaoTokens.space3),
+              Text(
+                '和值 ${draw.summary!.sum7} · ${draw.summary!.sum7Size}${draw.summary!.sum7Odd} · 特${draw.summary!.temaXiao}',
+                style: context.texts.bodySmall,
+              ),
+            ],
           ],
         ),
       ),
@@ -697,34 +368,291 @@ class _ControlCenterPanel extends StatelessWidget {
   }
 }
 
-class _ControlButton extends StatelessWidget {
-  const _ControlButton({required this.icon, required this.label, required this.color, required this.onTap});
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
+class _PrioritySection extends StatelessWidget {
+  const _PrioritySection({required this.home, required this.wide});
+
+  final HomeSnapshot home;
+  final bool wide;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+    final summary = home.comparisonSummary;
+    final alerts = <String>[
+      if (summary != null && summary.conflicts > 0) '${summary.conflicts} 条预测与判定存在冲突',
+      if (home.worker?.running == true) '采集任务正在运行',
+      if (home.recentJobs.any((job) => job.status == JobStatus.failed)) '最近采集有失败数据源',
+    ];
+
+    return MobileSection(
+      title: '优先处理',
+      subtitle: alerts.isEmpty ? '当前没有需要立即介入的异常' : '建议先处理这些变化',
+      action: TextButton.icon(
+        onPressed: () => _push(context, const ComparisonScreen()),
+        icon: const Icon(Icons.open_in_new, size: 16),
+        label: const Text('查看对照'),
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withValues(alpha: 0.3)),
+          if (alerts.isNotEmpty)
+            MobileSurface(
+              color: context.colors.errorContainer,
+              margin: const EdgeInsets.only(bottom: DuiliaoTokens.space3),
+              padding: const EdgeInsets.all(DuiliaoTokens.space4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: context.colors.onErrorContainer),
+                  const SizedBox(width: DuiliaoTokens.space3),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('需要关注', style: context.texts.titleSmall?.copyWith(color: context.colors.onErrorContainer)),
+                        const SizedBox(height: 4),
+                        for (final alert in alerts)
+                          Text('· $alert', style: context.texts.bodySmall?.copyWith(color: context.colors.onErrorContainer)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Icon(icon, color: color, size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+          if (summary != null)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = wide && constraints.maxWidth >= 640 ? 4 : 2;
+                return GridView.builder(
+                  itemCount: 4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    mainAxisSpacing: DuiliaoTokens.space2,
+                    crossAxisSpacing: DuiliaoTokens.space2,
+                    mainAxisExtent: wide ? 132 : 128,
+                  ),
+                  itemBuilder: (context, index) => [
+                    MobileStatCard(label: '总数', value: '${summary.total}', icon: Icons.list_alt_outlined),
+                    MobileStatCard(label: '命中', value: '${summary.hits}', color: DuiliaoColors.hit, icon: Icons.check_circle_outline),
+                    MobileStatCard(label: '未中', value: '${summary.misses}', color: DuiliaoColors.miss, icon: Icons.cancel_outlined),
+                    MobileStatCard(label: '命中率', value: summary.judged == 0 ? '—' : '${(summary.hitRate * 100).toStringAsFixed(1)}%', caption: '已判 ${summary.judged} 组', icon: Icons.percent),
+                  ][index],
+                );
+              },
+            ),
+          if (home.recentJobs.isNotEmpty) ...[
+            const SizedBox(height: DuiliaoTokens.space3),
+            MobileSurface(
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.sync_alt_rounded, size: 18, color: context.colors.primary),
+                      const SizedBox(width: 8),
+                      Text('最近采集', style: context.texts.titleSmall),
+                      const Spacer(),
+                      Text('${home.recentJobs.length} 条', style: context.texts.labelSmall),
+                    ],
+                  ),
+                  const SizedBox(height: DuiliaoTokens.space2),
+                  for (final job in home.recentJobs.take(3))
+                    _JobRow(job: job),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+}
+
+class _JobRow extends StatelessWidget {
+  const _JobRow({required this.job});
+
+  final CollectJob job;
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, icon) = switch (job.status) {
+      JobStatus.done => (DuiliaoColors.hit, Icons.check_circle_outline),
+      JobStatus.failed => (DuiliaoColors.miss, Icons.error_outline),
+      JobStatus.running => (DuiliaoColors.warning, Icons.sync),
+      _ => (DuiliaoColors.pending, Icons.schedule),
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          Icon(icon, size: 17, color: color),
+          const SizedBox(width: 8),
+          Expanded(child: Text('任务 #${job.id}', style: context.texts.bodyMedium)),
+          MobileStatusChip(label: job.status.label, color: color),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightSection extends StatelessWidget {
+  const _InsightSection({required this.home, required this.wide});
+
+  final HomeSnapshot home;
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    return MobileSection(
+      title: '快速洞察',
+      subtitle: '从共识、评级和规则中快速进入下一步',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final columns = wide && constraints.maxWidth >= 640 ? 2 : 1;
+          final cards = <Widget>[
+            if (home.consensusGroups.isNotEmpty) _ConsensusCard(home: home),
+            if (home.ratingsTop.isNotEmpty) _RatingsCard(home: home),
+            _ActionCard(
+              icon: Icons.auto_awesome,
+              title: 'AI 研判',
+              detail: '阅读缓存报告或生成新的运营研判',
+              onTap: () => _push(context, AiScreen(initialPeriod: home.consensusPeriod)),
+            ),
+            _ActionCard(
+              icon: Icons.grid_view_rounded,
+              title: '号码百科',
+              detail: '查询号码属性与玩法规则',
+              onTap: () => _push(context, const NumbersScreen()),
+            ),
+          ];
+          return GridView.builder(
+            itemCount: cards.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisSpacing: DuiliaoTokens.space2,
+              crossAxisSpacing: DuiliaoTokens.space2,
+              mainAxisExtent: wide ? 156 : 168,
+            ),
+            itemBuilder: (context, index) => cards[index],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ConsensusCard extends StatelessWidget {
+  const _ConsensusCard({required this.home});
+
+  final HomeSnapshot home;
+
+  @override
+  Widget build(BuildContext context) {
+    return MobileSurface(
+      onTap: () => _push(context, ConsensusScreen(lottery: Lottery.parse(home.lottery), initialPeriod: home.consensusPeriod)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.pie_chart_outline, size: 18, color: context.colors.primary),
+              const SizedBox(width: 8),
+              Text('共识领先', style: context.texts.titleSmall),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            home.consensusGroups.take(2).map((group) => '${PlayTypes.labelFor(group.playType)} ${group.leaderVotes}/${group.nVotes}').join(' · '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.texts.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RatingsCard extends StatelessWidget {
+  const _RatingsCard({required this.home});
+
+  final HomeSnapshot home;
+
+  @override
+  Widget build(BuildContext context) {
+    final window = home.ratingsWindows.isEmpty ? 30 : home.ratingsWindows.first;
+    final top = home.ratingsTop.first;
+    return MobileSurface(
+      onTap: () => _push(context, const RatingsScreen()),
+      child: Row(
+        children: [
+          Expanded(
+            child: MobileStatCard(
+              label: '评级 Top 1',
+              value: formatRate(top.hitRate(window)),
+              caption: top.sourceName.length > 16 ? '${top.sourceName.substring(0, 16)}…' : top.sourceName,
+              color: context.colors.primary,
+              icon: Icons.insights_outlined,
+            ),
+          ),
+          const SizedBox(width: DuiliaoTokens.space3),
+          Expanded(
+            child: Text('查看 ${home.ratingsTop.length} 个数据源的近期稳定性与完整性。', style: context.texts.bodySmall),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({required this.icon, required this.title, required this.detail, required this.onTap});
+
+  final IconData icon;
+  final String title;
+  final String detail;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '$title：$detail',
+      child: MobileSurface(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: context.colors.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(icon, color: context.colors.primary),
+            ),
+            const SizedBox(width: DuiliaoTokens.space3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(title, style: context.texts.titleSmall),
+                  const SizedBox(height: 3),
+                  Text(detail, maxLines: 2, overflow: TextOverflow.ellipsis, style: context.texts.bodySmall),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+void _push(BuildContext context, Widget page) {
+  Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 }

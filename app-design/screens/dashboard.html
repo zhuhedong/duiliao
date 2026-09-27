@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>工作台 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="grow">
+      <div class="fs-12 t-muted">下午好,收藏家</div>
+      <div class="h-title">工作台</div>
+    </div>
+    <span class="pill success"><span class="dot pulse"></span>加密链路正常</span>
+    <button class="btn-icon" aria-label="刷新">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+    </button>
+    <div class="avatar">料</div>
+  </header>
+
+  <div class="screen-body">
+    <!-- KPI 总览 -->
+    <section class="kpi-grid animate-fadeIn">
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+          数据源
+        </div>
+        <div class="k-value t-strong">28</div>
+        <div class="k-foot">启用 24 · 暂停 4</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          今日入库
+        </div>
+        <div class="k-value t-strong">1,286</div>
+        <div class="k-foot">较昨日 +12.4%</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+          综合命中率
+        </div>
+        <div class="k-value t-primary">47.2%</div>
+        <div class="k-foot">近 30 期 · 全源加权</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.7 19.5h18.6L12 3z"/><path d="M12 10v4"/><path d="M12 17.5h.01"/></svg>
+          活跃告警
+        </div>
+        <div class="k-value t-warning">3</div>
+        <div class="k-foot">2 项待确认缺期</div>
+      </div>
+    </section>
+
+    <!-- 最新开奖 -->
+    <section class="section animate-fadeIn d1">
+      <div class="section-title">
+        <span class="st-dot"></span>最新开奖
+        <a class="st-link" href="draws.html">开奖管理
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        </a>
+      </div>
+      <div class="glass-card card-pad">
+        <div class="flex aic jcb">
+          <div>
+            <div class="fw-7 t-strong">澳门六合彩</div>
+            <div class="fs-11 t-muted mt-8">第 2026276 期 · 09-26 21:32 开奖</div>
+          </div>
+          <span class="pill primary">已对奖</span>
+        </div>
+        <div class="ball-row mt-12" style="justify-content:space-between">
+          <span class="ball blue">03</span>
+          <span class="ball green">11</span>
+          <span class="ball red">19</span>
+          <span class="ball green">27</span>
+          <span class="ball red">34</span>
+          <span class="ball blue">42</span>
+          <span class="ball-plus">+</span>
+          <span class="ball gold">26</span>
+        </div>
+        <div class="ball-row mt-8" style="justify-content:space-between;padding:0 2px">
+          <span class="fs-11 t-muted">龙</span><span class="fs-11 t-muted">猴</span><span class="fs-11 t-muted">鼠</span><span class="fs-11 t-muted">龙</span><span class="fs-11 t-muted">鸡</span><span class="fs-11 t-muted">牛</span><span></span><span class="fs-11 fw-7 t-primary">蛇</span>
+        </div>
+        <div class="flex gap-6 wrap mt-12">
+          <span class="ztag">特码 26 · 蓝波</span>
+          <span class="ztag">特肖 蛇</span>
+          <span class="ztag">双 / 小</span>
+          <span class="ztag">野兽</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 我的记录 -->
+    <section class="section animate-fadeIn d2">
+      <div class="section-title">
+        <span class="st-dot"></span>我的记录
+        <a class="st-link" href="records.html">全部记录
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        </a>
+      </div>
+      <a href="records.html" class="glass-card card-pad" style="display:block;text-decoration:none;color:inherit">
+        <div class="flex aic jcb">
+          <div>
+            <div class="fs-11 t-muted">第 2026277 期 · 待开奖</div>
+            <div class="mt-8 t-strong" style="font-size:21px;font-weight:700"><span class="num">¥250</span> <span class="fs-11 t-muted fw-6">4 单 · 22 注</span></div>
+          </div>
+          <div style="text-align:right">
+            <div class="fs-11 t-muted">累计盈亏(近 30 天)</div>
+            <div class="fw-7 t-success num mt-8" style="font-size:17px">+¥175</div>
+          </div>
+        </div>
+        <div class="flex aic jcb mt-12">
+          <div class="ball-row">
+            <span class="ball sm red">18</span>
+            <span class="ball sm blue">42</span>
+            <span class="ball sm green">39</span>
+            <span class="ball sm green">27</span>
+            <span class="ball sm green">28</span>
+            <span class="fs-11 t-muted">+17 码</span>
+          </div>
+          <span class="pill warning"><span class="dot pulse"></span>今晚 21:30 开奖</span>
+        </div>
+      </a>
+    </section>
+
+    <!-- 近 7 日对料趋势 -->
+    <section class="section animate-fadeIn d3">
+      <div class="section-title"><span class="st-dot"></span>近 7 日对料趋势</div>
+      <div class="glass-card card-pad">
+        <div class="bars">
+          <div class="bar-col"><div class="bar" style="height:42%"></div><span class="bar-label">09-20</span></div>
+          <div class="bar-col"><div class="bar" style="height:58%"></div><span class="bar-label">09-21</span></div>
+          <div class="bar-col"><div class="bar" style="height:36%"></div><span class="bar-label">09-22</span></div>
+          <div class="bar-col"><div class="bar" style="height:66%"></div><span class="bar-label">09-23</span></div>
+          <div class="bar-col"><div class="bar" style="height:52%"></div><span class="bar-label">09-24</span></div>
+          <div class="bar-col"><div class="bar" style="height:74%"></div><span class="bar-label">09-25</span></div>
+          <div class="bar-col"><div class="bar hot" style="height:88%"></div><span class="bar-label t-primary">09-26</span></div>
+        </div>
+        <div class="flex aic jcb mt-12">
+          <span class="fs-11 t-muted">7 日入库 <b class="t-strong num">6,412</b> 条</span>
+          <span class="fs-11 t-muted">命中 <b class="t-success num">38</b> 期</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 源命中率排行 -->
+    <section class="section animate-fadeIn d4">
+      <div class="section-title">
+        <span class="st-dot"></span>源命中率排行
+        <a class="st-link" href="ratings.html">可信评级
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        </a>
+      </div>
+      <div class="glass-card" style="padding:6px 16px">
+        <div class="list">
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:oklch(0.75 0.17 155 / 16%);color:var(--success)">1</div>
+            <div class="li-main">
+              <div class="li-title">海哥平特一肖</div>
+              <div class="progress emerald mt-8"><i style="width:62%"></i></div>
+            </div>
+            <div class="li-extra"><div class="li-value t-success">62%</div><div class="li-sub2">近 50 期</div></div>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">2</div>
+            <div class="li-main">
+              <div class="li-title">顶尖大师</div>
+              <div class="progress mt-8"><i style="width:55%"></i></div>
+            </div>
+            <div class="li-extra"><div class="li-value t-primary">55%</div><div class="li-sub2">近 50 期</div></div>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">3</div>
+            <div class="li-main">
+              <div class="li-title">管家婆传真</div>
+              <div class="progress amber mt-8"><i style="width:48%"></i></div>
+            </div>
+            <div class="li-extra"><div class="li-value t-warning">48%</div><div class="li-sub2">近 50 期</div></div>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:oklch(0.68 0.2 20 / 16%);color:var(--danger)">4</div>
+            <div class="li-main">
+              <div class="li-title">白小组</div>
+              <div class="progress rose mt-8"><i style="width:41%"></i></div>
+            </div>
+            <div class="li-extra"><div class="li-value t-danger">41%</div><div class="li-sub2">近 50 期</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 玩法分布 -->
+    <section class="section animate-fadeIn d5">
+      <div class="section-title"><span class="st-dot"></span>玩法分布</div>
+      <div class="flex gap-8 wrap">
+        <span class="chip">特码 · 7 源</span><span class="chip">特肖 · 6 源</span><span class="chip">特波 · 2 源</span><span class="chip">两面 · 4 源</span>
+        <span class="chip">平特肖 · 5 源</span><span class="chip">平特尾 · 3 源</span><span class="chip">正码 · 4 源</span><span class="chip">正肖 · 3 源</span>
+        <span class="chip">连肖 · 3 源</span><span class="chip">连尾 · 2 源</span><span class="chip">二中二 · 2 源</span><span class="chip">三中三 · 1 源</span>
+        <span class="chip">三中二 · 1 源</span><span class="chip">二中特 · 1 源</span><span class="chip">不中码 · 3 源</span><span class="chip">杀肖 · 2 源</span><span class="chip">杀尾 · 1 源</span>
+        <a class="chip t-primary" href="play-catalog.html" style="text-decoration:none">查看全部 21 种 →</a>
+      </div>
+    </section>
+
+    <!-- 采集告警 -->
+    <section class="section animate-fadeIn d5">
+      <div class="section-title">
+        <span class="st-dot"></span>采集告警
+        <a class="st-link" href="monitor.html">服务监控
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        </a>
+      </div>
+      <div class="glass-card" style="padding:6px 16px">
+        <div class="list">
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:var(--danger-soft);color:var(--danger)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+            </div>
+            <div class="li-main">
+              <div class="li-title">肖中特-老钱</div>
+              <div class="li-sub">连续 3 期未采集 · 疑似栏目变更</div>
+            </div>
+            <span class="pill danger">异常</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:var(--warning-soft);color:var(--warning)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            </div>
+            <div class="li-main">
+              <div class="li-title">官方开奖接口</div>
+              <div class="li-sub">同步延迟 12 分钟 · 已自动重试</div>
+            </div>
+            <span class="pill warning">观察</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:var(--success-soft);color:var(--success)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div class="li-main">
+              <div class="li-title">定时采集调度</div>
+              <div class="li-sub">运行中 · 下次执行 21:30</div>
+            </div>
+            <span class="pill success">正常</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部主导航 -->
+  <nav class="tabbar">
+    <a href="dashboard.html" class="active">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      工作台
+    </a>
+    <a href="ai-analysis.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      研判
+    </a>
+    <a href="draws.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+      开奖
+    </a>
+    <a href="records.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      记录
+    </a>
+    <a href="profile.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>

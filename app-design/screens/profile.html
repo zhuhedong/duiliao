@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>个人中心 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">个人中心</div>
+    </div>
+    <a class="btn-icon" href="settings.html" aria-label="设置">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </a>
+  </header>
+
+  <div class="screen-body">
+    <!-- 用户卡片 -->
+    <section class="glass-panel card-pad animate-fadeIn">
+      <div class="flex aic gap-12">
+        <div class="avatar" style="width:56px;height:56px;font-size:21px">料</div>
+        <div class="grow">
+          <div class="fw-7 t-strong" style="font-size:17px">收藏家</div>
+          <div class="fs-11 t-muted mt-8">账号 collector · 角色 管理员</div>
+        </div>
+        <span class="pill primary">管理员</span>
+      </div>
+    </section>
+
+    <!-- 快捷入口 -->
+    <section class="section animate-fadeIn d1">
+      <div class="section-title"><span class="st-dot"></span>快捷入口</div>
+      <div class="grid2">
+        <a class="glass-card card-pad" href="sources.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">数据源采集</div>
+        </a>
+        <a class="glass-card card-pad" href="numbers.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px;background:var(--success-soft);color:var(--success)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">号码分析</div>
+        </a>
+        <a class="glass-card card-pad" href="ratings.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px;background:var(--warning-soft);color:var(--warning)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 16.8 5.8 20.3l1.6-6.8L2.2 8.9l6.9-.6L12 2z"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">源可信评级</div>
+        </a>
+        <a class="glass-card card-pad" href="monitor.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px;background:var(--danger-soft);color:var(--danger)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">服务监控</div>
+        </a>
+        <a class="glass-card card-pad" href="consensus-board.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px;background:oklch(0.75 0.13 225 / 16%);color:var(--info)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><circle cx="8" cy="5" r="1.3" fill="currentColor"/><circle cx="15" cy="12" r="1.3" fill="currentColor"/><circle cx="11" cy="19" r="1.3" fill="currentColor"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">共识排行榜</div>
+        </a>
+        <a class="glass-card card-pad" href="consensus.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px;background:oklch(0.7 0.2 297 / 16%);color:oklch(0.78 0.15 297)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H4v5"/><path d="m4 3 6 6"/><path d="M15 21h5v-5"/><path d="m20 21-6-6"/><path d="M9 21l-3-3"/><path d="M15 3l3 3"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">多源对照明细</div>
+        </a>
+        <a class="glass-card card-pad" href="record-stats.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px;background:oklch(0.7 0.2 297 / 16%);color:oklch(0.78 0.15 297)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">记录统计</div>
+        </a>
+        <a class="glass-card card-pad" href="play-catalog.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px;background:var(--primary-soft);color:var(--primary-strong)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/><path d="M8 3v4"/><path d="M16 10v4"/><path d="M10 17v4"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">彩种与玩法</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- 账号安全 -->
+    <section class="section animate-fadeIn d2">
+      <div class="section-title"><span class="st-dot"></span>账号安全</div>
+      <div class="glass-card card-pad">
+        <div class="field">
+          <label>新密码</label>
+          <div class="input">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <input type="password" placeholder="请输入新密码">
+          </div>
+        </div>
+        <div class="field">
+          <label>确认新密码</label>
+          <div class="input">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <input type="password" placeholder="请再次输入新密码">
+          </div>
+        </div>
+        <a class="glow-button" href="#" style="font-size:14px">确认修改</a>
+        <div class="fs-11 t-muted tc mt-12">密码修改成功后将强制重新登录</div>
+      </div>
+    </section>
+
+    <!-- 登录设备 -->
+    <section class="section animate-fadeIn d3">
+      <div class="section-title"><span class="st-dot"></span>登录设备</div>
+      <div class="glass-card" style="padding:6px 16px">
+        <div class="list">
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+            </div>
+            <div class="li-main">
+              <div class="li-title">网页端 · Chrome</div>
+              <div class="li-sub">内网回环地址 <span class="num">127.0.0.1</span> · 刚刚</div>
+            </div>
+            <span class="pill success"><span class="dot"></span>当前设备</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M12 18h.01"/></svg>
+            </div>
+            <div class="li-main">
+              <div class="li-title">安卓 · 对料 App</div>
+              <div class="li-sub"><span class="num">192.168.1.23</span> · 2 小时前</div>
+            </div>
+            <span class="pill neutral">已授权</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 偏好 -->
+    <section class="section animate-fadeIn d4">
+      <div class="section-title"><span class="st-dot"></span>偏好</div>
+      <div class="glass-card" style="padding:6px 16px">
+        <div class="list">
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+            </div>
+            <div class="li-main"><div class="li-title">深色模式</div></div>
+            <span class="switch on"></span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+            </div>
+            <div class="li-main"><div class="li-title">开奖推送通知</div></div>
+            <span class="switch on"></span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+            </div>
+            <div class="li-main">
+              <div class="li-title">自动刷新</div>
+              <div class="li-sub">每 <span class="num">2</span> 分钟刷新一次数据</div>
+            </div>
+            <span class="switch"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 退出登录 -->
+    <section class="section animate-fadeIn d5">
+      <a class="btn-ghost t-danger" href="login.html" style="width:100%;padding:13px 14px">退出登录</a>
+    </section>
+  </div>
+
+  <!-- 底部主导航 -->
+  <nav class="tabbar">
+    <a href="dashboard.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      工作台
+    </a>
+    <a href="ai-analysis.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      研判
+    </a>
+    <a href="draws.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+      开奖
+    </a>
+    <a href="records.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      记录
+    </a>
+    <a href="profile.html" class="active">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>

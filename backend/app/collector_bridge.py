@@ -431,13 +431,40 @@ def consensus_compare(lottery: str, period: str, play_type: str | None = None) -
     import consensus
     from common.period import normalize
     from db import session_scope
-    from schema import Draw
+    from schema import ConsensusSnapshot, Draw
     from sqlalchemy import select
 
     canonical_period = normalize(lottery, period)
     res = consensus.compare(lottery, canonical_period, play_type)
 
     with session_scope(guard=False) as s:
+        snapshot_row = s.get(ConsensusSnapshot, (lottery, canonical_period))
+        if snapshot_row is not None:
+            snapshot_payload = dict(snapshot_row.payload or {})
+            res["frequency"] = snapshot_payload
+            res["atom_tallies"] = snapshot_payload.get("atom_tallies") or {
+                "tema_n": [],
+                "texiao": [],
+            }
+            res["snapshot"] = {
+                "frozen": True,
+                "frozen_at": snapshot_row.frozen_at.isoformat() if snapshot_row.frozen_at else None,
+                "cutoff_at": snapshot_row.cutoff_at.isoformat() if snapshot_row.cutoff_at else None,
+                "algorithm_version": snapshot_row.algorithm_version,
+                "payload_hash": snapshot_row.payload_hash,
+                "quality": snapshot_row.quality,
+                "freeze_reason": snapshot_row.freeze_reason,
+            }
+        else:
+            res["snapshot"] = {
+                "frozen": False,
+                "frozen_at": None,
+                "cutoff_at": None,
+                "algorithm_version": consensus.FREQUENCY_ALGORITHM_VERSION,
+                "payload_hash": None,
+                "quality": None,
+                "freeze_reason": None,
+            }
         draw_row = s.scalar(select(Draw).where(Draw.lottery == lottery, Draw.period == canonical_period))
         if draw_row:
             res["draw"] = enrich_draw_row(draw_row)
@@ -475,6 +502,45 @@ def consensus_compare(lottery: str, period: str, play_type: str | None = None) -
             res["draw"] = None
 
     return res
+
+
+def consensus_latest_period(lottery: str) -> dict[str, Any]:
+    """Return both latest official and latest prediction periods.
+
+    A not-yet-opened period can be newer than the latest Draw, so the workbench
+    defaults to the prediction period while still exposing the official cursor.
+    """
+    bootstrap()
+    from db import session_scope
+    from schema import Draw, Prediction
+    from sqlalchemy import func, select
+
+    with session_scope(guard=False) as s:
+        official = s.scalar(select(func.max(Draw.period)).where(Draw.lottery == lottery))
+        predicted = s.scalar(select(func.max(Prediction.period)).where(Prediction.lottery == lottery))
+    current = max([p for p in (official, predicted) if p], default=None)
+    return {
+        "ok": True,
+        "lottery": lottery,
+        "official_draw_period": official,
+        "latest_prediction_period": predicted,
+        "current_period": current,
+    }
+
+
+def freeze_consensus_snapshot(
+    lottery: str,
+    period: str,
+    *,
+    force: bool = False,
+    reason: str = "manual",
+) -> dict[str, Any] | None:
+    bootstrap()
+    import consensus
+    from common.period import normalize
+
+    canonical_period = normalize(lottery, period)
+    return consensus.freeze_frequency_snapshot(lottery, canonical_period, reason=reason, force=force)
 
 
 def ratings(

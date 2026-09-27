@@ -195,6 +195,7 @@ def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
     run = run_loads(payload)
     counts = {"inserted": 0, "updated": 0, "unchanged": 0, "source_ok": 0, "source_fail": 0, "items": 0, "missing_added": 0}
     draw_cache: dict[tuple[str, str], Any] = {}
+    observed_periods: set[tuple[str, str]] = set()
     with session_scope() as s:
         s.merge(
             CrawlRun(
@@ -253,6 +254,7 @@ def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
             counts["source_ok"] += 1
             plays = set()
             for item in envelope.items:
+                observed_periods.add((envelope.lottery, item.period))
                 for play_type, split in _split_items(envelope, item):
                     plays.add(play_type)
                     counts["items"] += 1
@@ -263,6 +265,16 @@ def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
                                                        play_type, _naive(envelope.fetched_at), run.run_id)
             from issues import resolve_crawl
             resolve_crawl(s, envelope.source_id, envelope.lottery, {item.period for item in envelope.items})
+    # A late source response can arrive after the draw sync. Freeze once the
+    # complete ingest transaction has committed; existing rows make this a
+    # no-op for already sealed periods.
+    from consensus import freeze_frequency_snapshot
+
+    frozen = 0
+    for lottery, period in sorted(observed_periods):
+        if freeze_frequency_snapshot(lottery, period, reason="ingest_after_draw"):
+            frozen += 1
+    counts["snapshots_frozen"] = frozen
     return {"ok": True, "run_id": run.run_id, **counts}
 
 

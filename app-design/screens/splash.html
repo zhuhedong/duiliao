@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>启动页 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 氛围号码球(低透明度点缀) -->
+  <span class="ball sm red animate-float" style="position:absolute;top:17%;left:11%;opacity:0.32">08</span>
+  <span class="ball sm blue" style="position:absolute;top:29%;right:9%;opacity:0.26">26</span>
+  <span class="ball sm green animate-float" style="position:absolute;bottom:23%;left:15%;opacity:0.28;animation-delay:1.4s">16</span>
+
+  <div class="screen-body no-tabbar" style="display:flex;flex-direction:column">
+    <!-- 品牌区(垂直居中撑满) -->
+    <div class="tc animate-fadeIn" style="margin:auto 0">
+      <div class="brand-logo animate-float" style="width:96px;height:96px;border-radius:26px;font-size:44px;margin:0 auto">对</div>
+      <div class="text-gradient" style="font-size:36px;font-weight:800;letter-spacing:0.14em;margin-top:20px">对料</div>
+      <div class="fs-12 t-muted mt-8" style="letter-spacing:0.08em">加密数据采集控制台</div>
+
+      <!-- 加载进度 -->
+      <div class="progress" style="width:60%;margin:36px auto 0"><i style="width:68%"></i></div>
+      <div class="fs-11 t-muted mt-12" style="letter-spacing:0.05em">正在建立加密链路…</div>
+    </div>
+
+    <!-- 底部标语 + 版本号 -->
+    <div class="tc animate-fadeIn d2" style="padding-top:32px">
+      <div class="flex aic" style="gap:10px">
+        <span style="flex:1;height:1px;background:var(--border)"></span>
+        <span class="fs-11 t-muted">多源对料 · 一体研判</span>
+        <span style="flex:1;height:1px;background:var(--border)"></span>
+      </div>
+      <div class="fs-11 t-muted mt-12 num">v2.1.0</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

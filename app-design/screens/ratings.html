@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>源可信评级 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">源可信评级</div>
+      <div class="h-sub">对奖口径 · 官方判定为准</div>
+    </div>
+    <button class="btn-icon" aria-label="评级说明">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+    </button>
+  </header>
+
+  <div class="screen-body" style="padding-bottom:calc(var(--tabbar-h) + 84px)">
+    <!-- 彩种与统计窗口 -->
+    <section class="section animate-fadeIn" style="margin-top:4px">
+      <div class="flex gap-8 wrap" style="margin-bottom:10px">
+        <span class="pill primary">澳门</span><span class="chip">香港</span><span class="chip">台湾</span><span class="chip">新彩</span>
+      </div>
+      <div class="segmented">
+        <button type="button">窗口 30 期</button>
+        <button type="button" class="seg-on">50 期</button>
+        <button type="button">100 期</button>
+      </div>
+    </section>
+
+    <!-- 说明条 -->
+    <section class="section animate-fadeIn d1" style="margin-top:12px">
+      <div class="glass-subtle fs-11 t-muted" style="padding:9px 12px">点击列头可按该列排序 · 数据截至第 2026276 期</div>
+    </section>
+
+    <!-- 评级列表 -->
+    <section class="section animate-fadeIn d2">
+      <div class="glass-card card-pad">
+        <div class="flex aic gap-10">
+          <div class="brand-logo" style="width:34px;height:34px;border-radius:10px;font-size:16px">S</div>
+          <div class="grow">
+            <div class="li-title">海哥平特一肖</div>
+            <div class="li-sub">平特一肖 · 样本 50 期</div>
+          </div>
+          <span class="pill success"><span class="dot"></span>稳定</span>
+        </div>
+        <div class="grid2 mt-12" style="grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">命中率</div><div class="fw-7 t-success mt-8 num">62%</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连中</div><div class="fw-7 t-strong mt-8 num">6</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连挂</div><div class="fw-7 t-strong mt-8 num">3</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">缺期</div><div class="fw-7 t-strong mt-8 num">0</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d3" style="margin-top:12px">
+      <div class="glass-card card-pad">
+        <div class="flex aic gap-10">
+          <div class="brand-logo" style="width:34px;height:34px;border-radius:10px;font-size:16px">A</div>
+          <div class="grow">
+            <div class="li-title">顶尖大师</div>
+            <div class="li-sub">特肖 · 样本 49 期</div>
+          </div>
+          <span class="pill primary"><span class="dot"></span>良好</span>
+        </div>
+        <div class="grid2 mt-12" style="grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">命中率</div><div class="fw-7 t-primary mt-8 num">55%</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连中</div><div class="fw-7 t-strong mt-8 num">4</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连挂</div><div class="fw-7 t-strong mt-8 num">4</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">缺期</div><div class="fw-7 t-strong mt-8 num">1</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d4" style="margin-top:12px">
+      <div class="glass-card card-pad">
+        <div class="flex aic gap-10">
+          <div class="brand-logo" style="width:34px;height:34px;border-radius:10px;font-size:16px">B</div>
+          <div class="grow">
+            <div class="li-title">管家婆传真</div>
+            <div class="li-sub">特肖 · 样本 48 期</div>
+          </div>
+          <span class="pill warning"><span class="dot"></span>波动</span>
+        </div>
+        <div class="grid2 mt-12" style="grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">命中率</div><div class="fw-7 t-warning mt-8 num">48%</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连中</div><div class="fw-7 t-strong mt-8 num">3</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连挂</div><div class="fw-7 t-strong mt-8 num">5</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">缺期</div><div class="fw-7 t-strong mt-8 num">2</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d5" style="margin-top:12px">
+      <div class="glass-card card-pad">
+        <div class="flex aic gap-10">
+          <div class="brand-logo" style="width:34px;height:34px;border-radius:10px;font-size:16px">C</div>
+          <div class="grow">
+            <div class="li-title">白小组</div>
+            <div class="li-sub">特肖 · 样本 46 期</div>
+          </div>
+          <span class="pill danger"><span class="dot"></span>偏弱</span>
+        </div>
+        <div class="grid2 mt-12" style="grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">命中率</div><div class="fw-7 t-danger mt-8 num">41%</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连中</div><div class="fw-7 t-strong mt-8 num">2</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连挂</div><div class="fw-7 t-strong mt-8 num">8</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">缺期</div><div class="fw-7 t-strong mt-8 num">4</div></div>
+        </div>
+        <div class="mt-12"><span class="pill danger" style="font-size:10px">虚假报喜 1 次(不一致)</span></div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d5" style="margin-top:12px">
+      <div class="glass-card card-pad">
+        <div class="flex aic gap-10">
+          <div class="brand-logo" style="width:34px;height:34px;border-radius:10px;font-size:16px;background:oklch(1 0 0 / 8%);box-shadow:none;color:var(--foreground-muted)">—</div>
+          <div class="grow">
+            <div class="li-title">肖中特-老钱</div>
+            <div class="li-sub">特肖 · 样本 41 期</div>
+          </div>
+          <span class="pill neutral"><span class="dot"></span>待对奖</span>
+        </div>
+        <div class="grid2 mt-12" style="grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">命中率</div><div class="fw-7 t-muted mt-8 num">—</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连中</div><div class="fw-7 t-muted mt-8 num">—</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">最大连挂</div><div class="fw-7 t-muted mt-8 num">—</div></div>
+          <div class="glass-subtle tc" style="padding:8px 2px"><div class="fs-11 t-muted">缺期</div><div class="fw-7 t-strong mt-8 num">9</div></div>
+        </div>
+        <div class="fs-11 t-muted mt-12">数据不足 · 缺期 9 期,补足样本后自动计算评级</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部操作条(sticky) -->
+  <div class="flex gap-10" style="position:fixed;bottom:var(--tabbar-h);left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:10px 16px;background:var(--glass-bg-strong);backdrop-filter:blur(28px) saturate(1.8);-webkit-backdrop-filter:blur(28px) saturate(1.8);border-top:1px solid var(--glass-border);z-index:39">
+    <a class="btn-ghost" href="#" style="padding:12px 18px">导出评级</a>
+    <a class="glow-button" href="#" style="flex:1">计算评级矩阵</a>
+  </div>
+
+  <!-- 底部主导航 -->
+  <nav class="tabbar">
+    <a href="dashboard.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      工作台
+    </a>
+    <a href="ai-analysis.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      研判
+    </a>
+    <a href="draws.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+      开奖
+    </a>
+    <a href="records.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      记录
+    </a>
+    <a href="profile.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>

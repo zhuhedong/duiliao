@@ -158,6 +158,7 @@ def get_database_status() -> dict[str, Any]:
                     "collect_job",
                     "number_info",
                     "audit_event",
+                    "consensus_snapshot",
                     "issue",
                 ):
                     if table_name in collector_db.Base.metadata.tables:
@@ -550,6 +551,7 @@ COLLECTOR_IMPORT_ORDER = [
     "collect_job",
     "ai_report",
     "consensus_leader",
+    "consensus_snapshot",
     "source",
     "draw",
     "issue",

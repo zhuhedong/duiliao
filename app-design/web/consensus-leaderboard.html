@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>共识排行榜 · 对料网页端</title>
+<style>
+:root{
+  --bg:#f7f8fc;--surface:rgba(255,255,255,.72);--surface-strong:rgba(255,255,255,.9);
+  --text:#192036;--muted:#75809a;--line:rgba(104,117,157,.17);--line-strong:rgba(104,117,157,.28);
+  --primary:#6d55df;--primary-2:#a54fd1;--primary-soft:rgba(109,85,223,.1);
+  --success:#199b70;--success-soft:rgba(25,155,112,.1);--warning:#c18117;--warning-soft:rgba(193,129,23,.11);
+  --danger:#d45064;--danger-soft:rgba(212,80,100,.1);--shadow:0 20px 54px -30px rgba(57,43,131,.3);
+  --radius:18px;
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--text);background:var(--bg)}
+body{overflow-x:hidden}.aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:var(--bg)}
+.aurora:before,.aurora:after{content:"";position:absolute;inset:-18%;background-image:radial-gradient(36rem 26rem at 8% 4%,rgba(129,102,235,.25),transparent 66%),radial-gradient(30rem 28rem at 92% 8%,rgba(203,91,220,.2),transparent 63%),radial-gradient(32rem 30rem at 88% 92%,rgba(81,152,222,.16),transparent 64%);filter:blur(2px)}
+.aurora:after{background-image:radial-gradient(34rem 24rem at 45% 30%,rgba(157,100,235,.1),transparent 68%);opacity:.9}
+.shell{max-width:1480px;margin:0 auto;padding:25px 32px 60px}.topbar{height:48px;display:flex;align-items:center;gap:12px}.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.08em}.brand-mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#6552e5,#bf4ecc);box-shadow:0 10px 22px -10px rgba(101,82,229,.7)}.crumb{color:var(--muted);font-size:13px}.top-spacer{flex:1}.link-btn,.icon-btn,.primary-btn,.ghost-btn,.tab-btn,.chip{font-family:inherit;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.45);color:var(--text);border-radius:11px;transition:.18s ease}.link-btn,.ghost-btn{padding:9px 13px;text-decoration:none;font-size:13px}.link-btn:hover,.ghost-btn:hover,.icon-btn:hover{border-color:rgba(109,85,223,.38);background:var(--primary-soft)}.status{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(25,155,112,.25);background:var(--success-soft);color:var(--success);border-radius:99px;padding:6px 10px;font-size:12px;font-weight:700}.status i{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px rgba(25,155,112,.12)}
+.hero{margin-top:28px;display:flex;align-items:flex-end;justify-content:space-between;gap:28px}.hero h1{margin:0;font-size:31px;letter-spacing:-.03em}.hero p{margin:9px 0 0;color:var(--muted);font-size:14px}.hero-actions{display:flex;gap:9px;align-items:center}.primary-btn{padding:10px 16px;color:#fff;background:linear-gradient(135deg,#6654e4,#a84ccf);border-color:transparent;box-shadow:0 12px 24px -14px rgba(109,85,223,.75);font-weight:700}.primary-btn:hover{filter:brightness(1.04);transform:translateY(-1px)}
+.glass{background:var(--surface);border:1px solid rgba(255,255,255,.75);box-shadow:var(--shadow),inset 0 1px rgba(255,255,255,.78);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-radius:var(--radius)}.toolbar{margin-top:25px;padding:15px;display:flex;align-items:center;gap:13px;flex-wrap:wrap}.tabs{display:flex;gap:4px;padding:4px;border-radius:13px;background:rgba(90,77,167,.07);border:1px solid var(--line)}.tab-btn{padding:9px 15px;border-color:transparent;background:transparent;color:var(--muted);font-size:13px;font-weight:700}.tab-btn.active{color:#fff;background:linear-gradient(135deg,#6755e4,#a44ccc);box-shadow:0 7px 16px -10px rgba(109,85,223,.75)}.control-spacer{flex:1}.select-shell{position:relative}.select-shell select,.period-input{height:39px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.62);color:var(--text);padding:0 12px;font-family:inherit;font-size:13px;outline:none}.select-shell select{min-width:98px}.period-input{width:146px;font-variant-numeric:tabular-nums}.icon-btn{width:39px;height:39px;display:grid;place-items:center}.query-btn{height:39px;padding:0 16px;border-radius:11px;border:0;color:#fff;background:linear-gradient(135deg,#6654e4,#a84ccf);font-weight:700;cursor:pointer}
+.context{margin-top:13px;padding:12px 15px;display:flex;align-items:center;gap:17px;flex-wrap:wrap;font-size:12px}.context strong{color:var(--text)}.context-item{display:inline-flex;align-items:center;gap:7px;color:var(--muted)}.dot{width:7px;height:7px;border-radius:50%;background:var(--primary)}.dot.live{background:var(--warning);box-shadow:0 0 0 4px rgba(193,129,23,.1)}.dot.freeze{background:var(--success);box-shadow:0 0 0 4px rgba(25,155,112,.1)}.context .divider{height:18px;width:1px;background:var(--line)}.notice{margin-top:13px;padding:10px 13px;border-radius:12px;background:var(--warning-soft);border:1px solid rgba(193,129,23,.2);color:#9b6717;font-size:12px;display:none}.notice.show{display:block}
+#content{margin-top:19px}.kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.kpi{padding:17px 18px}.kpi-label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:8px}.kpi-value{margin-top:9px;font-weight:800;font-size:25px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}.kpi-meta{margin-top:5px;font-size:11px;color:var(--muted)}.kpi.accent .kpi-value{color:var(--primary)}.kpi.good .kpi-value{color:var(--success)}.kpi.warn .kpi-value{color:var(--warning)}
+.section-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:15px;margin-top:15px}.panel{overflow:hidden}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}.panel-title{font-size:15px;font-weight:800}.panel-sub{font-size:11px;color:var(--muted);margin-top:4px}.small-badge{font-size:11px;color:var(--muted);padding:5px 8px;border-radius:8px;background:rgba(90,77,167,.07);border:1px solid var(--line)}.rank-table{width:100%;border-collapse:collapse}.rank-table th{text-align:left;padding:11px 15px;color:var(--muted);font-size:11px;font-weight:600;background:rgba(102,84,228,.025);white-space:nowrap}.rank-table td{padding:13px 15px;border-top:1px solid var(--line);font-size:12px;vertical-align:middle}.rank{width:26px;height:26px;border-radius:9px;display:grid;place-items:center;background:rgba(102,84,228,.09);color:var(--primary);font-weight:800}.rank.first{background:linear-gradient(135deg,#f0c75c,#d88c23);color:#fff}.rank.second{background:linear-gradient(135deg,#b9c2d4,#7f8ba1);color:#fff}.rank.third{background:linear-gradient(135deg,#dcaa83,#ab6a48);color:#fff}.candidate{display:flex;align-items:center;gap:9px;min-width:128px}.ball{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-variant-numeric:tabular-nums;box-shadow:inset 0 -3px 6px rgba(0,0,0,.2),inset 0 2px 3px rgba(255,255,255,.32)}.ball.red{background:linear-gradient(145deg,#f35c73,#bd2e49)}.ball.blue{background:linear-gradient(145deg,#6198fb,#2e5acb)}.ball.green{background:linear-gradient(145deg,#4bd39b,#228c65)}.ball.gold{background:linear-gradient(145deg,#f7c85b,#c8841e)}.xiao{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#7157e8,#bc4ecd);color:#fff;font-weight:800}.candidate-name{font-weight:800}.candidate-sub{font-size:11px;color:var(--muted);margin-top:3px}.vote{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}.rate-wrap{min-width:132px}.rate-line{display:flex;align-items:center;gap:8px}.rate{font-weight:800;font-variant-numeric:tabular-nums;width:43px}.bar{height:7px;min-width:70px;flex:1;border-radius:99px;background:rgba(102,84,228,.1);overflow:hidden}.bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#6d55df,#b34ed1)}.sources{max-width:230px}.source-chip{display:inline-block;margin:2px 3px 2px 0;padding:4px 7px;border:1px solid var(--line);background:rgba(102,84,228,.05);border-radius:7px;color:var(--muted);font-size:10px;white-space:nowrap}.hit{color:var(--success);background:var(--success-soft);border:1px solid rgba(25,155,112,.22);padding:5px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}.pending{color:var(--warning);background:var(--warning-soft);border:1px solid rgba(193,129,23,.22);padding:5px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}.miss{color:var(--danger);background:var(--danger-soft);border:1px solid rgba(212,80,100,.22);padding:5px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+.bottom-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(320px,.85fr);gap:15px;margin-top:15px}.method{padding:18px}.method h3,.review h3{margin:0;font-size:15px}.method-list{margin-top:13px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.method-item{padding:11px 12px;border-radius:11px;background:rgba(102,84,228,.045);border:1px solid var(--line)}.method-item span{display:block;color:var(--muted);font-size:11px}.method-item b{display:block;margin-top:5px;font-size:12px}.method-note{margin-top:13px;padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.4);border:1px dashed var(--line-strong);color:var(--muted);font-size:11px;line-height:1.7}.review{padding:18px}.draw-result{margin-top:13px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}.review-line{margin-top:14px;padding-top:13px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}.empty{padding:46px;text-align:center;color:var(--muted);font-size:13px}.empty strong{display:block;color:var(--text);font-size:17px;margin-bottom:7px}
+.compare-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.compare-table td,.compare-table th{padding:12px 15px}.compare-table .source-cell{font-weight:700}.play-pill{display:inline-flex;padding:4px 8px;border-radius:7px;background:rgba(102,84,228,.08);color:var(--primary);font-size:11px;font-weight:700}.group-card{padding:17px;margin-top:13px}.group-card:first-child{margin-top:0}.group-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.group-name{font-weight:800}.group-meta{color:var(--muted);font-size:11px;margin-top:4px}.leader-box{margin-top:13px;padding:13px;border-radius:12px;background:var(--primary-soft);display:flex;align-items:center;justify-content:space-between;gap:15px}.leader-text{font-size:13px;font-weight:800}.leader-text small{display:block;color:var(--muted);font-size:11px;margin-top:5px;font-weight:500}.tally-row{padding:11px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:1fr 80px 140px;gap:10px;align-items:center}.tally-row:first-child{margin-top:12px}.tally-pred{font-weight:700;font-size:12px}.tally-vote{text-align:right;font-size:11px;font-weight:800}.tally-src{text-align:right;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.footer{margin-top:28px;color:var(--muted);font-size:11px;text-align:center}.footer a{color:var(--primary);text-decoration:none}
+@media(max-width:1050px){.shell{padding:22px 20px}.hero{align-items:flex-start;flex-direction:column}.section-grid,.bottom-grid{grid-template-columns:1fr}.kpi-grid,.compare-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sources{max-width:180px}}
+@media(max-width:680px){.shell{padding:16px 12px 40px}.topbar .crumb,.topbar .status{display:none}.hero h1{font-size:25px}.toolbar{padding:11px}.tabs{width:100%;overflow:auto}.tab-btn{flex:1;white-space:nowrap}.control-spacer{display:none}.toolbar select,.period-input{flex:1;min-width:0}.query-btn{flex:1}.kpi-grid,.compare-grid{grid-template-columns:1fr 1fr}.rank-table{min-width:760px}.panel{overflow:auto}.method-list{grid-template-columns:1fr}.tally-row{grid-template-columns:1fr 65px}.tally-src{display:none}}
+</style>
+</head>
+<body>
+<div class="aurora"></div>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">对</span><span>对料</span></div>
+    <span class="crumb">/ 业务 / 多源对照 / 共识排行榜</span>
+    <span class="top-spacer"></span>
+    <span class="status"><i></i>加密链路正常</span>
+    <a class="link-btn" href="../index.html">移动端画廊</a>
+    <a class="link-btn" href="../screens/consensus-board.html">APP 共识榜</a>
+  </header>
+
+  <section class="hero">
+    <div>
+      <h1>共识排行榜</h1>
+      <p>把多源预测去重、聚合成可解释的候选榜，并在开奖后逐项核验。</p>
+    </div>
+    <div class="hero-actions">
+      <button class="ghost-btn" type="button" id="freezeInfo">查看冻结说明</button>
+      <button class="primary-btn" type="button" id="refreshBtn">重新查询</button>
+    </div>
+  </section>
+
+  <section class="toolbar glass">
+    <div class="tabs" role="tablist" aria-label="共识业务视图">
+      <button class="tab-btn active" data-tab="frequency">特码·特肖频次共识榜</button>
+      <button class="tab-btn" data-tab="comparison">数据入库与开奖比对</button>
+      <button class="tab-btn" data-tab="consensus">全玩法组合去重对照</button>
+    </div>
+    <span class="control-spacer"></span>
+    <div class="select-shell"><select id="lottery" aria-label="彩种"><option value="macau">澳门</option><option value="hk">香港</option><option value="taiwan">台湾</option><option value="new">新彩</option></select></div>
+    <input id="period" class="period-input" value="2026277" aria-label="期号">
+    <button class="icon-btn" id="prevBtn" title="上一期" aria-label="上一期">◀</button>
+    <button class="icon-btn" id="nextBtn" title="下一期" aria-label="下一期">▶</button>
+    <button class="query-btn" id="queryBtn">查询榜单</button>
+  </section>
+
+  <section class="context glass" id="contextBar"></section>
+  <div class="notice" id="notice"></div>
+  <main id="content"></main>
+  <footer class="footer">榜单口径对应后端 <b>frequency-v1</b>：按来源 + 分组计票，缺失状态不进入分母。<a href="../screens/play-catalog.html">查看玩法目录</a></footer>
+</div>
+
+<script>
+const data = {
+  "2026277": {
+    frozen:false, cutoff:"09-26 21:10", quality:"实时", groups:12, excluded:3,
+    draw:null,
+    tema:[
+      {v:"26",votes:8,pct:66.7,bose:"blue",sources:["海哥平特一肖／第1组","顶尖大师","管家婆传真","白小组","澳门资料王","龙门客栈","四海资料","红波大师"]},
+      {v:"14",votes:6,pct:50.0,bose:"blue",sources:["顶尖大师","管家婆传真","白小组","澳门资料王","资料研究院","龙门客栈"]},
+      {v:"03",votes:5,pct:41.7,bose:"blue",sources:["海哥平特一肖／第2组","顶尖大师","四海资料","资料研究院","新澳资料"]},
+      {v:"42",votes:4,pct:33.3,bose:"blue",sources:["海哥平特一肖","管家婆传真","红波大师","龙门客栈"]},
+      {v:"11",votes:4,pct:33.3,bose:"green",sources:["白小组","澳门资料王","新澳资料","资料研究院"]}
+    ],
+    texiao:[
+      {v:"蛇",votes:7,pct:58.3,sources:["海哥平特一肖／第1组","顶尖大师","管家婆传真","白小组","澳门资料王","四海资料","红波大师"]},
+      {v:"龙",votes:5,pct:41.7,sources:["海哥平特一肖／第2组","顶尖大师","资料研究院","龙门客栈","新澳资料"]},
+      {v:"鸡",votes:4,pct:33.3,sources:["管家婆传真","白小组","澳门资料王","红波大师"]},
+      {v:"鼠",votes:3,pct:25.0,sources:["顶尖大师","四海资料","龙门客栈"]},
+      {v:"猴",votes:2,pct:16.7,sources:["白小组","资料研究院"]}
+    ],
+    compare:[
+      ["海哥平特一肖","平特肖","蛇 / 龙","待开奖","pending"],["顶尖大师","特码","26、14、03","待开奖","pending"],["管家婆传真","平特肖","蛇、鸡","待开奖","pending"],["白小组","连肖","蛇·龙·鸡","待开奖","pending"],["澳门资料王","特码","26、42","待开奖","pending"],["肖中特-老钱","特肖","缺期","未入榜","miss"]
+    ],
+    groupsData:[
+      {name:"特码",meta:"tema_n · 8 来源组 · 12 有效票",leader:"26",leaderVotes:8,tally:[["26",8,["海哥平特一肖","顶尖大师","管家婆传真"]],["14",6,["顶尖大师","白小组"]],["03",5,["海哥平特一肖","四海资料"]]]},
+      {name:"特肖",meta:"texiao · 7 来源组 · 11 有效票",leader:"蛇",leaderVotes:7,tally:[["蛇",7,["海哥平特一肖","顶尖大师","管家婆传真"]],["龙",5,["海哥平特一肖","资料研究院"]],["鸡",4,["管家婆传真","白小组"]]]},
+      {name:"平特肖",meta:"pingte_xiao · 5 来源组 · 8 有效票",leader:"蛇",leaderVotes:5,tally:[["蛇",5,["海哥平特一肖","管家婆传真"]],["龙",3,["顶尖大师","白小组"]]]}
+    ]
+  },
+  "2026276": {
+    frozen:true, cutoff:"09-26 21:32", quality:"exact", groups:12, excluded:2,
+    draw:{nums:["03","11","19","27","34","42"],tema:"26",xiao:"蛇"},
+    tema:[{v:"26",votes:8,pct:66.7,bose:"blue",hit:true,sources:["海哥平特一肖","顶尖大师","管家婆传真","白小组","澳门资料王","龙门客栈","四海资料","红波大师"]},{v:"14",votes:6,pct:50,bose:"blue",sources:["顶尖大师","管家婆传真","白小组","澳门资料王","资料研究院","龙门客栈"]},{v:"03",votes:5,pct:41.7,bose:"blue",hit:true,sources:["海哥平特一肖","顶尖大师","四海资料","资料研究院","新澳资料"]},{v:"42",votes:4,pct:33.3,bose:"blue",hit:true,sources:["海哥平特一肖","管家婆传真","红波大师","龙门客栈"]},{v:"11",votes:4,pct:33.3,bose:"green",hit:true,sources:["白小组","澳门资料王","新澳资料","资料研究院"]}],
+    texiao:[{v:"蛇",votes:7,pct:58.3,hit:true,sources:["海哥平特一肖","顶尖大师","管家婆传真","白小组","澳门资料王","四海资料","红波大师"]},{v:"龙",votes:5,pct:41.7,sources:["海哥平特一肖","顶尖大师","资料研究院","龙门客栈","新澳资料"]},{v:"鸡",votes:4,pct:33.3,sources:["管家婆传真","白小组","澳门资料王","红波大师"]},{v:"鼠",votes:3,pct:25,sources:["顶尖大师","四海资料","龙门客栈"]}],
+    compare:[["海哥平特一肖","平特肖","蛇 / 龙","命中","hit"],["顶尖大师","特码","26、14、03","命中 26","hit"],["管家婆传真","平特肖","蛇、鸡","命中 蛇","hit"],["白小组","连肖","蛇·龙·鸡","命中 蛇","hit"],["澳门资料王","特码","26、42","命中 26","hit"],["肖中特-老钱","特肖","缺期","缺期","miss"]],
+    groupsData:[{name:"特码",meta:"tema_n · 8 来源组 · 12 有效票",leader:"26",leaderVotes:8,leaderHit:true,tally:[["26",8,["海哥平特一肖","顶尖大师","管家婆传真"]],["14",6,["顶尖大师","白小组"]],["03",5,["海哥平特一肖","四海资料"]]]},{name:"特肖",meta:"texiao · 7 来源组 · 11 有效票",leader:"蛇",leaderVotes:7,leaderHit:true,tally:[["蛇",7,["海哥平特一肖","顶尖大师","管家婆传真"]],["龙",5,["海哥平特一肖","资料研究院"]],["鸡",4,["管家婆传真","白小组"]]]},{name:"平特肖",meta:"pingte_xiao · 5 来源组 · 8 有效票",leader:"蛇",leaderVotes:5,leaderHit:true,tally:[["蛇",5,["海哥平特一肖","管家婆传真"]],["龙",3,["顶尖大师","白小组"]]]}]
+  }
+};
+let tab="frequency";
+const $=s=>document.querySelector(s);
+function current(){return data[$('#period').value]||data['2026277']}
+function ballClass(n,bose){return `<span class="ball ${bose||((+n%3===0)?'blue':'green')}">${n}</span>`}
+function statusBadge(item){return item.hit?'<span class="hit">官方命中</span>':(current().draw?'<span class="miss">未命中</span>':'<span class="pending">待开奖</span>')}
+function sources(list){return list.map(s=>`<span class="source-chip">${s}</span>`).join('')}
+function boardTable(items,type){return `<div class="panel glass"><div class="panel-head"><div><div class="panel-title">${type==='tema'?'特码':'特肖'}出现频次排行</div><div class="panel-sub">票数按来源 + 分组去重，支持来源可展开查看</div></div><span class="small-badge">${items.length} 项</span></div><div style="overflow:auto"><table class="rank-table"><thead><tr><th>排名</th><th>候选项</th><th>得票</th><th>支持率</th><th>支持来源</th><th>核验</th></tr></thead><tbody>${items.map((x,i)=>`<tr><td><span class="rank ${i===0?'first':i===1?'second':i===2?'third':''}">${i+1}</span></td><td><div class="candidate">${type==='tema'?ballClass(x.v,x.bose):`<span class="xiao">${x.v}</span>`}<div><div class="candidate-name">${type==='tema'?x.v+' 号':x.v+'肖'}</div><div class="candidate-sub">${type==='tema'?(x.bose==='blue'?'蓝波':x.bose==='red'?'红波':'绿波'):((['鼠','猪','狗','鸡','猴','羊'].includes(x.v))?'家禽':'野兽')}</div></div></div></td><td><span class="vote">${x.votes} 票</span></td><td><div class="rate-wrap"><div class="rate-line"><span class="rate">${x.pct.toFixed(1)}%</span><span class="bar"><i style="width:${Math.min(x.pct,100)}%"></i></span></div></div></td><td class="sources">${sources(x.sources)}</td><td>${statusBadge(x)}</td></tr>`).join('')}</tbody></table></div></div>`}
+function renderFrequency(){const d=current();const topN=d.tema[0],topX=d.texiao[0];return `<div class="kpi-grid"><div class="kpi glass accent"><div class="kpi-label">最热特码 <span>领跑第 1</span></div><div class="kpi-value">${topN.v} 号</div><div class="kpi-meta">${topN.votes} 票 · ${topN.pct.toFixed(1)}% · ${topN.bose==='blue'?'蓝波':topN.bose==='red'?'红波':'绿波'}</div></div><div class="kpi glass accent"><div class="kpi-label">最热特肖 <span>领跑第 1</span></div><div class="kpi-value">${topX.v}肖</div><div class="kpi-meta">${topX.votes} 票 · ${topX.pct.toFixed(1)}% · ${['鼠','猪','狗','鸡','猴','羊'].includes(topX.v)?'家禽':'野兽'}</div></div><div class="kpi glass"><div class="kpi-label">有效来源组</div><div class="kpi-value">${d.groups}</div><div class="kpi-meta">排除缺失状态 ${d.excluded} 组</div></div><div class="kpi glass ${d.draw?'good':'warn'}"><div class="kpi-label">领跑项核验</div><div class="kpi-value">${d.draw?((d.tema.filter(x=>x.hit).length)+(d.texiao.filter(x=>x.hit).length)):'待开奖'}</div><div class="kpi-meta">${d.draw?'已按官方开奖逐项核验':'开奖后自动核验'}</div></div></div><div class="section-grid">${boardTable(d.tema,'tema')}${boardTable(d.texiao,'texiao')}</div><div class="bottom-grid"><section class="method glass"><h3>这张榜单怎么计算</h3><div class="method-list"><div class="method-item"><span>计票单位</span><b>source_group</b></div><div class="method-item"><span>分母</span><b>eligible_source_groups = ${d.groups}</b></div><div class="method-item"><span>排除项</span><b>claimed_status = missing</b></div><div class="method-item"><span>算法版本</span><b>frequency-v1</b></div></div><div class="method-note">同一来源的不同栏目可以分别计票；同一来源组内部重复号码只计 1 票。这样排行榜展示的是“有多少有效来源组支持”，不是简单累加文本条数。</div></section><section class="review glass"><h3>开奖核验</h3>${d.draw?`<div class="draw-result"><span class="fs-label">官方号码</span>${d.draw.nums.map(n=>ballClass(n)).join('')}<span style="color:var(--muted)">+</span>${ballClass(d.draw.tema,'gold')}</div><div class="review-line">特码领跑 ${d.tema[0].hit?'命中':'未中'} · 特肖领跑 ${d.texiao[0].hit?'命中':'未中'} · 结果已冻结为 ${d.quality} 快照</div>`:`<div class="empty" style="padding:30px 10px 18px"><strong>尚未开奖</strong>当前榜单为实时预测汇总，开奖后会生成不可变快照并补写每一项 hit 状态。</div>`}</section></div>`}
+function renderComparison(){const d=current();return `<div class="compare-grid"><div class="kpi glass"><div class="kpi-label">预测记录</div><div class="kpi-value">38</div><div class="kpi-meta">去重前采集条数</div></div><div class="kpi glass good"><div class="kpi-label">官方命中</div><div class="kpi-value">${d.draw?'18':'待开奖'}</div><div class="kpi-meta">按逐条预测核验</div></div><div class="kpi glass accent"><div class="kpi-label">综合命中率</div><div class="kpi-value">${d.draw?'47.4%':'—'}</div><div class="kpi-meta">仅统计已对奖样本</div></div><div class="kpi glass warn"><div class="kpi-label">异常宣称</div><div class="kpi-value">2</div><div class="kpi-meta">官方核验未命中</div></div></div><section class="panel glass" style="margin-top:15px"><div class="panel-head"><div><div class="panel-title">数据入库与开奖比对</div><div class="panel-sub">按来源、玩法、原始预测与官方判定逐条核对</div></div><span class="small-badge">${d.compare.length} 条重点记录</span></div><div style="overflow:auto"><table class="rank-table compare-table"><thead><tr><th>来源</th><th>玩法</th><th>预测内容</th><th>官方结果</th><th>状态</th><th>证据</th></tr></thead><tbody>${d.compare.map(r=>`<tr><td class="source-cell">${r[0]}</td><td><span class="play-pill">${r[1]}</span></td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]==='hit'?'<span class="hit">官方命中</span>':r[4]==='miss'?'<span class="miss">未入榜</span>':'<span class="pending">待开奖</span>'}</td><td><button class="ghost-btn" style="padding:5px 8px;font-size:11px" onclick="alert('这里打开原始预测文本、来源栏目、采集时间与命中详情')">查看证据</button></td></tr>`).join('')}</tbody></table></div></section>`}
+function predText(preds){return preds.map(p=>p.value||p.text||'').join(' · ')}
+function renderConsensus(){const d=current();return `<div class="kpi-grid"><div class="kpi glass accent"><div class="kpi-label">玩法组</div><div class="kpi-value">${d.groupsData.length}</div><div class="kpi-meta">当前期有预测的玩法</div></div><div class="kpi glass"><div class="kpi-label">有效票数</div><div class="kpi-value">31</div><div class="kpi-meta">同源近文已去重</div></div><div class="kpi glass good"><div class="kpi-label">领跑命中率</div><div class="kpi-value">${d.draw?'66.7%':'—'}</div><div class="kpi-meta">有官方结果时计算</div></div><div class="kpi glass warn"><div class="kpi-label">快照状态</div><div class="kpi-value" style="font-size:20px">${d.frozen?'已冻结':'实时'}</div><div class="kpi-meta">${d.frozen?'不可变结果':'等待开奖冻结'}</div></div></div>${d.groupsData.map(g=>`<section class="group-card glass"><div class="group-header"><div><div class="group-name">${g.name}</div><div class="group-meta">${g.meta}</div></div>${g.leaderHit===true?'<span class="hit">领跑命中</span>':(d.draw?'<span class="miss">领跑未中</span>':'<span class="pending">待开奖</span>')}</div><div class="leader-box"><div class="leader-text">领跑：${g.leader}<small>${g.leaderVotes} 票 · 支持率 ${(g.leaderVotes/d.groups*100).toFixed(1)}%</small></div><div class="bar" style="max-width:230px"><i style="width:${Math.round(g.leaderVotes/d.groups*100)}%"></i></div></div>${g.tally.map((t,i)=>`<div class="tally-row"><div class="tally-pred">${i+1}. ${t[0]}</div><div class="tally-vote">${t[1]} 票</div><div class="tally-src">${t[2].join('、')}</div></div>`).join('')}</section>`).join('')}`}
+function render(){const d=current();$('#contextBar').innerHTML=`<span class="context-item"><i class="dot ${d.frozen?'freeze':'live'}"></i><strong>${d.frozen?'冻结快照':'实时榜单'}</strong></span><span class="divider"></span><span class="context-item">彩种 <strong>${$('#lottery').selectedOptions[0].text}</strong></span><span class="context-item">期号 <strong>${$('#period').value}</strong></span><span class="context-item">口径 <strong>来源 + 分组去重</strong></span><span class="context-item">截止 <strong>${d.cutoff}</strong></span><span class="context-item">质量 <strong>${d.quality}</strong></span>`;$('#content').innerHTML=tab==='frequency'?renderFrequency():tab==='comparison'?renderComparison():renderConsensus();}
+document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));btn.classList.add('active');tab=btn.dataset.tab;render()}));
+$('#queryBtn').addEventListener('click',()=>{const notice=$('#notice');notice.textContent='已按当前彩种、期号和榜单口径重新查询；展示的是设计样例数据。';notice.classList.add('show');render();setTimeout(()=>notice.classList.remove('show'),2600)});
+$('#refreshBtn').addEventListener('click',()=>$('#queryBtn').click());
+$('#freezeInfo').addEventListener('click',()=>{const n=$('#notice');n.textContent='冻结规则：官方开奖入库后，以开奖边界前的预测版本生成 frequency-v1 快照；普通查询不修改历史快照。';n.classList.add('show');setTimeout(()=>n.classList.remove('show'),4200)});
+$('#prevBtn').addEventListener('click',()=>{$('#period').value='2026276';render()});$('#nextBtn').addEventListener('click',()=>{$('#period').value='2026277';render()});$('#lottery').addEventListener('change',()=>{const n=$('#notice');n.textContent='已切换彩种筛选。当前页面用澳门样例展示结构，其他彩种沿用同一计票与核验流程。';n.classList.add('show');render();setTimeout(()=>n.classList.remove('show'),3000)});
+render();
+</script>
+</body>
+</html>

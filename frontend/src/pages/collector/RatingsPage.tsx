@@ -23,6 +23,14 @@ function pct(v: unknown): string {
   return `${(v * 100).toFixed(1)}%`;
 }
 
+function parseWindows(value: string): number[] | null {
+  const parts = value.split(",").map((item) => item.trim());
+  if (!parts.length || parts.some((item) => !/^\d+$/.test(item))) return null;
+  const parsed = parts.map(Number);
+  if (parsed.some((item) => !Number.isSafeInteger(item) || item <= 0)) return null;
+  return [...new Set(parsed)];
+}
+
 export function CollectorRatingsPage() {
   const [lottery, setLottery] = useState<Lottery>("macau");
   const [playType, setPlayType] = useState("pingte_xiao");
@@ -41,11 +49,19 @@ export function CollectorRatingsPage() {
   }, []);
 
   const run = async () => {
+    const parsedWindows = parseWindows(windows);
+    if (!parsedWindows) {
+      setError("窗口必须是逗号分隔的正整数，例如 30,50,100");
+      return;
+    }
+
+    const normalizedWindows = parsedWindows.join(",");
+    if (normalizedWindows !== windows.trim()) setWindows(normalizedWindows);
     setLoading(true);
     setError(null);
     setData(null);
     try {
-      setData(await collectorApi.ratings(lottery, playType, windows.trim() || "30,50,100"));
+      setData(await collectorApi.ratings(lottery, playType, normalizedWindows));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "查询失败");
     } finally {
@@ -124,6 +140,9 @@ export function CollectorRatingsPage() {
           <TextInput
             value={windows}
             onChange={setWindows}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") void run();
+            }}
             placeholder="窗口，如 30,50,100"
             className="min-w-[160px]"
           />

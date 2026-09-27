@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>彩种与玩法 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <header class="app-header center">
+    <a class="btn-icon h-left" href="record-add.html" aria-label="返回新增记录">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </a>
+    <div class="h-title">彩种与玩法</div>
+    <a class="btn-icon h-right" href="profile.html" aria-label="个人中心">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    </a>
+  </header>
+
+  <div class="screen-body no-tabbar">
+    <section class="animate-fadeIn d1" style="margin-top:8px">
+      <div class="glass-card card-pad">
+        <div class="flex aic jcb">
+          <div>
+            <div class="fw-7 t-strong" style="font-size:17px">项目支持目录</div>
+            <div class="fs-11 t-muted mt-8">当前版本已接入 <b class="t-primary num">4</b> 个彩种 · <b class="t-primary num">21</b> 个玩法</div>
+          </div>
+          <span class="pill success"><span class="dot"></span>已同步</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 彩种 -->
+    <section class="section animate-fadeIn d2">
+      <div class="section-title"><span class="st-dot"></span>彩种 <span class="fs-11 t-muted">lottery</span></div>
+      <div class="glass-card" style="padding:6px 16px">
+        <div class="list">
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:var(--primary-soft);color:var(--primary-strong)">澳</div>
+            <div class="li-main"><div class="li-title">澳门</div><div class="li-sub">macau · 当前默认彩种</div></div>
+            <span class="pill primary">当前</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:var(--info-subtle);color:var(--info)">港</div>
+            <div class="li-main"><div class="li-title">香港</div><div class="li-sub">hk · 香港六合彩</div></div>
+            <span class="pill neutral">可用</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:var(--success-soft);color:var(--success)">台</div>
+            <div class="li-main"><div class="li-title">台湾</div><div class="li-sub">taiwan · 台湾彩种</div></div>
+            <span class="pill neutral">可用</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon" style="background:var(--warning-soft);color:var(--warning)">新</div>
+            <div class="li-main"><div class="li-title">新彩</div><div class="li-sub">new · 新彩数据源</div></div>
+            <span class="pill neutral">可用</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 特码类 -->
+    <section class="section animate-fadeIn d3">
+      <div class="section-title"><span class="st-dot"></span>特码类 <span class="fs-11 t-muted">8 个玩法</span></div>
+      <div class="glass-card card-pad">
+        <div class="grid2">
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">特码</div><div class="fs-11 t-muted mt-8">tema_n</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">特肖</div><div class="fs-11 t-muted mt-8">texiao</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">特尾</div><div class="fs-11 t-muted mt-8">tema_wei_n</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">特头</div><div class="fs-11 t-muted mt-8">tema_head_n</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">特波</div><div class="fs-11 t-muted mt-8">tema_bose</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">两面</div><div class="fs-11 t-muted mt-8">tema_twoface</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">半波</div><div class="fs-11 t-muted mt-8">tema_halfwave</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">合肖</div><div class="fs-11 t-muted mt-8">hexiao</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 平特与正码 -->
+    <section class="section animate-fadeIn d4">
+      <div class="section-title"><span class="st-dot"></span>平特与正码 <span class="fs-11 t-muted">4 个玩法</span></div>
+      <div class="glass-card card-pad">
+        <div class="grid2">
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">平特肖</div><div class="fs-11 t-muted mt-8">pingte_xiao</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">平特尾</div><div class="fs-11 t-muted mt-8">pingte_wei</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">正码</div><div class="fs-11 t-muted mt-8">zhengma_n</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">正肖</div><div class="fs-11 t-muted mt-8">zhengxiao</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 连码与连肖 -->
+    <section class="section animate-fadeIn d5">
+      <div class="section-title"><span class="st-dot"></span>组合玩法 <span class="fs-11 t-muted">6 个玩法</span></div>
+      <div class="glass-card card-pad">
+        <div class="flex gap-8 wrap">
+          <span class="chip">连肖 <small class="t-muted">lianxiao_n</small></span>
+          <span class="chip">连尾 <small class="t-muted">lianwei_n</small></span>
+          <span class="chip">二中二 <small class="t-muted">lianma_2all</small></span>
+          <span class="chip">三中三 <small class="t-muted">lianma_3all</small></span>
+          <span class="chip">三中二 <small class="t-muted">lianma_3z2</small></span>
+          <span class="chip">二中特 <small class="t-muted">lianma_2zt</small></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 不中类 -->
+    <section class="section animate-fadeIn d5">
+      <div class="section-title"><span class="st-dot"></span>不中与杀号 <span class="fs-11 t-muted">3 个玩法</span></div>
+      <div class="glass-card card-pad">
+        <div class="grid2">
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">不中码</div><div class="fs-11 t-muted mt-8">buzhong_num</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">杀肖</div><div class="fs-11 t-muted mt-8">buzhong_xiao</div></div>
+          <div class="glass-subtle" style="padding:12px"><div class="fw-6 t-strong">杀尾</div><div class="fs-11 t-muted mt-8">buzhong_wei</div></div>
+        </div>
+        <div class="glass-subtle mt-12" style="padding:11px 13px">
+          <div class="fs-11 t-muted">已移除的旧玩法不会出现在录入列表中，目录只展示当前 contract.PLAY_TYPES 支持项。</div>
+        </div>
+      </div>
+    </section>
+
+    <a class="glow-button animate-fadeIn d5" href="record-add.html" style="margin-top:18px">返回新增记录</a>
+  </div>
+</div>
+</body>
+</html>

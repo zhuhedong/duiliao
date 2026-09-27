@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>共识排行榜 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+<style>
+  .board-context { padding: 14px; }
+  .board-context .field { margin-bottom: 12px; }
+  .board-context .field:last-child { margin-bottom: 0; }
+  .board-context label { margin-bottom: 7px; }
+  .state-line { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:12px; }
+  .state-line .state-copy { font-size:11px; color:var(--foreground-muted); }
+  .decision-card { position:relative; overflow:hidden; padding:16px; }
+  .decision-card::after { content:""; position:absolute; width:150px; height:150px; right:-64px; top:-72px; border-radius:50%; background:radial-gradient(circle, oklch(0.72 0.185 283 / 25%), transparent 68%); pointer-events:none; }
+  .decision-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .decision-title { font-size:13px; font-weight:700; }
+  .decision-sub { color:var(--foreground-muted); font-size:11px; margin-top:3px; }
+  .decision-items { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; }
+  .decision-item { min-width:0; padding:12px; border:1px solid var(--border); border-radius:14px; background:oklch(1 0 0 / 5%); }
+  .decision-label { color:var(--foreground-muted); font-size:11px; }
+  .decision-value { display:flex; align-items:center; gap:8px; margin-top:7px; font-weight:800; font-size:18px; }
+  .decision-meta { margin-top:5px; color:var(--foreground-muted); font-size:10.5px; }
+  .board-tabs { display:flex; gap:5px; overflow:auto; padding:4px; border-radius:14px; background:oklch(1 0 0 / 5%); border:1px solid var(--border); }
+  .board-tabs button { flex:1; min-width:max-content; border:0; border-radius:10px; padding:8px 11px; color:var(--foreground-muted); background:transparent; font:600 11.5px inherit; }
+  .board-tabs button.active { color:var(--foreground-strong); background:var(--primary-soft); box-shadow:inset 0 0 0 1px oklch(0.72 0.185 283 / 28%); }
+  .board-panel { display:none; }
+  .board-panel.active { display:block; }
+  .rank-card { padding:13px 14px; }
+  .rank-head { display:flex; align-items:center; gap:10px; }
+  .rank-no { width:25px; height:25px; display:grid; place-items:center; border-radius:9px; color:var(--primary-strong); background:var(--primary-soft); font-size:12px; font-weight:800; flex-shrink:0; }
+  .rank-no.gold { color:#fff; background:linear-gradient(135deg,var(--wave-gold-a),var(--wave-gold-b)); }
+  .rank-main { min-width:0; flex:1; }
+  .rank-name { font-size:13px; font-weight:700; }
+  .rank-code { margin-top:2px; color:var(--foreground-muted); font-size:10px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .rank-vote { text-align:right; flex-shrink:0; }
+  .rank-vote strong { display:block; font-size:15px; font-variant-numeric:tabular-nums; }
+  .rank-vote span { color:var(--foreground-muted); font-size:10px; }
+  .rank-track { display:flex; align-items:center; gap:8px; margin:11px 0 9px 35px; }
+  .rank-track .progress { flex:1; margin:0; }
+  .rank-support { color:var(--foreground-muted); font-size:10.5px; white-space:nowrap; }
+  .rank-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-left:35px; }
+  .source-count { color:var(--foreground-muted); font-size:10.5px; }
+  .source-count b { color:var(--foreground-subtle); font-weight:700; }
+  details.evidence { margin:10px 0 0 35px; border-top:1px solid var(--border-muted); padding-top:9px; }
+  details.evidence summary { color:var(--primary-strong); font-size:10.5px; cursor:pointer; list-style:none; }
+  details.evidence summary::-webkit-details-marker { display:none; }
+  details.evidence summary::before { content:"＋"; display:inline-block; margin-right:4px; }
+  details.evidence[open] summary::before { content:"－"; }
+  .source-list { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+  .source-list span { padding:4px 7px; border-radius:7px; color:var(--foreground-subtle); background:oklch(1 0 0 / 5%); border:1px solid var(--border-muted); font-size:10px; }
+  .logic-card { padding:13px 14px; }
+  .logic-row { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--border-muted); font-size:11px; }
+  .logic-row:last-child { border-bottom:0; padding-bottom:0; }
+  .logic-row:first-child { padding-top:0; }
+  .logic-row span { color:var(--foreground-muted); }
+  .logic-row b { text-align:right; color:var(--foreground-subtle); font-weight:700; }
+  .group-card { padding:14px; }
+  .group-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  .group-name { font-size:13px; font-weight:800; }
+  .group-meta { margin-top:3px; color:var(--foreground-muted); font:10px ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .leader { margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 12px; border-radius:12px; background:var(--primary-soft); }
+  .leader-label { color:var(--foreground-muted); font-size:10.5px; }
+  .leader-value { margin-top:2px; color:var(--foreground-strong); font-size:16px; font-weight:800; }
+  .leader-votes { color:var(--primary-strong); font-size:11px; font-weight:700; }
+  .tally-list { margin-top:10px; }
+  .tally-row { display:flex; align-items:center; gap:8px; padding:9px 0; border-bottom:1px solid var(--border-muted); font-size:11px; }
+  .tally-row:last-child { border-bottom:0; padding-bottom:0; }
+  .tally-value { flex:1; font-weight:700; }
+  .tally-votes { color:var(--foreground-muted); font-variant-numeric:tabular-nums; }
+  .audit-summary { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .audit-kpi { padding:12px; border-radius:13px; background:oklch(1 0 0 / 5%); border:1px solid var(--border); }
+  .audit-kpi span { display:block; color:var(--foreground-muted); font-size:10.5px; }
+  .audit-kpi b { display:block; margin-top:5px; font-size:18px; font-variant-numeric:tabular-nums; }
+  .draw-strip { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:11px; }
+  .audit-row { display:flex; align-items:center; gap:9px; padding:11px 0; border-bottom:1px solid var(--border-muted); }
+  .audit-row:last-child { border-bottom:0; }
+  .audit-avatar { width:28px; height:28px; display:grid; place-items:center; border-radius:9px; color:var(--primary-strong); background:var(--primary-soft); font-size:11px; font-weight:800; }
+  .audit-main { min-width:0; flex:1; }
+  .audit-name { font-size:11.5px; font-weight:700; }
+  .audit-detail { margin-top:3px; color:var(--foreground-muted); font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .method-note { padding:12px 13px; color:var(--foreground-muted); background:oklch(1 0 0 / 4%); border:1px dashed var(--border-strong); border-radius:13px; font-size:10.5px; line-height:1.75; }
+  .method-note b { color:var(--foreground-subtle); }
+  .fs-10 { font-size:10px; }
+  .gold { background:linear-gradient(145deg,var(--wave-gold-a),var(--wave-gold-b)) !important; }
+  .board-link { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; color:var(--primary-strong); text-decoration:none; font-size:11px; }
+</style>
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+<div class="screen">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 1 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">共识排行榜</div>
+      <div class="h-sub">多源去重 · 支持证据 · 官方核验</div>
+    </div>
+    <span class="pill success"><span class="dot pulse"></span>数据已同步</span>
+    <a class="btn-icon" href="consensus.html" aria-label="对照明细">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h16"/><circle cx="8" cy="5" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="11" cy="19" r="1.5" fill="currentColor"/></svg>
+    </a>
+  </header>
+
+  <div class="screen-body">
+    <section class="section animate-fadeIn" style="margin-top:3px">
+      <div class="section-title"><span class="st-dot"></span>榜单上下文</div>
+      <div class="glass-card board-context">
+        <div class="field">
+          <label>彩种</label>
+          <div class="flex gap-6 wrap"><span class="pill primary">澳门</span><span class="chip">香港</span><span class="chip">台湾</span><span class="chip">新彩</span></div>
+        </div>
+        <div class="field">
+          <label>期号</label>
+          <div class="flex gap-6 wrap"><button class="chip period-chip active" data-period="2026277">第 <span class="num">2026277</span> 期</button><button class="chip period-chip" data-period="2026276">第 <span class="num">2026276</span> 期</button></div>
+        </div>
+        <div class="state-line"><span class="state-copy" id="cutoffCopy">统计截止 09-26 21:10 · 实时预测版本</span><span class="pill warning" id="freezeBadge"><span class="dot pulse"></span>待开奖</span></div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d1">
+      <div class="glass-card decision-card">
+        <div class="decision-head"><div><div class="decision-title">本期共识结论</div><div class="decision-sub">先看领跑项，再查看支持证据</div></div><span class="pill primary" id="decisionQuality">frequency-v1</span></div>
+        <div class="decision-items">
+          <div class="decision-item"><div class="decision-label">领跑特码</div><div class="decision-value"><span class="ball sm blue" id="leaderNum">26</span><span id="leaderNumText">26 号</span></div><div class="decision-meta" id="leaderNumMeta">8 票 · 66.7% · 8 个来源组</div></div>
+          <div class="decision-item"><div class="decision-label">领跑特肖</div><div class="decision-value"><span class="xiao" id="leaderXiao">蛇</span><span id="leaderXiaoText">蛇肖</span></div><div class="decision-meta" id="leaderXiaoMeta">7 票 · 58.3% · 7 个来源组</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d2">
+      <div class="board-tabs" role="tablist">
+        <button type="button" class="active" data-tab="candidatePanel">候选排行榜</button>
+        <button type="button" data-tab="playPanel">玩法组共识</button>
+        <button type="button" data-tab="auditPanel">入库与核验</button>
+      </div>
+    </section>
+
+    <div id="candidatePanel" class="board-panel active">
+      <section class="section animate-fadeIn d3">
+        <div class="section-title"><span class="st-dot"></span>特码候选榜 <span class="fs-11 t-muted">按来源组计票</span></div>
+        <div class="glass-card" id="temaBoard"></div>
+      </section>
+      <section class="section animate-fadeIn d4">
+        <div class="section-title"><span class="st-dot"></span>特肖候选榜 <span class="fs-11 t-muted">按来源组计票</span></div>
+        <div class="glass-card" id="xiaoBoard"></div>
+      </section>
+      <section class="section animate-fadeIn d5">
+        <div class="glass-card logic-card">
+          <div class="logic-row"><span>计票单位</span><b>source + group_key</b></div>
+          <div class="logic-row"><span>有效分母</span><b>可用来源组总数</b></div>
+          <div class="logic-row"><span>排除项</span><b>claimed_status = missing</b></div>
+          <div class="logic-row"><span>历史结果</span><b>开奖后冻结，不追随晚到数据变化</b></div>
+        </div>
+      </section>
+      <section class="section animate-fadeIn d5">
+        <div class="method-note"><b>重要：</b>支持率表示“有多少有效来源组支持该候选”，不等于中奖概率。同一来源组内重复出现只计 1 票，用户可以展开候选项查看具体来源证据。</div>
+      </section>
+    </div>
+
+    <div id="playPanel" class="board-panel">
+      <section class="section animate-fadeIn d3">
+        <div class="section-title"><span class="st-dot"></span>玩法组共识 <span class="fs-11 t-muted">领跑组合</span></div>
+        <div id="groupBoard"></div>
+      </section>
+      <section class="section animate-fadeIn d4">
+        <a class="glass-card board-link" href="play-catalog.html"><span>查看全部 21 种支持玩法与编码</span><span>›</span></a>
+      </section>
+    </div>
+
+    <div id="auditPanel" class="board-panel">
+      <section class="section animate-fadeIn d3">
+        <div class="section-title"><span class="st-dot"></span>入库质量</div>
+        <div class="audit-summary"><div class="audit-kpi glass-card"><span>有效来源组</span><b id="auditGroups">12</b></div><div class="audit-kpi glass-card"><span>排除缺期</span><b id="auditExcluded">3</b></div><div class="audit-kpi glass-card"><span>去重后有效票</span><b id="auditVotes">31</b></div><div class="audit-kpi glass-card"><span>快照状态</span><b id="auditSnapshot">实时</b></div></div>
+      </section>
+      <section class="section animate-fadeIn d4">
+        <div class="section-title"><span class="st-dot"></span>来源入库状态</div>
+        <div class="glass-card" style="padding:6px 14px" id="auditList"></div>
+      </section>
+      <section class="section animate-fadeIn d5">
+        <div class="section-title"><span class="st-dot"></span>官方开奖核验</div>
+        <div class="glass-card card-pad" id="drawAudit"></div>
+      </section>
+    </div>
+  </div>
+
+  <nav class="tabbar">
+    <a href="dashboard.html"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>工作台</a>
+    <a href="ai-analysis.html" class="active"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-1.9L19 15z"/></svg>研判</a>
+    <a href="draws.html"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>开奖</a>
+    <a href="records.html"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>记录</a>
+    <a href="profile.html"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>我的</a>
+  </nav>
+</div>
+<script>
+const states={
+  "2026277":{live:true,cutoff:"统计截止 09-26 21:10 · 实时预测版本",num:{v:"26",votes:8,pct:"66.7",sources:["海哥平特一肖／第1组","顶尖大师","管家婆传真","白小组","澳门资料王","龙门客栈","四海资料","红波大师"]},xiao:{v:"蛇",votes:7,pct:"58.3",sources:["海哥平特一肖／第1组","顶尖大师","管家婆传真","白小组","澳门资料王","四海资料","红波大师"]},groups:12,excluded:3,validVotes:31,draw:null,
+    tema:[{v:"26",votes:8,pct:"66.7",bose:"blue",sources:["海哥平特一肖／第1组","顶尖大师","管家婆传真","白小组","澳门资料王","龙门客栈","四海资料","红波大师"]},{v:"14",votes:6,pct:"50.0",bose:"blue",sources:["顶尖大师","管家婆传真","白小组","澳门资料王","资料研究院","龙门客栈"]},{v:"03",votes:5,pct:"41.7",bose:"blue",sources:["海哥平特一肖／第2组","顶尖大师","四海资料","资料研究院","新澳资料"]}],
+    xiao:[{v:"蛇",votes:7,pct:"58.3",sources:["海哥平特一肖／第1组","顶尖大师","管家婆传真","白小组","澳门资料王","四海资料","红波大师"]},{v:"龙",votes:5,pct:"41.7",sources:["海哥平特一肖／第2组","顶尖大师","资料研究院","龙门客栈","新澳资料"]},{v:"鸡",votes:4,pct:"33.3",sources:["管家婆传真","白小组","澳门资料王","红波大师"]}],
+    groupsData:[{name:"特码",code:"tema_n",leader:"26",votes:8,pct:"66.7",sources:["海哥平特一肖","顶尖大师","管家婆传真"],tally:[["26",8],["14",6],["03",5]]},{name:"特肖",code:"texiao",leader:"蛇",votes:7,pct:"58.3",sources:["海哥平特一肖","顶尖大师","管家婆传真"],tally:[["蛇",7],["龙",5],["鸡",4]]},{name:"平特肖",code:"pingte_xiao",leader:"蛇",votes:5,pct:"41.7",sources:["海哥平特一肖","管家婆传真"],tally:[["蛇",5],["龙",3]]}],
+    audit:[{name:"海哥平特一肖",detail:"特肖 · 2 组已入库",status:"已入库",kind:"ok"},{name:"顶尖大师",detail:"特码 / 特肖 · 2 组已入库",status:"已入库",kind:"ok"},{name:"管家婆传真",detail:"平特肖 · 1 组已入库",status:"已入库",kind:"ok"},{name:"肖中特-老钱",detail:"本期未采集",status:"缺期",kind:"missing"}]
+  },
+  "2026276":{live:false,cutoff:"统计截止 09-26 21:32 · 已冻结不可变快照",num:{v:"26",votes:8,pct:"66.7",sources:["海哥平特一肖","顶尖大师","管家婆传真","白小组","澳门资料王","龙门客栈","四海资料","红波大师"]},xiao:{v:"蛇",votes:7,pct:"58.3",sources:["海哥平特一肖","顶尖大师","管家婆传真","白小组","澳门资料王","四海资料","红波大师"]},groups:12,excluded:2,validVotes:31,draw:{nums:["03","11","19","27","34","42"],tema:"26",xiao:"蛇"},
+    tema:[{v:"26",votes:8,pct:"66.7",bose:"blue",hit:true,sources:["海哥平特一肖","顶尖大师","管家婆传真","白小组","澳门资料王","龙门客栈","四海资料","红波大师"]},{v:"14",votes:6,pct:"50.0",bose:"blue",sources:["顶尖大师","管家婆传真","白小组","澳门资料王","资料研究院","龙门客栈"]},{v:"03",votes:5,pct:"41.7",bose:"blue",hit:true,sources:["海哥平特一肖","顶尖大师","四海资料","资料研究院","新澳资料"]}],
+    xiao:[{v:"蛇",votes:7,pct:"58.3",hit:true,sources:["海哥平特一肖","顶尖大师","管家婆传真","白小组","澳门资料王","四海资料","红波大师"]},{v:"龙",votes:5,pct:"41.7",sources:["海哥平特一肖","顶尖大师","资料研究院","龙门客栈","新澳资料"]},{v:"鸡",votes:4,pct:"33.3",sources:["管家婆传真","白小组","澳门资料王","红波大师"]}],
+    groupsData:[{name:"特码",code:"tema_n",leader:"26",votes:8,pct:"66.7",hit:true,sources:["海哥平特一肖","顶尖大师","管家婆传真"],tally:[["26",8],["14",6],["03",5]]},{name:"特肖",code:"texiao",leader:"蛇",votes:7,pct:"58.3",hit:true,sources:["海哥平特一肖","顶尖大师","管家婆传真"],tally:[["蛇",7],["龙",5],["鸡",4]]},{name:"平特肖",code:"pingte_xiao",leader:"蛇",votes:5,pct:"41.7",hit:true,sources:["海哥平特一肖","管家婆传真"],tally:[["蛇",5],["龙",3]]}],
+    audit:[{name:"海哥平特一肖",detail:"平特肖 · 领跑项命中蛇",status:"官方命中",kind:"hit"},{name:"顶尖大师",detail:"特码 · 领跑项命中 26",status:"官方命中",kind:"hit"},{name:"管家婆传真",detail:"平特肖 · 领跑项命中蛇",status:"官方命中",kind:"hit"},{name:"肖中特-老钱",detail:"本期未采集",status:"缺期",kind:"missing"}]
+  }
+};
+let period="2026277";
+const $=s=>document.querySelector(s);
+function current(){return states[period]}
+function renderRank(list,type){return list.map((x,i)=>`<div class="glass-subtle rank-card" style="${i?'margin-top:8px':''}"><div class="rank-head"><span class="rank-no ${i===0?'gold':''}">${i+1}</span>${type==='num'?`<span class="ball sm ${x.bose||'blue'}">${x.v}</span>`:`<span class="xiao">${x.v}</span>`}<div class="rank-main"><div class="rank-name">${type==='num'?x.v+' 号':x.v+'肖'} ${x.hit?'<span class="t-success fs-10">· 官方命中</span>':''}</div><div class="rank-code">${type==='num'?'tema_n':'texiao'} · ${type==='num'?(x.bose==='blue'?'蓝波':'绿波'):'生肖候选'}</div></div><div class="rank-vote"><strong>${x.votes} 票</strong><span>${x.pct}%</span></div></div><div class="rank-track"><div class="progress ${x.hit?'emerald':''}"><i style="width:${x.pct}%"></i></div><span class="rank-support">支持率</span></div><div class="rank-foot"><span class="source-count"><b>${x.sources.length}</b> 个来源组支持</span>${x.hit?'<span class="pill success">已命中</span>':(current().draw?'<span class="pill danger">未命中</span>':'<span class="pill warning">待开奖</span>')}</div><details class="evidence"><summary>查看支持来源与证据</summary><div class="source-list">${x.sources.map(s=>`<span>${s}</span>`).join('')}</div><div class="fs-10 t-muted mt-8">同一来源组内重复预测只计 1 票 · 可下钻到原始预测文本</div></details></div>`).join('')}
+function renderGroups(){return current().groupsData.map((g,i)=>`<div class="glass-card group-card" style="${i?'margin-top:9px':''}"><div class="group-top"><div><div class="group-name">${g.name}</div><div class="group-meta">${g.code} · ${g.sources.length} 个来源组参与</div></div>${g.hit?'<span class="pill success">领跑命中</span>':(current().draw?'<span class="pill danger">领跑未中</span>':'<span class="pill warning">待开奖</span>')}</div><div class="leader"><div><div class="leader-label">玩法组领跑</div><div class="leader-value">${g.leader}</div></div><div class="leader-votes">${g.votes} 票 · ${g.pct}%</div></div><div class="tally-list">${g.tally.map((t,j)=>`<div class="tally-row"><span class="tally-value">${j+1}. ${t[0]}</span><span class="tally-votes">${t[1]} 票</span></div>`).join('')}</div><details class="evidence"><summary>查看该玩法支持来源</summary><div class="source-list">${g.sources.map(s=>`<span>${s}</span>`).join('')}</div></details></div>`).join('')}
+function renderAudit(){const d=current();return `<div class="list">${d.audit.map(a=>`<div class="audit-row"><span class="audit-avatar">${a.name.slice(0,1)}</span><div class="audit-main"><div class="audit-name">${a.name}</div><div class="audit-detail">${a.detail}</div></div><span class="pill ${a.kind==='hit'?'success':a.kind==='missing'?'neutral':'primary'}">${a.status}</span></div>`).join('')}</div>`}
+function renderDraw(){const d=current();if(!d.draw)return `<div class="tc"><span class="pill warning"><span class="dot pulse"></span>尚未开奖</span><div class="fs-11 t-muted mt-12" style="line-height:1.8">当前只展示实时预测共识。官方开奖入库后，系统会以开奖边界前版本生成冻结快照，并自动补写每项命中状态。</div></div>`;return `<div class="flex aic jcb"><span class="fs-12 t-muted">第 <b class="t-strong num">2026276</b> 期官方号码</span><span class="pill success">快照已冻结</span></div><div class="draw-strip">${d.draw.nums.map(n=>`<span class="ball sm ${+n%3===0?'blue':'green'}">${n}</span>`).join('')}<span class="ball-plus">+</span><span class="ball sm gold">${d.draw.tema}</span></div><div class="fs-11 t-muted mt-12">特码 <b class="t-success">${d.draw.tema}</b> · 特肖 <b class="t-success">${d.draw.xiao}</b> · 领跑项已完成官方核验</div>`}
+function render(){const d=current();$('#cutoffCopy').textContent=d.cutoff;$('#freezeBadge').className=`pill ${d.live?'warning':'success'}`;$('#freezeBadge').innerHTML=d.live?'<span class="dot pulse"></span>待开奖':'<span class="dot"></span>已冻结';$('#leaderNum').textContent=d.num.v;$('#leaderNumText').textContent=d.num.v+' 号';$('#leaderNumMeta').textContent=`${d.num.votes} 票 · ${d.num.pct}% · ${d.num.sources.length} 个来源组`;$('#leaderXiao').textContent=d.xiao.v;$('#leaderXiaoText').textContent=d.xiao.v+'肖';$('#leaderXiaoMeta').textContent=`${d.xiao.votes} 票 · ${d.xiao.pct}% · ${d.xiao.sources.length} 个来源组`;$('#decisionQuality').textContent=d.live?'实时榜单':'冻结快照';$('#temaBoard').innerHTML=renderRank(d.tema,'num');$('#xiaoBoard').innerHTML=renderRank(d.xiao,'xiao');$('#groupBoard').innerHTML=renderGroups();$('#auditGroups').textContent=d.groups;$('#auditExcluded').textContent=d.excluded;$('#auditVotes').textContent=d.validVotes;$('#auditSnapshot').textContent=d.live?'实时':'已冻结';$('#auditList').innerHTML=renderAudit();$('#drawAudit').innerHTML=renderDraw();document.querySelectorAll('.period-chip').forEach(b=>{b.classList.toggle('active',b.dataset.period===period);});}
+document.querySelectorAll('.board-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.board-tabs button').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.board-panel').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById(btn.dataset.tab).classList.add('active');}));
+document.querySelectorAll('.period-chip').forEach(btn=>btn.addEventListener('click',()=>{period=btn.dataset.period;render();}));
+render();
+</script>
+</body>
+</html>

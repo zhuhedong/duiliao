@@ -422,6 +422,32 @@ class ConsensusLeader(Base):
     )
 
 
+class ConsensusSnapshot(Base):
+    """Immutable frequency-board snapshot captured around official opening.
+
+    The primary key deliberately covers the whole period, so 特码 and 特肖 are
+    frozen atomically. ``payload`` contains the server-calculated rankings and is
+    never updated by normal ingest, judging, or draw correction. A later explicit
+    rebuild must delete/replace this row only through an administrative action.
+    """
+
+    __tablename__ = "consensus_snapshot"
+
+    lottery: Mapped[str] = mapped_column(String(16), primary_key=True)
+    period: Mapped[str] = mapped_column(String(16), primary_key=True)
+    cutoff_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    frozen_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    algorithm_version: Mapped[str] = mapped_column(String(32), nullable=False, default="frequency-v1")
+    payload_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON_TYPE, nullable=False, default=dict)
+    quality: Mapped[str] = mapped_column(String(24), nullable=False, default="exact")
+    freeze_reason: Mapped[str] = mapped_column(String(32), nullable=False, default="draw_sync")
+
+    __table_args__ = (
+        Index("idx_consensus_snapshot_frozen", "frozen_at"),
+    )
+
+
 class AiReport(Base):
     """Server-side cache for generated AI analysis reports.
 

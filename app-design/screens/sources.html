@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>数据源采集 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">数据源采集</div>
+      <div class="h-sub">定时采集调度 · 运行中</div>
+    </div>
+    <span class="pill success"><span class="dot pulse"></span>调度正常</span>
+    <button class="btn-icon" aria-label="录入脚本">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    </button>
+  </header>
+
+  <div class="screen-body">
+    <!-- KPI 总览 -->
+    <section class="kpi-grid animate-fadeIn" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
+          数据源
+        </div>
+        <div class="k-value t-strong num">28</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          已启用
+        </div>
+        <div class="k-value t-success num">24</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          今日任务
+        </div>
+        <div class="k-value t-primary num">12</div>
+      </div>
+    </section>
+
+    <!-- 搜索 -->
+    <section class="section animate-fadeIn d1">
+      <div class="input">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" placeholder="筛选来源名称/ID…">
+      </div>
+      <!-- 过滤 chips -->
+      <div class="flex gap-8 mt-12" style="overflow-x:auto;padding-bottom:2px;scrollbar-width:none">
+        <span class="pill primary"><span class="dot"></span>全部</span>
+        <span class="chip">已启用</span>
+        <span class="chip">已暂停</span>
+        <span class="chip">异常</span>
+      </div>
+    </section>
+
+    <!-- 数据源列表 -->
+    <section class="animate-fadeIn d2">
+      <div class="glass-card mt-12">
+        <div class="list-item">
+          <div class="li-main">
+            <div class="flex aic gap-8 wrap">
+              <span class="li-title">海哥平特一肖</span>
+              <span class="ztag">平特一肖</span>
+              <span class="pill success"><span class="dot"></span>已启用</span>
+            </div>
+            <div class="li-sub">ID <span class="num">haige_xiao</span> · 最近采集 <span class="num">09-26 21:05</span></div>
+          </div>
+          <div class="li-extra">
+            <div class="li-value t-success num">62%</div>
+            <div class="li-sub2">命中率</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--foreground-muted);flex-shrink:0"><path d="m9 6 6 6-6 6"/></svg>
+        </div>
+        <div class="list-item" style="padding-top:10px;padding-bottom:10px">
+          <div class="li-main flex aic gap-6 fs-12 t-muted">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            调度 <span class="num">每日 12:00 / 21:00</span>
+          </div>
+          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
+        </div>
+      </div>
+
+      <div class="glass-card mt-12">
+        <div class="list-item">
+          <div class="li-main">
+            <div class="flex aic gap-8 wrap">
+              <span class="li-title">顶尖大师</span>
+              <span class="ztag">特码</span>
+              <span class="pill success"><span class="dot"></span>已启用</span>
+            </div>
+            <div class="li-sub">ID <span class="num">top_master</span> · 最近采集 <span class="num">09-26 20:58</span></div>
+          </div>
+          <div class="li-extra">
+            <div class="li-value t-primary num">55%</div>
+            <div class="li-sub2">命中率</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--foreground-muted);flex-shrink:0"><path d="m9 6 6 6-6 6"/></svg>
+        </div>
+        <div class="list-item" style="padding-top:10px;padding-bottom:10px">
+          <div class="li-main flex aic gap-6 fs-12 t-muted">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            调度 <span class="num">每日 12:00 / 21:00</span>
+          </div>
+          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
+        </div>
+      </div>
+
+      <div class="glass-card mt-12">
+        <div class="list-item">
+          <div class="li-main">
+            <div class="flex aic gap-8 wrap">
+              <span class="li-title">管家婆传真</span>
+              <span class="ztag">平特肖</span>
+              <span class="pill success"><span class="dot"></span>已启用</span>
+            </div>
+            <div class="li-sub">ID <span class="num">gjp_fax</span> · 最近采集 <span class="num">09-26 21:02</span></div>
+          </div>
+          <div class="li-extra">
+            <div class="li-value t-warning num">48%</div>
+            <div class="li-sub2">命中率</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--foreground-muted);flex-shrink:0"><path d="m9 6 6 6-6 6"/></svg>
+        </div>
+        <div class="list-item" style="padding-top:10px;padding-bottom:10px">
+          <div class="li-main flex aic gap-6 fs-12 t-muted">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            调度 <span class="num">每日 12:00</span>
+          </div>
+          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
+        </div>
+      </div>
+
+      <div class="glass-card mt-12">
+        <div class="list-item">
+          <div class="li-main">
+            <div class="flex aic gap-8 wrap">
+              <span class="li-title">白小组</span>
+              <span class="ztag">连肖</span>
+              <span class="pill neutral"><span class="dot"></span>已暂停</span>
+            </div>
+            <div class="li-sub">ID <span class="num">bxz</span> · 最近采集 <span class="num">09-24 12:00</span></div>
+          </div>
+          <div class="li-extra">
+            <div class="li-value t-danger num">41%</div>
+            <div class="li-sub2">命中率</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--foreground-muted);flex-shrink:0"><path d="m9 6 6 6-6 6"/></svg>
+        </div>
+        <div class="list-item" style="padding-top:10px;padding-bottom:10px">
+          <div class="li-main flex aic gap-6 fs-12 t-muted">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            调度已暂停
+          </div>
+          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
+        </div>
+      </div>
+
+      <div class="glass-card mt-12">
+        <div class="list-item">
+          <div class="li-main">
+            <div class="flex aic gap-8 wrap">
+              <span class="li-title">肖中特-老钱</span>
+              <span class="ztag">特肖</span>
+              <span class="pill danger"><span class="dot"></span>异常</span>
+            </div>
+            <div class="li-sub">ID <span class="num">xzt_laoqian</span> · 连续 <span class="t-danger num">3</span> 期未采集</div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--foreground-muted);flex-shrink:0"><path d="m9 6 6 6-6 6"/></svg>
+        </div>
+        <div class="list-item" style="padding-top:10px;padding-bottom:10px">
+          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-14 9V3z"/></svg>
+            启动测试运行
+          </button>
+          <div class="li-main"></div>
+          <span class="pill warning"><span class="dot pulse"></span>疑似栏目变更</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部主导航 -->
+  <nav class="tabbar">
+    <a href="dashboard.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      工作台
+    </a>
+    <a href="ai-analysis.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      研判
+    </a>
+    <a href="draws.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+      开奖
+    </a>
+    <a href="records.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      记录
+    </a>
+    <a href="profile.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>

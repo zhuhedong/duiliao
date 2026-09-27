@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>号码分析 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">号码分析</div>
+      <div class="h-sub">澳门六合彩 · 统计窗口</div>
+    </div>
+    <button class="btn-icon" aria-label="筛选">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+    </button>
+  </header>
+
+  <div class="screen-body">
+    <!-- 彩种与统计窗口 -->
+    <section class="section animate-fadeIn" style="margin-top:4px">
+      <div class="flex gap-8 wrap" style="margin-bottom:10px">
+        <span class="pill primary">澳门</span><span class="chip">香港</span><span class="chip">台湾</span><span class="chip">新彩</span>
+      </div>
+      <div class="segmented">
+        <button type="button">近 30 期</button>
+        <button type="button" class="seg-on">近 50 期</button>
+        <button type="button">近 100 期</button>
+      </div>
+    </section>
+
+    <!-- 热号榜 -->
+    <section class="section animate-fadeIn d1">
+      <div class="section-title"><span class="st-dot"></span>热号榜</div>
+      <div class="glass-card card-pad">
+        <div class="ball-row" style="justify-content:space-between">
+          <div class="tc"><span class="ball sm blue">26</span><div class="fs-11 t-primary fw-6 mt-8 num">9 次</div></div>
+          <div class="tc"><span class="ball sm blue">03</span><div class="fs-11 t-muted mt-8 num">8 次</div></div>
+          <div class="tc"><span class="ball sm red">34</span><div class="fs-11 t-muted mt-8 num">8 次</div></div>
+          <div class="tc"><span class="ball sm green">11</span><div class="fs-11 t-muted mt-8 num">7 次</div></div>
+          <div class="tc"><span class="ball sm blue">42</span><div class="fs-11 t-muted mt-8 num">7 次</div></div>
+          <div class="tc"><span class="ball sm red">19</span><div class="fs-11 t-muted mt-8 num">6 次</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 冷号榜 -->
+    <section class="section animate-fadeIn d2">
+      <div class="section-title"><span class="st-dot"></span>冷号榜</div>
+      <div class="glass-card card-pad">
+        <div class="ball-row" style="justify-content:space-around">
+          <div class="tc"><span class="ball sm green">05</span><div class="fs-11 t-muted mt-8 num">1 次</div></div>
+          <div class="tc"><span class="ball sm blue">48</span><div class="fs-11 t-muted mt-8 num">1 次</div></div>
+          <div class="tc"><span class="ball sm blue">31</span><div class="fs-11 t-muted mt-8 num">2 次</div></div>
+          <div class="tc"><span class="ball sm red">12</span><div class="fs-11 t-muted mt-8 num">2 次</div></div>
+          <div class="tc"><span class="ball sm red">45</span><div class="fs-11 t-muted mt-8 num">2 次</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 波色分布 -->
+    <section class="section animate-fadeIn d3">
+      <div class="section-title"><span class="st-dot"></span>波色分布</div>
+      <div class="glass-card card-pad">
+        <div class="flex aic gap-10">
+          <span class="ball sm red" style="width:22px;height:22px;font-size:10px">红</span>
+          <span class="fs-12 t-sub" style="width:34px">红波</span>
+          <div class="progress rose grow"><i style="width:38%"></i></div>
+          <span class="fs-12 fw-6 t-strong num" style="width:36px;text-align:right">38%</span>
+        </div>
+        <div class="flex aic gap-10 mt-12">
+          <span class="ball sm blue" style="width:22px;height:22px;font-size:10px">蓝</span>
+          <span class="fs-12 t-sub" style="width:34px">蓝波</span>
+          <div class="progress grow"><i style="width:34%"></i></div>
+          <span class="fs-12 fw-6 t-strong num" style="width:36px;text-align:right">34%</span>
+        </div>
+        <div class="flex aic gap-10 mt-12">
+          <span class="ball sm green" style="width:22px;height:22px;font-size:10px">绿</span>
+          <span class="fs-12 t-sub" style="width:34px">绿波</span>
+          <div class="progress emerald grow"><i style="width:28%"></i></div>
+          <span class="fs-12 fw-6 t-strong num" style="width:36px;text-align:right">28%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 生肖分布 -->
+    <section class="section animate-fadeIn d4">
+      <div class="section-title"><span class="st-dot"></span>生肖分布</div>
+      <div class="glass-card card-pad">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">鼠</div><div class="fs-11 t-muted mt-8 num">6 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">牛</div><div class="fs-11 t-muted mt-8 num">5 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">虎</div><div class="fs-11 t-muted mt-8 num">4 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">兔</div><div class="fs-11 t-muted mt-8 num">5 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px;border-color:oklch(0.72 0.185 283 / 50%)"><div class="fs-13 fw-7 t-primary">龙</div><div class="fs-11 t-primary fw-7 mt-8 num">8 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px;border-color:oklch(0.72 0.185 283 / 50%)"><div class="fs-13 fw-7 t-primary">蛇</div><div class="fs-11 t-primary fw-7 mt-8 num">9 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">马</div><div class="fs-11 t-muted mt-8 num">4 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">羊</div><div class="fs-11 t-muted mt-8 num">5 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">猴</div><div class="fs-11 t-muted mt-8 num">6 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px;border-color:oklch(0.72 0.185 283 / 50%)"><div class="fs-13 fw-7 t-primary">鸡</div><div class="fs-11 t-primary fw-7 mt-8 num">8 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">狗</div><div class="fs-11 t-muted mt-8 num">5 次</div></div>
+          <div class="glass-subtle tc" style="padding:10px 4px"><div class="fs-13 fw-6 t-sub">猪</div><div class="fs-11 t-muted mt-8 num">4 次</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 属性分布 -->
+    <section class="section animate-fadeIn d5">
+      <div class="section-title"><span class="st-dot"></span>属性分布</div>
+      <div class="glass-card card-pad">
+        <div class="flex aic gap-10">
+          <span class="fs-12 t-sub" style="width:44px">单 / 双</span>
+          <span class="fs-11 t-muted num" style="width:34px;text-align:right">46%</span>
+          <div class="progress grow"><i style="width:46%"></i></div>
+          <span class="fs-11 fw-6 t-primary num" style="width:34px">54%</span>
+        </div>
+        <div class="flex aic gap-10 mt-12">
+          <span class="fs-12 t-sub" style="width:44px">大 / 小</span>
+          <span class="fs-11 fw-6 t-primary num" style="width:34px;text-align:right">52%</span>
+          <div class="progress grow"><i style="width:52%"></i></div>
+          <span class="fs-11 t-muted num" style="width:34px">48%</span>
+        </div>
+        <div class="flex aic gap-10 mt-12">
+          <span class="fs-12 t-sub" style="width:44px">家禽野兽</span>
+          <span class="fs-11 t-muted num" style="width:34px;text-align:right">41%</span>
+          <div class="progress grow"><i style="width:41%"></i></div>
+          <span class="fs-11 fw-6 t-primary num" style="width:34px">59%</span>
+        </div>
+        <div class="flex aic gap-10 mt-12">
+          <span class="fs-12 t-sub" style="width:44px">男肖女肖</span>
+          <span class="fs-11 t-muted num" style="width:34px;text-align:right">47%</span>
+          <div class="progress grow"><i style="width:47%"></i></div>
+          <span class="fs-11 fw-6 t-primary num" style="width:34px">53%</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 五行分布 -->
+    <section class="section animate-fadeIn d5">
+      <div class="section-title"><span class="st-dot"></span>五行分布</div>
+      <div class="glass-card card-pad">
+        <div class="flex gap-8 wrap" style="justify-content:space-between">
+          <span class="chip">金 <b class="t-strong num">9</b></span>
+          <span class="chip">木 <b class="t-strong num">11</b></span>
+          <span class="chip">水 <b class="t-strong num">8</b></span>
+          <span class="chip">火 <b class="t-strong num">10</b></span>
+          <span class="chip">土 <b class="t-strong num">12</b></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部主导航 -->
+  <nav class="tabbar">
+    <a href="dashboard.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      工作台
+    </a>
+    <a href="ai-analysis.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      研判
+    </a>
+    <a href="draws.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+      开奖
+    </a>
+    <a href="records.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      记录
+    </a>
+    <a href="profile.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>

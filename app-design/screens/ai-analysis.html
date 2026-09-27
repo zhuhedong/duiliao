@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AI研判 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">AI研判</div>
+      <div class="h-sub">顶尖大师 · 智能去噪 · 注入上下文</div>
+    </div>
+    <button class="btn-icon" aria-label="历史记录">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+    </button>
+  </header>
+
+  <div class="screen-body">
+    <!-- 模式切换 -->
+    <div class="segmented animate-fadeIn d1" style="margin-top:2px">
+      <button class="seg-on">帖文研判</button>
+      <button>连肖研判</button>
+    </div>
+
+    <!-- 研判参数 -->
+    <section class="section animate-fadeIn d2">
+      <div class="section-title"><span class="st-dot"></span>研判参数</div>
+      <div class="glass-card card-pad">
+        <div class="fs-12 fw-6 t-sub" style="margin:0 2px 7px">彩种</div>
+        <div class="flex gap-8 wrap">
+          <span class="chip" style="background:var(--primary-soft);color:var(--primary-strong);border-color:oklch(0.72 0.185 283 / 35%)">澳门</span>
+          <span class="chip">香港</span>
+           <span class="chip">台湾</span>
+           <span class="chip">新彩</span>
+        </div>
+        <div class="fs-12 fw-6 t-sub mt-12" style="margin:0 2px 7px">期号</div>
+        <div class="flex aic jcb">
+          <span class="fw-7 t-strong">第 <span class="num">2026277</span> 期</span>
+          <span class="fs-11 t-muted">上期 <span class="num">2026276</span> 已开奖</span>
+        </div>
+        <div class="fs-12 fw-6 t-sub mt-12" style="margin:0 2px 7px">数据源(多选)</div>
+        <div class="flex gap-8 wrap">
+          <span class="pill primary">海哥平特一肖</span>
+          <span class="pill primary">顶尖大师</span>
+          <span class="pill primary">管家婆传真</span>
+          <span class="chip">白小组</span>
+        </div>
+        <a class="glow-button mt-16" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          抓取数据
+        </a>
+        <div class="flex aic mt-12">
+          <span class="pill success"><span class="dot"></span>数据已就绪 · 已注入上下文 <span class="num">12</span> 条</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 数据预览 -->
+    <section class="section animate-fadeIn d3">
+      <div class="section-title"><span class="st-dot"></span>数据预览</div>
+      <div class="glass-card" style="padding:6px 16px">
+        <div class="list">
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">海</div>
+            <div class="li-main">
+              <div class="li-title">海哥平特一肖 <span class="fs-11 t-muted" style="font-weight:400">20:14</span></div>
+              <div class="li-sub">本期平特一肖主推蛇肖,防龙、鸡…</div>
+            </div>
+            <span class="pill success">已去噪</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">顶</div>
+            <div class="li-main">
+              <div class="li-title">顶尖大师 <span class="fs-11 t-muted" style="font-weight:400">19:48</span></div>
+              <div class="li-sub">蛇肖临门气势足,兼顾龙肖,特码看小数…</div>
+            </div>
+            <span class="pill success">已去噪</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <div class="li-icon">管</div>
+            <div class="li-main">
+              <div class="li-title">管家婆传真 <span class="fs-11 t-muted" style="font-weight:400">18:02</span></div>
+              <div class="li-sub">本期看好猴肖出头,防狗肖,蓝波走热…</div>
+            </div>
+            <span class="pill success">已去噪</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 连肖数据预览 -->
+    <section class="section animate-fadeIn d4">
+      <div class="section-title"><span class="st-dot"></span>连肖数据预览</div>
+      <div class="glass-card card-pad">
+        <div class="flex aic jcb">
+          <div class="ball-row">
+            <span class="ztag">蛇</span>
+            <span class="ztag">龙</span>
+            <span class="ztag">鸡</span>
+          </div>
+          <span class="fs-11 t-muted num">近 5 期 · 273–277</span>
+        </div>
+        <div class="mt-12" style="display:flex;flex-direction:column;gap:10px">
+          <div class="flex aic gap-8">
+            <span class="fs-12 fw-6 t-strong" style="width:16px">蛇</span>
+            <span class="flex gap-6">
+              <span class="hit-mark hit">✓</span>
+              <span class="hit-mark hit">✓</span>
+              <span class="hit-mark miss">✕</span>
+              <span class="hit-mark hit">✓</span>
+              <span class="hit-mark miss">✕</span>
+            </span>
+            <span class="fs-11 t-muted" style="margin-left:auto">近 5 中 <b class="t-success num">3</b></span>
+          </div>
+          <div class="flex aic gap-8">
+            <span class="fs-12 fw-6 t-strong" style="width:16px">龙</span>
+            <span class="flex gap-6">
+              <span class="hit-mark miss">✕</span>
+              <span class="hit-mark hit">✓</span>
+              <span class="hit-mark hit">✓</span>
+              <span class="hit-mark miss">✕</span>
+              <span class="hit-mark hit">✓</span>
+            </span>
+            <span class="fs-11 t-muted" style="margin-left:auto">近 5 中 <b class="t-success num">3</b></span>
+          </div>
+          <div class="flex aic gap-8">
+            <span class="fs-12 fw-6 t-strong" style="width:16px">鸡</span>
+            <span class="flex gap-6">
+              <span class="hit-mark hit">✓</span>
+              <span class="hit-mark miss">✕</span>
+              <span class="hit-mark miss">✕</span>
+              <span class="hit-mark hit">✓</span>
+              <span class="hit-mark miss">✕</span>
+            </span>
+            <span class="fs-11 t-muted" style="margin-left:auto">近 5 中 <b class="t-warning num">2</b></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Prompt Dock(固定于 tabbar 上方) -->
+    <div class="glass-panel animate-fadeIn d5" style="position:sticky;bottom:calc(var(--tabbar-h) + 10px);margin-top:18px;padding:10px;display:flex;gap:10px;align-items:center;z-index:30">
+      <div class="input" style="flex:1;height:44px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <input type="text" placeholder="输入研判指令,如:综合三源给出本期平特一肖…">
+      </div>
+      <a class="glow-button" href="ai-report.html" style="width:auto;flex-shrink:0;padding:12px 16px">开始研判</a>
+    </div>
+  </div>
+
+  <!-- 底部主导航 -->
+  <nav class="tabbar">
+    <a href="dashboard.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      工作台
+    </a>
+    <a href="ai-analysis.html" class="active">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      研判
+    </a>
+    <a href="draws.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+      开奖
+    </a>
+    <a href="records.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      记录
+    </a>
+    <a href="profile.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>

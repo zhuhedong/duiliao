@@ -48,6 +48,7 @@ export interface IngestStats {
   source_fail: number;
   items: number;
   missing_added: number;
+  snapshots_frozen?: number;
 }
 
 export interface CollectResult {
@@ -99,6 +100,7 @@ export interface DrawSyncResult {
   hits: number;
   dirty_claimed: number;
   deadletter: string[];
+  snapshots_frozen?: number;
 }
 
 export interface JudgeResult {
@@ -130,13 +132,44 @@ export interface ConsensusGroup {
   tally: ConsensusTallyItem[];
 }
 
+export interface ConsensusSourceRef {
+  id: string;
+  name: string;
+  group_key?: string;
+}
+
 export interface AtomTallyItem {
   value: string;
   kind: "num" | "xiao";
   votes: number;
   percentage: number;
-  sources: string[];
+  sources: Array<string | ConsensusSourceRef>;
   hit?: boolean | null;
+}
+
+export interface ConsensusSnapshotMeta {
+  frozen: boolean;
+  frozen_at: string | null;
+  cutoff_at: string | null;
+  algorithm_version: string;
+  payload_hash: string | null;
+  quality: "exact" | "approximate" | null;
+  freeze_reason?: string | null;
+}
+
+export interface FrequencySnapshotPayload {
+  policy?: {
+    count_unit?: string;
+    denominator?: string;
+    excluded_claimed_status?: string[];
+  };
+  totals?: { tema_n?: number; texiao?: number };
+  tema_n?: AtomTallyItem[];
+  texiao?: AtomTallyItem[];
+  atom_tallies?: {
+    tema_n?: AtomTallyItem[];
+    texiao?: AtomTallyItem[];
+  };
 }
 
 export interface ConsensusResult {
@@ -145,6 +178,8 @@ export interface ConsensusResult {
   period: string;
   draw?: DrawRow | null;
   groups: ConsensusGroup[];
+  snapshot?: ConsensusSnapshotMeta;
+  frequency?: FrequencySnapshotPayload;
   atom_tallies?: {
     tema_n?: AtomTallyItem[];
     texiao?: AtomTallyItem[];
@@ -750,6 +785,15 @@ export const collectorApi = {
     const q = new URLSearchParams({ lottery, period });
     if (playType) q.set("play_type", playType);
     return api.get<ConsensusResult>(`/collector/consensus?${q}`);
+  },
+  consensusLatest(lottery: Lottery) {
+    return api.get<{
+      ok: boolean;
+      lottery: Lottery;
+      official_draw_period: string | null;
+      latest_prediction_period: string | null;
+      current_period: string | null;
+    }>(`/collector/consensus/latest?lottery=${encodeURIComponent(lottery)}`);
   },
   ratings(lottery: Lottery, playType: string, windows = "30,50,100") {
     const q = new URLSearchParams({ lottery, play_type: playType, windows });

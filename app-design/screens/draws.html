@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>开奖管理 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">开奖管理</div>
+      <div class="h-sub">自动更新已启动 · 下次同步 21:30</div>
+    </div>
+    <span class="pill success"><span class="dot pulse"></span>自动更新</span>
+    <button class="btn-icon" aria-label="立即同步">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </header>
+
+  <div class="screen-body">
+    <!-- 彩种切换 -->
+    <section class="animate-fadeIn">
+      <div class="segmented">
+        <button class="seg-on">澳门</button>
+        <button>香港</button>
+        <button>台湾</button>
+        <button>新彩</button>
+      </div>
+    </section>
+
+    <!-- 下一期提示条 -->
+    <section class="section animate-fadeIn d1">
+      <div class="glass-subtle card-pad flex aic gap-10" style="padding:12px 14px">
+        <div class="li-icon" style="width:34px;height:34px">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        </div>
+        <div class="grow">
+          <div class="fs-13 fw-6 t-strong">第 <span class="num">2026277</span> 期 · 今晚 <span class="num">21:30</span> 开奖</div>
+          <div class="fs-11 t-muted mt-8" style="margin-top:2px">已预约自动同步与对奖</div>
+        </div>
+        <span class="pill primary">倒计时 <span class="num">03:12:48</span></span>
+      </div>
+    </section>
+
+    <!-- 开奖列表 -->
+    <section class="animate-fadeIn d2">
+      <a class="glass-card card-pad mt-12 animate-fadeIn d2" href="draw-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="flex aic jcb">
+          <div>
+            <div class="fw-7 t-strong">第 <span class="num">2026276</span> 期</div>
+            <div class="fs-11 t-muted" style="margin-top:2px">澳门六合彩 · <span class="num">09-26 21:32</span></div>
+          </div>
+          <span class="pill success"><span class="dot"></span>已对奖</span>
+        </div>
+        <div class="ball-row mt-12" style="justify-content:space-between">
+          <span class="ball blue">03</span>
+          <span class="ball green">11</span>
+          <span class="ball red">19</span>
+          <span class="ball green">27</span>
+          <span class="ball red">34</span>
+          <span class="ball blue">42</span>
+          <span class="ball-plus">+</span>
+          <span class="ball gold">26</span>
+        </div>
+        <div class="ball-row mt-8" style="justify-content:space-between;padding:0 2px">
+          <span class="fs-11 t-muted">龙</span><span class="fs-11 t-muted">猴</span><span class="fs-11 t-muted">鼠</span><span class="fs-11 t-muted">龙</span><span class="fs-11 t-muted">鸡</span><span class="fs-11 t-muted">牛</span><span></span><span class="fs-11 fw-7 t-primary">蛇</span>
+        </div>
+        <div class="flex aic jcb mt-12">
+          <span class="fs-11 t-muted">新增入库 <b class="t-strong num">286</b> 条</span>
+          <span class="fs-11 t-muted">命中 <b class="t-success num">4</b> 源</span>
+        </div>
+      </a>
+
+      <a class="glass-card card-pad mt-12 animate-fadeIn d3" href="draw-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="flex aic jcb">
+          <div>
+            <div class="fw-7 t-strong">第 <span class="num">2026275</span> 期</div>
+            <div class="fs-11 t-muted" style="margin-top:2px">澳门六合彩 · <span class="num">09-25 21:31</span></div>
+          </div>
+          <span class="pill success"><span class="dot"></span>已对奖</span>
+        </div>
+        <div class="ball-row mt-12" style="justify-content:space-between">
+          <span class="ball red">07</span>
+          <span class="ball blue">15</span>
+          <span class="ball green">22</span>
+          <span class="ball red">29</span>
+          <span class="ball green">38</span>
+          <span class="ball red">46</span>
+          <span class="ball-plus">+</span>
+          <span class="ball gold">11</span>
+        </div>
+        <div class="ball-row mt-8" style="justify-content:space-between;padding:0 2px">
+          <span class="fs-11 t-muted">鼠</span><span class="fs-11 t-muted">龙</span><span class="fs-11 t-muted">牛</span><span class="fs-11 t-muted">虎</span><span class="fs-11 t-muted">狗</span><span class="fs-11 t-muted">鸡</span><span></span><span class="fs-11 fw-7 t-primary">猴</span>
+        </div>
+        <div class="flex aic jcb mt-12">
+          <span class="fs-11 t-muted">新增入库 <b class="t-strong num">274</b> 条</span>
+          <span class="fs-11 t-muted">命中 <b class="t-success num">2</b> 源</span>
+        </div>
+      </a>
+
+      <a class="glass-card card-pad mt-12 animate-fadeIn d4" href="draw-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="flex aic jcb">
+          <div>
+            <div class="fw-7 t-strong">第 <span class="num">2026274</span> 期</div>
+            <div class="fs-11 t-muted" style="margin-top:2px">澳门六合彩 · <span class="num">09-24 21:33</span></div>
+          </div>
+          <span class="pill warning"><span class="dot"></span>部分对奖</span>
+        </div>
+        <div class="ball-row mt-12" style="justify-content:space-between">
+          <span class="ball red">02</span>
+          <span class="ball blue">10</span>
+          <span class="ball green">17</span>
+          <span class="ball blue">25</span>
+          <span class="ball green">33</span>
+          <span class="ball blue">41</span>
+          <span class="ball-plus">+</span>
+          <span class="ball gold">44</span>
+        </div>
+        <div class="ball-row mt-8" style="justify-content:space-between;padding:0 2px">
+          <span class="fs-11 t-muted">蛇</span><span class="fs-11 t-muted">鸡</span><span class="fs-11 t-muted">虎</span><span class="fs-11 t-muted">马</span><span class="fs-11 t-muted">狗</span><span class="fs-11 t-muted">牛</span><span></span><span class="fs-11 fw-7 t-primary">猪</span>
+        </div>
+        <div class="flex aic jcb mt-12">
+          <span class="fs-11 t-muted">新增入库 <b class="t-strong num">269</b> 条</span>
+          <span class="fs-11 t-muted">命中 <b class="t-success num">3</b> 源</span>
+        </div>
+      </a>
+
+      <a class="glass-card card-pad mt-12 animate-fadeIn d5" href="draw-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="flex aic jcb">
+          <div>
+            <div class="fw-7 t-strong">第 <span class="num">2026273</span> 期</div>
+            <div class="fs-11 t-muted" style="margin-top:2px">澳门六合彩 · <span class="num">09-23 21:30</span></div>
+          </div>
+          <span class="pill success"><span class="dot"></span>已对奖</span>
+        </div>
+        <div class="ball-row mt-12" style="justify-content:space-between">
+          <span class="ball green">06</span>
+          <span class="ball red">13</span>
+          <span class="ball green">21</span>
+          <span class="ball green">28</span>
+          <span class="ball blue">36</span>
+          <span class="ball green">43</span>
+          <span class="ball-plus">+</span>
+          <span class="ball gold">08</span>
+        </div>
+        <div class="ball-row mt-8" style="justify-content:space-between;padding:0 2px">
+          <span class="fs-11 t-muted">牛</span><span class="fs-11 t-muted">马</span><span class="fs-11 t-muted">虎</span><span class="fs-11 t-muted">兔</span><span class="fs-11 t-muted">蛇</span><span class="fs-11 t-muted">鼠</span><span></span><span class="fs-11 fw-7 t-primary">猪</span>
+        </div>
+      </a>
+    </section>
+  </div>
+
+  <!-- 底部主导航 -->
+  <nav class="tabbar">
+    <a href="dashboard.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      工作台
+    </a>
+    <a href="ai-analysis.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      研判
+    </a>
+    <a href="draws.html" class="active">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+      开奖
+    </a>
+    <a href="records.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      记录
+    </a>
+    <a href="profile.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>

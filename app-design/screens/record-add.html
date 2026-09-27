@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>新增记录 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header center">
+    <a class="btn-icon h-left" href="records.html" aria-label="返回">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </a>
+    <div class="h-title">新增记录</div>
+    <button class="btn-icon h-right" aria-label="帮助">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+    </button>
+  </header>
+
+  <div class="screen-body no-tabbar">
+    <!-- 录入模式切换 -->
+    <section class="animate-fadeIn d1" style="margin-top:8px">
+      <div class="segmented">
+        <a href="record-add.html" class="seg-on">号码单式</a>
+        <a href="record-add-fushi.html">连肖复试</a>
+        <a href="record-add-nbuzhong.html">不中码</a>
+        <a href="play-catalog.html">全部玩法</a>
+      </div>
+    </section>
+
+    <!-- 彩种 -->
+    <section class="section animate-fadeIn d1">
+      <div class="section-title"><span class="st-dot"></span>彩种</div>
+      <div class="glass-card card-pad">
+        <div class="flex gap-8 wrap">
+          <span class="pill primary">澳门</span>
+          <span class="chip">香港</span>
+          <span class="chip">台湾</span>
+          <span class="chip">新彩</span>
+        </div>
+        <a href="play-catalog.html" class="fs-11 t-primary" style="display:inline-flex;align-items:center;gap:4px;margin-top:10px;text-decoration:none">查看彩种与玩法目录
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- 智能录入 -->
+    <section class="section animate-fadeIn d2">
+      <div class="section-title"><span class="st-dot"></span>智能录入</div>
+      <div class="glass-card card-pad">
+        <div class="field" style="margin-bottom:0">
+          <label>粘贴或输入号码文本</label>
+          <div class="input" style="height:auto;min-height:88px;align-items:flex-start;padding:12px 14px">
+            <textarea rows="2" style="flex:1;border:none;outline:none;background:transparent;color:var(--foreground-strong);font-size:14.5px;font-family:inherit;resize:none;line-height:1.6">18.42.39.27.28.14.32.11.26.16个数5</textarea>
+          </div>
+        </div>
+        <div class="flex gap-8 wrap mt-12">
+          <span class="pill success"><span class="dot"></span>已识别 <span class="num">10</span> 个号码 · 单注 <span class="num">¥5</span></span>
+          <span class="pill primary">格式有效</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 识别预览 -->
+    <section class="section animate-fadeIn d2">
+      <div class="section-title"><span class="st-dot"></span>识别预览</div>
+      <div class="glass-card card-pad">
+        <div class="ball-row">
+          <span class="ball sm red">18</span>
+          <span class="ball sm blue">42</span>
+          <span class="ball sm green">39</span>
+          <span class="ball sm green">27</span>
+          <span class="ball sm green">28</span>
+          <span class="ball sm blue">14</span>
+          <span class="ball sm green">32</span>
+          <span class="ball sm green">11</span>
+          <span class="ball sm blue">26</span>
+          <span class="ball sm green">16</span>
+        </div>
+        <div class="flex aic jcb mt-12">
+          <span class="fs-12 t-muted">共 <b class="t-strong num">10</b> 注 × <span class="num">¥5</span> × <span class="num">1</span> 倍</span>
+          <span class="fs-12 t-muted">合计 <b class="t-primary num" style="font-size:20px">¥50</b></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 识别规则 -->
+    <section class="section animate-fadeIn d3">
+      <div class="section-title"><span class="st-dot"></span>识别规则</div>
+      <div class="glass-subtle" style="padding:13px 16px">
+        <div class="fs-11 t-muted" style="line-height:2">① 号码以「.」「,」「空格」「、」分隔,范围 01–49,自动去重、标注波色</div>
+        <div class="fs-11 t-muted" style="line-height:2">② 「个数5」「各5」「×5」「每码5」识别为单注金额;「倍2」「×2倍」识别为倍数</div>
+        <div class="fs-11 t-muted" style="line-height:2">③ 连肖复试:<span class="num">龙牛猴鸡兔复试4连个数10</span> → C(5,4)=<span class="num">5</span> 注组合 × <span class="num">¥10</span></div>
+        <div class="fs-11 t-muted" style="line-height:2">④ 不中码:<span class="num">02.04.06.08.10.12·6不中个数10</span> → 整组 <span class="num">1</span> 注,全不开出即中</div>
+        <div class="fs-11 t-muted" style="line-height:2">⑤ 示例:<span class="num">18.42.39</span>个数5 → <span class="num">3</span> 注 × <span class="num">¥5</span> = <b class="t-sub num">¥15</b></div>
+      </div>
+    </section>
+
+    <!-- 记录信息 -->
+    <section class="section animate-fadeIn d4">
+      <div class="section-title"><span class="st-dot"></span>记录信息</div>
+      <div class="glass-card card-pad">
+        <div class="field">
+          <label>期号</label>
+          <div class="flex gap-8 wrap">
+            <span class="pill primary" style="padding:7px 13px;font-size:12px">第 <span class="num">2026277</span> 期</span>
+            <span class="chip" style="padding:7px 13px;font-size:12px">第 <span class="num">2026276</span> 期</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>玩法（项目完整支持）</label>
+          <div class="fs-11 t-muted" style="margin:0 2px 7px">当前选择：正码 · zhengma_n</div>
+          <div class="flex gap-6 wrap">
+            <span class="pill primary">正码</span>
+            <span class="chip">特码</span><span class="chip">特肖</span><span class="chip">特尾</span><span class="chip">特头</span>
+            <span class="chip">特波</span><span class="chip">两面</span><span class="chip">半波</span><span class="chip">合肖</span>
+            <span class="chip">平特肖</span><span class="chip">平特尾</span><span class="chip">正肖</span>
+            <span class="chip">连肖</span><span class="chip">连尾</span>
+            <span class="chip">二中二</span><span class="chip">三中三</span><span class="chip">三中二</span><span class="chip">二中特</span>
+            <span class="chip">不中码</span><span class="chip">杀肖</span><span class="chip">杀尾</span>
+          </div>
+          <a href="play-catalog.html" class="fs-11 t-primary" style="display:inline-flex;align-items:center;gap:4px;margin-top:9px;text-decoration:none">查看玩法编码与规则
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+          </a>
+        </div>
+        <div class="grid2">
+          <div class="field" style="margin-bottom:0">
+            <label>单注金额</label>
+            <div class="input">
+              <span class="t-muted num">¥</span>
+              <input type="text" value="5" inputmode="numeric">
+            </div>
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>倍数</label>
+            <div class="input" style="justify-content:space-between">
+              <span class="btn-icon" style="width:28px;height:28px;border-radius:9px">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>
+              </span>
+              <input type="text" value="1" inputmode="numeric" style="text-align:center;flex:0 0 40px;font-weight:700">
+              <span class="btn-icon" style="width:28px;height:28px;border-radius:9px;color:var(--primary-strong)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0;margin-top:14px">
+          <label>备注</label>
+          <div class="input">
+            <input type="text" placeholder="可选,如:跟海哥本期主推">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 底部操作条 -->
+    <div class="glass-panel flex aic gap-10 animate-fadeIn d5" style="position:sticky;bottom:16px;padding:12px 14px;margin-top:18px;z-index:30">
+      <div class="fs-11 t-muted" style="white-space:nowrap"><span class="num">10</span> 注 · 合计 <b class="num t-strong" style="font-size:16px">¥50</b></div>
+      <a class="glow-button" href="records.html" style="flex:1">保存记录</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

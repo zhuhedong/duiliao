@@ -136,6 +136,11 @@ def streak(values):
 def ratings(lottery, play_type, windows=(30, 50, 100), period_from=None, period_to=None):
     from audit import history
     from judge import judge_one, draw_view
+
+    windows = tuple(dict.fromkeys(int(window) for window in windows if int(window) > 0))
+    if not windows:
+        raise ValueError("windows must contain at least one positive integer")
+
     with session_scope() as s:
         draw_periods = select(Draw.period.label("period")).where(Draw.lottery == lottery)
         judged_periods = (

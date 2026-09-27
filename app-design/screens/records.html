@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>记录 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">记录</div>
+      <div class="h-sub">智能识别 · 自动对奖</div>
+    </div>
+    <a class="btn-icon" href="record-stats.html" aria-label="统计分析">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 14v3"/><path d="M12 10v7"/><path d="M17 6v11"/></svg>
+    </a>
+    <a class="glow-button" href="record-add.html" style="width:auto;padding:8px 14px;font-size:12.5px">+ 新增</a>
+  </header>
+
+  <div class="screen-body">
+    <!-- 本期汇总 -->
+    <section class="animate-fadeIn d1">
+      <div class="glass-card card-pad">
+        <div class="flex aic jcb">
+          <span class="fs-13 fw-6 t-strong">本期汇总</span>
+          <span class="fs-11 t-muted">第 <span class="num">2026277</span> 期 · 今晚 <span class="num">21:30</span> 开奖</span>
+        </div>
+        <div class="mt-12" style="display:grid;grid-template-columns:repeat(3,1fr);text-align:center">
+          <div>
+            <div class="fs-11 t-muted">本期投入</div>
+            <div class="fw-7 t-strong num" style="font-size:19px;margin-top:5px">¥250</div>
+            <div class="t-muted" style="font-size:10px;margin-top:3px"><span class="num">4</span> 单 · <span class="num">22</span> 注</div>
+          </div>
+          <div style="border-left:1px solid var(--border-muted)">
+            <div class="fs-11 t-muted">累计盈亏</div>
+            <div class="fw-7 t-success num" style="font-size:19px;margin-top:5px">+¥175</div>
+            <div class="t-muted" style="font-size:10px;margin-top:3px">近 30 天</div>
+          </div>
+          <div style="border-left:1px solid var(--border-muted)">
+            <div class="fs-11 t-muted">中单率</div>
+            <div class="fw-7 t-strong num" style="font-size:19px;margin-top:5px">31.9%</div>
+            <div class="t-muted" style="font-size:10px;margin-top:3px"><span class="num">23/72</span> 注</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 过滤 -->
+    <section class="section animate-fadeIn d2">
+      <div class="flex gap-8 wrap">
+        <span class="pill primary" style="padding:6px 13px;font-size:11.5px">全部</span>
+        <span class="chip">待开奖 <b class="num t-warning">4</b></span>
+        <span class="chip">已中奖 <b class="num t-success">3</b></span>
+        <span class="chip">未中 <b class="num">1</b></span>
+      </div>
+    </section>
+
+    <!-- 第 2026277 期 -->
+    <section class="section animate-fadeIn d3">
+      <div class="section-title">
+        <span class="st-dot"></span>第 <span class="num">2026277</span> 期
+        <span class="pill warning" style="margin-left:auto"><span class="dot pulse"></span>待开奖 · 今晚 <span class="num">21:30</span></span>
+      </div>
+
+      <a class="glass-card card-pad" href="record-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="ball-row">
+          <span class="ball sm red">18</span>
+          <span class="ball sm blue">42</span>
+          <span class="ball sm green">39</span>
+          <span class="ball sm green">27</span>
+          <span class="ball sm green">28</span>
+          <span class="ball sm blue">14</span>
+          <span class="ball sm green">32</span>
+          <span class="ball sm green">11</span>
+          <span class="ball sm blue">26</span>
+          <span class="ball sm green">16</span>
+        </div>
+        <div class="flex aic jcb mt-12" style="gap:8px">
+          <div class="flex aic gap-6 wrap">
+            <span class="fs-11 t-muted">单注 <b class="t-strong num">¥5</b> × <span class="num">10</span> 注 = <b class="t-strong num">¥50</b></span>
+            <span class="ztag">正码</span>
+            <span class="fs-11 t-muted">录入 <span class="num">20:14</span></span>
+          </div>
+          <span class="pill neutral">待开奖</span>
+        </div>
+      </a>
+
+      <a class="glass-card card-pad mt-12" href="record-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="ball-row">
+          <span class="ball sm green">05</span>
+          <span class="ball sm blue">20</span>
+          <span class="ball sm green">33</span>
+          <span class="ball sm blue">41</span>
+        </div>
+        <div class="flex aic jcb mt-12" style="gap:8px">
+          <div class="flex aic gap-6 wrap">
+            <span class="fs-11 t-muted">单注 <b class="t-strong num">¥10</b> × <span class="num">4</span> 注 = <b class="t-strong num">¥40</b></span>
+            <span class="ztag">正码</span>
+            <span class="fs-11 t-muted">录入 <span class="num">20:47</span></span>
+          </div>
+          <span class="pill neutral">待开奖</span>
+        </div>
+      </a>
+
+      <a class="glass-card card-pad mt-12" href="record-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="ball-row">
+          <span class="ball sm blue">03</span>
+          <span class="ball sm blue">14</span>
+          <span class="ball sm blue">26</span>
+        </div>
+        <div class="flex aic jcb mt-12" style="gap:8px">
+          <div class="flex aic gap-6 wrap">
+            <span class="fs-11 t-muted">单注 <b class="t-strong num">¥20</b> × <span class="num">3</span> 注 = <b class="t-strong num">¥60</b></span>
+            <span class="ztag">特码</span>
+            <span class="chip" style="padding:2px 8px;font-size:10.5px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/></svg>
+              来自 AI 研判
+            </span>
+            <span class="fs-11 t-muted">录入 <span class="num">21:02</span></span>
+          </div>
+          <span class="pill neutral">待开奖</span>
+        </div>
+      </a>
+
+      <a class="glass-card card-pad mt-12" href="record-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="flex gap-6 wrap">
+          <span class="ztag" style="padding:5px 10px;font-size:12px;border-color:oklch(0.72 0.185 283 / 45%);color:var(--primary-strong)">龙</span>
+          <span class="ztag" style="padding:5px 10px;font-size:12px;border-color:oklch(0.72 0.185 283 / 45%);color:var(--primary-strong)">牛</span>
+          <span class="ztag" style="padding:5px 10px;font-size:12px;border-color:oklch(0.72 0.185 283 / 45%);color:var(--primary-strong)">猴</span>
+          <span class="ztag" style="padding:5px 10px;font-size:12px;border-color:oklch(0.72 0.185 283 / 45%);color:var(--primary-strong)">鸡</span>
+          <span class="ztag" style="padding:5px 10px;font-size:12px;border-color:oklch(0.72 0.185 283 / 45%);color:var(--primary-strong)">兔</span>
+        </div>
+        <div class="flex aic jcb mt-12" style="gap:8px">
+          <div class="flex aic gap-6 wrap">
+            <span class="fs-11 t-muted">复试 <b class="t-strong num">4</b> 连 · C(5,4) <b class="t-strong num">5</b> 注 × <b class="t-strong num">¥10</b> × <b class="t-strong num">2</b> 倍 = <b class="t-strong num">¥100</b></span>
+            <span class="ztag">连肖</span>
+            <span class="ztag">倍 ×2</span>
+            <span class="fs-11 t-muted">录入 <span class="num">21:10</span></span>
+          </div>
+          <span class="pill neutral">待开奖</span>
+        </div>
+      </a>
+    </section>
+
+    <!-- 第 2026276 期 -->
+    <section class="section animate-fadeIn d4">
+      <div class="section-title">
+        <span class="st-dot"></span>第 <span class="num">2026276</span> 期
+        <span class="pill success" style="margin-left:auto">盈亏 <span class="num">+¥95</span></span>
+      </div>
+
+      <a class="glass-card card-pad" href="record-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="ball-row">
+          <span class="ball sm green">06</span>
+          <span class="ball sm green">11</span>
+          <span class="ball sm green">17</span>
+          <span class="ball sm blue">26</span>
+          <span class="ball sm red">30</span>
+          <span class="ball sm blue">42</span>
+        </div>
+        <div class="flex aic jcb mt-12" style="gap:8px">
+          <div class="flex aic gap-6 wrap">
+            <span class="fs-11 t-muted">单注 <b class="t-strong num">¥5</b> × <span class="num">6</span> 注 = <b class="t-strong num">¥30</b></span>
+            <span class="ztag">正码</span>
+          </div>
+          <span class="pill success">中 <span class="num">3</span> 码 <span class="num">+¥75</span></span>
+        </div>
+      </a>
+
+      <a class="glass-card card-pad mt-12" href="record-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="ball-row">
+          <span class="ball sm red">08</span>
+          <span class="ball sm red">19</span>
+          <span class="ball sm green">22</span>
+          <span class="ball sm blue">36</span>
+          <span class="ball sm green">44</span>
+        </div>
+        <div class="flex aic jcb mt-12" style="gap:8px">
+          <div class="flex aic gap-6 wrap">
+            <span class="fs-11 t-muted">单注 <b class="t-strong num">¥10</b> × <span class="num">5</span> 注 = <b class="t-strong num">¥50</b></span>
+            <span class="ztag">正码</span>
+          </div>
+          <span class="pill success">中 <span class="num">1</span> 码 <span class="num">+¥20</span></span>
+        </div>
+      </a>
+    </section>
+
+    <!-- 第 2026275 期 -->
+    <section class="section animate-fadeIn d5">
+      <div class="section-title">
+        <span class="st-dot"></span>第 <span class="num">2026275</span> 期
+        <span class="pill success" style="margin-left:auto">盈亏 <span class="num">+¥10</span></span>
+      </div>
+
+      <a class="glass-card card-pad" href="record-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="ball-row">
+          <span class="ball sm red">01</span>
+          <span class="ball sm red">07</span>
+          <span class="ball sm red">13</span>
+          <span class="ball sm blue">25</span>
+          <span class="ball sm blue">31</span>
+          <span class="ball sm red">46</span>
+        </div>
+        <div class="flex aic jcb mt-12" style="gap:8px">
+          <div class="flex aic gap-6 wrap">
+            <span class="fs-11 t-muted">单注 <b class="t-strong num">¥5</b> × <span class="num">6</span> 注 = <b class="t-strong num">¥30</b></span>
+            <span class="ztag">正码</span>
+          </div>
+          <span class="pill success">中 <span class="num">2</span> 码 <span class="num">+¥40</span></span>
+        </div>
+      </a>
+
+      <a class="glass-card card-pad mt-12" href="record-detail.html" style="display:block;text-decoration:none;color:inherit">
+        <div class="ball-row">
+          <span class="ball sm blue">04</span>
+          <span class="ball sm blue">09</span>
+          <span class="ball sm green">16</span>
+          <span class="ball sm red">24</span>
+          <span class="ball sm blue">37</span>
+          <span class="ball sm blue">48</span>
+        </div>
+        <div class="flex aic jcb mt-12" style="gap:8px">
+          <div class="flex aic gap-6 wrap">
+            <span class="fs-11 t-muted">单注 <b class="t-strong num">¥5</b> × <span class="num">6</span> 注 = <b class="t-strong num">¥30</b></span>
+            <span class="ztag">正码</span>
+          </div>
+          <span class="pill danger">未中 <span class="num">−¥30</span></span>
+        </div>
+      </a>
+    </section>
+  </div>
+
+  <!-- 底部主导航 -->
+  <nav class="tabbar">
+    <a href="dashboard.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      工作台
+    </a>
+    <a href="ai-analysis.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
+      研判
+    </a>
+    <a href="draws.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
+      开奖
+    </a>
+    <a href="records.html" class="active">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      记录
+    </a>
+    <a href="profile.html">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      我的
+    </a>
+  </nav>
+</div>
+</body>
+</html>

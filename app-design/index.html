@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>对料 App · 界面设计总览</title>
+<style>
+  :root {
+    --bg: oklch(0.155 0.028 285);
+    --fg: oklch(0.9 0.012 285);
+    --fg-strong: oklch(0.94 0.008 285);
+    --fg-muted: oklch(0.64 0.022 283);
+    --border: oklch(1 0 0 / 9%);
+    --glass: oklch(0.23 0.032 285 / 55%);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .aurora {
+    position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+    background-color: var(--bg);
+  }
+  .aurora::before {
+    content: ""; position: absolute; inset: -20%;
+    background-image:
+      radial-gradient(42rem 42rem at 12% 8%, oklch(0.62 0.22 283 / 30%), transparent 62%),
+      radial-gradient(38rem 38rem at 88% 12%, oklch(0.6 0.24 310 / 26%), transparent 60%),
+      radial-gradient(46rem 46rem at 85% 88%, oklch(0.55 0.22 250 / 28%), transparent 62%),
+      radial-gradient(34rem 34rem at 8% 85%, oklch(0.6 0.18 200 / 20%), transparent 58%);
+  }
+  .wrap { max-width: 1440px; margin: 0 auto; padding: 48px 40px 80px; }
+
+  /* 头部 */
+  .head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .logo {
+    width: 60px; height: 60px; border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 26px; font-weight: 800;
+    background-image: linear-gradient(135deg, oklch(0.62 0.24 272), oklch(0.585 0.26 290) 52%, oklch(0.62 0.27 322));
+    box-shadow: 0 12px 30px -10px oklch(0.585 0.26 290 / 70%), inset 0 1px 0 oklch(1 0 0 / 25%);
+  }
+  .text-gradient {
+    background-image: linear-gradient(120deg, oklch(0.78 0.16 278), oklch(0.74 0.2 296) 50%, oklch(0.76 0.2 322));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .head h1 { font-size: 30px; font-weight: 800; letter-spacing: 0.06em; }
+  .head .sub { color: var(--fg-muted); font-size: 13px; margin-top: 5px; letter-spacing: 0.04em; }
+  .head .meta { margin-left: auto; display: flex; gap: 10px; flex-wrap: wrap; }
+  .tag {
+    padding: 6px 13px; border-radius: 99px; font-size: 12px; font-weight: 600;
+    background: oklch(1 0 0 / 6%); border: 1px solid var(--border); color: var(--fg);
+  }
+  .tag.b { color: oklch(0.8 0.14 284); border-color: oklch(0.72 0.185 283 / 40%); background: oklch(0.72 0.185 283 / 14%); }
+
+  /* 分组 */
+  .group { margin-top: 46px; }
+  .group-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; font-weight: 700; color: var(--fg-strong); margin-bottom: 20px;
+  }
+  .group-title::before {
+    content: ""; width: 4px; height: 16px; border-radius: 99px;
+    background: linear-gradient(180deg, oklch(0.62 0.24 272), oklch(0.62 0.27 322));
+    box-shadow: 0 0 10px oklch(0.585 0.26 290 / 60%);
+  }
+  .group-title .count { font-size: 11.5px; color: var(--fg-muted); font-weight: 500; }
+
+  /* 手机网格 */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 34px 28px;
+  }
+  .phone-card { text-decoration: none; color: inherit; display: block; }
+  .phone {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 390 / 700;
+    border-radius: 34px;
+    padding: 10px;
+    background: linear-gradient(160deg, oklch(0.3 0.04 285), oklch(0.2 0.03 285));
+    border: 1px solid oklch(1 0 0 / 14%);
+    box-shadow: 0 24px 60px -24px oklch(0 0 0 / 70%), 0 0 0 1px oklch(0 0 0 / 40%), inset 0 1px 0 oklch(1 0 0 / 12%);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s;
+    overflow: hidden;
+  }
+  .phone:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 36px 80px -24px oklch(0.585 0.26 290 / 45%), 0 0 0 1px oklch(0 0 0 / 40%);
+  }
+  .phone .notch {
+    position: absolute; top: 19px; left: 50%; transform: translateX(-50%);
+    width: 86px; height: 22px; border-radius: 99px; background: oklch(0.1 0.02 285);
+    z-index: 3; border: 1px solid oklch(1 0 0 / 6%);
+  }
+  .phone iframe {
+    width: 390px; height: 700px;
+    border: none; border-radius: 26px; background: var(--bg);
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+  .phone .glow {
+    position: absolute; inset: 0; border-radius: 34px; z-index: 2; pointer-events: none;
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 6%);
+  }
+  .phone-card .label {
+    display: flex; align-items: baseline; gap: 8px; margin-top: 14px; padding: 0 4px;
+  }
+  .phone-card .label .name { font-size: 14.5px; font-weight: 700; color: var(--fg-strong); }
+  .phone-card .label .file { font-size: 11px; color: var(--fg-muted); font-family: ui-monospace, monospace; }
+  .phone-card .label .go {
+    margin-left: auto; font-size: 11px; color: oklch(0.8 0.14 284); opacity: 0; transition: opacity 0.2s;
+  }
+  .phone-card:hover .go { opacity: 1; }
+
+  .foot { margin-top: 64px; text-align: center; color: var(--fg-muted); font-size: 12px; letter-spacing: 0.06em; }
+  @media (max-width: 640px) { .wrap { padding: 28px 16px 60px; } }
+</style>
+</head>
+<body>
+<div class="aurora"></div>
+<div class="wrap">
+  <header class="head">
+    <div class="logo">对</div>
+    <div>
+      <h1 class="text-gradient">对料 App 界面设计</h1>
+      <div class="sub">Aurora Glass 移动端设计系统 · 延续 Web 端玻璃拟态与极光渐变 · 共 22 屏</div>
+    </div>
+    <div class="meta">
+      <a class="tag b" href="web/consensus-leaderboard.html" target="_blank" style="text-decoration:none">网页端共识榜 ↗</a>
+      <span class="tag b">暗色主题</span>
+      <span class="tag">玻璃拟态</span>
+      <span class="tag">390pt 画幅</span>
+    </div>
+  </header>
+
+  <section class="group">
+    <div class="group-title">启动与账户 <span class="count">2 屏</span></div>
+    <div class="grid" id="g1"></div>
+  </section>
+
+  <section class="group">
+    <div class="group-title">核心业务 <span class="count">9 屏</span></div>
+    <div class="grid" id="g2"></div>
+  </section>
+
+  <section class="group">
+    <div class="group-title">投注记录与玩法 <span class="count">7 屏</span></div>
+    <div class="grid" id="g5"></div>
+  </section>
+
+  <section class="group">
+    <div class="group-title">质量与监控 <span class="count">2 屏</span></div>
+    <div class="grid" id="g3"></div>
+  </section>
+
+  <section class="group">
+    <div class="group-title">账户与设置 <span class="count">2 屏</span></div>
+    <div class="grid" id="g4"></div>
+  </section>
+
+  <div class="foot">对料 · 多源对料 一体研判 · Aurora Glass Design System</div>
+</div>
+
+<script>
+  const SCREENS = {
+    g1: [
+      ["splash.html", "启动页"],
+      ["login.html", "登录"],
+    ],
+    g2: [
+      ["dashboard.html", "工作台"],
+      ["ai-analysis.html", "AI 研判"],
+      ["ai-report.html", "AI 研判报告"],
+      ["sources.html", "数据源采集"],
+      ["draws.html", "开奖管理"],
+      ["draw-detail.html", "开奖详情"],
+      ["consensus.html", "多源对照"],
+      ["consensus-board.html", "共识排行榜"],
+      ["numbers.html", "号码分析"],
+    ],
+    g5: [
+      ["records.html", "记录"],
+      ["record-add.html", "新增 · 号码单式"],
+      ["record-add-fushi.html", "新增 · 连肖复试"],
+      ["record-add-nbuzhong.html", "新增 · 不中码"],
+      ["record-detail.html", "记录详情"],
+      ["record-stats.html", "记录统计"],
+      ["play-catalog.html", "彩种与玩法目录"],
+    ],
+    g3: [
+      ["ratings.html", "源可信评级"],
+      ["monitor.html", "服务监控"],
+    ],
+    g4: [
+      ["profile.html", "个人中心"],
+      ["settings.html", "系统设置"],
+    ],
+  };
+
+  function mount(groupId, items) {
+    const grid = document.getElementById(groupId);
+    for (const [file, name] of items) {
+      const a = document.createElement("a");
+      a.className = "phone-card";
+      a.href = "screens/" + file;
+      a.target = "_blank";
+      a.innerHTML = `
+        <div class="phone">
+          <div class="notch"></div>
+          <iframe src="screens/${file}" scrolling="no" title="${name}" loading="lazy"></iframe>
+          <div class="glow"></div>
+        </div>
+        <div class="label">
+          <span class="name">${name}</span>
+          <span class="file">${file}</span>
+          <span class="go">打开 →</span>
+        </div>`;
+      grid.appendChild(a);
+    }
+  }
+
+  function fit() {
+    document.querySelectorAll(".phone").forEach((p) => {
+      const inner = p.clientWidth - 20; // padding 10px × 2
+      const scale = inner / 390;
+      const f = p.querySelector("iframe");
+      f.style.transform = `scale(${scale})`;
+      f.style.height = `${(p.clientHeight - 20) / scale}px`;
+    });
+  }
+
+  for (const [gid, items] of Object.entries(SCREENS)) mount(gid, items);
+  fit();
+  window.addEventListener("resize", fit);
+</script>
+</body>
+</html>

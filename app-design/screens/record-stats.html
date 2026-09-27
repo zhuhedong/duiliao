@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>记录统计 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <!-- 状态栏 -->
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <!-- 顶栏 -->
+  <header class="app-header center">
+    <a class="btn-icon h-left" href="records.html" aria-label="返回">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </a>
+    <div class="h-title">记录统计</div>
+    <!-- 右侧留空 -->
+  </header>
+
+  <div class="screen-body no-tabbar">
+    <!-- 时间范围 -->
+    <div class="segmented animate-fadeIn">
+      <button type="button">近 7 天</button>
+      <button type="button" class="seg-on">近 30 天</button>
+      <button type="button">近 90 天</button>
+    </div>
+
+    <!-- KPI 总览 -->
+    <section class="kpi-grid animate-fadeIn d1" style="margin-top:12px">
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+          总投入
+        </div>
+        <div class="k-value t-strong num">¥1,290</div>
+        <div class="k-foot"><span class="num">27</span> 单 · <span class="num">72</span> 注</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+          总派彩
+        </div>
+        <div class="k-value t-strong num">¥1,465</div>
+        <div class="k-foot">中 <span class="num">23</span> 注</div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>
+          净盈亏
+        </div>
+        <div class="k-value t-success num">+¥175</div>
+        <div class="k-foot">环比 <span class="num">+18%</span></div>
+      </div>
+      <div class="kpi">
+        <div class="k-label">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+          中单率
+        </div>
+        <div class="k-value t-primary num">31.9%</div>
+        <div class="k-foot"><span class="num">23/72</span> 注</div>
+      </div>
+    </section>
+
+    <!-- 每日盈亏(双向柱状图) -->
+    <section class="section animate-fadeIn d2">
+      <div class="section-title">
+        <span class="st-dot"></span>每日盈亏
+        <span class="fs-11 t-muted" style="margin-left:auto">近 7 天净 <b class="t-success num">+¥195</b></span>
+      </div>
+      <div class="glass-card card-pad">
+        <div style="position:relative">
+          <div style="display:flex;gap:8px;height:132px">
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;display:flex;align-items:flex-end;justify-content:center"><div class="bar" style="height:37%"></div></div>
+              <div style="flex:1;display:flex;align-items:flex-start;justify-content:center"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;display:flex;align-items:flex-end;justify-content:center"></div>
+              <div style="flex:1;display:flex;align-items:flex-start;justify-content:center"><div class="bar" style="height:21%;border-radius:3px 3px 7px 7px;background:linear-gradient(180deg, oklch(0.6 0.2 15 / 70%), oklch(0.68 0.2 20 / 40%))"></div></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;display:flex;align-items:flex-end;justify-content:center"><div class="bar" style="height:53%"></div></div>
+              <div style="flex:1;display:flex;align-items:flex-start;justify-content:center"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;display:flex;align-items:flex-end;justify-content:center"></div>
+              <div style="flex:1;display:flex;align-items:flex-start;justify-content:center"><div class="bar" style="height:16%;border-radius:3px 3px 7px 7px;background:linear-gradient(180deg, oklch(0.6 0.2 15 / 70%), oklch(0.68 0.2 20 / 40%))"></div></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;display:flex;align-items:flex-end;justify-content:center"><div class="bar" style="height:11%"></div></div>
+              <div style="flex:1;display:flex;align-items:flex-start;justify-content:center"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;display:flex;align-items:flex-end;justify-content:center"><div class="bar" style="height:42%"></div></div>
+              <div style="flex:1;display:flex;align-items:flex-start;justify-content:center"></div>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="flex:1;display:flex;align-items:flex-end;justify-content:center"><div class="bar hot" style="height:100%"></div></div>
+              <div style="flex:1;display:flex;align-items:flex-start;justify-content:center"></div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;top:50%;height:1px;background:var(--border-strong)"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <span class="bar-label" style="flex:1;text-align:center">09-20</span>
+          <span class="bar-label" style="flex:1;text-align:center">09-21</span>
+          <span class="bar-label" style="flex:1;text-align:center">09-22</span>
+          <span class="bar-label" style="flex:1;text-align:center">09-23</span>
+          <span class="bar-label" style="flex:1;text-align:center">09-24</span>
+          <span class="bar-label" style="flex:1;text-align:center">09-25</span>
+          <span class="bar-label t-primary" style="flex:1;text-align:center">09-26</span>
+        </div>
+        <div class="flex aic jcb mt-12">
+          <span class="fs-11 t-muted">最大单日盈利 <b class="t-success num">+¥95</b></span>
+          <span class="fs-11 t-muted">最大单日亏损 <b class="t-danger num">−¥20</b></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 玩法分布 -->
+    <section class="section animate-fadeIn d3">
+      <div class="section-title"><span class="st-dot"></span>玩法分布</div>
+      <div class="glass-card card-pad">
+        <div class="flex aic jcb">
+          <span class="fs-13 fw-6 t-strong">正码</span>
+          <span class="fs-12 t-muted"><b class="t-strong num">¥980</b> · <span class="num">76%</span></span>
+        </div>
+        <div class="progress mt-8"><i style="width:76%"></i></div>
+        <div class="flex aic jcb mt-16">
+          <span class="fs-13 fw-6 t-strong">特码</span>
+          <span class="fs-12 t-muted"><b class="t-strong num">¥310</b> · <span class="num">24%</span></span>
+        </div>
+        <div class="progress emerald mt-8"><i style="width:24%"></i></div>
+      </div>
+    </section>
+
+    <!-- 常中号码 -->
+    <section class="section animate-fadeIn d4">
+      <div class="section-title"><span class="st-dot"></span>常中号码</div>
+      <div class="glass-card" style="padding:6px 16px">
+        <div class="list">
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <span class="ball sm blue">26</span>
+            <div class="li-main">
+              <div class="li-title"><span class="num">26</span> 码 · 蓝波</div>
+              <div class="li-sub">近 30 天中 <span class="num">3</span> 次 · 贡献 <span class="t-success num">+¥210</span></div>
+            </div>
+            <span class="hit-mark hit">✓</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <span class="ball sm green">11</span>
+            <div class="li-main">
+              <div class="li-title"><span class="num">11</span> 码 · 绿波</div>
+              <div class="li-sub">近 30 天中 <span class="num">2</span> 次 · 贡献 <span class="t-success num">+¥140</span></div>
+            </div>
+            <span class="hit-mark hit">✓</span>
+          </div>
+          <div class="list-item" style="padding-left:0;padding-right:0">
+            <span class="ball sm red">07</span>
+            <div class="li-main">
+              <div class="li-title"><span class="num">07</span> 码 · 红波</div>
+              <div class="li-sub">近 30 天中 <span class="num">2</span> 次 · 贡献 <span class="t-success num">+¥70</span></div>
+            </div>
+            <span class="hit-mark hit">✓</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 月度小结 -->
+    <section class="section animate-fadeIn d5">
+      <div class="section-title"><span class="st-dot"></span>月度小结</div>
+      <div class="glass-subtle" style="padding:14px 16px">
+        <div class="fs-12 t-sub" style="line-height:1.8">9 月共 <span class="num">27</span> 单、<span class="num">72</span> 注;投入 ¥1,290,派彩 ¥1,465,净盈亏 <span class="t-success fw-6 num">+¥175</span>。最大单日盈利 <span class="t-success num">+¥95</span>(09-26),最大连挂 <span class="num">3</span> 单。理性记录,量力而行。</div>
+      </div>
+    </section>
+  </div>
+</div>
+</body>
+</html>

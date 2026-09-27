@@ -132,12 +132,13 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
   /// re-enter credentials after the process is killed.
   Future<void> restore({bool requireBiometric = false}) async {
     _emit(const AuthState(phase: AuthPhase.restoring));
-    final stored = await _repository.readRefreshToken();
-    if (stored == null || stored.isEmpty) {
-      _emit(const AuthState(phase: AuthPhase.unauthenticated));
-      return;
-    }
     try {
+      final stored = await _repository.readRefreshToken();
+      if (stored == null || stored.isEmpty) {
+        _emit(const AuthState(phase: AuthPhase.unauthenticated));
+        return;
+      }
+
       final tokens = await _repository.refresh(stored);
       _accessToken = tokens.accessToken;
       // /auth/refresh does not return a user, so the profile is fetched.
@@ -164,6 +165,12 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
       _emit(AuthState(
         phase: AuthPhase.unauthenticated,
         errorMessage: e.isUnauthorized ? null : e.displayMessage,
+      ));
+    } catch (_) {
+      // Storage/plugin failures must not leave the launch gate stuck forever.
+      _emit(const AuthState(
+        phase: AuthPhase.unauthenticated,
+        errorMessage: '无法恢复登录状态，请重新登录',
       ));
     }
   }

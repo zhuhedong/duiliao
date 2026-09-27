@@ -59,6 +59,12 @@ class JudgeRequest(BaseModel):
     period: str
 
 
+class ConsensusFreezeRequest(BaseModel):
+    lottery: Lottery
+    period: str
+    rebuild: bool = False
+
+
 class ConfirmMissingRequest(BaseModel):
     source_id: str
     periods: list[str]
@@ -239,6 +245,27 @@ def consensus(
         raise _bad_request(exc)
 
 
+@router.get("/consensus/latest")
+def consensus_latest(lottery: Lottery, _: User = _user) -> dict[str, Any]:
+    return cb.consensus_latest_period(lottery)
+
+
+@router.post("/consensus/freeze")
+def freeze_consensus(req: ConsensusFreezeRequest, _: User = _staff) -> dict[str, Any]:
+    try:
+        result = cb.freeze_consensus_snapshot(
+            req.lottery,
+            req.period,
+            force=req.rebuild,
+            reason="manual_rebuild" if req.rebuild else "manual_backfill",
+        )
+        if result is None:
+            raise ValueError("该期没有官方开奖或可冻结的频次数据")
+        return {"ok": True, "lottery": req.lottery, "period": req.period, "snapshot": result}
+    except (ValueError, KeyError) as exc:
+        raise _bad_request(exc)
+
+
 @router.get("/ratings")
 def ratings(
     lottery: Lottery,
@@ -249,8 +276,10 @@ def ratings(
     _: User = _user,
 ) -> dict[str, Any]:
     try:
-        parsed = tuple(int(w) for w in windows.split(",") if w.strip())
-        return cb.ratings(lottery, play_type, parsed or (30, 50, 100), period_from, period_to)
+        parsed = tuple(int(w.strip()) for w in windows.split(",") if w.strip())
+        if not parsed or any(window <= 0 for window in parsed):
+            raise ValueError("windows must contain positive integers")
+        return cb.ratings(lottery, play_type, tuple(dict.fromkeys(parsed)), period_from, period_to)
     except (ValueError, KeyError) as exc:
         raise _bad_request(exc)
 
