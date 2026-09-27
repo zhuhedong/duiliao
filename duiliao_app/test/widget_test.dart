@@ -7,7 +7,11 @@ import 'package:duiliao_app/core/storage/cache_store.dart';
 import 'package:duiliao_app/core/storage/secure_store.dart';
 
 void main() {
-  testWidgets('cold start shows the login gate without a stored session', (tester) async {
+  testWidgets('cold start shows the login gate without a stored session', (
+    tester,
+  ) async {
+    // The app shell contains a deliberately repeating Aurora background animation,
+    // so use bounded pumps instead of waiting for a permanently settling frame.
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -17,7 +21,8 @@ void main() {
         child: const DuiliaoApp(),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('登录'), findsOneWidget);
     expect(find.text('账号由管理员在 Web 后台创建'), findsOneWidget);
   });
