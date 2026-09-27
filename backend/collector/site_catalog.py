@@ -153,19 +153,84 @@ def scan(*, site_family: str | None = None, record: bool = True) -> dict[str, An
     return _aggregate(sites)
 
 
+def reconcile_missing(
+    *, site_family: str | None = None, disable_missing: bool = False
+) -> dict[str, Any]:
+    """Preview or apply disabling of sources whose upstream column vanished.
+
+    Discovery never changes source configuration by itself.  Operators can
+    call this explicit governance action after reviewing the missing list; a
+    dry run is returned by default.
+    """
+    current = status(site_family)
+    missing = current.get("missing") or []
+    if current.get("site_family") == "all":
+        # Aggregate entries already carry their family identity.
+        entries = missing
+    else:
+        entries = [{"site_family": current.get("site_family"), **dict(item)} for item in missing]
+    targets: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in entries:
+        for source in item.get("sources") or []:
+            sid = str(source.get("source_id") or "")
+            if sid and sid not in seen:
+                seen.add(sid)
+                targets.append(
+                    {
+                        "source_id": sid,
+                        "source_name": source.get("source_name") or sid,
+                        "site_family": item.get("site_family"),
+                        "upstream_id": item.get("upstream_id") or item.get("path"),
+                    }
+                )
+    if not disable_missing:
+        return {"ok": True, "dry_run": True, "site_family": current.get("site_family"), "items": targets}
+
+    registry = _load_registry()
+    changed: list[dict[str, Any]] = []
+    for target in targets:
+        try:
+            row = registry.get_source(target["source_id"])
+            old_remark = str(row.get("remark") or "").strip()
+            note = f"上游栏目 {target['upstream_id']} 已消失，巡检治理自动停用"
+            remark = old_remark if note in old_remark else (f"{old_remark}；{note}" if old_remark else note)
+            registry.update_source(target["source_id"], {"enabled": False, "remark": remark})
+            changed.append({**target, "enabled": False, "remark": remark})
+        except Exception as exc:
+            changed.append({**target, "enabled": None, "error": str(exc)})
+    return {
+        "ok": all(item.get("enabled") is False for item in changed) if targets else True,
+        "dry_run": False,
+        "site_family": current.get("site_family"),
+        "items": changed,
+    }
+
+
+def _load_registry() -> Any:
+    return importlib.import_module("registry")
+
+
 def main() -> None:
     import argparse
     import json
 
     parser = argparse.ArgumentParser(description="三站点栏目动态巡检")
     sub = parser.add_subparsers(dest="command", required=True)
-    for command in ("scan", "status"):
+    for command in ("scan", "status", "reconcile"):
         item = sub.add_parser(command)
         item.add_argument("--site-family", default="all", choices=["all", *FAMILY_MODULES])
         if command == "scan":
             item.add_argument("--record", action="store_true")
+        if command == "reconcile":
+            item.add_argument("--apply", action="store_true", help="应用停用变更；默认仅预览")
     args = parser.parse_args()
-    result = status(args.site_family) if args.command == "status" else scan(site_family=args.site_family, record=args.record)
+    if args.command == "status":
+        result = status(args.site_family)
+    elif args.command == "scan":
+        result = scan(site_family=args.site_family, record=args.record)
+    else:
+        result = reconcile_missing(site_family=args.site_family, disable_missing=args.apply)
     print(json.dumps(result, ensure_ascii=False))
     if not result.get("ok"):
         raise SystemExit(1)

@@ -1385,6 +1385,13 @@ def catalog_scan(record: bool = True, site_family: str | None = None) -> dict[st
     return site_catalog.scan(site_family=site_family, record=record)
 
 
+def catalog_reconcile(site_family: str | None = None, disable_missing: bool = False) -> dict[str, Any]:
+    bootstrap()
+    import site_catalog
+
+    return site_catalog.reconcile_missing(site_family=site_family, disable_missing=disable_missing)
+
+
 def test_source_script(
     source_id: str,
     lottery: str = "macau",

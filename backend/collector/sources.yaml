@@ -649,8 +649,8 @@ sources:
   hit_mode: any
   script_path: sources/zengshi_xinshui.py
   timeout_sec: 30
-  enabled: true
-  remark: 曾氏心水二肖及对应四码
+  enabled: false
+  remark: 曾氏心水二肖及对应四码；上游栏目 1789905813382 已消失，巡检治理自动停用
   extra:
     title: 曾氏心水  二肖中特
     upstream_id: '1789905813382'
@@ -740,8 +740,8 @@ sources:
   hit_mode: any
   script_path: sources/touzi_dashen.py
   timeout_sec: 30
-  enabled: true
-  remark: 588080.com澳彩投资大神投资三码
+  enabled: false
+  remark: 588080.com澳彩投资大神投资三码；上游栏目 1790066325194 已消失，巡检治理自动停用
   extra:
     title: 澳彩投资大神
     upstream_id: '1790066325194'
@@ -753,8 +753,8 @@ sources:
   hit_mode: any
   script_path: sources/jingzhun_liuma.py
   timeout_sec: 30
-  enabled: true
-  remark: 588080.com精准六码
+  enabled: false
+  remark: 588080.com精准六码；上游栏目 1790066748533 已消失，巡检治理自动停用
   extra:
     title: 精准六码
     upstream_id: '1790066748533'
@@ -766,8 +766,8 @@ sources:
   hit_mode: any
   script_path: sources/jingzhun_erxiao_sima.py
   timeout_sec: 30
-  enabled: true
-  remark: 588080.com精准二肖四码
+  enabled: false
+  remark: 588080.com精准二肖四码；上游栏目 1790067436523 已消失，巡检治理自动停用
   extra:
     title: 精准二肖四码
     upstream_id: '1790067436523'
@@ -1550,8 +1550,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_wuma.py
   timeout_sec: 30
-  enabled: true
-  remark: 588080.com顶尖五码
+  enabled: false
+  remark: 588080.com顶尖五码；上游栏目 1790161228288 已消失，巡检治理自动停用
   extra:
     title: 顶尖五码
     upstream_id: '1790161228288'
@@ -1563,8 +1563,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_vip.py
   timeout_sec: 30
-  enabled: true
-  remark: 588080.com顶尖VIP专属一肖
+  enabled: false
+  remark: 588080.com顶尖VIP专属一肖；上游栏目 1790162951300 已消失，巡检治理自动停用
   extra:
     title: 顶尖VIP专属
     upstream_id: '1790162951300'

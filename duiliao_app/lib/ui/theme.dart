@@ -103,9 +103,12 @@ abstract final class DuiliaoTheme {
           isDark ? const Color(0xFF23233A) : const Color(0xFFEBE9F6),
     );
 
+    final textTheme = _textTheme(scheme, isDark);
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      textTheme: textTheme,
       scaffoldBackgroundColor:
           isDark ? DuiliaoColors.backgroundDark : DuiliaoColors.backgroundLight,
       fontFamilyFallback: const [
@@ -192,6 +195,52 @@ abstract final class DuiliaoTheme {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
+    );
+  }
+
+  static TextTheme _textTheme(ColorScheme scheme, bool isDark) {
+    final base = ThemeData(
+      brightness: isDark ? Brightness.dark : Brightness.light,
+      colorScheme: scheme,
+    ).textTheme;
+    final foreground = scheme.onSurface;
+    final muted = scheme.onSurfaceVariant;
+    return base.copyWith(
+      displaySmall: base.displaySmall?.copyWith(
+        fontSize: 30,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -1.0,
+        color: foreground,
+      ),
+      headlineSmall: base.headlineSmall?.copyWith(
+        fontSize: 24,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.6,
+        color: foreground,
+      ),
+      titleLarge: base.titleLarge?.copyWith(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.35,
+        color: foreground,
+      ),
+      titleMedium: base.titleMedium?.copyWith(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.15,
+        color: foreground,
+      ),
+      titleSmall: base.titleSmall?.copyWith(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: foreground,
+      ),
+      bodyLarge: base.bodyLarge?.copyWith(fontSize: 15, color: foreground),
+      bodyMedium: base.bodyMedium?.copyWith(fontSize: 13, color: foreground),
+      bodySmall: base.bodySmall?.copyWith(fontSize: 12, color: muted),
+      labelLarge: base.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w700),
+      labelMedium: base.labelMedium?.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+      labelSmall: base.labelSmall?.copyWith(fontSize: 10, color: muted),
     );
   }
 }

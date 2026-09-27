@@ -216,6 +216,7 @@ Read endpoints require a logged-in user; mutating / operational endpoints requir
 | GET/PUT | `/draw-config[/{lottery}]` | user / staff | Draw-fetch adapter config |
 | GET | `/catalog/status[?site_family=...]` | user | 588080 / 83191 / 77452 catalog status (aggregate by default) |
 | POST | `/catalog/scan[?site_family=...]` | staff | Run one or all dynamic catalog discovery scans |
+| POST | `/catalog/reconcile[?site_family=...]` | staff | Preview or explicitly disable sources whose columns disappeared |
 | POST | `/sources/batch` | staff | Create reviewed source/script rows in one batch (supports `dry_run`) |
 
 The catalog aggregate walks 83191's wrapper page and local iframe before

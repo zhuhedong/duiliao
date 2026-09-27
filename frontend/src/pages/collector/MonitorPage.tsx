@@ -26,6 +26,7 @@ export function CollectorMonitorPage() {
   const [catalog, setCatalog] = useState<CatalogStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadMonitor = async (lot: Lottery) => {
@@ -68,6 +69,21 @@ export function CollectorMonitorPage() {
     }
   };
 
+  const reconcile = async () => {
+    const missing = catalog?.missing?.length ?? 0;
+    if (!missing || !window.confirm(`将停用 ${missing} 个上游已消失的数据源，是否继续？`)) return;
+    setReconciling(true);
+    setError(null);
+    try {
+      await collectorApi.catalogReconcile(true);
+      setCatalog(await collectorApi.catalogStatus());
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "栏目治理失败");
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   const handleConfirmMissing = async (sourceId: string, periods: string[]) => {
     try {
       await collectorApi.confirmMissing(sourceId, periods);
@@ -102,15 +118,25 @@ export function CollectorMonitorPage() {
         }
         subtitle="实时嗅探网站是否发生改版、栏目下架、URL变更或接口不可用"
         action={
-          <button
-            type="button"
-            onClick={scan}
-            disabled={!canWrite || scanning}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
-          >
-            <RefreshIcon size={14} className={scanning ? "animate-spin" : ""} />
-            <span>{scanning ? "巡检中…" : "立即巡检上游"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={scan}
+              disabled={!canWrite || scanning}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <RefreshIcon size={14} className={scanning ? "animate-spin" : ""} />
+              <span>{scanning ? "巡检中…" : "立即巡检上游"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={reconcile}
+              disabled={!canWrite || reconciling || !(catalog?.missing?.length)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold glass-subtle text-amber-700 dark:text-amber-300 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <span>{reconciling ? "治理中…" : "停用已下线源"}</span>
+            </button>
+          </div>
         }
       >
         <div className="space-y-3">

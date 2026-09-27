@@ -54,8 +54,7 @@ class RatingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: GlassBackground(
-        child: RefreshIndicator(
+      body: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(ratingsProvider(key));
             await ref.read(ratingsProvider(key).future);
@@ -140,7 +139,6 @@ class RatingsScreen extends ConsumerWidget {
             },
           ),
         ),
-      ),
     );
   }
 }

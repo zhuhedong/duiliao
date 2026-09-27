@@ -52,10 +52,9 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: GlassBackground(
-        child: SafeArea(
-          bottom: false,
-          child: Column(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),

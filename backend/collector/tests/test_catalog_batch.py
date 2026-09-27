@@ -161,6 +161,19 @@ class TestSiteCatalog(unittest.TestCase):
         self.assertIn('PATH = "/chajie/new.js"', script)
         self.assertIn('KIND = "num"', script)
 
+    def test_reconcile_missing_defaults_to_preview(self):
+        old_status = site_catalog.status
+        site_catalog.status = lambda _: {
+            "site_family": "fake",
+            "missing": [{"path": "/chajie/old.js", "sources": [{"source_id": "tt_old", "source_name": "旧栏目"}]}],
+        }
+        try:
+            result = site_catalog.reconcile_missing(site_family="fake")
+        finally:
+            site_catalog.status = old_status
+        self.assertTrue(result["dry_run"])
+        self.assertEqual(result["items"][0]["source_id"], "tt_old")
+
     def test_expand_five_period_bundle(self):
         rows = expand_period_ranges(
             [{"period_raw": "265", "pred_raw": "02.09", "claim_raw": "", "full_text": "261-265期特码 02.09"}]

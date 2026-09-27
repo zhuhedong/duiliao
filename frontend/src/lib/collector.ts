@@ -912,4 +912,10 @@ export const collectorApi = {
     const family = siteFamily ? `&site_family=${encodeURIComponent(siteFamily)}` : "";
     return api.post<CatalogStatus>(`/collector/catalog/scan?record=${record}${family}`);
   },
+  catalogReconcile(disableMissing = false, siteFamily?: string) {
+    const family = siteFamily ? `&site_family=${encodeURIComponent(siteFamily)}` : "";
+    return api.post<{ ok: boolean; dry_run: boolean; items: Record<string, unknown>[] }>(
+      `/collector/catalog/reconcile?disable_missing=${disableMissing}${family}`,
+    );
+  },
 };

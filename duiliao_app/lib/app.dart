@@ -9,6 +9,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'core/navigation.dart';
+import 'core/net/api_client.dart';
 import 'core/providers.dart';
 import 'core/storage/secure_store.dart';
 import 'features/auth/auth_controller.dart';
@@ -244,6 +245,61 @@ class _RestoringView extends StatelessWidget {
       );
 }
 
+class _MobileTopBar extends StatelessWidget {
+  const _MobileTopBar({required this.title, required this.session, required this.onProfile});
+
+  final String title;
+  final SessionStatus? session;
+  final VoidCallback onProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    final connected = session == SessionStatus.connected;
+    final connecting = session == SessionStatus.connecting;
+    final statusColor = connected
+        ? DuiliaoColors.hit
+        : connecting
+            ? DuiliaoColors.warning
+            : DuiliaoColors.offline;
+    final statusText = connected ? '链路正常' : connecting ? '连接中' : '链路断开';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+      child: GlassContainer(
+        height: 54,
+        borderRadius: BorderRadius.circular(18),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(shape: BoxShape.circle, gradient: DuiliaoColors.auroraGradient),
+              alignment: Alignment.center,
+              child: const Text('对', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Duiliao · $title', style: context.texts.titleSmall),
+                  Row(children: [
+                    Container(width: 6, height: 6, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
+                    const SizedBox(width: 5),
+                    Text(statusText, style: context.texts.labelSmall?.copyWith(color: statusColor)),
+                  ]),
+                ],
+              ),
+            ),
+            IconButton(onPressed: onProfile, tooltip: '个人中心', icon: const Icon(Icons.person_outline_rounded, size: 20)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
@@ -277,6 +333,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     ref.watch(eventPollerProvider);
     final canOperate = ref.watch(canOperateProvider);
+    final session = ref.watch(sessionStatusProvider).value;
     final pages = <Widget>[
       const HomeScreen(),
       const DrawsScreen(),
@@ -315,10 +372,25 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
         ),
     ];
 
+    final labels = <String>['工作台', '开奖', '对照', '评级', if (canOperate) '采集'];
+    final currentLabel = labels[_index.clamp(0, labels.length - 1)];
+
     return Scaffold(
       extendBody: true,
       body: GlassBackground(
-        child: IndexedStack(index: _index, children: pages),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _MobileTopBar(
+                title: currentLabel,
+                session: session,
+                onProfile: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileScreen())),
+              ),
+              Expanded(child: IndexedStack(index: _index, children: pages)),
+            ],
+          ),
+        ),
       ),
       bottomNavigationBar: GlassFloatingNavigationBar(
         selectedIndex: _index,

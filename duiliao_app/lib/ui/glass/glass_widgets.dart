@@ -23,10 +23,12 @@ class GlassBackground extends StatefulWidget {
     super.key,
     required this.child,
     this.showOrbs = true,
+    this.showGrid = true,
   });
 
   final Widget child;
   final bool showOrbs;
+  final bool showGrid;
 
   @override
   State<GlassBackground> createState() => _GlassBackgroundState();
@@ -41,7 +43,7 @@ class _GlassBackgroundState extends State<GlassBackground>
     super.initState();
     _drift = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 28),
+      duration: const Duration(seconds: 36),
     );
     if (widget.showOrbs) _drift.repeat();
   }
@@ -73,6 +75,7 @@ class _GlassBackgroundState extends State<GlassBackground>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
 
     final bgColor =
         isDark ? DuiliaoColors.backgroundDark : DuiliaoColors.backgroundLight;
@@ -82,7 +85,8 @@ class _GlassBackgroundState extends State<GlassBackground>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (widget.showOrbs)
+          if (widget.showGrid) const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _AuroraGridPainter()))),
+          if (widget.showOrbs && !reduceMotion)
             AnimatedBuilder(
               animation: _drift,
               builder: (context, _) => Stack(
@@ -143,11 +147,38 @@ class _GlassBackgroundState extends State<GlassBackground>
                 ],
               ),
             ),
+          if (widget.showOrbs && reduceMotion)
+            const Positioned(
+              top: -70,
+              left: -50,
+              child: _AmbientOrb(size: 330, color: DuiliaoColors.auroraViolet),
+            ),
           widget.child,
         ],
       ),
     );
   }
+}
+
+class _AuroraGridPainter extends CustomPainter {
+  const _AuroraGridPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = DuiliaoColors.primary.withValues(alpha: 0.035)
+      ..strokeWidth = 0.6;
+    const gap = 44.0;
+    for (double x = 0; x < size.width; x += gap) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+    }
+    for (double y = 0; y < size.height; y += gap) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _AmbientOrb extends StatelessWidget {

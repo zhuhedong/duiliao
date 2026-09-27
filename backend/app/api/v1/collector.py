@@ -517,6 +517,19 @@ def catalog_scan(
         raise _bad_request(exc)
 
 
+@router.post("/catalog/reconcile")
+def catalog_reconcile(
+    disable_missing: bool = False,
+    site_family: str | None = Query(None),
+    _: User = _staff,
+) -> dict[str, Any]:
+    """Preview or explicitly disable sources whose upstream column vanished."""
+    try:
+        return cb.catalog_reconcile(site_family=site_family, disable_missing=disable_missing)
+    except (ValueError, RuntimeError) as exc:
+        raise _bad_request(exc)
+
+
 # --------------------------------------------------------------------------- #
 # Script execution & testing
 # --------------------------------------------------------------------------- #

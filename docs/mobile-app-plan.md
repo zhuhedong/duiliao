@@ -76,6 +76,7 @@ POST /collector/schedules  PUT/DELETE /schedules/{id}
 POST /collector/schedules/{id}/trigger
 POST /collector/missing/confirm
 POST /collector/catalog/scan ?site_family（指定站点或三站点批量巡检）
+POST /collector/catalog/reconcile ?site_family&disable_missing（默认仅预览）
 POST /collector/sources/batch（批量接入已审核的来源脚本）
 ```
 
