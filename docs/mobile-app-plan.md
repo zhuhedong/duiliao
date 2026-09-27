@@ -84,7 +84,7 @@ POST /collector/sources/batch（批量接入已审核的来源脚本）
 
 `frontend/src/lib/collector.ts` 已把全部响应结构 TypeScript 化：
 
-`DrawRow` / `DrawSummary` / `NumberAttr` / `LianxiaoGroup` / `AdjacentLianxiao` / `PredAtom` / `ConsensusResult` / `ConsensusGroup` / `AtomTallyItem` / `RatingsResult` / `RatingRow` / `MonitorRow` / `RuleRow` / `PeriodComparisonResult` / `ComparisonItem` / `CollectorSource` / `CollectionSchedule` / `ScriptRunResult` / `DrawSchedulerStatus` / `CatalogStatus`
+`DrawRow` / `DrawSummary` / `NumberAttr` / `LianxiaoGroup` / `AdjacentLianxiao` / `PredAtom` / `ConsensusResult` / `ConsensusGroup` / `AtomTallyItem` / `RatingsResult` / `RatingRow` / `MonitorRow` / `RuleRow` / `PeriodComparisonResult` / `ComparisonItem` / `CollectorSource` / `CollectionSchedule` / `ScriptRunResult` / `DrawSchedulerStatus` / `CatalogStatus`（含各站点 `deep_analysis` 与入口身份分析）
 
 **Dart 模型层照它 1:1 移植即可**，不需要反推后端。这省掉大量工作。
 

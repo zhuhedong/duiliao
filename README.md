@@ -219,10 +219,14 @@ Read endpoints require a logged-in user; mutating / operational endpoints requir
 | POST | `/catalog/reconcile[?site_family=...]` | staff | Preview or explicitly disable sources whose columns disappeared |
 | POST | `/sources/batch` | staff | Create reviewed source/script rows in one batch (supports `dry_run`) |
 
-The catalog aggregate walks 83191's wrapper page and local iframe before
-comparing the generated `/chajie/*.js` list, and probes 77452's 69 subpages
-concurrently.  New or disappeared columns stay visible as `pending` / `missing`
-until a reviewed source batch is attached.
+The catalog aggregate performs site-specific live analysis instead of trusting
+the existing source registry: 588080 fetches every visible content component's
+`byid` HTML and records its period/claim/asset structure; 83191 follows the
+wrapper and iframe, rebuilds each `document.writeln` script, and parses its
+rendered rows; 77452 probes the live `amtz` range, parses each table row, and
+checks the gateway identity separately from the prediction path.  New or
+disappeared columns stay visible as `pending` / `missing` until a reviewed
+source batch is attached.
 
 ### Offline try-out
 

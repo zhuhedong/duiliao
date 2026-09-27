@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -34,6 +36,8 @@ SCRIPT_RE = re.compile(r"/chajie/[A-Za-z0-9_]+\.js")
 IFRAME_RE = re.compile(r"<iframe[^>]+(?:src|data-src)\s*=\s*['\"]([^'\"]+)['\"]", re.I)
 EMBED_RE = re.compile(r"(?:src|data-src)\s*=\s*['\"]([^'\"]+)['\"]", re.I)
 URL_RE = re.compile(r"""urls_for\(\s*['"]([^'"]+)['"]\s*\)""")
+DOC_WRITE_RE = re.compile(r"""document\.write(?:ln)?\s*\(\s*([\"'])(.*?)\1\s*\)""", re.DOTALL)
+PERIOD_RE = re.compile(r"(?:第\s*)?(\d{1,7})\s*期")
 
 
 def now_iso() -> str:
@@ -92,6 +96,111 @@ def extract_iframe_paths(html: str) -> list[str]:
         if path not in result:
             result.append(path)
     return result
+
+
+def reconstruct_script_html(raw: str) -> str:
+    """Render the HTML emitted by the site's document.writeln scripts."""
+    matches = DOC_WRITE_RE.findall(raw or "")
+    if not matches:
+        return raw or ""
+    return "\n".join(value.replace(r'\"', '"').replace(r"\'", "'") for _, value in matches)
+
+
+def analyze_script(host: str, path: str, *, timeout: float = 12.0) -> dict[str, Any]:
+    """Fetch and parse one live /chajie script, independent of local sources."""
+    url = f"{host.rstrip('/')}{path}"
+    try:
+        response = get(url, timeout=timeout, retries=1)
+        raw = response.text or ""
+        rendered = reconstruct_script_html(raw)
+        text = " ".join(strip_html(rendered).split())
+        row_texts = []
+        for row in re.findall(r"<tr\b[^>]*>(.*?)</tr>", rendered, re.I | re.S):
+            value = " ".join(strip_html(row).split())
+            if value:
+                row_texts.append(value)
+        records = []
+        for value in row_texts:
+            match = PERIOD_RE.search(value)
+            if not match:
+                continue
+            compact = re.sub(r"\s+", "", value)
+            status = "pending" if any(mark in compact for mark in ("?00", "？00", "0000", "發00", "发00")) else "miss" if any(mark in compact for mark in ("错", "錯", "挂", "掛")) else "hit" if any(mark in compact for mark in ("准", "準", "中")) else "unknown"
+            records.append({"period": int(match.group(1)), "status": status, "sample": value[:260]})
+        title_match = re.search(r"class=[\"'][^\"']*tit[^\"']*[\"'][^>]*>(.*?)</", rendered, re.I | re.S)
+        title = " ".join(strip_html(title_match.group(1)).split()) if title_match else Path(path).stem
+        image_count = len(re.findall(r"<img\b", rendered, re.I))
+        external_count = len(re.findall(r"https?://", rendered, re.I))
+        if records:
+            parser_hint = "document_write_table_rows"
+            content_kind = "prediction_markup"
+        elif image_count:
+            parser_hint = "image_ocr"
+            content_kind = "image_markup"
+        elif external_count or "iframe" in rendered.lower():
+            parser_hint = "external_embed"
+            content_kind = "external"
+        elif text:
+            parser_hint = "free_text_review"
+            content_kind = "text"
+        else:
+            parser_hint = "empty_script"
+            content_kind = "empty"
+        return {
+            "path": path,
+            "url": str(response.url),
+            "ok": True,
+            "status_code": response.status_code,
+            "content_hash": hashlib.sha256(raw.encode("utf-8")).hexdigest() if raw else None,
+            "raw_length": len(raw),
+            "rendered_length": len(rendered),
+            "title": title[:120],
+            "content_kind": content_kind,
+            "parser_hint": parser_hint,
+            "row_count": len(row_texts),
+            "record_count": len(records),
+            "latest_period": max((row["period"] for row in records), default=None),
+            "status_counts": {status: sum(row["status"] == status for row in records) for status in ("hit", "miss", "pending", "unknown")},
+            "image_count": image_count,
+            "external_count": external_count,
+            "sample": text[:360],
+            "records": records[-8:],
+        }
+    except Exception as exc:
+        return {
+            "path": path,
+            "url": url,
+            "ok": False,
+            "content_kind": "fetch_error",
+            "parser_hint": "fetch_error",
+            "error": str(exc),
+        }
+
+
+def analyze_gateway(entries: list[str], active_host: str, expected_title: str) -> dict[str, Any]:
+    probes: list[dict[str, Any]] = []
+    for entry in [*entries, active_host.rstrip("/") + "/83191.html"]:
+        try:
+            response = get(entry, timeout=8, retries=0)
+            raw = response.text or ""
+            title_match = re.search(r"<title[^>]*>(.*?)</title>", raw, re.I | re.S)
+            title = " ".join(strip_html(title_match.group(1)).split()) if title_match else ""
+            probes.append(
+                {
+                    "entry": entry,
+                    "final_url": str(response.url),
+                    "status_code": response.status_code,
+                    "title": title[:160],
+                    "script_count": len(extract_script_paths(raw)),
+                    "identity_match": expected_title in title or "通天" in raw,
+                }
+            )
+        except Exception as exc:
+            probes.append({"entry": entry, "ok": False, "error": str(exc)})
+    return {
+        "probes": probes,
+        "identity": "content_route" if any(item.get("identity_match") for item in probes) else "route_only_or_mismatch",
+    }
 
 
 def discover_homepage_scripts(
@@ -183,6 +292,7 @@ def compare_inventory(
     cfg: dict[str, Any],
     *,
     ignored: dict[str, str] | None = None,
+    details: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     registered = local_inventory(cfg)
     ignored = ignored if ignored is not None else catalog_config(cfg)["ignored"]
@@ -209,6 +319,7 @@ def compare_inventory(
                 "coverage": coverage,
                 "sources": sources,
                 "ignore_reason": reason,
+                "analysis": (details or {}).get(path) or {"ok": False, "parser_hint": "not_fetched"},
             }
         )
 
@@ -252,15 +363,27 @@ def scan(*, record: bool = True) -> dict[str, Any]:
         raise RuntimeError("未发现可用的 83191.com 线路")
     active_host = hosts[0]
     paths, pages_scanned, page_errors = discover_homepage_scripts(active_host)
-    compared = compare_inventory(paths, cfg, ignored=settings["ignored"])
+    with ThreadPoolExecutor(max_workers=min(16, max(1, len(paths)))) as executor:
+        analyses = list(executor.map(lambda path: analyze_script(active_host, path), paths))
+    details = {item["path"]: item for item in analyses}
+    compared = compare_inventory(paths, cfg, ignored=settings["ignored"], details=details)
     for item in compared["pending"]:
-        item["sample"] = _sample(active_host, item["path"])
+        item["sample"] = (item.get("analysis") or {}).get("sample") or _sample(active_host, item["path"])
+    hint_counts: dict[str, int] = {}
+    kind_counts: dict[str, int] = {}
+    for item in compared["items"]:
+        analysis = item.get("analysis") or {}
+        hint = str(analysis.get("parser_hint") or "unknown")
+        kind = str(analysis.get("content_kind") or "unknown")
+        hint_counts[hint] = hint_counts.get(hint, 0) + 1
+        kind_counts[kind] = kind_counts.get(kind, 0) + 1
     result = {
         "ok": True,
         "enabled": watcher_enabled(),
         "interval_minutes": interval_minutes(),
         "active_host": active_host,
         "hosts": hosts,
+        "gateway_analysis": analyze_gateway(settings["entry_urls"], active_host, settings["expected_title"]),
         "last_attempt_at": started_at,
         "last_success_at": now_iso(),
         "last_error": None,
@@ -270,6 +393,14 @@ def scan(*, record: bool = True) -> dict[str, Any]:
         "homepage_errors": page_errors[-10:],
         "scan_duration_ms": int((time.monotonic() - started) * 1000),
         "discovery_warnings": discovery_errors[-10:],
+        "deep_analysis": {
+            "scripts_attempted": len(paths),
+            "scripts_succeeded": sum(bool(item.get("ok")) for item in analyses),
+            "rendered_rows": sum(int(item.get("record_count") or 0) for item in analyses),
+            "latest_period": max((int(item["latest_period"]) for item in analyses if item.get("latest_period") is not None), default=None),
+            "parser_hints": hint_counts,
+            "content_kinds": kind_counts,
+        },
         **compared,
     }
     if record:
@@ -295,17 +426,21 @@ def _write_report(result: dict[str, Any]) -> None:
         "",
         f"- 巡检时间：{result['last_success_at']}",
         f"- 当前线路：`{result['active_host']}`",
+        f"- 入口/内容身份：{(result.get('gateway_analysis') or {}).get('identity', 'unknown')}",
         f"- 深度页面：{len(result.get('homepage_pages') or [])}；扫描耗时：{result.get('scan_duration_ms', 0)} ms",
         f"- 首页脚本：{result['content_total']}；已纳管/已知：{result['known_components']}；已启用：{result['enabled_components']}；待接入：{len(result['pending'])}；首页已下架：{len(result['missing'])}",
+        f"- 脚本深解析：{(result.get('deep_analysis') or {}).get('scripts_succeeded', 0)}/{(result.get('deep_analysis') or {}).get('scripts_attempted', 0)}；渲染期数：{(result.get('deep_analysis') or {}).get('rendered_rows', 0)}；最新期：{(result.get('deep_analysis') or {}).get('latest_period') or '—'}",
         "",
-        "| 脚本 | 状态 | 本地来源 | 说明 |",
-        "|---|---|---|---|",
+        "| 脚本 | 状态 | 内容类型 | 解析契约 | 期数 | 本地来源 | 说明 |",
+        "|---|---|---|---:|---:|---|---|",
     ]
     for item in result["items"]:
         local = "、".join(source["source_id"] for source in item["sources"]) or "—"
-        note = item.get("ignore_reason") or item.get("sample") or ""
+        analysis = item.get("analysis") or {}
+        note = item.get("ignore_reason") or analysis.get("sample") or item.get("sample") or ""
         lines.append(
-            f"| `{item['path']}` | {labels.get(item['coverage'], item['coverage'])} | {local} | {note.replace('|', '/')} |"
+            f"| `{item['path']}` | {labels.get(item['coverage'], item['coverage'])} | {analysis.get('content_kind', '—')} | "
+            f"{analysis.get('parser_hint', '—')} | {analysis.get('record_count', 0)} | {local} | {note.replace('|', '/')} |"
         )
     if result["missing"]:
         lines += ["", "## 首页已下架但仍启用", ""]
@@ -327,6 +462,8 @@ def status() -> dict[str, Any]:
     value.setdefault("items", [])
     value.setdefault("pending", [])
     value.setdefault("missing", [])
+    value.setdefault("deep_analysis", {})
+    value.setdefault("gateway_analysis", {})
     return value
 
 

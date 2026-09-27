@@ -8,6 +8,7 @@ import json
 import os
 import re
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -15,7 +16,7 @@ from typing import Any, Callable
 from sqlalchemy import select
 
 from common import ROOT
-from common.http import get_json
+from common.http import get, get_json
 from common.parse_pred import strip_html
 from common.sites.dingjian import (
     CATALOG_PATH,
@@ -35,6 +36,9 @@ SETTING_KEY = "source_catalog"
 SITE_FAMILY = "dingjian_dashi"
 UPSTREAM_RE = re.compile(r"config/byid/(\d+)")
 ASSET_RE = re.compile(r"(?:src|href)\s*=\s*['\"]([^'\"]+)['\"]", re.I)
+PERIOD_RE = re.compile(r"(?:第\s*)?(\d{1,7})\s*期")
+XIAO_RE = re.compile(r"[鼠牛虎兔龙龍蛇马馬羊猴鸡雞狗猪豬]")
+NUMBER_RE = re.compile(r"(?<!\d)(?:0?[1-9]|[1-4]\d)(?!\d)")
 
 
 def now_iso() -> str:
@@ -112,11 +116,12 @@ def local_inventory(cfg: dict[str, Any], script_root: Path | None = None) -> tup
     return registered, scripts
 
 
-def classify_content(content: str | None) -> dict[str, Any]:
+def classify_content(content: str | None, *, source: str = "catalog", name: str | None = None) -> dict[str, Any]:
     raw = content or ""
     text = strip_html(raw)
-    assets = list(dict.fromkeys(ASSET_RE.findall(raw)))[:12]
-    has_periods = bool(re.search(r"(?:第\s*)?\d{1,7}\s*期", text))
+    assets = list(dict.fromkeys(ASSET_RE.findall(raw)))[:20]
+    periods = [int(value) for value in PERIOD_RE.findall(text)]
+    has_periods = bool(periods)
     links = [value for value in assets if not re.search(r"\.(?:gif|jpe?g|png|webp|svg)(?:[?#]|$)", value, re.I)]
     images = [value for value in assets if value not in links]
     if has_periods:
@@ -129,11 +134,76 @@ def classify_content(content: str | None) -> dict[str, Any]:
         kind = "unknown_text"
     else:
         kind = "empty"
+
+    # The component API returns arbitrary author HTML.  Keep a structural
+    # profile beside the old coverage classification so onboarding decisions
+    # come from the live markup instead of a source name or a stale script.
+    chunks = [chunk.strip() for chunk in re.split(r"(?=(?:第\s*)?\d{1,7}\s*期)", text) if chunk.strip()]
+    records: list[dict[str, Any]] = []
+    for chunk in chunks[:80]:
+        period_match = PERIOD_RE.search(chunk)
+        if not period_match:
+            continue
+        claim_match = re.search(r"(?:开奖|開獎|开|開)\s*[:：]?\s*([^\n]{0,60})", chunk)
+        claim = claim_match.group(1).strip() if claim_match else ""
+        compact = re.sub(r"\s+", "", claim or chunk)
+        if any(mark in compact for mark in ("?00", "？00", "猫00", "貓00", "發00", "发00", "0000", "發88", "发88")):
+            status = "pending"
+        elif any(mark in compact for mark in ("错", "錯", "挂", "掛", "未中")):
+            status = "miss"
+        elif any(mark in compact for mark in ("准", "準", "中")):
+            status = "hit"
+        else:
+            status = "unknown"
+        records.append(
+            {
+                "period": int(period_match.group(1)),
+                "status": status,
+                "sample": chunk[:320],
+            }
+        )
+    zodiac_count = len(XIAO_RE.findall(text))
+    number_count = len(NUMBER_RE.findall(text))
+    if kind == "image" and has_periods:
+        parser_hint = "period_image_ocr"
+    elif kind == "external":
+        parser_hint = "external_link"
+    elif kind == "empty":
+        parser_hint = "empty_detail"
+    elif records and zodiac_count and number_count:
+        parser_hint = "period_prediction_claim"
+    elif records and (zodiac_count or number_count):
+        parser_hint = "period_prediction_text"
+    elif records:
+        parser_hint = "period_text_review"
+    elif text:
+        parser_hint = "free_text_review"
+    else:
+        parser_hint = "empty_detail"
     return {
         "content_kind": kind,
         "assets": assets,
         "sample": text[:1200],
         "content_hash": hashlib.sha256(raw.encode("utf-8")).hexdigest() if raw else None,
+        "analysis": {
+            "source": source,
+            "name": name,
+            "html_length": len(raw),
+            "text_length": len(text),
+            "period_count": len(periods),
+            "latest_period": max(periods) if periods else None,
+            "image_count": len(images),
+            "external_link_count": len(links),
+            "table_count": len(re.findall(r"<table\b", raw, re.I)),
+            "section_count": len(re.findall(r"<(?:div|section|article)\b", raw, re.I)),
+            "script_count": len(re.findall(r"<script\b", raw, re.I)),
+            "zodiac_token_count": zodiac_count,
+            "number_token_count": number_count,
+            "record_count": len(records),
+            "status_counts": {status: sum(row["status"] == status for row in records) for status in ("hit", "miss", "pending", "unknown")},
+            "parser_hint": parser_hint,
+            "records": records[-12:],
+        },
     }
 
 
@@ -192,17 +262,31 @@ def compare_inventory(
             coverage = "untracked"
 
         content = row.pop("content")
-        if (content is None or not str(content).strip()) and coverage in {"ignored", "untracked"} and detail_loader:
-            detail = detail_loader(upstream_id) or {}
-            content = detail.get("content")
+        detail_source = "catalog"
+        detail_error = None
+        if detail_loader:
+            try:
+                detail = detail_loader(upstream_id) or {}
+                detail_content = detail.get("content")
+                if detail_content is not None:
+                    content = detail_content
+                    detail_source = "detail_api"
+                elif detail:
+                    detail_source = "detail_empty"
+            except Exception as exc:  # defensive: one malformed component must not hide the catalog
+                detail_error = str(exc)
+                detail_source = "detail_error"
+        profile = classify_content(content, source=detail_source, name=row["name"])
         item = {
             **row,
-            **classify_content(content),
+            **profile,
             "coverage": coverage,
             "sources": sources,
             "script_only": script_only,
             "ignore_reason": ignored.get(upstream_id),
         }
+        if detail_error:
+            item["analysis"]["detail_error"] = detail_error
         old = previous.get(upstream_id)
         if old and str(old.get("name") or "") != item["name"]:
             renamed.append({"upstream_id": upstream_id, "old_name": str(old.get("name") or ""), "new_name": item["name"]})
@@ -258,6 +342,69 @@ def _detail_loader(hosts: list[str], lottery_type: str) -> Callable[[str], dict[
         return None
 
     return load
+
+
+def _detail_snapshot(
+    rows: list[dict[str, Any]],
+    hosts: list[str],
+    lottery_type: str,
+) -> tuple[dict[str, dict[str, Any]], list[str]]:
+    """Fetch every live content component so analysis is based on detail HTML."""
+    loader = _detail_loader(hosts, lottery_type)
+    ids = [str(row.get("id")) for row in rows if row.get("id") is not None and row.get("type") == "content"]
+    details: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+
+    def fetch(upstream_id: str) -> tuple[str, dict[str, Any] | None, str | None]:
+        try:
+            value = loader(upstream_id)
+            return upstream_id, value, None if value is not None else "empty response"
+        except Exception as exc:
+            return upstream_id, None, str(exc)
+
+    with ThreadPoolExecutor(max_workers=min(12, max(1, len(ids)))) as executor:
+        for upstream_id, value, error in executor.map(fetch, ids):
+            if value is not None:
+                details[upstream_id] = value
+            if error:
+                errors.append(f"{upstream_id}: {error}")
+    return details, errors
+
+
+def analyze_gateway(entries: list[str], active_host: str, expected_title: str) -> dict[str, Any]:
+    """Separate the public redirect shell from the validated API identity."""
+    probes: list[dict[str, Any]] = []
+    for entry in [*entries, active_host.rstrip("/") + "/"]:
+        try:
+            response = get(entry, timeout=8, retries=0)
+            raw = response.text or ""
+            title_match = re.search(r"<title[^>]*>(.*?)</title>", raw, re.I | re.S)
+            title = " ".join(strip_html(title_match.group(1)).split()) if title_match else ""
+            targets = list(dict.fromkeys(re.findall(r"https?://[^\s'\"<>]+", raw)))[:12]
+            probes.append(
+                {
+                    "entry": entry,
+                    "final_url": str(response.url),
+                    "status_code": response.status_code,
+                    "title": title[:160],
+                    "redirect_target_count": len(targets),
+                    "redirect_targets": targets,
+                }
+            )
+        except Exception as exc:
+            probes.append({"entry": entry, "ok": False, "error": str(exc)})
+    api_identity = False
+    try:
+        payload = get_json(f"{active_host.rstrip('/')}/api/v1/index/website/config", timeout=8, retries=0)
+        data = payload.get("data") if isinstance(payload, dict) else None
+        api_identity = isinstance(data, dict) and expected_title in " ".join(str(data.get(key) or "") for key in ("webSiteTitle", "webSiteDesc", "webSiteKeywords"))
+    except Exception:
+        pass
+    return {
+        "public_shell": probes,
+        "api_identity_match": api_identity,
+        "identity": "api_validated" if api_identity else "mismatch",
+    }
 
 
 def _issue_key(identity: str) -> str:
@@ -380,17 +527,21 @@ def _write_report(result: dict[str, Any]) -> None:
         "",
         f"- 巡检时间：{result['last_success_at']}",
         f"- 当前线路：`{result['active_host']}`",
+        f"- 入口/API 身份：{(result.get('gateway_analysis') or {}).get('identity', 'unknown')}",
         f"- 可见内容栏目：{result['content_total']}；已知：{result['known_components']}；待接入：{len(result['pending'])}",
+        f"- 详情深解析：{(result.get('deep_analysis') or {}).get('detail_succeeded', 0)}/{(result.get('deep_analysis') or {}).get('detail_attempted', 0)}；解析契约：{json.dumps((result.get('deep_analysis') or {}).get('parser_hints', {}), ensure_ascii=False)}",
         "",
-        "| 上游 ID | 栏目 | 状态 | 内容类型 | 本地来源 |",
-        "|---|---|---|---|---|",
+        "| 上游 ID | 栏目 | 状态 | 内容类型 | 解析契约 | 期数 | 本地来源 |",
+        "|---|---|---|---|---|---:|---|",
     ]
     for item in result["items"]:
         local = "、".join(source["source_id"] for source in item["sources"]) or "、".join(item["script_only"]) or "—"
         display_name = item["name"].replace("|", "\\|")
         lines.append(
             f"| {item['upstream_id']} | {display_name} | "
-            f"{labels.get(item['coverage'], item['coverage'])} | {item['content_kind']} | {local} |"
+            f"{labels.get(item['coverage'], item['coverage'])} | {item['content_kind']} | "
+            f"{(item.get('analysis') or {}).get('parser_hint', '—')} | "
+            f"{(item.get('analysis') or {}).get('period_count', 0)} | {local} |"
         )
     markdown = "\n".join(lines) + "\n"
     temporary_md = target / "latest.md.tmp"
@@ -410,13 +561,19 @@ def scan(*, record: bool = True) -> dict[str, Any]:
             max_valid=5,
         )
         active_host, rows = _catalog_rows(hosts, settings["lottery_type"])
+        detail_rows = [row for row in rows if row.get("type") == "content" and not row.get("hidden")]
+        details, detail_errors = _detail_snapshot(detail_rows, [active_host, *hosts], settings["lottery_type"])
         previous = (status().get("items") or []) if record else []
         compared = compare_inventory(
             rows,
             cfg,
             previous_items=previous,
-            detail_loader=_detail_loader([active_host, *hosts], settings["lottery_type"]),
+            detail_loader=lambda upstream_id: details.get(str(upstream_id)),
         )
+        hint_counts: dict[str, int] = {}
+        for item in compared["items"]:
+            hint = str((item.get("analysis") or {}).get("parser_hint") or "unknown")
+            hint_counts[hint] = hint_counts.get(hint, 0) + 1
         result = {
             "ok": True,
             "enabled": watcher_enabled(),
@@ -424,10 +581,18 @@ def scan(*, record: bool = True) -> dict[str, Any]:
             "entry_urls": settings["entry_urls"],
             "active_host": active_host,
             "hosts": hosts,
+            "gateway_analysis": analyze_gateway(settings["entry_urls"], active_host, settings["expected_title"]),
             "last_attempt_at": started_at,
             "last_success_at": now_iso(),
             "last_error": None,
             "discovery_warnings": discovery_errors[-20:],
+            "deep_analysis": {
+                "catalog_rows": len(rows),
+                "detail_attempted": len(detail_rows),
+                "detail_succeeded": len(details),
+                "detail_errors": detail_errors[-20:],
+                "parser_hints": hint_counts,
+            },
             **compared,
         }
         if record:
@@ -457,6 +622,8 @@ def status() -> dict[str, Any]:
     value.setdefault("missing", [])
     value.setdefault("renamed", [])
     value.setdefault("content_total", 0)
+    value.setdefault("deep_analysis", {})
+    value.setdefault("gateway_analysis", {})
     value["enabled"] = watcher_enabled()
     value["interval_minutes"] = interval_minutes()
     value["open_issue_count"] = len(open_issues)

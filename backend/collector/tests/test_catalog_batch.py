@@ -13,10 +13,12 @@ for item in (str(BACKEND_DIR), str(COLLECTOR_DIR), str(SOURCES_DIR)):
         sys.path.insert(0, item)
 
 from dingji_util import atoms_twoface, atoms_wei
+from dingji_catalog import _parse_amtz_records
 from dingjian_shenwei import extract as extract_shenwei
 from dingjian_vip import extract as extract_vip
 from dingjian_wuma import extract as extract_wuma
-from tongtian_catalog import compare_inventory, discover_homepage_scripts, extract_iframe_paths, extract_script_paths
+from source_catalog import classify_content
+from tongtian_catalog import analyze_script, compare_inventory, discover_homepage_scripts, extract_iframe_paths, extract_script_paths, reconstruct_script_html
 import tongtian_catalog
 import site_catalog
 from registry import render_template
@@ -61,6 +63,25 @@ class TestDingjianNewColumns(unittest.TestCase):
 
 
 class TestTongtianCatalog(unittest.TestCase):
+    def test_reconstruct_script_and_deep_profile(self):
+        raw = r'''document.writeln("<table><tr><td>270期</td><td>鼠牛</td><td>？00</td></tr></table>");'''
+        self.assertIn("270期", reconstruct_script_html(raw))
+
+        class Response:
+            status_code = 200
+            url = "https://mirror/chajie/demo.js"
+            text = raw
+
+        old_get = tongtian_catalog.get
+        tongtian_catalog.get = lambda url, **_: Response()
+        try:
+            result = analyze_script("https://mirror", "/chajie/demo.js")
+        finally:
+            tongtian_catalog.get = old_get
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["record_count"], 1)
+        self.assertEqual(result["latest_period"], 270)
+
     def test_extract_script_order(self):
         html = '<script src="/chajie/6xiao.js"></script><script src="/chajie/5qi.js"></script><script src="/chajie/6xiao.js"></script>'
         self.assertEqual(extract_script_paths(html), ["/chajie/6xiao.js", "/chajie/5qi.js"])
@@ -118,6 +139,24 @@ class TestTongtianCatalog(unittest.TestCase):
 
 
 class TestSiteCatalog(unittest.TestCase):
+    def test_dingjian_deep_profile_reads_periods_and_assets(self):
+        profile = classify_content(
+            '<div><h1>测试</h1><p>第270期:【鼠牛】开:鼠01准</p><img src="/a.png"></div>',
+            source="detail_api",
+            name="测试",
+        )
+        self.assertEqual(profile["analysis"]["parser_hint"], "period_prediction_claim")
+        self.assertEqual(profile["analysis"]["latest_period"], 270)
+        self.assertEqual(profile["analysis"]["record_count"], 1)
+
+    def test_dingji_page_parser_reads_live_table_rows(self):
+        title, rows = _parse_amtz_records(
+            '<h1>顶级论坛【九肖】</h1><table><tr><td>270期:【鼠牛】开:鼠01准</td></tr></table>'
+        )
+        self.assertIn("九肖", title)
+        self.assertEqual(rows[0]["period"], 270)
+        self.assertEqual(rows[0]["status"], "hit")
+
     def test_aggregate_keeps_family_identity(self):
         old = site_catalog.FAMILY_MODULES.copy()
 

@@ -218,6 +218,8 @@ export interface CatalogStatus {
   enabled_components?: number;
   known_components?: number;
   open_issue_count?: number;
+  deep_analysis?: Record<string, unknown>;
+  gateway_analysis?: Record<string, unknown>;
   items: Record<string, unknown>[];
   pending: Record<string, unknown>[];
   missing: Record<string, unknown>[];

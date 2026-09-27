@@ -217,6 +217,18 @@ export function CollectorMonitorPage() {
                     <div><span className="text-slate-400 block">待接入</span><b>{site.pending?.length ?? 0}</b></div>
                     <div><span className="text-slate-400 block">下架</span><b>{site.missing?.length ?? 0}</b></div>
                   </div>
+                  {site.deep_analysis && (
+                    <div className="mt-3 pt-2 border-t border-slate-200/60 dark:border-white/10 text-[11px] text-slate-500 dark:text-slate-400">
+                      <span>深解析：</span>
+                      <span className="font-mono text-slate-700 dark:text-slate-200">
+                        {String(site.deep_analysis.latest_period ?? site.deep_analysis.rendered_rows ?? site.deep_analysis.record_count ?? "—")}
+                      </span>
+                      <span className="ml-1">期/行</span>
+                      {typeof site.gateway_analysis?.identity === "string" && (
+                        <span className="ml-2">入口 {String(site.gateway_analysis.identity)}</span>
+                      )}
+                    </div>
+                  )}
                   {site.last_error && <p className="text-[11px] text-rose-500 mt-2 truncate" title={site.last_error}>{site.last_error}</p>}
                 </div>
               ))}
