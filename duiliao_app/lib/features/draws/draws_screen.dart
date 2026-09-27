@@ -114,7 +114,6 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen>
             ],
           ),
         ),
-      ),
     );
   }
 

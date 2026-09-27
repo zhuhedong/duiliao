@@ -8,6 +8,7 @@ library;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
@@ -45,13 +46,28 @@ class _GlassBackgroundState extends State<GlassBackground>
       vsync: this,
       duration: const Duration(seconds: 36),
     );
-    if (widget.showOrbs) _drift.repeat();
+    if (widget.showOrbs &&
+        !kIsWeb &&
+        !WidgetsBinding
+            .instance
+            .platformDispatcher
+            .accessibilityFeatures
+            .disableAnimations) {
+      _drift.repeat();
+    }
   }
 
   @override
   void didUpdateWidget(GlassBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.showOrbs && !_drift.isAnimating) {
+    if (widget.showOrbs &&
+        !_drift.isAnimating &&
+        !kIsWeb &&
+        !WidgetsBinding
+            .instance
+            .platformDispatcher
+            .accessibilityFeatures
+            .disableAnimations) {
       _drift.repeat();
     } else if (!widget.showOrbs && _drift.isAnimating) {
       _drift.stop();
@@ -77,15 +93,21 @@ class _GlassBackgroundState extends State<GlassBackground>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final reduceMotion = MediaQuery.of(context).disableAnimations;
 
-    final bgColor =
-        isDark ? DuiliaoColors.backgroundDark : DuiliaoColors.backgroundLight;
+    final bgColor = isDark
+        ? DuiliaoColors.backgroundDark
+        : DuiliaoColors.backgroundLight;
 
     return ColoredBox(
       color: bgColor,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (widget.showGrid) const Positioned.fill(child: IgnorePointer(child: CustomPaint(painter: _AuroraGridPainter()))),
+          if (widget.showGrid)
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: CustomPaint(painter: _AuroraGridPainter()),
+              ),
+            ),
           if (widget.showOrbs && !reduceMotion)
             AnimatedBuilder(
               animation: _drift,
@@ -100,8 +122,9 @@ class _GlassBackgroundState extends State<GlassBackground>
                       offset: _offset(0.0, 22, 16),
                       child: _AmbientOrb(
                         size: 330,
-                        color: DuiliaoColors.auroraViolet
-                            .withValues(alpha: isDark ? 0.26 : 0.18),
+                        color: DuiliaoColors.auroraViolet.withValues(
+                          alpha: isDark ? 0.26 : 0.18,
+                        ),
                       ),
                     ),
                   ),
@@ -113,8 +136,9 @@ class _GlassBackgroundState extends State<GlassBackground>
                       offset: _offset(0.25, 18, 24),
                       child: _AmbientOrb(
                         size: 290,
-                        color: DuiliaoColors.auroraFuchsia
-                            .withValues(alpha: isDark ? 0.22 : 0.15),
+                        color: DuiliaoColors.auroraFuchsia.withValues(
+                          alpha: isDark ? 0.22 : 0.15,
+                        ),
                       ),
                     ),
                   ),
@@ -126,8 +150,9 @@ class _GlassBackgroundState extends State<GlassBackground>
                       offset: _offset(0.5, 24, 18),
                       child: _AmbientOrb(
                         size: 310,
-                        color: DuiliaoColors.auroraIndigo
-                            .withValues(alpha: isDark ? 0.24 : 0.15),
+                        color: DuiliaoColors.auroraIndigo.withValues(
+                          alpha: isDark ? 0.24 : 0.15,
+                        ),
                       ),
                     ),
                   ),
@@ -139,8 +164,9 @@ class _GlassBackgroundState extends State<GlassBackground>
                       offset: _offset(0.75, 16, 22),
                       child: _AmbientOrb(
                         size: 280,
-                        color: DuiliaoColors.auroraSky
-                            .withValues(alpha: isDark ? 0.18 : 0.12),
+                        color: DuiliaoColors.auroraSky.withValues(
+                          alpha: isDark ? 0.18 : 0.12,
+                        ),
                       ),
                     ),
                   ),
@@ -268,10 +294,7 @@ class GlassContainer extends StatelessWidget {
       decoration: BoxDecoration(
         color: effectiveBg,
         borderRadius: radius,
-        border: Border.all(
-          color: effectiveBorderColor,
-          width: borderWidth,
-        ),
+        border: Border.all(color: effectiveBorderColor, width: borderWidth),
         boxShadow: [
           // Soft ambient shadow, tinted with the brand violet in light mode
           BoxShadow(
@@ -310,8 +333,10 @@ class GlassContainer extends StatelessWidget {
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
-          splashColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
-          highlightColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.06),
+          splashColor: Theme.of(context).colorScheme.primary
+              .withValues(alpha: 0.12),
+          highlightColor: Theme.of(context).colorScheme.primary
+              .withValues(alpha: 0.06),
           child: content,
         ),
       );
@@ -454,8 +479,8 @@ class _GlassSegmentItem<T> extends StatelessWidget {
       decoration: BoxDecoration(
         color: isSelected
             ? (isDark
-                ? primary.withValues(alpha: 0.28)
-                : Colors.white.withValues(alpha: 0.90))
+                  ? primary.withValues(alpha: 0.28)
+                  : Colors.white.withValues(alpha: 0.90))
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
         border: isSelected
@@ -607,8 +632,11 @@ class GlassButton extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [
               baseColor.withValues(alpha: 0.92),
-              Color.lerp(baseColor, DuiliaoColors.auroraFuchsia, 0.25)!
-                  .withValues(alpha: 0.95),
+              Color.lerp(
+                baseColor,
+                DuiliaoColors.auroraFuchsia,
+                0.25,
+              )!.withValues(alpha: 0.95),
             ],
           );
 
@@ -659,6 +687,147 @@ class GlassButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A compact panel matching the web dashboard's SectionCard/PanelShell.
+class GlassSectionCard extends StatelessWidget {
+  const GlassSectionCard({
+    super.key,
+    required this.child,
+    this.title,
+    this.subtitle,
+    this.icon,
+    this.action,
+    this.padding = const EdgeInsets.all(18),
+    this.margin,
+  });
+
+  final Widget child;
+  final String? title;
+  final String? subtitle;
+  final IconData? icon;
+  final Widget? action;
+  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? margin;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      margin: margin,
+      borderRadius: BorderRadius.circular(24),
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title != null || action != null) ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 17, color: context.colors.primary),
+                  const SizedBox(width: 7),
+                ],
+                if (title != null)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title!, style: context.texts.titleSmall),
+                        if (subtitle != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 3),
+                            child: Text(
+                              subtitle!,
+                              style: context.texts.labelSmall,
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                else
+                  const Spacer(),
+                ?action,
+              ],
+            ),
+            const SizedBox(height: 14),
+          ],
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class GlassStatusPill extends StatelessWidget {
+  const GlassStatusPill({
+    super.key,
+    required this.label,
+    this.color,
+    this.icon,
+    this.dot = true,
+  });
+
+  final String label;
+  final Color? color;
+  final IconData? icon;
+  final bool dot;
+
+  @override
+  Widget build(BuildContext context) {
+    final tone = color ?? context.colors.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: context.isDark ? 0.18 : 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: tone.withValues(alpha: context.isDark ? 0.38 : 0.28),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (dot)
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
+            ),
+          if (icon != null) Icon(icon, size: 12, color: tone),
+          if (dot || icon != null) const SizedBox(width: 5),
+          Text(
+            label,
+            style: context.texts.labelSmall?.copyWith(
+              color: tone,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class GlassToolbar extends StatelessWidget {
+  const GlassToolbar({
+    super.key,
+    required this.child,
+    this.margin = const EdgeInsets.fromLTRB(14, 8, 14, 8),
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry margin;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      margin: margin,
+      borderRadius: BorderRadius.circular(16),
+      blur: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: child,
     );
   }
 }
@@ -755,7 +924,9 @@ class GlassFilterPill extends StatelessWidget {
 
     final textColor = isSelected
         ? (isDark ? Colors.white : primary)
-        : (isDark ? Colors.white.withValues(alpha: 0.70) : const Color(0xFF5A5670));
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.70)
+              : const Color(0xFF5A5670));
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -806,13 +977,16 @@ class GlassFilterPill extends StatelessWidget {
                 if (count != null) ...[
                   const SizedBox(width: 4.5),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? primary.withValues(alpha: 0.20)
                           : (isDark
-                              ? Colors.white.withValues(alpha: 0.10)
-                              : Colors.black.withValues(alpha: 0.05)),
+                                ? Colors.white.withValues(alpha: 0.10)
+                                : Colors.black.withValues(alpha: 0.05)),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -862,7 +1036,8 @@ class GlassLinearProgress extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.06)
         : Colors.black.withValues(alpha: 0.05);
 
-    final effectiveGradient = gradient ??
+    final effectiveGradient =
+        gradient ??
         (color == null
             ? DuiliaoColors.auroraGradient
             : LinearGradient(

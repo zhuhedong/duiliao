@@ -5,6 +5,7 @@
 library;
 
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
@@ -27,11 +28,13 @@ class GlassFloatingNavigationBar extends StatelessWidget {
     required this.selectedIndex,
     required this.onDestinationSelected,
     required this.items,
+    this.onMore,
   });
 
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
   final List<GlassNavItem> items;
+  final VoidCallback? onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -90,6 +93,20 @@ class GlassFloatingNavigationBar extends StatelessWidget {
                         onTap: () => onDestinationSelected(i),
                       ),
                     ),
+                  if (onMore != null)
+                    Expanded(
+                      child: _GlassNavItemButton(
+                        item: const GlassNavItem(
+                          icon: Icons.menu_rounded,
+                          activeIcon: Icons.close_rounded,
+                          label: '更多',
+                        ),
+                        isSelected: false,
+                        primary: primary,
+                        isDark: isDark,
+                        onTap: onMore!,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -136,8 +153,8 @@ class _GlassNavItemButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: isSelected
                 ? (isDark
-                    ? primary.withValues(alpha: 0.22)
-                    : primary.withValues(alpha: 0.12))
+                      ? primary.withValues(alpha: 0.22)
+                      : primary.withValues(alpha: 0.12))
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(22),
           ),

@@ -93,9 +93,11 @@ class _CollectForm extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 8, bottom: 100),
       children: [
-        GlassCard(
+        GlassSectionCard(
+          title: '采集参数',
+          subtitle: '选择彩种并确认期号策略',
+          icon: Icons.tune_rounded,
           margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -115,7 +117,10 @@ class _CollectForm extends ConsumerWidget {
               const SizedBox(height: 14),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('自动检测期号', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text(
+                  '自动检测期号',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 subtitle: const Text('由采集到的数据推断，适用于刚开奖时'),
                 value: draft.autoDetectPeriod,
                 onChanged: controller.setAutoDetect,
@@ -136,28 +141,20 @@ class _CollectForm extends ConsumerWidget {
           ),
         ),
 
-        GlassCard(
+        GlassSectionCard(
+          title: '数据源选择',
+          subtitle: totalEnabled > 0 ? '已启用 $totalEnabled 个数据源' : '暂无可用数据源',
+          icon: Icons.storage_rounded,
           margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          padding: const EdgeInsets.all(16),
+          action: TextButton.icon(
+            onPressed: () => _openSourcePicker(context, draft.lottery),
+            icon: const Icon(Icons.tune, size: 18),
+            label: const Text('配置源'),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '数据源选择',
-                      style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => _openSourcePicker(context, draft.lottery),
-                    icon: const Icon(Icons.tune, size: 18),
-                    label: const Text('配置源'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 2),
               Text(
                 draft.sourceIds.isEmpty
                     ? '未选择，将采集全部 $totalEnabled 个启用源'
@@ -166,7 +163,9 @@ class _CollectForm extends ConsumerWidget {
                   color: draft.sourceIds.isEmpty
                       ? context.colors.onSurfaceVariant
                       : Theme.of(context).colorScheme.primary,
-                  fontWeight: draft.sourceIds.isEmpty ? FontWeight.normal : FontWeight.w600,
+                  fontWeight: draft.sourceIds.isEmpty
+                      ? FontWeight.normal
+                      : FontWeight.w600,
                 ),
               ),
             ],
@@ -183,13 +182,19 @@ class _CollectForm extends ConsumerWidget {
                 children: [
                   Text(
                     '并发线程数',
-                    style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                    style: context.texts.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                      color: Theme.of(context).colorScheme.primary
+                          .withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -214,23 +219,28 @@ class _CollectForm extends ConsumerWidget {
               ),
               Text(
                 '每个源都是一个子进程，并发过高会加重服务器负载',
-                style: context.texts.labelSmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
+                style: context.texts.labelSmall?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
               ),
               const Divider(height: 24),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('采集后入库', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text(
+                  '采集后入库',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 subtitle: const Text('关闭后仅抓取，不写入数据库'),
                 value: draft.ingest,
                 onChanged: controller.setIngest,
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('入库后自动判定', style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text(
-                  draft.ingest ? '需要已开奖才会产生判定结果' : '需先开启入库',
+                title: const Text(
+                  '入库后自动判定',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
+                subtitle: Text(draft.ingest ? '需要已开奖才会产生判定结果' : '需先开启入库'),
                 value: draft.autoJudge,
                 onChanged: draft.ingest ? controller.setAutoJudge : null,
               ),
@@ -249,7 +259,10 @@ class _CollectForm extends ConsumerWidget {
               children: [
                 Icon(Icons.play_arrow_rounded, size: 22),
                 SizedBox(width: 8),
-                Text('开始执行采集', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                Text(
+                  '开始执行采集',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
               ],
             ),
           ),
@@ -268,10 +281,8 @@ class _CollectForm extends ConsumerWidget {
         expand: false,
         initialChildSize: 0.85,
         maxChildSize: 0.95,
-        builder: (_, scrollController) => SourcePicker(
-          lottery: lottery,
-          scrollController: scrollController,
-        ),
+        builder: (_, scrollController) =>
+            SourcePicker(lottery: lottery, scrollController: scrollController),
       ),
     );
   }
@@ -290,10 +301,14 @@ class _CollectForm extends ConsumerWidget {
     busy.state = true;
     var handedOffToProgress = false;
     try {
-      final job = await ref.read(collectorRepositoryProvider).submitCollectJob(
+      final job = await ref
+          .read(collectorRepositoryProvider)
+          .submitCollectJob(
             lottery: draft.lottery.code,
             period: draft.autoDetectPeriod ? null : draft.period,
-            sourceIds: draft.sourceIds.isEmpty ? null : draft.sourceIds.toList(),
+            sourceIds: draft.sourceIds.isEmpty
+                ? null
+                : draft.sourceIds.toList(),
             concurrency: draft.concurrency,
             ingest: draft.ingest,
             autoJudge: draft.autoJudge,
@@ -355,40 +370,52 @@ class _JobProgressView extends ConsumerWidget {
             child: Column(
               children: [
                 if (job.isActive)
-                  Builder(builder: (context) {
-                    final action = ref.watch(collectionJobActionProvider(job.id));
-                    return GlassButton(
-                      color: DuiliaoColors.miss,
-                      isLoading: action == CollectionJobAction.cancel,
-                      onPressed: action == null ? () => _cancel(context, ref, job) : null,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.stop_circle_outlined, size: 20),
-                          SizedBox(width: 6),
-                          Text('取消任务'),
-                        ],
-                      ),
-                    );
-                  })
-                else ...[
-                  if (job.failedSourceIds.isNotEmpty) ...[
-                    Builder(builder: (context) {
-                      final action = ref.watch(collectionJobActionProvider(job.id));
+                  Builder(
+                    builder: (context) {
+                      final action = ref.watch(
+                        collectionJobActionProvider(job.id),
+                      );
                       return GlassButton(
-                        color: Theme.of(context).colorScheme.primary,
-                        isLoading: action == CollectionJobAction.retry,
-                        onPressed: action == null ? () => _retryFailed(context, ref, job) : null,
-                        child: Row(
+                        color: DuiliaoColors.miss,
+                        isLoading: action == CollectionJobAction.cancel,
+                        onPressed: action == null
+                            ? () => _cancel(context, ref, job)
+                            : null,
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.replay, size: 20),
-                            const SizedBox(width: 6),
-                            Text('只重采失败源（${job.failedSourceIds.length}）'),
+                            Icon(Icons.stop_circle_outlined, size: 20),
+                            SizedBox(width: 6),
+                            Text('取消任务'),
                           ],
                         ),
                       );
-                    }),
+                    },
+                  )
+                else ...[
+                  if (job.failedSourceIds.isNotEmpty) ...[
+                    Builder(
+                      builder: (context) {
+                        final action = ref.watch(
+                          collectionJobActionProvider(job.id),
+                        );
+                        return GlassButton(
+                          color: Theme.of(context).colorScheme.primary,
+                          isLoading: action == CollectionJobAction.retry,
+                          onPressed: action == null
+                              ? () => _retryFailed(context, ref, job)
+                              : null,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.replay, size: 20),
+                              const SizedBox(width: 6),
+                              Text('只重采失败源（${job.failedSourceIds.length}）'),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 10),
                   ],
                   if (job.period != null)
@@ -419,7 +446,11 @@ class _JobProgressView extends ConsumerWidget {
     );
   }
 
-  Future<void> _cancel(BuildContext context, WidgetRef ref, CollectJob job) async {
+  Future<void> _cancel(
+    BuildContext context,
+    WidgetRef ref,
+    CollectJob job,
+  ) async {
     final action = ref.read(collectionJobActionProvider(job.id).notifier);
     if (action.state != null) return;
     action.state = CollectionJobAction.cancel;
@@ -469,7 +500,9 @@ class _JobProgressView extends ConsumerWidget {
     action.state = CollectionJobAction.retry;
     ref.read(collectDraftProvider.notifier).setSources(job.failedSourceIds);
     try {
-      final next = await ref.read(collectorRepositoryProvider).submitCollectJob(
+      final next = await ref
+          .read(collectorRepositoryProvider)
+          .submitCollectJob(
             lottery: job.lottery,
             period: job.period,
             sourceIds: job.failedSourceIds,
@@ -515,8 +548,9 @@ class _JobHeaderCard extends StatelessWidget {
                 child: Text(
                   '任务 #${job.id} · ${Lottery.labelFor(job.lottery)} '
                   '${job.period == null ? '自动期号' : Period.compact(job.period)}',
-                  style: context.texts.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: context.texts.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               _JobStatusChip(job: job),
@@ -533,7 +567,9 @@ class _JobHeaderCard extends StatelessWidget {
               Text(
                 '${job.sourceDone}/${job.sourceTotal} 完成 · '
                 '成功 ${job.sourceOk} · 失败 ${job.sourceFailed}',
-                style: context.texts.bodySmall?.copyWith(fontWeight: FontWeight.w500),
+                style: context.texts.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const Spacer(),
               if (elapsed != null)
@@ -554,8 +590,9 @@ class _JobHeaderCard extends StatelessWidget {
                 '并发 ${job.concurrency}'
                 '${job.doIngest ? ' · 入库' : ' · 不入库'}'
                 '${job.autoJudge && job.doIngest ? ' · 自动判定' : ''}',
-                style: context.texts.labelSmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
+                style: context.texts.labelSmall?.copyWith(
+                  color: context.colors.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -602,7 +639,12 @@ class _JobStatusChip extends StatelessWidget {
       JobStatus.cancelled => (DuiliaoColors.pending, Icons.cancel),
       JobStatus.interrupted => (DuiliaoColors.conflict, Icons.power_off),
     };
-    return GlassBadge(label: job.status.label, color: color, icon: icon, small: true);
+    return GlassBadge(
+      label: job.status.label,
+      color: color,
+      icon: icon,
+      small: true,
+    );
   }
 }
 
@@ -614,10 +656,12 @@ class _PhaseChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GlassBadge(
-        label: phase.label,
-        color: current ? Theme.of(context).colorScheme.primary : DuiliaoColors.pending,
-        small: true,
-      );
+    label: phase.label,
+    color: current
+        ? Theme.of(context).colorScheme.primary
+        : DuiliaoColors.pending,
+    small: true,
+  );
 }
 
 /// One source's state in glass card.
@@ -629,7 +673,10 @@ class _SourceProgressTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, color) = switch (item.state) {
-      SourceState.queued => (Icons.radio_button_unchecked, DuiliaoColors.pending),
+      SourceState.queued => (
+        Icons.radio_button_unchecked,
+        DuiliaoColors.pending,
+      ),
       SourceState.running => (Icons.autorenew, DuiliaoColors.warning),
       SourceState.ok => (Icons.check_circle, DuiliaoColors.hit),
       SourceState.fail => (Icons.cancel, DuiliaoColors.miss),
@@ -654,7 +701,10 @@ class _SourceProgressTile extends StatelessWidget {
               children: [
                 Text(
                   item.displayName,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13.5,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
@@ -666,12 +716,16 @@ class _SourceProgressTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       )
                     : (item.state == SourceState.ok
-                        ? Text(
-                            '${item.itemCount ?? 0} 条 · ${item.elapsedLabel ?? '—'}',
-                            style: context.texts.labelSmall
-                                ?.copyWith(color: context.colors.onSurfaceVariant),
-                          )
-                        : Text(item.state.label, style: context.texts.labelSmall)),
+                          ? Text(
+                              '${item.itemCount ?? 0} 条 · ${item.elapsedLabel ?? '—'}',
+                              style: context.texts.labelSmall?.copyWith(
+                                color: context.colors.onSurfaceVariant,
+                              ),
+                            )
+                          : Text(
+                              item.state.label,
+                              style: context.texts.labelSmall,
+                            )),
               ],
             ),
           ),
@@ -715,7 +769,9 @@ class _JobResultCard extends StatelessWidget {
         children: [
           Text(
             '任务结果',
-            style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            style: context.texts.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -724,7 +780,9 @@ class _JobResultCard extends StatelessWidget {
                 child: StatTile(
                   label: '成功比',
                   value: job.successRatioLabel,
-                  valueColor: job.sourceFailed > 0 ? DuiliaoColors.warning : null,
+                  valueColor: job.sourceFailed > 0
+                      ? DuiliaoColors.warning
+                      : null,
                 ),
               ),
               Expanded(
@@ -743,14 +801,27 @@ class _JobResultCard extends StatelessWidget {
           ),
           if (ingest != null) ...[
             const Divider(height: 22),
-            Text('入库统计', style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              '入库统计',
+              style: context.texts.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: StatTile(label: '新增', value: '${ingest.inserted}')),
-                Expanded(child: StatTile(label: '更新', value: '${ingest.updated}')),
-                Expanded(child: StatTile(label: '未变', value: '${ingest.unchanged}')),
-                Expanded(child: StatTile(label: '条目', value: '${ingest.items}')),
+                Expanded(
+                  child: StatTile(label: '新增', value: '${ingest.inserted}'),
+                ),
+                Expanded(
+                  child: StatTile(label: '更新', value: '${ingest.updated}'),
+                ),
+                Expanded(
+                  child: StatTile(label: '未变', value: '${ingest.unchanged}'),
+                ),
+                Expanded(
+                  child: StatTile(label: '条目', value: '${ingest.items}'),
+                ),
               ],
             ),
           ] else if (!job.doIngest) ...[
@@ -762,12 +833,19 @@ class _JobResultCard extends StatelessWidget {
           ],
           if (judge != null) ...[
             const Divider(height: 22),
-            Text('判定统计', style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              '判定统计',
+              style: context.texts.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 8),
             if (judge.ok)
               Row(
                 children: [
-                  Expanded(child: StatTile(label: '已判', value: '${judge.judged}')),
+                  Expanded(
+                    child: StatTile(label: '已判', value: '${judge.judged}'),
+                  ),
                   Expanded(
                     child: StatTile(
                       label: '命中',
@@ -796,10 +874,14 @@ class _JobResultCard extends StatelessWidget {
             const Divider(height: 22),
             Text(
               '失败源（${job.failedSourceIds.length}）',
-              style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: context.texts.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
             const SizedBox(height: 6),
-            for (final item in job.items.where((i) => i.state == SourceState.fail))
+            for (final item in job.items.where(
+              (i) => i.state == SourceState.fail,
+            ))
               Padding(
                 padding: const EdgeInsets.only(bottom: 2),
                 child: Text(
@@ -813,4 +895,3 @@ class _JobResultCard extends StatelessWidget {
     );
   }
 }
-
