@@ -136,31 +136,55 @@ if __name__ == "__main__":
 
 
 def _render_dynamic_site_template(body: dict[str, Any]) -> str | None:
-    """Render a thin typed wrapper for the two mirror-backed site families.
-
-    Catalog onboarding supplies a stable path while the shared parser carries
-    the site-specific HTTP and ``pred.v1`` details.  Keeping this wrapper in
-    the source file means the collector's subprocess isolation is preserved.
-    """
+    """Render a typed wrapper for the three mirror-backed site families."""
     family = str(body.get("site_family") or "")
     extra = dict(body.get("extra") or {})
     path = str(extra.get("path") or "").strip()
-    if family not in {"tongtian_83191", "dingji_77452"} or not path:
+    if family == "dingjian_dashi" and not path:
+        upstream_id = str(extra.get("upstream_id") or "").strip()
+        if upstream_id.isdigit():
+            path = f"/api/v1/index/config/byid/{upstream_id}"
+    if family not in {"dingjian_dashi", "tongtian_83191", "dingji_77452"} or not path:
         return None
+
     sid = validate_source_id(str(body.get("source_id") or ""))
     name = str(body.get("source_name") or sid)
     play_type = str(body.get("play_type") or "texiao")
     hit_mode = str(body.get("hit_mode") or "any")
     kind = str(extra.get("kind") or ("num" if "码" in name or "ma" in path else "xiao"))
-    if kind not in {"xiao", "num", "twoface", "wei", "head", "bose", "all"}:
+    if kind not in {"xiao", "num", "twoface", "wei", "head", "bose", "all", "mixed"}:
         raise RegistryError("bad_kind", "动态站点脚本 kind 不受支持")
     q = lambda value: json.dumps(value, ensure_ascii=False)
-    if family == "tongtian_83191":
+
+    if family == "dingjian_dashi":
+        # 588080 columns are only generated from an explicitly reviewed parser
+        # contract.  This prevents a broad regex from silently treating claims
+        # or advertising text as predictions.
+        from common.dingjian_columns import EXTRACTORS
+
+        parser = str(extra.get("parser") or "")
+        if not re.fullmatch(r"/api/v1/index/config/byid/\d+", path):
+            raise RegistryError("bad_path", "顶尖栏目路径须为 /api/v1/index/config/byid/<id>")
+        if parser not in EXTRACTORS:
+            raise RegistryError("bad_parser", "顶尖栏目须选择已验收的 extra.parser 或提供自定义脚本")
+        expected_kind = EXTRACTORS[parser][0]
+        expected_play = "tema_n" if expected_kind == "num" else "texiao"
+        if expected_kind == "all":
+            expected_kind = "mixed"
+        if kind != expected_kind or play_type != expected_play or hit_mode != "any":
+            raise RegistryError("bad_parser", "解析契约与 kind、玩法或命中模式不一致")
+        imports = "from common.dingjian_columns import build_column_pred\nfrom dj_util import urls_for"
+        call = "build_column_pred"
+        extra_call = f"parser={q(parser)},"
+    elif family == "tongtian_83191":
         imports = "from tt_util import build_tt_pred, urls_for"
         call = "build_tt_pred"
+        extra_call = "kind=KIND,"
     else:
         imports = "from dingji_util import build_dj_pred, urls_for"
         call = "build_dj_pred"
+        extra_call = "kind=KIND,"
+
     return f'''from __future__ import annotations
 
 import sys
@@ -190,7 +214,7 @@ def build(lottery: str, period: str | None, fixture: str | None):
         play_type=PLAY_TYPE,
         hit_mode=HIT_MODE,
         urls=urls_for(PATH),
-        kind=KIND,
+        {extra_call}
         lottery=lottery,
         period=period,
         fixture=fixture,

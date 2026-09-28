@@ -701,8 +701,8 @@ sources:
   hit_mode: any
   script_path: sources/jingpin_7ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 588080.com精品资讯报7码
+  enabled: false
+  remark: 588080.com精品资讯报7码；上游栏目 1789992614043 已消失，巡检治理自动停用
   extra:
     title: 精品资讯报7码
     upstream_id: '1789992614043'
@@ -727,8 +727,8 @@ sources:
   hit_mode: any
   script_path: sources/jue_mi_mashi.py
   timeout_sec: 30
-  enabled: true
-  remark: 588080.com绝密码师二肖四码
+  enabled: false
+  remark: 588080.com绝密码师二肖四码；上游栏目 1790067938745 已消失，巡检治理自动停用
   extra:
     title: 绝密码师
     upstream_id: '1790067938745'
@@ -1857,6 +1857,171 @@ sources:
   remark: 77452.com顶级论坛绝杀二肖
   extra:
     path: /htm/tz/amtz/059.html
+- source_id: dingjian_jiucai
+  source_name: 拯救彩民特辑
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dingjian_jiucai.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入
+  extra:
+    title: 拯救彩民特辑
+    upstream_id: '1788003193307'
+    kind: num
+    parser: rescue_six
+- source_id: dingjian_wangpai_2xiao4ma
+  source_name: 王牌推荐 二肖四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dingjian_wangpai_2xiao4ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入
+  extra:
+    title: 王牌推荐 二肖四码
+    upstream_id: '1790421603763'
+    kind: num
+    parser: four_number_line
+- source_id: dingjian_yanjiushi
+  source_name: 研究室精算
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dingjian_yanjiushi.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入
+  extra:
+    title: 研究室精算
+    upstream_id: '1790423167830'
+    kind: xiao
+    parser: recommended_xiao
+- source_id: dingjian_touzi_8ma
+  source_name: 投资八码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dingjian_touzi_8ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入
+  extra:
+    title: 投资八码
+    upstream_id: '1790162440477'
+    kind: num
+    parser: eight_bracket_numbers
+- source_id: dingjian_helian_2ma
+  source_name: 合联社心水一肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dingjian_helian_2ma.py
+  timeout_sec: 30
+  enabled: false
+  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入；上游栏目 1790340113091 已消失，巡检治理自动停用
+  extra:
+    title: 合联社心水一肖二码
+    upstream_id: '1790340113091'
+    kind: num
+    parser: primary_two_numbers
+- source_id: dingjian_dashi_1xiao
+  source_name: 大师一肖
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dingjian_dashi_1xiao.py
+  timeout_sec: 30
+  enabled: false
+  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入；上游栏目 1790251477563 已消失，巡检治理自动停用
+  extra:
+    title: 大师一肖
+    upstream_id: '1790251477563'
+    kind: xiao
+    parser: main_bracket_xiao
+- source_id: dingjian_dangan_2ma
+  source_name: 档案二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dingjian_dangan_2ma.py
+  timeout_sec: 30
+  enabled: false
+  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入；上游栏目 1790251974583 已消失，巡检治理自动停用
+  extra:
+    title: 档案二码
+    upstream_id: '1790251974583'
+    kind: num
+    parser: archive_two_numbers
+- source_id: dingjian_neibu_6ma
+  source_name: 内部资料 六码中特
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dingjian_neibu_6ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过审核解析契约与离线证据，正式接入
+  extra:
+    title: 内部资料 六码中特
+    upstream_id: '1790508453436'
+    kind: num
+    parser: six_number_lines
+- source_id: dingjian_chuban_4ma
+  source_name: 大师 · 出版四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dingjian_chuban_4ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过审核解析契约与离线证据，正式接入
+  extra:
+    title: 大师 · 出版四码
+    upstream_id: '1790423765936'
+    kind: num
+    parser: four_bracket_numbers
+- source_id: dingjian_neiding_7ma
+  source_name: 内定七碼
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dingjian_neiding_7ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过审核解析契约与离线证据，正式接入
+  extra:
+    title: 内定七碼
+    upstream_id: '1790422630171'
+    kind: num
+    parser: seven_bracket_numbers
+- source_id: dingjian_aocai_1xiao4ma
+  source_name: 澳彩官方 一肖1码+4码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dingjian_aocai_1xiao4ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过审核解析契约与离线证据，正式接入
+  extra:
+    title: 澳彩官方 一肖1码+4码
+    upstream_id: '1784459913197'
+    kind: mixed
+    parser: xiao_num_defense
 draw:
   macau:
     adapter: getLastLottery
@@ -1894,16 +2059,16 @@ site_families:
     - https://83191b.com/
     expected_title: 通天
     catalog_ignore:
-      'wlj2.js': 优秀网站推广收录（广告外链）
-      'wlj02.js': 优秀网站推广收录（广告外链）
-      'zbrtu.js': 广告图片样式排版
-      'ttqw.js': 空白占位脚本
-      'tp5.js': 梦影逍遥跑马图（图谜需OCR，暂缓接入）
-      'tp6.js': 龙门客栈（图谜需OCR，暂缓接入）
-      'tp13.js': 解西游谜语（图谜需OCR，暂缓接入）
-      '1.js': 一语破天机（诗文玄机，不作为数字预测资料）
-      'gsb.js': 精华帖子导航，不是独立预测栏目
-      'ttjs.js': 通天金牌玄机（诗文玄机，不作为数字预测资料）
+      wlj2.js: 优秀网站推广收录（广告外链）
+      wlj02.js: 优秀网站推广收录（广告外链）
+      zbrtu.js: 广告图片样式排版
+      ttqw.js: 空白占位脚本
+      tp5.js: 梦影逍遥跑马图（图谜需OCR，暂缓接入）
+      tp6.js: 龙门客栈（图谜需OCR，暂缓接入）
+      tp13.js: 解西游谜语（图谜需OCR，暂缓接入）
+      1.js: 一语破天机（诗文玄机，不作为数字预测资料）
+      gsb.js: 精华帖子导航，不是独立预测栏目
+      ttjs.js: 通天金牌玄机（诗文玄机，不作为数字预测资料）
   dingji_77452:
     entry_urls:
     - https://77452.com/
@@ -1930,4 +2095,3 @@ site_families:
       /htm/tz/amtz/066.html: 左右肖未纳入判定规则
       /htm/tz/amtz/068.html: 五行分类未纳入判定规则
       /htm/tz/amtz/069.html: 红蓝绿肖不是波色，未纳入判定规则
-

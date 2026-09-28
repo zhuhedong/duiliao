@@ -228,6 +228,16 @@ checks the gateway identity separately from the prediction path.  New or
 disappeared columns stay visible as `pending` / `missing` until a reviewed
 source batch is attached.
 
+For 588080, a reviewed batch item can carry `extra.upstream_id` plus one of the
+accepted parser contracts (`rescue_six`, `six_number_lines`,
+`four_number_line`, `four_bracket_numbers`, `recommended_xiao`,
+`eight_bracket_numbers`, `seven_bracket_numbers`, `primary_two_numbers`,
+`main_bracket_xiao`, `archive_two_numbers`, `xiao_num_defense`).  The
+generated subprocess parses only the declared pick region and preserves
+pending claims.  Newly discovered columns are enabled only after a fixture or
+live source test passes; columns that disappear from a later catalog scan are
+automatically disabled and annotated for review.
+
 ### Offline try-out
 
 Bundled fixtures let you exercise the whole pipeline without any network access. `PRED_ALLOW_FIXTURE=1` lets source scripts read a local fixture instead of fetching:

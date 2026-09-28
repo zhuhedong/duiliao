@@ -13,6 +13,7 @@ for item in (str(BACKEND_DIR), str(COLLECTOR_DIR), str(SOURCES_DIR)):
         sys.path.insert(0, item)
 
 from dingji_util import atoms_twoface, atoms_wei
+from common.dingjian_columns import extract as extract_dingjian_column
 from dingji_catalog import _parse_amtz_records
 from dingjian_shenwei import extract as extract_shenwei
 from dingjian_vip import extract as extract_vip
@@ -37,6 +38,33 @@ class TestDingjiAtoms(unittest.TestCase):
 
 
 class TestDingjianNewColumns(unittest.TestCase):
+    def test_reviewed_588080_contracts_extract_only_declared_pick_region(self):
+        raw = """
+        第269期\n鸡 鼠\n10-22-19-31\n开奖:鸡22中
+        第270期\n發88中
+        """
+        rows = extract_dingjian_column(raw, "four_number_line")
+        self.assertEqual(rows[0].period_raw, "269")
+        self.assertEqual([atom["value"] for atom in rows[0].preds], ["10", "22", "19", "31"])
+        # Placeholder-only periods are not emitted as false predictions.
+        self.assertEqual(len(rows), 1)
+
+    def test_pending_588080_columns_have_reviewed_contracts(self):
+        raw = """
+        第267期\n40-24-30\n28-36-42\n开奖:兔40中
+        第270期\n┣24.36.19.31┫\n
+        第270期\n【09.21.19.31.12.24.48】\n
+        271期 ①肖 發 88 开000中\n防：88 88 88 88
+        """
+        self.assertEqual(len(extract_dingjian_column(raw, "six_number_lines")), 1)
+        self.assertEqual(len(extract_dingjian_column(raw, "four_bracket_numbers")), 1)
+        self.assertEqual(len(extract_dingjian_column(raw, "seven_bracket_numbers")), 1)
+        self.assertEqual(extract_dingjian_column(raw, "xiao_num_defense"), [])
+
+        live = "267期 ①肖 兔 40 开兔40中\n防：14 26 15 27"
+        rows = extract_dingjian_column(live, "xiao_num_defense")
+        self.assertEqual([atom["value"] for atom in rows[0].preds], ["兔", "40", "14", "26", "15", "27"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)
@@ -199,6 +227,35 @@ class TestSiteCatalog(unittest.TestCase):
         self.assertIn("build_tt_pred", script)
         self.assertIn('PATH = "/chajie/new.js"', script)
         self.assertIn('KIND = "num"', script)
+
+    def test_batch_template_uses_588080_upstream_id(self):
+        script = render_template(
+            {
+                "source_id": "dj_new_column",
+                "source_name": "顶尖新栏目",
+                "site_family": "dingjian_dashi",
+                "play_type": "tema_n",
+                "hit_mode": "any",
+                "extra": {"upstream_id": "1788003193307", "kind": "num", "parser": "rescue_six"},
+            }
+        )
+        self.assertIn("build_column_pred", script)
+        self.assertIn('PATH = "/api/v1/index/config/byid/1788003193307"', script)
+        self.assertIn('KIND = "num"', script)
+
+    def test_batch_template_allows_mixed_588080_contract(self):
+        script = render_template(
+            {
+                "source_id": "dj_mixed_column",
+                "source_name": "顶尖一肖八码",
+                "site_family": "dingjian_dashi",
+                "play_type": "texiao",
+                "hit_mode": "any",
+                "extra": {"upstream_id": "1784459913197", "kind": "mixed", "parser": "xiao_num_defense"},
+            }
+        )
+        self.assertIn("build_column_pred", script)
+        self.assertIn('KIND = "mixed"', script)
 
     def test_reconcile_missing_defaults_to_preview(self):
         old_status = site_catalog.status

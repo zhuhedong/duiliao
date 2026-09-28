@@ -62,6 +62,77 @@ def _decorate(name: str, result: dict[str, Any]) -> dict[str, Any]:
     return value
 
 
+def _refresh_registry_coverage(name: str, value: dict[str, Any]) -> dict[str, Any]:
+    """Overlay current source enablement on the last scan snapshot.
+
+    A governance action can disable a vanished source without a successful
+    upstream scan afterwards.  Status must therefore stop showing that source
+    as ``missing`` immediately while retaining the last network evidence.
+    """
+    try:
+        module = _load(name)
+        registry = _load_registry()
+        cfg = registry.load_config()
+        inventory = module.local_inventory(cfg)
+        scripts: dict[str, list[str]] = {}
+        if name == "dingjian_dashi":
+            registered, scripts = inventory
+        else:
+            registered = inventory
+        items = [dict(item) for item in value.get("items") or []]
+        if not items and not value.get("content_total"):
+            return value
+        current_keys: set[str] = set()
+        failed_keys = {str(item.get("path") or "") for item in value.get("scan_errors") or []}
+        for item in items:
+            key = str(item.get("upstream_id") or item.get("path") or "")
+            if not key:
+                continue
+            current_keys.add(key)
+            sources = [dict(row) for row in (registered.get(key) or [])]
+            # 77452/83191 sources can be registered by a relative path; keep
+            # the stored path shape stable while normalizing the lookup key.
+            if not sources and name != "dingjian_dashi":
+                alt = key.lstrip("/")
+                sources = [dict(row) for row in (registered.get("/" + alt) or registered.get(alt) or [])]
+            item["sources"] = sources
+            if item.get("ignore_reason"):
+                coverage = "ignored"
+            elif any(row.get("enabled") for row in sources):
+                coverage = "enabled"
+            elif sources:
+                coverage = "disabled"
+            elif name == "dingjian_dashi" and scripts.get(key):
+                coverage = "script_only"
+                item["script_only"] = scripts[key]
+            else:
+                coverage = "untracked"
+            item["coverage"] = coverage
+
+        missing: list[dict[str, Any]] = []
+        for key, sources in registered.items():
+            enabled = [dict(row) for row in sources if row.get("enabled")]
+            # A timeout/error is not evidence that a column disappeared.  The
+            # next successful scan must decide whether it is truly missing.
+            excluded_unprobed = name == "dingji_77452" and key == "/htm/"
+            if enabled and key not in current_keys and key not in failed_keys and not excluded_unprobed:
+                missing.append({"upstream_id" if name == "dingjian_dashi" else "path": key, "sources": enabled})
+        value.update(
+            {
+                "items": items,
+                "pending": [item for item in items if item.get("coverage") == "untracked"],
+                "missing": missing,
+                "enabled_components": sum(item.get("coverage") == "enabled" for item in items),
+                "known_components": sum(item.get("coverage") != "untracked" for item in items),
+            }
+        )
+    except Exception:
+        # A status read must remain available even if a malformed local source
+        # row prevents the best-effort coverage overlay.
+        pass
+    return value
+
+
 def _aggregate(sites: dict[str, dict[str, Any]]) -> dict[str, Any]:
     pending: list[dict[str, Any]] = []
     missing: list[dict[str, Any]] = []
@@ -110,11 +181,11 @@ def _aggregate(sites: dict[str, dict[str, Any]]) -> dict[str, Any]:
 def status(site_family: str | None = None) -> dict[str, Any]:
     selected = _family(site_family or "all")
     if selected != "all":
-        return _decorate(selected, _load(selected).status())
+        return _decorate(selected, _refresh_registry_coverage(selected, _load(selected).status()))
     sites: dict[str, dict[str, Any]] = {}
     for family in FAMILY_MODULES:
         try:
-            sites[family] = _decorate(family, _load(family).status())
+            sites[family] = _decorate(family, _refresh_registry_coverage(family, _load(family).status()))
         except Exception as exc:  # status must still show the other families
             sites[family] = _decorate(
                 family,
