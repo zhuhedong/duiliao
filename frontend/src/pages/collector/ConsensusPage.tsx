@@ -398,7 +398,9 @@ export function CollectorConsensusPage() {
   const [period, setPeriod] = useState("");
   const [loading, setLoading] = useState(false);
   const [rejudging, setRejudging] = useState(false);
+  const [snapshotBusy, setSnapshotBusy] = useState<"freeze" | "rebuild" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -514,6 +516,32 @@ export function CollectorConsensusPage() {
       }
     } catch {
       // ignore
+    }
+  };
+
+  const handleFreezeSnapshot = async (rebuild = false) => {
+    const targetPeriod = period.trim();
+    if (!canWrite || !targetPeriod || snapshotBusy) return;
+    if (rebuild && !window.confirm(`确定要重建 ${targetPeriod} 期的历史频次快照吗？现有快照将被覆盖。`)) {
+      return;
+    }
+    setSnapshotBusy(rebuild ? "rebuild" : "freeze");
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const result = await collectorApi.freezeConsensus(lottery, targetPeriod, rebuild);
+      setSuccessMsg(
+        rebuild
+          ? `第 ${targetPeriod} 期频次榜快照已重建。`
+          : result.snapshot.frozen
+            ? `第 ${targetPeriod} 期频次榜已冻结。`
+            : `第 ${targetPeriod} 期暂无可冻结的频次数据。`,
+      );
+      await executeQuery(lottery, targetPeriod);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "冻结频次快照失败");
+    } finally {
+      setSnapshotBusy(null);
     }
   };
 
@@ -992,11 +1020,36 @@ export function CollectorConsensusPage() {
               <button
                 type="button"
                 onClick={handleRejudge}
-                disabled={rejudging || !period.trim()}
+                disabled={rejudging || !!snapshotBusy || !period.trim()}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-all disabled:opacity-50 cursor-pointer"
               >
                 {rejudging ? "计算中…" : "🔄 重新触发对奖比对"}
               </button>
+            )}
+
+            {canWrite && officialDraw && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => void handleFreezeSnapshot(false)}
+                  disabled={snapshotBusy !== null || loading || !period.trim()}
+                  title={consensusData?.snapshot?.frozen ? "已有快照时不会覆盖" : "为当前已开奖期保存频次榜快照"}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-emerald-400/50 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 backdrop-blur-sm transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {snapshotBusy === "freeze" ? "冻结中…" : consensusData?.snapshot?.frozen ? "🔒 已冻结" : "🔒 冻结历史榜"}
+                </button>
+                {consensusData?.snapshot?.frozen && (
+                  <button
+                    type="button"
+                    onClick={() => void handleFreezeSnapshot(true)}
+                    disabled={snapshotBusy !== null || loading}
+                    title="用当前数据覆盖已有历史快照"
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border border-amber-400/50 hover:bg-amber-500/10 text-amber-700 dark:text-amber-300 backdrop-blur-sm transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {snapshotBusy === "rebuild" ? "重建中…" : "♻️ 重建快照"}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </Toolbar>
@@ -1004,6 +1057,12 @@ export function CollectorConsensusPage() {
         {error ? (
           <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
             <AlertDescription className="text-sm">{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {successMsg ? (
+          <Alert variant="success" className="rounded-2xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 backdrop-blur-md">
+            <AlertDescription className="text-sm">{successMsg}</AlertDescription>
           </Alert>
         ) : null}
 

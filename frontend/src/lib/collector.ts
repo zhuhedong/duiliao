@@ -186,6 +186,13 @@ export interface ConsensusResult {
   };
 }
 
+export interface ConsensusFreezeResponse {
+  ok: boolean;
+  lottery: Lottery;
+  period: string;
+  snapshot: ConsensusSnapshotMeta;
+}
+
 export interface RatingRow {
   source_id: string;
   source_name: string;
@@ -794,6 +801,13 @@ export const collectorApi = {
       latest_prediction_period: string | null;
       current_period: string | null;
     }>(`/collector/consensus/latest?lottery=${encodeURIComponent(lottery)}`);
+  },
+  freezeConsensus(lottery: Lottery, period: string, rebuild = false) {
+    return api.post<ConsensusFreezeResponse>("/collector/consensus/freeze", {
+      lottery,
+      period,
+      rebuild,
+    });
   },
   ratings(lottery: Lottery, playType: string, windows = "30,50,100") {
     const q = new URLSearchParams({ lottery, play_type: playType, windows });

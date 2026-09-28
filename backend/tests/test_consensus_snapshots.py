@@ -184,3 +184,14 @@ def test_consensus_read_includes_snapshot_metadata(user_client, seeded_draws):
     assert body["snapshot"]["frozen"] is True
     assert body["frequency"]["totals"]["tema_n"] == 1
     assert body["frequency"]["totals"]["texiao"] == 1
+
+
+def test_staff_can_freeze_snapshot_from_api(staff_client, seeded_draws):
+    _insert_board_predictions()
+    body = staff_client.post(
+        "/collector/consensus/freeze",
+        {"lottery": "macau", "period": "248", "rebuild": False},
+    )
+    assert body["ok"] is True
+    assert body["snapshot"]["frozen"] is True
+    assert body["snapshot"]["freeze_reason"] in {"manual", "manual_backfill", "draw_sync"}
