@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../glass/glass_widgets.dart';
 import '../theme.dart';
 import '../tokens.dart';
 
@@ -24,19 +25,17 @@ class MobileSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surface = Material(
-      color: color ?? Theme.of(context).cardTheme.color ?? context.colors.surfaceContainerHighest,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(DuiliaoTokens.radiusLarge),
-        side: BorderSide(color: context.colors.outlineVariant),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
-      ),
+    // Use one glass surface primitive across the native app so the Flutter
+    // pages keep the same material language as app-design.
+    final glassColor = color?.withValues(alpha: context.isDark ? 0.58 : 0.74);
+    return GlassContainer(
+      padding: padding,
+      margin: margin,
+      onTap: onTap,
+      fillColor: glassColor,
+      borderRadius: BorderRadius.circular(DuiliaoTokens.radiusLarge),
+      child: child,
     );
-    return margin == null ? surface : Padding(padding: margin!, child: surface);
   }
 }
 
@@ -66,7 +65,10 @@ class MobilePageHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (leading != null) ...[leading!, const SizedBox(width: DuiliaoTokens.space3)],
+          if (leading != null) ...[
+            leading!,
+            const SizedBox(width: DuiliaoTokens.space3),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,7 +140,10 @@ class MobileHeroHeader extends StatelessWidget {
               ],
             ),
           ),
-          if (action != null) ...[const SizedBox(width: DuiliaoTokens.space3), action!],
+          if (action != null) ...[
+            const SizedBox(width: DuiliaoTokens.space3),
+            action!,
+          ],
         ],
       ),
     );
@@ -152,7 +157,10 @@ class MobileSection extends StatelessWidget {
     this.title,
     this.subtitle,
     this.action,
-    this.padding = const EdgeInsets.symmetric(horizontal: DuiliaoTokens.space4, vertical: DuiliaoTokens.space3),
+    this.padding = const EdgeInsets.symmetric(
+      horizontal: DuiliaoTokens.space4,
+      vertical: DuiliaoTokens.space3,
+    ),
   });
 
   final Widget child;
@@ -163,6 +171,7 @@ class MobileSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final actionItems = action == null ? const <Widget>[] : <Widget>[action!];
     return Padding(
       padding: padding,
       child: Column(
@@ -176,7 +185,8 @@ class MobileSection extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (title != null) Text(title!, style: context.texts.titleMedium),
+                      if (title != null)
+                        Text(title!, style: context.texts.titleMedium),
                       if (subtitle != null) ...[
                         const SizedBox(height: 3),
                         Text(
@@ -189,10 +199,11 @@ class MobileSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (action != null) action!,
+                ...actionItems,
               ],
             ),
-          if (title != null || action != null) const SizedBox(height: DuiliaoTokens.space3),
+          if (title != null || action != null)
+            const SizedBox(height: DuiliaoTokens.space3),
           child,
         ],
       ),
@@ -279,8 +290,17 @@ class MobileStatusChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[Icon(icon, size: 14, color: color), const SizedBox(width: 5)],
-          Text(label, style: context.texts.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w800)),
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 5),
+          ],
+          Text(
+            label,
+            style: context.texts.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );
@@ -350,12 +370,23 @@ class MobileEmptyState extends StatelessWidget {
         children: [
           Icon(icon, size: 42, color: context.colors.onSurfaceVariant),
           const SizedBox(height: DuiliaoTokens.space3),
-          Text(title, style: context.texts.titleMedium, textAlign: TextAlign.center),
+          Text(
+            title,
+            style: context.texts.titleMedium,
+            textAlign: TextAlign.center,
+          ),
           if (detail != null) ...[
             const SizedBox(height: DuiliaoTokens.space2),
-            Text(detail!, style: context.texts.bodySmall, textAlign: TextAlign.center),
+            Text(
+              detail!,
+              style: context.texts.bodySmall,
+              textAlign: TextAlign.center,
+            ),
           ],
-          if (action != null) ...[const SizedBox(height: DuiliaoTokens.space4), action!],
+          if (action != null) ...[
+            const SizedBox(height: DuiliaoTokens.space4),
+            action!,
+          ],
         ],
       ),
     );

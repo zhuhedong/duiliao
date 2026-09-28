@@ -8,6 +8,7 @@ import '../../core/net/api_client.dart';
 import '../../core/providers.dart';
 import '../../domain/json.dart';
 import '../../domain/lottery.dart';
+import '../../domain/models/app_event.dart';
 import '../../domain/models/collect_job.dart';
 import '../../domain/models/draw.dart';
 import '../../domain/play_type.dart';
@@ -27,19 +28,20 @@ import '../numbers/numbers_screen.dart';
 import '../profile/profile_screen.dart';
 import '../ratings/ratings_screen.dart';
 
-final homeProvider = FutureProvider.family<
-    ({HomeSnapshot snapshot, bool isStale, String? storedAt}),
-    ({Lottery lottery, String playType})>((ref, key) async {
-  final fetched = await ref.read(collectorRepositoryProvider).home(
-        lottery: key.lottery.code,
-        playType: key.playType,
+final homeProvider =
+    FutureProvider.family<
+      ({HomeSnapshot snapshot, bool isStale, String? storedAt}),
+      ({Lottery lottery, String playType})
+    >((ref, key) async {
+      final fetched = await ref
+          .read(collectorRepositoryProvider)
+          .home(lottery: key.lottery.code, playType: key.playType);
+      return (
+        snapshot: fetched.value,
+        isStale: fetched.isStale,
+        storedAt: fetched.storedAtLabel,
       );
-  return (
-    snapshot: fetched.value,
-    isStale: fetched.isStale,
-    storedAt: fetched.storedAtLabel,
-  );
-});
+    });
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -52,14 +54,19 @@ class HomeScreen extends ConsumerWidget {
     final async = ref.watch(homeProvider(key));
     final user = ref.watch(authStateProvider).user;
     final unread = ref.watch(messageCentreProvider).unreadCount;
-    final session = ref.watch(sessionStatusProvider).value ?? SessionStatus.disconnected;
+    final session =
+        ref.watch(sessionStatusProvider).value ?? SessionStatus.disconnected;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      // The shell owns the Aurora canvas; keeping this layer transparent lets
+      // the glow and grid show through the workbench cards like dashboard.html.
+      backgroundColor: Colors.transparent,
       body: RefreshIndicator(
         notificationPredicate: (notification) => notification.depth <= 1,
         onRefresh: () async {
-          await ref.read(collectorRepositoryProvider).home(
+          await ref
+              .read(collectorRepositoryProvider)
+              .home(
                 lottery: lottery.code,
                 playType: playType,
                 forceRefresh: true,
@@ -81,7 +88,8 @@ class HomeScreen extends ConsumerWidget {
             unread: unread,
             session: session,
             onRetry: () => ref.invalidate(homeProvider(key)),
-            onLotteryChanged: (next) => ref.read(selectedLotteryProvider.notifier).set(next),
+            onLotteryChanged: (next) =>
+                ref.read(selectedLotteryProvider.notifier).set(next),
           ),
           skipLoadingOnRefresh: true,
           skipLoadingOnReload: true,
@@ -158,7 +166,8 @@ class _WorkbenchContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final home = data.snapshot;
-    final wide = MediaQuery.sizeOf(context).width >= DuiliaoTokens.tabletBreakpoint;
+    final wide =
+        MediaQuery.sizeOf(context).width >= DuiliaoTokens.tabletBreakpoint;
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -174,14 +183,20 @@ class _WorkbenchContent extends StatelessWidget {
         ),
         SliverToBoxAdapter(
           child: DuiliaoPage(
-            child: _LotteryStrip(selected: lottery, onChanged: onLotteryChanged),
+            child: _LotteryStrip(
+              selected: lottery,
+              onChanged: onLotteryChanged,
+            ),
           ),
         ),
         if (data.isStale)
           SliverToBoxAdapter(
             child: DuiliaoPage(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: DuiliaoTokens.space4, vertical: DuiliaoTokens.space2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: DuiliaoTokens.space4,
+                  vertical: DuiliaoTokens.space2,
+                ),
                 child: OfflineBanner(
                   storedAtLabel: data.storedAt,
                   onRetry: onRetry,
@@ -200,7 +215,9 @@ class _WorkbenchContent extends StatelessWidget {
         else ...[
           if (home.latestDraw != null)
             SliverToBoxAdapter(
-              child: DuiliaoPage(child: _LatestDrawCard(draw: home.latestDraw!)),
+              child: DuiliaoPage(
+                child: _LatestDrawCard(draw: home.latestDraw!),
+              ),
             ),
           SliverToBoxAdapter(
             child: DuiliaoPage(
@@ -220,7 +237,11 @@ class _WorkbenchContent extends StatelessWidget {
 }
 
 class _WorkbenchHeader extends StatelessWidget {
-  const _WorkbenchHeader({required this.userInitial, required this.unread, required this.session});
+  const _WorkbenchHeader({
+    required this.userInitial,
+    required this.unread,
+    required this.session,
+  });
 
   final String userInitial;
   final int unread;
@@ -229,13 +250,26 @@ class _WorkbenchHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (status, color, icon) = switch (session) {
-      SessionStatus.connected => ('链路正常', DuiliaoColors.hit, Icons.check_circle_outline),
+      SessionStatus.connected => (
+        '链路正常',
+        DuiliaoColors.hit,
+        Icons.check_circle_outline,
+      ),
       SessionStatus.connecting => ('连接中', DuiliaoColors.warning, Icons.sync),
-      SessionStatus.disconnected => ('链路断开', DuiliaoColors.offline, Icons.cloud_off_outlined),
+      SessionStatus.disconnected => (
+        '链路断开',
+        DuiliaoColors.offline,
+        Icons.cloud_off_outlined,
+      ),
     };
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(DuiliaoTokens.space4, DuiliaoTokens.space4, DuiliaoTokens.space4, DuiliaoTokens.space2),
+      padding: const EdgeInsets.fromLTRB(
+        DuiliaoTokens.space4,
+        DuiliaoTokens.space4,
+        DuiliaoTokens.space4,
+        DuiliaoTokens.space2,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -248,7 +282,11 @@ class _WorkbenchHeader extends StatelessWidget {
                 const SizedBox(height: 8),
                 Semantics(
                   label: '连接状态：$status',
-                  child: MobileStatusChip(label: status, color: color, icon: icon),
+                  child: MobileStatusChip(
+                    label: status,
+                    color: color,
+                    icon: icon,
+                  ),
                 ),
               ],
             ),
@@ -272,7 +310,13 @@ class _WorkbenchHeader extends StatelessWidget {
               child: CircleAvatar(
                 radius: 20,
                 backgroundColor: context.colors.primaryContainer,
-                child: Text(userInitial, style: TextStyle(color: context.colors.primary, fontWeight: FontWeight.w800)),
+                child: Text(
+                  userInitial,
+                  style: TextStyle(
+                    color: context.colors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
             ),
           ),
@@ -293,7 +337,10 @@ class _LotteryStrip extends StatelessWidget {
     return SizedBox(
       height: 62,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: DuiliaoTokens.space4, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DuiliaoTokens.space4,
+          vertical: 8,
+        ),
         scrollDirection: Axis.horizontal,
         itemCount: Lottery.all.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
@@ -308,7 +355,12 @@ class _LotteryStrip extends StatelessWidget {
               selected: active,
               label: Text(item.label),
               onSelected: (_) => onChanged(item),
-              avatar: Icon(active ? Icons.radio_button_checked : Icons.radio_button_unchecked, size: 16),
+              avatar: Icon(
+                active
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_unchecked,
+                size: 16,
+              ),
             ),
           );
         },
@@ -325,13 +377,21 @@ class _LatestDrawCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(DuiliaoTokens.space4, DuiliaoTokens.space3, DuiliaoTokens.space4, DuiliaoTokens.space2),
+      padding: const EdgeInsets.fromLTRB(
+        DuiliaoTokens.space4,
+        DuiliaoTokens.space3,
+        DuiliaoTokens.space4,
+        DuiliaoTokens.space2,
+      ),
       child: MobileSurface(
         color: context.colors.primaryContainer,
         padding: const EdgeInsets.all(DuiliaoTokens.space6),
         onTap: () => _push(
           context,
-          DrawDetailScreen(lottery: Lottery.parse(draw.lottery), period: draw.period),
+          DrawDetailScreen(
+            lottery: Lottery.parse(draw.lottery),
+            period: draw.period,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -351,7 +411,10 @@ class _LatestDrawCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: DuiliaoTokens.space2),
-            Text(Period.compact(draw.period), style: context.texts.headlineSmall),
+            Text(
+              Period.compact(draw.period),
+              style: context.texts.headlineSmall,
+            ),
             const SizedBox(height: DuiliaoTokens.space4),
             DrawBallRow(draw: draw, ballSize: 30, showColorNames: false),
             if (draw.summary != null) ...[
@@ -378,9 +441,11 @@ class _PrioritySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final summary = home.comparisonSummary;
     final alerts = <String>[
-      if (summary != null && summary.conflicts > 0) '${summary.conflicts} 条预测与判定存在冲突',
+      if (summary != null && summary.conflicts > 0)
+        '${summary.conflicts} 条预测与判定存在冲突',
       if (home.worker?.running == true) '采集任务正在运行',
-      if (home.recentJobs.any((job) => job.status == JobStatus.failed)) '最近采集有失败数据源',
+      if (home.recentJobs.any((job) => job.status == JobStatus.failed))
+        '最近采集有失败数据源',
     ];
 
     return MobileSection(
@@ -401,16 +466,29 @@ class _PrioritySection extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.warning_amber_rounded, color: context.colors.onErrorContainer),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: context.colors.onErrorContainer,
+                  ),
                   const SizedBox(width: DuiliaoTokens.space3),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('需要关注', style: context.texts.titleSmall?.copyWith(color: context.colors.onErrorContainer)),
+                        Text(
+                          '需要关注',
+                          style: context.texts.titleSmall?.copyWith(
+                            color: context.colors.onErrorContainer,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         for (final alert in alerts)
-                          Text('· $alert', style: context.texts.bodySmall?.copyWith(color: context.colors.onErrorContainer)),
+                          Text(
+                            '· $alert',
+                            style: context.texts.bodySmall?.copyWith(
+                              color: context.colors.onErrorContainer,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -432,10 +510,31 @@ class _PrioritySection extends StatelessWidget {
                     mainAxisExtent: wide ? 132 : 128,
                   ),
                   itemBuilder: (context, index) => [
-                    MobileStatCard(label: '总数', value: '${summary.total}', icon: Icons.list_alt_outlined),
-                    MobileStatCard(label: '命中', value: '${summary.hits}', color: DuiliaoColors.hit, icon: Icons.check_circle_outline),
-                    MobileStatCard(label: '未中', value: '${summary.misses}', color: DuiliaoColors.miss, icon: Icons.cancel_outlined),
-                    MobileStatCard(label: '命中率', value: summary.judged == 0 ? '—' : '${(summary.hitRate * 100).toStringAsFixed(1)}%', caption: '已判 ${summary.judged} 组', icon: Icons.percent),
+                    MobileStatCard(
+                      label: '总数',
+                      value: '${summary.total}',
+                      icon: Icons.list_alt_outlined,
+                    ),
+                    MobileStatCard(
+                      label: '命中',
+                      value: '${summary.hits}',
+                      color: DuiliaoColors.hit,
+                      icon: Icons.check_circle_outline,
+                    ),
+                    MobileStatCard(
+                      label: '未中',
+                      value: '${summary.misses}',
+                      color: DuiliaoColors.miss,
+                      icon: Icons.cancel_outlined,
+                    ),
+                    MobileStatCard(
+                      label: '命中率',
+                      value: summary.judged == 0
+                          ? '—'
+                          : '${(summary.hitRate * 100).toStringAsFixed(1)}%',
+                      caption: '已判 ${summary.judged} 组',
+                      icon: Icons.percent,
+                    ),
                   ][index],
                 );
               },
@@ -447,16 +546,22 @@ class _PrioritySection extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.sync_alt_rounded, size: 18, color: context.colors.primary),
+                      Icon(
+                        Icons.sync_alt_rounded,
+                        size: 18,
+                        color: context.colors.primary,
+                      ),
                       const SizedBox(width: 8),
                       Text('最近采集', style: context.texts.titleSmall),
                       const Spacer(),
-                      Text('${home.recentJobs.length} 条', style: context.texts.labelSmall),
+                      Text(
+                        '${home.recentJobs.length} 条',
+                        style: context.texts.labelSmall,
+                      ),
                     ],
                   ),
                   const SizedBox(height: DuiliaoTokens.space2),
-                  for (final job in home.recentJobs.take(3))
-                    _JobRow(job: job),
+                  for (final job in home.recentJobs.take(3)) _JobRow(job: job),
                 ],
               ),
             ),
@@ -486,7 +591,9 @@ class _JobRow extends StatelessWidget {
         children: [
           Icon(icon, size: 17, color: color),
           const SizedBox(width: 8),
-          Expanded(child: Text('任务 #${job.id}', style: context.texts.bodyMedium)),
+          Expanded(
+            child: Text('任务 #${job.id}', style: context.texts.bodyMedium),
+          ),
           MobileStatusChip(label: job.status.label, color: color),
         ],
       ),
@@ -515,7 +622,8 @@ class _InsightSection extends StatelessWidget {
               icon: Icons.auto_awesome,
               title: 'AI 研判',
               detail: '阅读缓存报告或生成新的运营研判',
-              onTap: () => _push(context, AiScreen(initialPeriod: home.consensusPeriod)),
+              onTap: () =>
+                  _push(context, AiScreen(initialPeriod: home.consensusPeriod)),
             ),
             _ActionCard(
               icon: Icons.grid_view_rounded,
@@ -550,20 +658,36 @@ class _ConsensusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MobileSurface(
-      onTap: () => _push(context, ConsensusScreen(lottery: Lottery.parse(home.lottery), initialPeriod: home.consensusPeriod)),
+      onTap: () => _push(
+        context,
+        ConsensusScreen(
+          lottery: Lottery.parse(home.lottery),
+          initialPeriod: home.consensusPeriod,
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.pie_chart_outline, size: 18, color: context.colors.primary),
+              Icon(
+                Icons.pie_chart_outline,
+                size: 18,
+                color: context.colors.primary,
+              ),
               const SizedBox(width: 8),
               Text('共识领先', style: context.texts.titleSmall),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            home.consensusGroups.take(2).map((group) => '${PlayTypes.labelFor(group.playType)} ${group.leaderVotes}/${group.nVotes}').join(' · '),
+            home.consensusGroups
+                .take(2)
+                .map(
+                  (group) =>
+                      '${PlayTypes.labelFor(group.playType)} ${group.leaderVotes}/${group.nVotes}',
+                )
+                .join(' · '),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: context.texts.bodySmall,
@@ -591,14 +715,19 @@ class _RatingsCard extends StatelessWidget {
             child: MobileStatCard(
               label: '评级 Top 1',
               value: formatRate(top.hitRate(window)),
-              caption: top.sourceName.length > 16 ? '${top.sourceName.substring(0, 16)}…' : top.sourceName,
+              caption: top.sourceName.length > 16
+                  ? '${top.sourceName.substring(0, 16)}…'
+                  : top.sourceName,
               color: context.colors.primary,
               icon: Icons.insights_outlined,
             ),
           ),
           const SizedBox(width: DuiliaoTokens.space3),
           Expanded(
-            child: Text('查看 ${home.ratingsTop.length} 个数据源的近期稳定性与完整性。', style: context.texts.bodySmall),
+            child: Text(
+              '查看 ${home.ratingsTop.length} 个数据源的近期稳定性与完整性。',
+              style: context.texts.bodySmall,
+            ),
           ),
         ],
       ),
@@ -607,7 +736,12 @@ class _RatingsCard extends StatelessWidget {
 }
 
 class _ActionCard extends StatelessWidget {
-  const _ActionCard({required this.icon, required this.title, required this.detail, required this.onTap});
+  const _ActionCard({
+    required this.icon,
+    required this.title,
+    required this.detail,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String title;
@@ -641,7 +775,12 @@ class _ActionCard extends StatelessWidget {
                 children: [
                   Text(title, style: context.texts.titleSmall),
                   const SizedBox(height: 3),
-                  Text(detail, maxLines: 2, overflow: TextOverflow.ellipsis, style: context.texts.bodySmall),
+                  Text(
+                    detail,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.texts.bodySmall,
+                  ),
                 ],
               ),
             ),

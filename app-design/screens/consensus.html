@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>多源对照 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
+<style>
+  .consensus-demo-note { margin-top:10px; padding:9px 11px; border:1px dashed var(--border-strong); border-radius:11px; color:var(--foreground-muted); background:oklch(1 0 0 / 4%); font-size:10.5px; line-height:1.6; }
+  .consensus-selectable { cursor:pointer; user-select:none; }
+  .consensus-selectable:not(.is-selected) { background:transparent !important; color:var(--foreground-muted) !important; border-color:var(--border-muted) !important; }
+  .consensus-selectable.is-selected { box-shadow:inset 0 0 0 1px oklch(0.72 0.185 283 / 45%); background:var(--primary-soft) !important; color:var(--primary-strong) !important; }
+</style>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -27,7 +34,7 @@
       <div class="h-title">多源对照</div>
       <div class="h-sub">跨源交叉验证 · 官方判定</div>
     </div>
-    <button class="btn-icon" aria-label="对照参数">
+    <button type="button" class="btn-icon consensus-params" aria-label="对照参数">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
     </button>
   </header>
@@ -40,22 +47,22 @@
         <div class="field">
           <label>彩种</label>
           <div class="flex gap-8 wrap">
-            <span class="pill primary">澳门</span><span class="chip">香港</span><span class="chip">台湾</span><span class="chip">新彩</span>
+            <button type="button" class="pill primary consensus-selectable is-selected" data-filter-group="lottery" data-value="macau">澳门</button><button type="button" class="chip consensus-selectable" data-filter-group="lottery" data-value="hk">香港</button><button type="button" class="chip consensus-selectable" data-filter-group="lottery" data-value="taiwan">台湾</button><button type="button" class="chip consensus-selectable" data-filter-group="lottery" data-value="new">新彩</button>
           </div>
         </div>
         <div class="field">
           <label>期号</label>
           <div class="flex gap-8 wrap">
-            <span class="chip" style="background:var(--primary-soft);border-color:oklch(0.72 0.185 283 / 40%);color:var(--primary-strong)">第 2026277 期</span>
-            <span class="chip">第 2026276 期</span>
+            <button type="button" class="chip consensus-selectable is-selected" data-filter-group="period" data-value="2026277" style="background:var(--primary-soft);border-color:oklch(0.72 0.185 283 / 40%);color:var(--primary-strong)">第 2026277 期</button>
+            <button type="button" class="chip consensus-selectable" data-filter-group="period" data-value="2026276">第 2026276 期</button>
           </div>
         </div>
         <div class="field">
           <label>玩法</label>
           <div class="flex gap-6 wrap">
-            <span class="pill primary">特肖</span><span class="chip">特码</span><span class="chip">特尾</span><span class="chip">特头</span><span class="chip">特波</span><span class="chip">两面</span><span class="chip">半波</span><span class="chip">合肖</span>
-            <span class="chip">平特肖</span><span class="chip">平特尾</span><span class="chip">正码</span><span class="chip">正肖</span><span class="chip">连肖</span><span class="chip">连尾</span>
-            <span class="chip">二中二</span><span class="chip">三中三</span><span class="chip">三中二</span><span class="chip">二中特</span><span class="chip">不中码</span><span class="chip">杀肖</span><span class="chip">杀尾</span>
+            <button type="button" class="pill primary consensus-selectable is-selected" data-filter-group="play" data-value="texiao">特肖</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="tema_n">特码</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="tema_wei_n">特尾</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="tema_head_n">特头</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="tema_bose">特波</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="tema_twoface">两面</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="tema_halfwave">半波</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="hexiao">合肖</button>
+            <button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="pingte_xiao">平特肖</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="pingte_wei">平特尾</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="zhengma_n">正码</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="zhengxiao">正肖</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="lianxiao_n">连肖</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="lianwei_n">连尾</button>
+            <button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="lianma_2all">二中二</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="lianma_3all">三中三</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="lianma_3z2">三中二</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="lianma_2zt">二中特</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="buzhong_num">不中码</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="buzhong_xiao">杀肖</button><button type="button" class="chip consensus-selectable" data-filter-group="play" data-value="buzhong_wei">杀尾</button>
           </div>
         </div>
         <div class="field">
@@ -65,7 +72,8 @@
             <input type="text" placeholder="筛选来源名称/ID…">
           </div>
         </div>
-        <a class="glow-button" href="#">查询对照</a>
+        <button type="button" class="glow-button consensus-query">查询对照</button>
+        <div class="consensus-demo-note">设计样例状态：当前页展示内置澳门样例，筛选与查询仅更新演示状态，不会请求真实网络数据；正式产品应显示接口返回的来源证据与官方开奖时间。</div>
         <a class="glass-subtle" href="consensus-board.html" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;margin-top:10px;text-decoration:none;color:inherit">
           <span><b class="t-strong">查看共识排行榜</b><span class="fs-11 t-muted" style="display:block;margin-top:3px">候选项票数 · 玩法组归并 · 支持证据 · 开奖核验</span></span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
@@ -214,9 +222,9 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       工作台
     </a>
-    <a href="ai-analysis.html">
+    <a href="consensus-board.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
-      研判
+      共识
     </a>
     <a href="draws.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
@@ -232,5 +240,33 @@
     </a>
   </nav>
 </div>
+<script>
+  (() => {
+    const queryButton = document.querySelector('.consensus-query');
+    const resultNotice = document.createElement('div');
+    resultNotice.className = 'consensus-demo-note';
+    resultNotice.hidden = true;
+    resultNotice.setAttribute('role', 'status');
+    queryButton?.parentElement?.insertBefore(resultNotice, queryButton.nextSibling);
+    document.querySelectorAll('.consensus-selectable').forEach((button) => {
+      button.addEventListener('click', () => {
+        const group = button.dataset.filterGroup;
+        document.querySelectorAll(`.consensus-selectable[data-filter-group="${group}"]`).forEach((item) => item.classList.remove('is-selected'));
+        button.classList.add('is-selected');
+      });
+    });
+    document.querySelector('.consensus-params')?.addEventListener('click', () => {
+      resultNotice.textContent = '参数说明：按彩种、期号、玩法与来源筛选；当前为演示页面，未连接真实接口。';
+      resultNotice.hidden = false;
+    });
+    queryButton?.addEventListener('click', () => {
+      const lottery = document.querySelector('.consensus-selectable[data-filter-group="lottery"].is-selected')?.textContent?.trim() || '澳门';
+      const period = document.querySelector('.consensus-selectable[data-filter-group="period"].is-selected')?.textContent?.trim() || '当前期';
+      const play = document.querySelector('.consensus-selectable[data-filter-group="play"].is-selected')?.textContent?.trim() || '特肖';
+      resultNotice.textContent = `已按 ${lottery} · ${period} · ${play} 更新演示筛选；未连接真实接口。`;
+      resultNotice.hidden = false;
+    });
+  })();
+</script>
 </body>
 </html>

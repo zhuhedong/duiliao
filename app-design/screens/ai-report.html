@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>AI 研判报告 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -27,7 +28,7 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
     </a>
     <div class="h-title">AI 研判报告</div>
-    <button class="btn-icon h-right" aria-label="分享">
+    <button type="button" class="btn-icon h-right" aria-label="分享">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg>
     </button>
   </header>
@@ -38,7 +39,7 @@
       <span class="chip">第 <span class="num">2026277</span> 期</span>
       <span class="chip">澳门六合彩</span>
       <span class="chip">Kimi · 默认模型</span>
-      <span class="chip num">09-26 22:10 生成</span>
+      <span class="chip num">09-26 22:10 样例生成</span><span class="chip">演示原型 · 非实时</span>
     </div>
 
     <!-- 核心结论 -->
@@ -123,9 +124,9 @@
 
     <!-- 底部操作行(sticky 底部) -->
     <div class="glass-panel animate-fadeIn d5" style="position:sticky;bottom:0;margin-top:18px;padding:10px;display:flex;gap:8px;align-items:center;z-index:30">
-      <a class="btn-ghost" href="#" style="padding:12px 14px">原始 HTML</a>
+      <button type="button" class="btn-ghost"  style="padding:12px 14px">原始 HTML</button>
       <a class="btn-ghost" href="ai-analysis.html" style="padding:12px 14px">重新研判</a>
-      <a class="glow-button" href="#" style="flex:1;width:auto;padding:12px 16px">导出报告</a>
+      <button type="button" class="glow-button"  style="flex:1;width:auto;padding:12px 16px">导出报告</button>
     </div>
   </div>
 </div>

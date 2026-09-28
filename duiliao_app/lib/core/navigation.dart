@@ -11,6 +11,10 @@ import '../features/comparison/comparison_screen.dart';
 import '../features/consensus/consensus_screen.dart';
 import '../features/draws/draw_detail_screen.dart';
 import '../features/draws/draws_screen.dart';
+import '../features/design/design_screens.dart';
+import '../features/ai/ai_screen.dart';
+import '../features/numbers/numbers_screen.dart';
+import '../features/profile/profile_screen.dart';
 import '../features/ratings/ratings_screen.dart';
 import '../features/ratings/source_detail_screen.dart';
 import '../features/auth/auth_providers.dart';
@@ -77,6 +81,52 @@ void openAppDeepLink(String? value) {
       break;
     case 'comparison':
       page = const ComparisonScreen();
+      break;
+    case 'consensus-board':
+      page = const ConsensusBoardScreen();
+      break;
+    case 'sources':
+      page = const SourceCatalogScreen();
+      break;
+    case 'monitor':
+      page = const MonitorScreen();
+      break;
+    case 'records':
+      page = const RecordsScreen();
+      break;
+    case 'record-add':
+      page = RecordAddScreen(mode: parts.length >= 2 ? parts[1] : '号码单式');
+      break;
+    case 'record-add-fushi':
+      page = const RecordAddScreen(mode: '连肖复试');
+      break;
+    case 'record-add-nbuzhong':
+      page = const RecordAddScreen(mode: '不中码');
+      break;
+    case 'record-detail':
+      page = const RecordDetailScreen();
+      break;
+    case 'record-stats':
+      page = const RecordStatsScreen();
+      break;
+    case 'jump-code-assistant':
+      page = const JumpCodeAssistantScreen();
+      break;
+    case 'play-catalog':
+      page = const PlayCatalogScreen();
+      break;
+    case 'settings':
+      page = const SystemSettingsScreen();
+      break;
+    case 'profile':
+      page = const ProfileScreen();
+      break;
+    case 'numbers':
+      page = const NumbersScreen();
+      break;
+    case 'ai-analysis':
+    case 'ai-report':
+      page = const AiScreen();
       break;
   }
   if (page != null) {

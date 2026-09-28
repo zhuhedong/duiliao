@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>第 2026276 期 · 对料</title>
+<title id="detailTitle">第 2026276 期 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -27,10 +28,10 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
     </a>
     <div>
-      <div class="h-title">第 <span class="num">2026276</span> 期</div>
+      <div class="h-title">第 <span class="num" id="detailPeriod">2026276</span> 期</div>
       <div class="h-sub tc">澳门六合彩</div>
     </div>
-    <button class="btn-icon h-right" aria-label="更多">
+    <button type="button" class="btn-icon h-right" aria-label="更多">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
     </button>
   </header>
@@ -41,7 +42,7 @@
       <div class="flex aic jcb">
         <div>
           <div class="fw-7 t-strong">澳门六合彩</div>
-          <div class="fs-11 t-muted" style="margin-top:2px">09-26 21:32 开奖</div>
+          <div class="fs-11 t-muted" style="margin-top:2px"><span id="detailDate">09-26 21:32</span> 开奖</div>
         </div>
         <span class="pill success"><span class="dot"></span>已对奖</span>
       </div>
@@ -79,11 +80,11 @@
           </div>
           <div class="glass-subtle" style="padding:10px 12px">
             <div class="fs-11 t-muted">大小</div>
-            <div class="fs-13 fw-7 t-strong mt-8" style="margin-top:3px">小</div>
+            <div class="fs-13 fw-7 t-strong mt-8" style="margin-top:3px">大</div>
           </div>
           <div class="glass-subtle" style="padding:10px 12px">
             <div class="fs-11 t-muted">五行</div>
-            <div class="fs-13 fw-7 t-strong mt-8" style="margin-top:3px">水</div>
+            <div class="fs-13 fw-7 t-strong mt-8" style="margin-top:3px">金</div>
           </div>
           <div class="glass-subtle" style="padding:10px 12px">
             <div class="fs-11 t-muted">头数</div>
@@ -104,7 +105,7 @@
     <!-- 对奖结果 -->
     <section class="section animate-fadeIn d2">
       <div class="section-title">
-        <span class="st-dot"></span>对奖结果 · 命中 <span class="t-primary num">4</span><span class="t-muted num">/9</span> 源
+        <span class="st-dot"></span>对奖结果 · 命中 <span class="t-primary num" id="hitCount">4</span><span class="t-muted num">/<span id="hitTotal">9</span></span> 源 <span class="fs-11 t-muted">来源明细为结构样例</span>
       </div>
       <div class="glass-card" style="padding:6px 16px">
         <div class="list">
@@ -174,19 +175,19 @@
         <div class="grid2">
           <div>
             <div class="fs-11 t-muted">本期新增</div>
-            <div class="num fw-7 t-strong" style="font-size:18px;margin-top:3px">286 <span class="fs-11 t-muted fw-6">条</span></div>
+            <div class="num fw-7 t-strong" style="font-size:18px;margin-top:3px"><span id="collectNew">286</span> <span class="fs-11 t-muted fw-6">条</span></div>
           </div>
           <div>
             <div class="fs-11 t-muted">去重后</div>
-            <div class="num fw-7 t-strong" style="font-size:18px;margin-top:3px">261 <span class="fs-11 t-muted fw-6">条</span></div>
+            <div class="num fw-7 t-strong" style="font-size:18px;margin-top:3px"><span id="collectDedup">261</span> <span class="fs-11 t-muted fw-6">条</span></div>
           </div>
           <div>
             <div class="fs-11 t-muted">涉及来源</div>
-            <div class="num fw-7 t-strong" style="font-size:18px;margin-top:3px">9 <span class="fs-11 t-muted fw-6">源</span></div>
+            <div class="num fw-7 t-strong" style="font-size:18px;margin-top:3px"><span id="collectSources">9</span> <span class="fs-11 t-muted fw-6">源</span></div>
           </div>
           <div>
             <div class="fs-11 t-muted">完成时间</div>
-            <div class="num fw-7 t-strong" style="font-size:18px;margin-top:3px">21:47</div>
+            <div class="num fw-7 t-strong" style="font-size:18px;margin-top:3px" id="collectDone">21:47</div>
           </div>
         </div>
       </div>
@@ -194,16 +195,53 @@
 
     <!-- 底部操作(sticky) -->
     <div class="flex gap-10 animate-fadeIn d4" style="position:sticky;bottom:0;padding:14px 0 6px;background:linear-gradient(180deg,transparent,var(--background) 45%)">
-      <button class="btn-ghost">
+      <button type="button" class="btn-ghost">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
         同步日志
       </button>
-      <a class="glow-button grow" href="#" style="flex:1">
+      <button type="button" class="glow-button grow"  style="flex:1">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
         手动触发对奖
-      </a>
+      </button>
     </div>
   </div>
 </div>
+<script>
+(() => {
+  const draws = {
+    '2026276': {date:'09-26 21:32', nums:['03','11','19','27','34','42'], xiaos:['龙','猴','鼠','龙','鸡','牛'], tema:'26', temaXiao:'蛇', attr:['26 · 蓝波','蛇 · 野兽','双','大','金','2 头','6 尾','8'], hit:['4','9'], collect:['286','261','9','21:47']},
+    '2026275': {date:'09-25 21:31', nums:['07','15','22','29','38','46'], xiaos:['鼠','龙','鸡','虎','蛇','鸡'], tema:'11', temaXiao:'猴', attr:['11 · 绿波','猴 · 野兽','单','小','火','1 头','1 尾','2'], hit:['2','9'], collect:['274','248','9','21:45']},
+    '2026274': {date:'09-24 21:33', nums:['02','10','17','25','33','41'], xiaos:['蛇','鸡','虎','马','狗','虎'], tema:'44', temaXiao:'猪', attr:['44 · 绿波','猪 · 家禽','双','大','水','4 头','4 尾','8'], hit:['3','9'], collect:['269','241','9','21:49']},
+    '2026273': {date:'09-23 21:30', nums:['06','13','21','28','36','43'], xiaos:['牛','马','狗','兔','羊','鼠'], tema:'08', temaXiao:'猪', attr:['08 · 红波','猪 · 家禽','双','小','木','0 头','8 尾','8'], hit:['4','9'], collect:['252','229','9','21:44']}
+  };
+  const period = new URLSearchParams(location.search).get('period') || '2026276';
+  const data = draws[period] || draws['2026276'];
+  document.title = `第 ${period} 期 · 对料`;
+  document.querySelectorAll('#detailPeriod').forEach(el => el.textContent = period);
+  const date = document.querySelector('#detailDate'); if (date) date.textContent = data.date;
+  const ballRows = document.querySelectorAll('.ball-row');
+  const balls = ballRows[0] ? ballRows[0].querySelectorAll('.ball.lg:not(.gold)') : [];
+  const red = new Set([1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]);
+  const blue = new Set([3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48]);
+  const tone = (value) => { const n = Number(value); return red.has(n) ? 'red' : blue.has(n) ? 'blue' : 'green'; };
+  data.nums.forEach((value, i) => { if (balls[i]) { balls[i].textContent = value; balls[i].classList.remove('red','blue','green'); balls[i].classList.add(tone(value)); } });
+  const xiaoRow = ballRows[1];
+  if (xiaoRow) { [...xiaoRow.children].slice(0, 6).forEach((el, i) => { el.textContent = data.xiaos[i]; }); }
+  const gold = ballRows[0]?.querySelector('.ball.gold'); if (gold) gold.textContent = data.tema;
+  const temaXiao = xiaoRow?.querySelector('.t-primary'); if (temaXiao) temaXiao.textContent = data.temaXiao;
+  const attrCards = document.querySelectorAll('.grid2 > .glass-subtle');
+  data.attr.forEach((value, i) => {
+    const target = attrCards[i]?.querySelector('.t-strong');
+    if (target) {
+      const num = value.match(/^(\d+)/)?.[1];
+      target.innerHTML = num ? `<span class="num">${num}</span>${value.slice(num.length)}` : value;
+    }
+  });
+  const titlePeriod = document.querySelector('.h-title .num'); if (titlePeriod) titlePeriod.textContent = period;
+  const setText = (selector, value) => { const el = document.querySelector(selector); if (el) el.textContent = value; };
+  setText('#hitCount', data.hit[0]); setText('#hitTotal', data.hit[1]);
+  setText('#collectNew', data.collect[0]); setText('#collectDedup', data.collect[1]); setText('#collectSources', data.collect[2]); setText('#collectDone', data.collect[3]);
+})();
+</script>
 </body>
 </html>

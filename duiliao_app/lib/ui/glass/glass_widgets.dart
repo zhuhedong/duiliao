@@ -270,12 +270,12 @@ class GlassContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final radius = borderRadius ?? BorderRadius.circular(24);
+    final radius = borderRadius ?? BorderRadius.circular(20);
 
     // Aurora glass surface — semi-transparent material that lets the
     // ambient orbs refract through.
     final defaultBg = isDark
-        ? const Color(0xFF1C1C2E).withValues(alpha: 0.55)
+        ? const Color(0xFF2E2946).withValues(alpha: 0.55)
         : Colors.white.withValues(alpha: 0.62);
 
     final effectiveBg = fillColor ?? defaultBg;

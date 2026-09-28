@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>系统设置 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -73,18 +74,18 @@
           <label>API Key</label>
           <div class="input">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-            <input type="password" value="sk-••••••••••••3f2a">
+            <input type="password" placeholder="粘贴新的 API Key(演示不保存)" autocomplete="off">
           </div>
         </div>
 
         <!-- 状态行 -->
         <div class="flex aic gap-8" style="margin:4px 0 14px">
-          <span class="pill success"><span class="dot pulse"></span>全部就绪</span>
-          <span class="fs-11 t-muted grow">延迟 <span class="num">182</span>ms · 09-26 21:55 检测</span>
-          <a class="btn-ghost" href="#" style="padding:5px 10px;font-size:11.5px">重新检测</a>
+          <span class="pill warning"><span class="dot pulse"></span>样例状态 · 未实时检测</span>
+          <span class="fs-11 t-muted grow">延迟 <span class="num">182</span>ms · 09-26 21:55 样例</span>
+          <button type="button" class="btn-ghost"  style="padding:5px 10px;font-size:11.5px">重新检测</button>
         </div>
 
-        <a class="btn-ghost" href="#" style="width:100%">保存 AI 配置</a>
+        <button type="button" class="btn-ghost"  style="width:100%">保存 AI 配置</button>
       </div>
     </section>
 
@@ -133,7 +134,7 @@
           </div>
         </div>
         <div class="flex aic gap-8" style="padding:12px 0 0">
-          <a class="btn-ghost" href="#" style="padding:5px 10px;font-size:11.5px">补齐缺失表</a>
+          <button type="button" class="btn-ghost"  style="padding:5px 10px;font-size:11.5px">补齐缺失表</button>
           <span class="fs-11 t-muted">检测到 <span class="num">1</span> 张缺失表</span>
         </div>
       </div>
@@ -161,21 +162,21 @@
             </div>
             <span class="switch on"></span>
           </div>
-          <a class="list-item" href="#" style="padding-left:0;padding-right:0">
+          <button type="button" class="list-item"  style="padding-left:0;padding-right:0">
             <div class="li-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
             </div>
             <div class="li-main"><div class="li-title">清理本地缓存</div></div>
             <span class="fs-12 t-muted">12.4 MB</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--foreground-muted)"><path d="m9 6 6 6-6 6"/></svg>
-          </a>
+          </button>
         </div>
       </div>
     </section>
 
     <!-- 保存 -->
     <section class="section animate-fadeIn d3">
-      <a class="glow-button" href="#">保存所有配置</a>
+      <button type="button" class="glow-button">保存所有配置</button>
     </section>
   </div>
 </div>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>跳码助手 · 对料</title>
+<link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
+<style>
+  .helper-intro { position:relative; overflow:hidden; padding:15px; }
+  .helper-intro::after { content:""; position:absolute; width:180px; height:180px; right:-75px; top:-90px; border-radius:50%; background:radial-gradient(circle,oklch(0.72 0.185 283 / 24%),transparent 68%); pointer-events:none; }
+  .helper-title { font-size:14px; font-weight:800; }
+  .helper-copy { color:var(--foreground-muted); font-size:11px; line-height:1.7; margin-top:5px; max-width:300px; }
+  .mode-switch { display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:4px; border-radius:13px; background:oklch(1 0 0 / 5%); border:1px solid var(--border); }
+  .mode-switch button { border:0; border-radius:9px; padding:9px 8px; color:var(--foreground-muted); background:transparent; font:600 11.5px inherit; }
+  .mode-switch button.active { color:var(--foreground-strong); background:var(--primary-soft); box-shadow:inset 0 0 0 1px oklch(0.72 0.185 283 / 30%); }
+  .filter-card { padding:14px; }
+  .filter-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
+  .filter-title { font-size:12px; font-weight:700; }
+  .filter-note { color:var(--foreground-muted); font-size:10px; }
+  .filter-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+  .filter-grid.six { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .filter-chip { min-width:0; border:1px solid var(--border); color:var(--foreground-muted); background:oklch(1 0 0 / 5%); border-radius:9px; padding:8px 4px; font:600 11px inherit; white-space:nowrap; }
+  .filter-chip.active { color:var(--primary-strong); border-color:oklch(0.72 0.185 283 / 48%); background:var(--primary-soft); box-shadow:0 5px 15px -10px oklch(0.585 0.26 290 / 70%); }
+  .filter-group + .filter-group { margin-top:15px; padding-top:14px; border-top:1px solid var(--border-muted); }
+  .result-card { padding:14px; }
+  .result-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .result-count { font-size:25px; font-weight:800; letter-spacing:-.04em; }
+  .code-panel { padding:11px 12px; border-radius:12px; background:oklch(1 0 0 / 5%); border:1px solid var(--border-muted); }
+  .code-panel-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .code-list { display:flex; gap:5px; flex-wrap:wrap; margin-top:9px; min-height:23px; }
+  .code-tag { padding:4px 6px; border-radius:7px; color:var(--primary-strong); background:var(--primary-soft); font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .code-empty { color:var(--foreground-muted); font-size:10.5px; }
+  .result-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-top:14px; }
+  .result-grid .ball { width:34px; height:34px; font-size:11px; margin:auto; opacity:.98; }
+  .result-grid .ball.dim { opacity:.22; filter:grayscale(.85); }
+  .selected-filters { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+  .selected-filters span { padding:4px 7px; border-radius:7px; color:var(--primary-strong); background:var(--primary-soft); font-size:10px; }
+  .attribute-list { display:grid; gap:9px; }
+  .attribute-line { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid var(--border-muted); }
+  .attribute-line:first-child { border-top:0; padding-top:0; }
+  .attribute-label { font-size:11px; color:var(--foreground-muted); }
+  .attribute-value { font-size:12px; font-weight:700; text-align:right; }
+  .formula { padding:11px 12px; border-radius:12px; background:oklch(1 0 0 / 5%); color:var(--foreground-muted); font-size:10.5px; line-height:1.7; }
+  @media (max-width:350px) { .filter-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .filter-grid.six { grid-template-columns:repeat(5,minmax(0,1fr)); } }
+</style>
+</head>
+<body>
+<div class="app-aurora"></div>
+<div class="app-aurora-grid"></div>
+
+<div class="screen">
+  <div class="statusbar">
+    <span>9:41</span>
+    <span class="sb-icons">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM8 5.5c1.7 0 3.2.7 4.3 1.8l-1.4 1.4A3.9 3.9 0 0 0 8 7.5c-1.1 0-2.2.5-2.9 1.2L3.7 7.3A5.9 5.9 0 0 1 8 5.5zM8 1.5c2.9 0 5.5 1.2 7.4 3.1L14 6A8.6 8.6 0 0 0 8 3.5c-2.4 0-4.5.9-6 2.5L.6 4.6A10.6 10.6 0 0 1 8 1.5z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" opacity="0.4"/><rect x="2" y="2" width="15" height="8" rx="2" fill="currentColor"/><path d="M23.5 4v4a2 2 0 0 0 0-4z" fill="currentColor" opacity="0.4"/></svg>
+    </span>
+  </div>
+
+  <header class="app-header">
+    <div class="grow">
+      <div class="h-title">跳码助手</div>
+      <div class="h-sub">属性筛选 · 正选 / 反选 · 辅助记录</div>
+    </div>
+    <a class="btn-icon" href="records.html" aria-label="返回记录">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/><path d="M9 12h12"/></svg>
+    </a>
+  </header>
+
+  <div class="screen-body">
+    <section class="section animate-fadeIn">
+      <div class="glass-card helper-intro">
+        <div class="flex aic jcb gap-8"><div><div class="helper-title">通过号码属性筛选号码</div><div class="helper-copy" id="modeCopy">反选：选择需要排除的属性，命中任一条件的号码会被剔除；切换到正选后，则只保留符合条件的号码。</div></div><span class="pill primary" id="modeBadge">反选模式</span></div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d1">
+      <div class="flex gap-8 wrap" style="margin-bottom:10px"><span class="pill primary">澳门</span><span class="chip">香港</span><span class="chip">台湾</span><span class="chip">新彩</span></div>
+      <div class="segmented"><button type="button" class="seg-on">第 2026277 期</button><button type="button">第 2026276 期</button></div>
+      <div class="mode-switch" style="margin-top:10px"><button type="button" data-mode="include">正选号码</button><button type="button" class="active" data-mode="exclude">反选号码</button></div>
+    </section>
+
+    <section class="section animate-fadeIn d2">
+      <div class="section-title"><span class="st-dot"></span>号码属性 <span class="fs-11 t-muted">可多选</span><button type="button" id="clearFilters" class="btn-ghost" style="margin-left:auto;padding:5px 9px;font-size:10.5px">清空</button></div>
+      <div class="glass-card filter-card">
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">单双</span><span class="filter-note">按号码奇偶</span></div>
+          <div class="filter-grid"><button type="button" class="filter-chip" data-filter="odd">单</button><button type="button" class="filter-chip" data-filter="even">双</button></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">大小</span><span class="filter-note">01–24 小 · 25–49 大</span></div>
+          <div class="filter-grid"><button type="button" class="filter-chip" data-filter="large">大</button><button type="button" class="filter-chip" data-filter="small">小</button></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">大小单双</span><span class="filter-note">组合属性</span></div>
+          <div class="filter-grid"><button type="button" class="filter-chip" data-filter="largeOdd">大单</button><button type="button" class="filter-chip" data-filter="smallOdd">小单</button><button type="button" class="filter-chip" data-filter="largeEven">大双</button><button type="button" class="filter-chip" data-filter="smallEven">小双</button></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">五行</span><span class="filter-note">金 · 木 · 水 · 火 · 土</span></div>
+          <div class="filter-grid"><button type="button" class="filter-chip" data-filter="metal">金</button><button type="button" class="filter-chip" data-filter="wood">木</button><button type="button" class="filter-chip" data-filter="water">水</button><button type="button" class="filter-chip" data-filter="fire">火</button><button type="button" class="filter-chip" data-filter="earth">土</button></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">波色</span><span class="filter-note">排除或保留整组号码</span></div>
+          <div class="filter-grid"><button type="button" class="filter-chip" data-filter="red">红波</button><button type="button" class="filter-chip" data-filter="blue">蓝波</button><button type="button" class="filter-chip" data-filter="green">绿波</button></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">家野</span><span class="filter-note">生肖所属分类</span></div>
+          <div class="filter-grid"><button type="button" class="filter-chip" data-filter="jia">家禽</button><button type="button" class="filter-chip" data-filter="ye">野兽</button></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">波色单双</span><span class="filter-note">组合属性</span></div>
+          <div class="filter-grid six"><button type="button" class="filter-chip" data-filter="redOdd">红单</button><button type="button" class="filter-chip" data-filter="redEven">红双</button><button type="button" class="filter-chip" data-filter="blueOdd">蓝单</button><button type="button" class="filter-chip" data-filter="blueEven">蓝双</button><button type="button" class="filter-chip" data-filter="greenOdd">绿单</button><button type="button" class="filter-chip" data-filter="greenEven">绿双</button></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">生肖</span><span class="filter-note">2026 年生肖映射</span></div>
+          <div class="filter-grid six" id="xiaoFilters"></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">尾数</span><span class="filter-note">0–9 尾 · 大尾 / 小尾</span></div>
+          <div class="filter-grid six" id="weiFilters"></div>
+        </div>
+        <div class="filter-group">
+          <div class="filter-head"><span class="filter-title">头数</span><span class="filter-note">号码十位</span></div>
+          <div class="filter-grid six" id="headFilters"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d3">
+      <div class="section-title"><span class="st-dot"></span><span id="resultTitle">反选结果</span> <span class="fs-11 t-muted">当前保留号码</span></div>
+      <div class="glass-card result-card">
+        <div class="result-top"><div><div class="fs-11 t-muted">当前剩余</div><div class="result-count"><span id="remainCount">49</span><span class="fs-12 t-muted fw-6"> 个号码</span></div></div><div style="text-align:right"><div class="fs-11 t-muted" id="excludedLabel">已排除</div><div class="fw-7 t-danger num" id="excludedCount">0 个</div></div></div>
+        <div class="selected-filters" id="selectedFilters"><span>尚未设置属性条件</span></div>
+        <div class="code-panel" style="margin-top:12px"><div class="code-panel-head"><span class="fs-11 t-muted">结果号码</span><div class="flex gap-6"><button type="button" id="clearResult" class="btn-ghost" style="padding:4px 7px;font-size:10px">清空</button><button type="button" id="copyResult" class="btn-ghost" style="padding:4px 7px;font-size:10px">复制结果</button></div></div><div class="code-list" id="selectedCode"><span class="code-empty">设置属性后自动生成</span></div></div>
+        <div class="result-grid" id="resultGrid"></div>
+        <div class="formula" style="margin-top:14px" id="formulaText">反选逻辑：候选号码 = 01–49 − 命中任一排除属性的号码。</div>
+      </div>
+    </section>
+
+    <section class="section animate-fadeIn d4">
+      <div class="section-title"><span class="st-dot"></span>属性概览</div>
+      <div class="glass-card card-pad"><div class="attribute-list"><div class="attribute-line"><span class="attribute-label">保留生肖</span><span class="attribute-value t-success" id="remainXiao">12 肖</span></div><div class="attribute-line"><span class="attribute-label">保留波色</span><span class="attribute-value t-success" id="remainColor">红波 · 蓝波 · 绿波</span></div><div class="attribute-line"><span class="attribute-label">保留单双 / 大小</span><span class="attribute-value" id="remainOddEven">单 · 双 · 大 · 小</span></div><div class="attribute-line"><span class="attribute-label">已选条件</span><span class="attribute-value" id="selectedSummary">暂无</span></div></div></div>
+    </section>
+
+    <section class="section animate-fadeIn d5"><a class="glow-button" href="record-add.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>将结果带入新增记录</a></section>
+  </div>
+
+  <nav class="tabbar">
+    <a href="dashboard.html"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>工作台</a>
+    <a href="consensus-board.html"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-.9 2.1L19 21l-.7-1.8-1.8-.7 1.8-.7L19 15z"/></svg>共识</a>
+    <a href="draws.html"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>开奖</a>
+    <a href="records.html" class="active"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>记录</a>
+    <a href="profile.html"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>我的</a>
+  </nav>
+</div>
+<script>
+const XIAO_LIST=['鼠','牛','虎','兔','龙','蛇','马','羊','猴','鸡','狗','猪'];
+const JIA_XIAO=new Set(['牛','马','羊','鸡','狗','猪']);
+const RED_NUMS=new Set([1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]);
+const BLUE_NUMS=new Set([3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48]);
+const WUXING={metal:new Set([4,5,12,13,26,27,34,35,42,43]),wood:new Set([8,9,16,17,24,25,38,39,46,47]),water:new Set([1,14,15,22,23,30,31,44,45]),fire:new Set([2,3,10,11,18,19,32,33,40,41,48,49]),earth:new Set([6,7,20,21,28,29,36,37])};
+const FILTERS={
+  odd:{label:'单',group:'单双',match:n=>n%2===1}, even:{label:'双',group:'单双',match:n=>n%2===0},
+  large:{label:'大',group:'大小',match:n=>n>=25}, small:{label:'小',group:'大小',match:n=>n<=24},
+  largeOdd:{label:'大单',group:'大小单双',match:n=>n>=25&&n%2===1}, smallOdd:{label:'小单',group:'大小单双',match:n=>n<=24&&n%2===1}, largeEven:{label:'大双',group:'大小单双',match:n=>n>=25&&n%2===0}, smallEven:{label:'小双',group:'大小单双',match:n=>n<=24&&n%2===0},
+  metal:{label:'金',group:'五行',match:n=>WUXING.metal.has(n)}, wood:{label:'木',group:'五行',match:n=>WUXING.wood.has(n)}, water:{label:'水',group:'五行',match:n=>WUXING.water.has(n)}, fire:{label:'火',group:'五行',match:n=>WUXING.fire.has(n)}, earth:{label:'土',group:'五行',match:n=>WUXING.earth.has(n)},
+  red:{label:'红波',group:'波色',match:n=>getColor(n)==='red'}, blue:{label:'蓝波',group:'波色',match:n=>getColor(n)==='blue'}, green:{label:'绿波',group:'波色',match:n=>getColor(n)==='green'},
+  jia:{label:'家禽',group:'家野',match:n=>JIA_XIAO.has(getXiao(n))}, ye:{label:'野兽',group:'家野',match:n=>!JIA_XIAO.has(getXiao(n))},
+  redOdd:{label:'红单',group:'波色单双',match:n=>getColor(n)==='red'&&n%2===1}, redEven:{label:'红双',group:'波色单双',match:n=>getColor(n)==='red'&&n%2===0}, blueOdd:{label:'蓝单',group:'波色单双',match:n=>getColor(n)==='blue'&&n%2===1}, blueEven:{label:'蓝双',group:'波色单双',match:n=>getColor(n)==='blue'&&n%2===0}, greenOdd:{label:'绿单',group:'波色单双',match:n=>getColor(n)==='green'&&n%2===1}, greenEven:{label:'绿双',group:'波色单双',match:n=>getColor(n)==='green'&&n%2===0}
+};
+const selected=new Set();
+let mode='exclude';
+function getColor(n){return RED_NUMS.has(n)?'red':BLUE_NUMS.has(n)?'blue':'green'}
+function getXiao(n){const idx=(((2026-4)%12-(n-1))%12+12)%12;return XIAO_LIST[idx]}
+function getXiaoKey(x){return 'xiao_'+x}
+function getColorName(c){return c==='red'?'红波':c==='blue'?'蓝波':'绿波'}
+function pad(n){return String(n).padStart(2,'0')}
+function addDynamicFilters(){
+  document.getElementById('xiaoFilters').innerHTML=XIAO_LIST.map(x=>`<button type="button" class="filter-chip" data-filter="${getXiaoKey(x)}">${x}</button>`).join('');
+  document.getElementById('weiFilters').innerHTML=[0,1,2,3,4,5,6,7,8,9].map(i=>`<button type="button" class="filter-chip" data-filter="tail_${i}">${i}尾</button>`).join('')+['bigTail','smallTail'].map(k=>`<button type="button" class="filter-chip" data-filter="${k}">${k==='bigTail'?'大尾':'小尾'}</button>`).join('');
+  document.getElementById('headFilters').innerHTML=[0,1,2,3,4].map(i=>`<button type="button" class="filter-chip" data-filter="head_${i}">${i}头</button>`).join('');
+  XIAO_LIST.forEach(x=>FILTERS[getXiaoKey(x)]={label:x+'肖',group:'生肖',match:n=>getXiao(n)===x});
+  for(let i=0;i<=9;i++) FILTERS['tail_'+i]={label:i+'尾',group:'尾数',match:n=>n%10===i};
+  FILTERS.bigTail={label:'大尾',group:'尾数',match:n=>n%10>=5};FILTERS.smallTail={label:'小尾',group:'尾数',match:n=>n%10<=4};
+  for(let i=0;i<=4;i++) FILTERS['head_'+i]={label:i+'头',group:'头数',match:n=>Math.floor(n/10)===i};
+}
+function selectedKeysByGroup(){const groups={};selected.forEach(k=>{const f=FILTERS[k];if(!f)return;(groups[f.group]??=[]).push(k)});return groups}
+function keepNumber(n){if(!selected.size)return true;const groups=selectedKeysByGroup();if(mode==='exclude')return ![...selected].some(k=>FILTERS[k]?.match(n));return Object.values(groups).every(keys=>keys.some(k=>FILTERS[k].match(n)))}
+function render(){
+  const remain=Array.from({length:49},(_,i)=>i+1).filter(keepNumber);
+  const excluded=49-remain.length;
+  document.getElementById('remainCount').textContent=remain.length;
+  document.getElementById('excludedCount').textContent=(mode==='exclude'?excluded:excluded)+' 个';
+  document.getElementById('excludedLabel').textContent=mode==='exclude'?'已排除':'未保留';
+  document.getElementById('resultTitle').textContent=mode==='exclude'?'反选结果':'正选结果';
+  document.getElementById('formulaText').textContent=mode==='exclude'?'反选逻辑：候选号码 = 01–49 − 命中任一排除属性的号码。':'正选逻辑：同一属性组内按“或”匹配，不同属性组之间按“且”匹配，只保留符合条件的号码。';
+  document.getElementById('selectedFilters').innerHTML=selected.size?[...selected].map(k=>`<span>${FILTERS[k]?.group} · ${FILTERS[k]?.label}</span>`).join(''):'<span>尚未设置属性条件</span>';
+  document.getElementById('selectedSummary').textContent=selected.size?[...selected].map(k=>FILTERS[k]?.label).join(' · '):'暂无';
+  document.getElementById('selectedCode').innerHTML=remain.length?remain.map(n=>`<span class="code-tag">${pad(n)}</span>`).join(''):'<span class="code-empty">没有符合条件的号码</span>';
+  document.getElementById('resultGrid').innerHTML=Array.from({length:49},(_,i)=>{const n=i+1;const kept=remain.includes(n);return `<span class="ball sm ${getColor(n)}${kept?'':' dim'}" title="${pad(n)}号 · ${getXiao(n)}肖">${pad(n)}</span>`}).join('');
+  const xiaoRemain=XIAO_LIST.filter(x=>remain.some(n=>getXiao(n)===x));
+  const colors=['red','blue','green'].filter(c=>remain.some(n=>getColor(n)===c)).map(getColorName);
+  const oddEven=[['odd','单'],['even','双']].filter(([k])=>remain.some(n=>FILTERS[k].match(n))).map(x=>x[1]);
+  const sizes=[['small','小'],['large','大']].filter(([k])=>remain.some(n=>FILTERS[k].match(n))).map(x=>x[1]);
+  document.getElementById('remainXiao').textContent=xiaoRemain.length===12?'12 肖':(xiaoRemain.join(' · ')||'无');
+  document.getElementById('remainColor').textContent=colors.join(' · ')||'无';
+  document.getElementById('remainOddEven').textContent=[...oddEven,...sizes].join(' · ')||'无';
+}
+document.addEventListener('click',e=>{const btn=e.target.closest('.filter-chip');if(!btn)return;const key=btn.dataset.filter;if(selected.has(key)){selected.delete(key);btn.classList.remove('active')}else{selected.add(key);btn.classList.add('active')}render()});
+document.querySelectorAll('[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{mode=btn.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('active',x.dataset.mode===mode));document.getElementById('modeBadge').textContent=mode==='exclude'?'反选模式':'正选模式';document.getElementById('modeCopy').textContent=mode==='exclude'?'反选：选择需要排除的属性，命中任一条件的号码会被剔除；切换到正选后，则只保留符合条件的号码。':'正选：选择想要保留的属性，同一属性组内可多选，不同属性组会取交集。';render()}));
+document.getElementById('clearFilters').addEventListener('click',()=>{selected.clear();document.querySelectorAll('.filter-chip').forEach(x=>x.classList.remove('active'));render()});
+document.getElementById('clearResult').addEventListener('click',()=>{selected.clear();document.querySelectorAll('.filter-chip').forEach(x=>x.classList.remove('active'));render()});
+document.getElementById('copyResult').addEventListener('click',async()=>{const values=[...document.querySelectorAll('#selectedCode .code-tag')].map(x=>x.textContent).join(' ');try{await navigator.clipboard.writeText(values)}catch(_){const area=document.createElement('textarea');area.value=values;document.body.appendChild(area);area.select();document.execCommand('copy');area.remove()}const btn=document.getElementById('copyResult');btn.textContent='已复制';setTimeout(()=>btn.textContent='复制结果',1200)});
+addDynamicFilters();render();
+</script>
+</body>
+</html>

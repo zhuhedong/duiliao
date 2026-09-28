@@ -32,7 +32,9 @@ final secureStoreProvider = Provider<SecureStore>(
 /// [MemoryCacheStore] is substituted if Hive fails to open so the app still
 /// works, just without offline reads.
 final cacheStoreProvider = Provider<CacheStore>(
-  (ref) => throw UnimplementedError('cacheStoreProvider must be overridden in main()'),
+  (ref) => throw UnimplementedError(
+    'cacheStoreProvider must be overridden in main()',
+  ),
 );
 
 final apiClientProvider = Provider<ApiClient>((ref) {
@@ -69,8 +71,9 @@ final collectorRepositoryProvider = Provider<CollectorRepository>(
 // --------------------------------------------------------------------------- //
 /// The lottery currently being browsed. Shared across tabs so switching tabs
 /// does not silently change which lottery the operator is looking at.
-final selectedLotteryProvider =
-    NotifierProvider<SelectedLottery, Lottery>(SelectedLottery.new);
+final selectedLotteryProvider = NotifierProvider<SelectedLottery, Lottery>(
+  SelectedLottery.new,
+);
 
 class SelectedLottery extends Notifier<Lottery> {
   @override
@@ -79,8 +82,9 @@ class SelectedLottery extends Notifier<Lottery> {
 }
 
 /// Play type used by the ratings and consensus screens.
-final selectedPlayTypeProvider =
-    NotifierProvider<SelectedPlayType, String>(SelectedPlayType.new);
+final selectedPlayTypeProvider = NotifierProvider<SelectedPlayType, String>(
+  SelectedPlayType.new,
+);
 
 class SelectedPlayType extends Notifier<String> {
   @override
@@ -93,7 +97,9 @@ class SelectedPlayType extends Notifier<String> {
 @immutable
 class DisplayPreferences {
   const DisplayPreferences({
-    this.themeMode = ThemeModePreference.system,
+    // Aurora Glass is a dark-first product. Users can still choose system or
+    // light mode, but a fresh install should match the mobile design directly.
+    this.themeMode = ThemeModePreference.dark,
     this.textScale = 1.0,
     this.biometricEnabled = false,
   });
@@ -109,20 +115,19 @@ class DisplayPreferences {
     ThemeModePreference? themeMode,
     double? textScale,
     bool? biometricEnabled,
-  }) =>
-      DisplayPreferences(
-        themeMode: themeMode ?? this.themeMode,
-        textScale: textScale ?? this.textScale,
-        biometricEnabled: biometricEnabled ?? this.biometricEnabled,
-      );
+  }) => DisplayPreferences(
+    themeMode: themeMode ?? this.themeMode,
+    textScale: textScale ?? this.textScale,
+    biometricEnabled: biometricEnabled ?? this.biometricEnabled,
+  );
 }
 
 enum ThemeModePreference { system, light, dark }
 
 final displayPreferencesProvider =
     NotifierProvider<DisplayPreferencesController, DisplayPreferences>(
-  DisplayPreferencesController.new,
-);
+      DisplayPreferencesController.new,
+    );
 
 class DisplayPreferencesController extends Notifier<DisplayPreferences> {
   @override
@@ -135,7 +140,7 @@ class DisplayPreferencesController extends Notifier<DisplayPreferences> {
     final biometric = (await store.read(SecureKeys.biometricEnabled)) == '1';
     final mode = ThemeModePreference.values.firstWhere(
       (value) => value.name == theme,
-      orElse: () => ThemeModePreference.system,
+      orElse: () => ThemeModePreference.dark,
     );
     state = DisplayPreferences(
       themeMode: mode,
@@ -158,9 +163,8 @@ class DisplayPreferencesController extends Notifier<DisplayPreferences> {
 
   void setBiometricEnabled(bool enabled) {
     state = state.copyWith(biometricEnabled: enabled);
-    ref.read(secureStoreProvider).write(
-          SecureKeys.biometricEnabled,
-          enabled ? '1' : '0',
-        );
+    ref
+        .read(secureStoreProvider)
+        .write(SecureKeys.biometricEnabled, enabled ? '1' : '0');
   }
 }

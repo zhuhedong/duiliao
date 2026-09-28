@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>数据源采集 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -25,10 +26,10 @@
   <header class="app-header">
     <div class="grow">
       <div class="h-title">数据源采集</div>
-      <div class="h-sub">定时采集调度 · 运行中</div>
+      <div class="h-sub">采集调度样例 · 运行状态需连接后端</div>
     </div>
-    <span class="pill success"><span class="dot pulse"></span>调度正常</span>
-    <button class="btn-icon" aria-label="录入脚本">
+    <span class="pill warning"><span class="dot pulse"></span>静态样例</span>
+    <button type="button" class="btn-icon" aria-label="录入脚本">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
     </button>
   </header>
@@ -66,6 +67,7 @@
         <input type="text" placeholder="筛选来源名称/ID…">
       </div>
       <!-- 过滤 chips -->
+      <div class="fs-11 t-muted mt-12">KPI 为完整目录口径；当前页面仅展示 5 个代表性来源样例。</div>
       <div class="flex gap-8 mt-12" style="overflow-x:auto;padding-bottom:2px;scrollbar-width:none">
         <span class="pill primary"><span class="dot"></span>全部</span>
         <span class="chip">已启用</span>
@@ -97,7 +99,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
             调度 <span class="num">每日 12:00 / 21:00</span>
           </div>
-          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
+          <button type="button" class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
         </div>
       </div>
 
@@ -122,7 +124,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
             调度 <span class="num">每日 12:00 / 21:00</span>
           </div>
-          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
+          <button type="button" class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
         </div>
       </div>
 
@@ -147,7 +149,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
             调度 <span class="num">每日 12:00</span>
           </div>
-          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
+          <button type="button" class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
         </div>
       </div>
 
@@ -172,7 +174,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
             调度已暂停
           </div>
-          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
+          <button type="button" class="btn-ghost" style="padding:6px 12px;font-size:12px">测试运行</button>
         </div>
       </div>
 
@@ -189,7 +191,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--foreground-muted);flex-shrink:0"><path d="m9 6 6 6-6 6"/></svg>
         </div>
         <div class="list-item" style="padding-top:10px;padding-bottom:10px">
-          <button class="btn-ghost" style="padding:6px 12px;font-size:12px">
+          <button type="button" class="btn-ghost" style="padding:6px 12px;font-size:12px">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l14 9-14 9V3z"/></svg>
             启动测试运行
           </button>
@@ -206,9 +208,9 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       工作台
     </a>
-    <a href="ai-analysis.html">
+    <a href="consensus-board.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
-      研判
+      共识
     </a>
     <a href="draws.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>

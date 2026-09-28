@@ -1,7 +1,7 @@
 /// Mobile design system for Duiliao.
 ///
-/// The mobile client uses a calm, high-contrast operations UI: solid surfaces,
-/// clear status colours, generous touch targets and a restrained violet accent.
+/// Native tokens for the Aurora Glass mobile system. Surfaces stay readable
+/// over the indigo canvas while the violet-fuchsia accent matches app-design.
 library;
 
 import 'package:flutter/material.dart';
@@ -9,8 +9,9 @@ import 'package:flutter/material.dart';
 import 'tokens.dart';
 
 abstract final class DuiliaoColors {
-  static const Color primary = Color(0xFF5B4BDB);
-  static const Color primaryDark = Color(0xFFB8AEFF);
+  // Aurora Glass palette, shared with app-design/assets/app.css.
+  static const Color primary = Color(0xFF8D7CFF);
+  static const Color primaryDark = Color(0xFFB9AAFF);
 
   static const Color auroraIndigo = Color(0xFF4F46E5);
   static const Color auroraViolet = Color(0xFF7C3AED);
@@ -22,7 +23,7 @@ abstract final class DuiliaoColors {
     colors: [auroraIndigo, auroraViolet, auroraFuchsia],
   );
 
-  static const Color backgroundDark = Color(0xFF101116);
+  static const Color backgroundDark = Color(0xFF17152B);
   static const Color backgroundLight = Color(0xFFF7F7FA);
 
   static const Color boseRed = Color(0xFFE53935);
@@ -52,23 +53,36 @@ abstract final class DuiliaoTheme {
 
   static ThemeData _build(Brightness brightness) {
     final dark = brightness == Brightness.dark;
-    final scheme = ColorScheme.fromSeed(
-      seedColor: DuiliaoColors.primary,
-      brightness: brightness,
-    ).copyWith(
-      primary: dark ? DuiliaoColors.primaryDark : DuiliaoColors.primary,
-      onPrimary: dark ? const Color(0xFF211A45) : Colors.white,
-      primaryContainer: dark ? const Color(0xFF352B70) : const Color(0xFFE9E7FF),
-      onPrimaryContainer: dark ? const Color(0xFFEAE7FF) : const Color(0xFF211A45),
-      secondary: dark ? const Color(0xFF9A8CFF) : const Color(0xFF6D5CE7),
-      surface: dark ? DuiliaoColors.backgroundDark : DuiliaoColors.backgroundLight,
-      onSurface: dark ? const Color(0xFFF4F4F5) : const Color(0xFF1D1D24),
-      onSurfaceVariant: dark ? const Color(0xFFB7B8C2) : const Color(0xFF62636D),
-      outline: dark ? const Color(0xFF3B3D48) : const Color(0xFFD7D7DF),
-      outlineVariant: dark ? const Color(0xFF282A33) : const Color(0xFFE8E8EE),
-      surfaceContainerHighest: dark ? const Color(0xFF20222A) : const Color(0xFFEFEFF3),
-      error: dark ? const Color(0xFFFF8A8A) : const Color(0xFFB42318),
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: DuiliaoColors.primary,
+          brightness: brightness,
+        ).copyWith(
+          primary: dark ? DuiliaoColors.primaryDark : DuiliaoColors.primary,
+          onPrimary: dark ? const Color(0xFF211A45) : Colors.white,
+          primaryContainer: dark
+              ? const Color(0xFF332A63)
+              : const Color(0xFFE9E7FF),
+          onPrimaryContainer: dark
+              ? const Color(0xFFEAE7FF)
+              : const Color(0xFF211A45),
+          secondary: dark ? const Color(0xFF9A8CFF) : const Color(0xFF6D5CE7),
+          surface: dark
+              ? DuiliaoColors.backgroundDark
+              : DuiliaoColors.backgroundLight,
+          onSurface: dark ? const Color(0xFFF4F4F5) : const Color(0xFF1D1D24),
+          onSurfaceVariant: dark
+              ? const Color(0xFFB7B8C2)
+              : const Color(0xFF62636D),
+          outline: dark ? const Color(0xFF3B3D48) : const Color(0xFFD7D7DF),
+          outlineVariant: dark
+              ? const Color(0xFF282A33)
+              : const Color(0xFFE8E8EE),
+          surfaceContainerHighest: dark
+              ? const Color(0xFF292541)
+              : const Color(0xFFEFEFF3),
+          error: dark ? const Color(0xFFFF8A8A) : const Color(0xFFB42318),
+        );
 
     final baseText = ThemeData(
       brightness: brightness,
@@ -107,9 +121,18 @@ abstract final class DuiliaoTheme {
         bodyLarge: baseText.bodyLarge?.copyWith(fontSize: 15, height: 1.35),
         bodyMedium: baseText.bodyMedium?.copyWith(fontSize: 13, height: 1.35),
         bodySmall: baseText.bodySmall?.copyWith(fontSize: 12, height: 1.35),
-        labelLarge: baseText.labelLarge?.copyWith(fontSize: 13, fontWeight: FontWeight.w700),
-        labelMedium: baseText.labelMedium?.copyWith(fontSize: 11, fontWeight: FontWeight.w700),
-        labelSmall: baseText.labelSmall?.copyWith(fontSize: 10, fontWeight: FontWeight.w600),
+        labelLarge: baseText.labelLarge?.copyWith(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+        labelMedium: baseText.labelMedium?.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+        labelSmall: baseText.labelSmall?.copyWith(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       fontFamilyFallback: const [
         'SF Pro Display',
@@ -145,9 +168,15 @@ abstract final class DuiliaoTheme {
         height: 72,
         elevation: 0,
         backgroundColor: dark ? const Color(0xFF17181E) : Colors.white,
-        indicatorColor: dark ? const Color(0xFF3A3271) : const Color(0xFFEAE8FF),
-        labelTextStyle: MaterialStatePropertyAll(
-          TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: scheme.onSurfaceVariant),
+        indicatorColor: dark
+            ? const Color(0xFF3A3271)
+            : const Color(0xFFEAE8FF),
+        labelTextStyle: WidgetStatePropertyAll(
+          TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurfaceVariant,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -169,7 +198,9 @@ abstract final class DuiliaoTheme {
       ),
       chipTheme: ChipThemeData(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(DuiliaoTokens.radiusSmall)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(DuiliaoTokens.radiusSmall),
+        ),
         side: BorderSide(color: scheme.outlineVariant),
       ),
       dividerTheme: DividerThemeData(
@@ -179,19 +210,25 @@ abstract final class DuiliaoTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(DuiliaoTokens.radiusMedium)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(DuiliaoTokens.radiusMedium),
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size.fromHeight(48),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(DuiliaoTokens.radiusMedium)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(DuiliaoTokens.radiusMedium),
+          ),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size.fromHeight(DuiliaoTokens.minTouchTarget),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(DuiliaoTokens.radiusMedium)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(DuiliaoTokens.radiusMedium),
+          ),
           side: BorderSide(color: scheme.outline),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),

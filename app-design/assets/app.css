@@ -323,6 +323,7 @@ body {
   text-decoration: none;
   backdrop-filter: blur(10px);
 }
+.btn-link { border: 0; padding: 0; background: transparent; font: inherit; cursor: pointer; text-decoration: none; }
 .btn-icon {
   display: inline-flex;
   align-items: center;
@@ -649,3 +650,24 @@ body {
 .animate-float { animation: floatY 5s ease-in-out infinite; }
 
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+/* 原型可访问性与窄屏兜底 */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid oklch(0.78 0.18 283 / 90%);
+  outline-offset: 3px;
+}
+.segmented button[aria-pressed="true"], .chip[aria-pressed="true"], .pill[aria-pressed="true"] {
+  background: var(--primary-soft);
+  border-color: oklch(0.72 0.185 283 / 48%);
+  color: var(--primary-strong);
+}
+.switch[role="switch"] { cursor: pointer; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 360px) {
+  .app-header { gap: 6px; }
+  .app-header .pill { display: none; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ball-row { gap: 5px; }
+}

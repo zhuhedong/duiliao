@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>AI研判 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -27,7 +28,7 @@
       <div class="h-title">AI研判</div>
       <div class="h-sub">顶尖大师 · 智能去噪 · 注入上下文</div>
     </div>
-    <button class="btn-icon" aria-label="历史记录">
+    <button type="button" class="btn-icon" aria-label="历史记录">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
     </button>
   </header>
@@ -35,8 +36,8 @@
   <div class="screen-body">
     <!-- 模式切换 -->
     <div class="segmented animate-fadeIn d1" style="margin-top:2px">
-      <button class="seg-on">帖文研判</button>
-      <button>连肖研判</button>
+      <button type="button" class="seg-on">帖文研判</button>
+      <button type="button">连肖研判</button>
     </div>
 
     <!-- 研判参数 -->
@@ -62,12 +63,12 @@
           <span class="pill primary">管家婆传真</span>
           <span class="chip">白小组</span>
         </div>
-        <a class="glow-button mt-16" href="#">
+        <button type="button" class="glow-button mt-16">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
           抓取数据
-        </a>
+        </button>
         <div class="flex aic mt-12">
-          <span class="pill success"><span class="dot"></span>数据已就绪 · 已注入上下文 <span class="num">12</span> 条</span>
+          <span class="pill warning"><span class="dot pulse"></span>样例上下文 · 未连接实时抓取 · 已注入 <span class="num">12</span> 条</span>
         </div>
       </div>
     </section>
@@ -171,9 +172,9 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       工作台
     </a>
-    <a href="ai-analysis.html" class="active">
+    <a href="consensus-board.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
-      研判
+      共识
     </a>
     <a href="draws.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>

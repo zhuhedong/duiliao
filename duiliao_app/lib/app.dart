@@ -82,7 +82,9 @@ class _AuthGateState extends ConsumerState<AuthGate> {
     var biometric = false;
     try {
       biometric =
-          await ref.read(secureStoreProvider).read(SecureKeys.biometricEnabled) ==
+          await ref
+              .read(secureStoreProvider)
+              .read(SecureKeys.biometricEnabled) ==
           '1';
     } catch (_) {
       // A storage plugin failure must not leave the auth gate restoring forever.
@@ -198,7 +200,10 @@ class _ForceUpdateView extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: DuiliaoColors.auroraGradient,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.2),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    width: 1.2,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: DuiliaoColors.auroraViolet.withValues(alpha: 0.35),
@@ -207,10 +212,17 @@ class _ForceUpdateView extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.system_update, size: 40, color: Colors.white),
+                child: const Icon(
+                  Icons.system_update,
+                  size: 40,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 16),
-              const Text('需要更新应用', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text(
+                '需要更新应用',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               Text(
                 '当前版本已不再支持，请安装 ${info.latest ?? '最新版本'}。',
@@ -225,7 +237,8 @@ class _ForceUpdateView extends StatelessWidget {
                 GlassButton(
                   onPressed: () {
                     final uri = Uri.tryParse(info.downloadUrl!);
-                    if (uri != null && isAllowedUpdateUri(uri, allowMirrors: true)) {
+                    if (uri != null &&
+                        isAllowedUpdateUri(uri, allowMirrors: true)) {
                       launchUrl(uri, mode: LaunchMode.externalApplication);
                     }
                   },
@@ -253,7 +266,58 @@ class _RestoringView extends StatelessWidget {
   const _RestoringView();
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-    body: GlassBackground(child: Center(child: CircularProgressIndicator())),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.transparent,
+    body: GlassBackground(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: GlassContainer(
+            borderRadius: BorderRadius.circular(28),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    gradient: DuiliaoColors.auroraGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: DuiliaoColors.auroraViolet.withValues(
+                          alpha: 0.45,
+                        ),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    '对',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Text('对料', style: context.texts.titleLarge),
+                const SizedBox(height: 5),
+                Text('正在建立安全链路…', style: context.texts.bodySmall),
+                const SizedBox(height: 20),
+                const SizedBox(
+                  width: 180,
+                  child: LinearProgressIndicator(minHeight: 3),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 }

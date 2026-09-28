@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>开奖管理 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -25,10 +26,10 @@
   <header class="app-header">
     <div class="grow">
       <div class="h-title">开奖管理</div>
-      <div class="h-sub">自动更新已启动 · 下次同步 21:30</div>
+      <div class="h-sub">设计样例 · 同步与对奖需连接后端</div>
     </div>
-    <span class="pill success"><span class="dot pulse"></span>自动更新</span>
-    <button class="btn-icon" aria-label="立即同步">
+    <span class="pill warning"><span class="dot pulse"></span>静态样例</span>
+    <button type="button" class="btn-icon" aria-label="立即同步">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
     </button>
   </header>
@@ -37,10 +38,10 @@
     <!-- 彩种切换 -->
     <section class="animate-fadeIn">
       <div class="segmented">
-        <button class="seg-on">澳门</button>
-        <button>香港</button>
-        <button>台湾</button>
-        <button>新彩</button>
+        <button type="button" class="seg-on">澳门</button>
+        <button type="button">香港</button>
+        <button type="button">台湾</button>
+        <button type="button">新彩</button>
       </div>
     </section>
 
@@ -52,7 +53,7 @@
         </div>
         <div class="grow">
           <div class="fs-13 fw-6 t-strong">第 <span class="num">2026277</span> 期 · 今晚 <span class="num">21:30</span> 开奖</div>
-          <div class="fs-11 t-muted mt-8" style="margin-top:2px">已预约自动同步与对奖</div>
+          <div class="fs-11 t-muted mt-8" style="margin-top:2px">正式环境将预约自动同步与对奖</div>
         </div>
         <span class="pill primary">倒计时 <span class="num">03:12:48</span></span>
       </div>
@@ -60,7 +61,7 @@
 
     <!-- 开奖列表 -->
     <section class="animate-fadeIn d2">
-      <a class="glass-card card-pad mt-12 animate-fadeIn d2" href="draw-detail.html" style="display:block;text-decoration:none;color:inherit">
+      <a class="glass-card card-pad mt-12 animate-fadeIn d2" href="draw-detail.html?period=2026276" style="display:block;text-decoration:none;color:inherit">
         <div class="flex aic jcb">
           <div>
             <div class="fw-7 t-strong">第 <span class="num">2026276</span> 期</div>
@@ -87,7 +88,7 @@
         </div>
       </a>
 
-      <a class="glass-card card-pad mt-12 animate-fadeIn d3" href="draw-detail.html" style="display:block;text-decoration:none;color:inherit">
+      <a class="glass-card card-pad mt-12 animate-fadeIn d3" href="draw-detail.html?period=2026275" style="display:block;text-decoration:none;color:inherit">
         <div class="flex aic jcb">
           <div>
             <div class="fw-7 t-strong">第 <span class="num">2026275</span> 期</div>
@@ -106,7 +107,7 @@
           <span class="ball gold">11</span>
         </div>
         <div class="ball-row mt-8" style="justify-content:space-between;padding:0 2px">
-          <span class="fs-11 t-muted">鼠</span><span class="fs-11 t-muted">龙</span><span class="fs-11 t-muted">牛</span><span class="fs-11 t-muted">虎</span><span class="fs-11 t-muted">狗</span><span class="fs-11 t-muted">鸡</span><span></span><span class="fs-11 fw-7 t-primary">猴</span>
+          <span class="fs-11 t-muted">鼠</span><span class="fs-11 t-muted">龙</span><span class="fs-11 t-muted">鸡</span><span class="fs-11 t-muted">虎</span><span class="fs-11 t-muted">蛇</span><span class="fs-11 t-muted">鸡</span><span></span><span class="fs-11 fw-7 t-primary">猴</span>
         </div>
         <div class="flex aic jcb mt-12">
           <span class="fs-11 t-muted">新增入库 <b class="t-strong num">274</b> 条</span>
@@ -114,7 +115,7 @@
         </div>
       </a>
 
-      <a class="glass-card card-pad mt-12 animate-fadeIn d4" href="draw-detail.html" style="display:block;text-decoration:none;color:inherit">
+      <a class="glass-card card-pad mt-12 animate-fadeIn d4" href="draw-detail.html?period=2026274" style="display:block;text-decoration:none;color:inherit">
         <div class="flex aic jcb">
           <div>
             <div class="fw-7 t-strong">第 <span class="num">2026274</span> 期</div>
@@ -133,7 +134,7 @@
           <span class="ball gold">44</span>
         </div>
         <div class="ball-row mt-8" style="justify-content:space-between;padding:0 2px">
-          <span class="fs-11 t-muted">蛇</span><span class="fs-11 t-muted">鸡</span><span class="fs-11 t-muted">虎</span><span class="fs-11 t-muted">马</span><span class="fs-11 t-muted">狗</span><span class="fs-11 t-muted">牛</span><span></span><span class="fs-11 fw-7 t-primary">猪</span>
+          <span class="fs-11 t-muted">蛇</span><span class="fs-11 t-muted">鸡</span><span class="fs-11 t-muted">虎</span><span class="fs-11 t-muted">马</span><span class="fs-11 t-muted">狗</span><span class="fs-11 t-muted">虎</span><span></span><span class="fs-11 fw-7 t-primary">猪</span>
         </div>
         <div class="flex aic jcb mt-12">
           <span class="fs-11 t-muted">新增入库 <b class="t-strong num">269</b> 条</span>
@@ -141,7 +142,7 @@
         </div>
       </a>
 
-      <a class="glass-card card-pad mt-12 animate-fadeIn d5" href="draw-detail.html" style="display:block;text-decoration:none;color:inherit">
+      <a class="glass-card card-pad mt-12 animate-fadeIn d5" href="draw-detail.html?period=2026273" style="display:block;text-decoration:none;color:inherit">
         <div class="flex aic jcb">
           <div>
             <div class="fw-7 t-strong">第 <span class="num">2026273</span> 期</div>
@@ -160,7 +161,7 @@
           <span class="ball gold">08</span>
         </div>
         <div class="ball-row mt-8" style="justify-content:space-between;padding:0 2px">
-          <span class="fs-11 t-muted">牛</span><span class="fs-11 t-muted">马</span><span class="fs-11 t-muted">虎</span><span class="fs-11 t-muted">兔</span><span class="fs-11 t-muted">蛇</span><span class="fs-11 t-muted">鼠</span><span></span><span class="fs-11 fw-7 t-primary">猪</span>
+          <span class="fs-11 t-muted">牛</span><span class="fs-11 t-muted">马</span><span class="fs-11 t-muted">狗</span><span class="fs-11 t-muted">兔</span><span class="fs-11 t-muted">羊</span><span class="fs-11 t-muted">鼠</span><span></span><span class="fs-11 fw-7 t-primary">猪</span>
         </div>
       </a>
     </section>
@@ -172,9 +173,9 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       工作台
     </a>
-    <a href="ai-analysis.html">
+    <a href="consensus-board.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
-      研判
+      共识
     </a>
     <a href="draws.html" class="active">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>

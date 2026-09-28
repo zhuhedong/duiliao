@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>源可信评级 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -27,7 +28,7 @@
       <div class="h-title">源可信评级</div>
       <div class="h-sub">对奖口径 · 官方判定为准</div>
     </div>
-    <button class="btn-icon" aria-label="评级说明">
+    <button type="button" class="btn-icon" aria-label="评级说明">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
     </button>
   </header>
@@ -47,7 +48,7 @@
 
     <!-- 说明条 -->
     <section class="section animate-fadeIn d1" style="margin-top:12px">
-      <div class="glass-subtle fs-11 t-muted" style="padding:9px 12px">点击列头可按该列排序 · 数据截至第 2026276 期</div>
+      <div class="glass-subtle fs-11 t-muted" style="padding:9px 12px">当前为 50 期窗口的静态评级样例 · 数据截至第 2026276 期</div>
     </section>
 
     <!-- 评级列表 -->
@@ -151,8 +152,8 @@
 
   <!-- 底部操作条(sticky) -->
   <div class="flex gap-10" style="position:fixed;bottom:var(--tabbar-h);left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:10px 16px;background:var(--glass-bg-strong);backdrop-filter:blur(28px) saturate(1.8);-webkit-backdrop-filter:blur(28px) saturate(1.8);border-top:1px solid var(--glass-border);z-index:39">
-    <a class="btn-ghost" href="#" style="padding:12px 18px">导出评级</a>
-    <a class="glow-button" href="#" style="flex:1">计算评级矩阵</a>
+    <button type="button" class="btn-ghost"  style="padding:12px 18px">导出评级</button>
+    <button type="button" class="glow-button"  style="flex:1">计算评级矩阵</button>
   </div>
 
   <!-- 底部主导航 -->
@@ -161,9 +162,9 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       工作台
     </a>
-    <a href="ai-analysis.html">
+    <a href="consensus-board.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
-      研判
+      共识
     </a>
     <a href="draws.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>

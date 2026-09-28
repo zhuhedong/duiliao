@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>登录 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -33,20 +34,21 @@
       <div style="font-size:19px;font-weight:700" class="t-strong">欢迎回来</div>
       <div class="fs-12 t-muted mt-8">登录后进入你的专属数据工作台</div>
 
-      <div class="field" style="margin-top:20px">
-        <label>账号</label>
+      <form id="loginForm" novalidate>
+       <div class="field" style="margin-top:20px">
+        <label for="loginAccount">账号</label>
         <div class="input">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-          <input type="text" placeholder="请输入账号" value="collector">
+          <input id="loginAccount" name="account" type="text" placeholder="请输入账号" value="collector" autocomplete="username" required>
         </div>
       </div>
 
       <div class="field">
-        <label>密码</label>
+        <label for="loginPassword">密码</label>
         <div class="input">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-          <input type="password" placeholder="请输入密码" value="••••••••">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          <input id="loginPassword" name="password" type="password" placeholder="请输入密码" autocomplete="current-password" required>
+          <button type="button" class="btn-icon password-toggle" aria-label="显示密码" style="width:28px;height:28px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>
 
@@ -54,15 +56,16 @@
         <span class="flex aic gap-6 fs-12 t-sub">
           <span class="switch on" style="width:34px;height:20px"></span>记住账号
         </span>
-        <a href="#" class="fs-12 t-primary" style="text-decoration:none">忘记密码?</a>
+        <button type="button" class="btn-link fs-12 t-primary">忘记密码?</button>
       </div>
 
-      <a class="glow-button" href="dashboard.html">安全登录</a>
+      <button type="submit" class="glow-button" style="width:100%">安全登录</button>
 
-      <div class="tc fs-11 t-muted mt-16">正在验证身份并建立端到端加密会话</div>
+      <div class="tc fs-11 t-muted mt-16">演示原型：未连接身份服务，不会创建真实会话</div>
+       </form>
     </div>
 
-    <!-- 底部说明 -->
+           <!-- 底部说明 -->
     <div class="tc animate-fadeIn d3" style="margin-top:auto;padding-top:32px">
       <div class="flex aic" style="gap:10px">
         <span style="flex:1;height:1px;background:var(--border)"></span>
@@ -79,7 +82,7 @@
           私有化部署
         </span>
       </div>
-      <div class="fs-11 t-muted" style="margin-top:22px">首次部署?<a href="#" class="t-primary" style="text-decoration:none"> 初始化管理员</a></div>
+      <div class="fs-11 t-muted" style="margin-top:22px">首次部署?<button type="button" class="t-primary" style="text-decoration:none"> 初始化管理员</button></div>
     </div>
   </div>
 </div>

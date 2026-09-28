@@ -44,17 +44,17 @@ class GlassFloatingNavigationBar extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.only(left: 18, right: 18, bottom: 12),
+        padding: const EdgeInsets.only(left: 12, right: 12, bottom: 12),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
             child: Container(
-              height: 64,
+              height: 70,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               decoration: BoxDecoration(
                 color: isDark
-                    ? const Color(0xFF1C1C2E).withValues(alpha: 0.78)
+                    ? const Color(0xFF2E2946).withValues(alpha: 0.78)
                     : Colors.white.withValues(alpha: 0.82),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
@@ -139,49 +139,83 @@ class _GlassNavItemButton extends StatelessWidget {
         ? Colors.white.withValues(alpha: 0.45)
         : const Color(0xFF5A5670);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(22),
-        onTap: onTap,
-        splashColor: primary.withValues(alpha: 0.15),
-        highlightColor: primary.withValues(alpha: 0.08),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? (isDark
-                      ? primary.withValues(alpha: 0.22)
-                      : primary.withValues(alpha: 0.12))
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedScale(
-                scale: isSelected ? 1.08 : 1.0,
-                duration: const Duration(milliseconds: 180),
-                child: Icon(
-                  isSelected ? (item.activeIcon ?? item.icon) : item.icon,
-                  size: 22,
-                  color: isSelected ? activeColor : inactiveColor,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: item.label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          splashColor: primary.withValues(alpha: 0.15),
+          highlightColor: primary.withValues(alpha: 0.08),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? (isDark
+                        ? primary.withValues(alpha: 0.22)
+                        : primary.withValues(alpha: 0.12))
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            child: Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                if (isSelected)
+                  Container(
+                    width: 28,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(99),
+                      gradient: DuiliaoColors.auroraGradient,
+                      boxShadow: [
+                        BoxShadow(
+                          color: DuiliaoColors.auroraViolet.withValues(
+                            alpha: 0.6,
+                          ),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 3),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedScale(
+                        scale: isSelected ? 1.08 : 1.0,
+                        duration: const Duration(milliseconds: 180),
+                        child: Icon(
+                          isSelected
+                              ? (item.activeIcon ?? item.icon)
+                              : item.icon,
+                          size: 22,
+                          color: isSelected ? activeColor : inactiveColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        item.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected ? activeColor : inactiveColor,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                item.label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? activeColor : inactiveColor,
-                  letterSpacing: 0.1,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

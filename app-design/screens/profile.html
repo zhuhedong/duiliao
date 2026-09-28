@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>个人中心 · 对料</title>
 <link rel="stylesheet" href="../assets/app.css">
+<script src="../assets/prototype.js" defer></script>
+<style>
+  .quick-links { display:flex; gap:8px; overflow-x:auto; padding:1px 2px 6px; scrollbar-width:none; }
+  .quick-links::-webkit-scrollbar { display:none; }
+  .quick-links .glass-card { flex:0 0 84px; min-height:78px; padding:10px 7px !important; border-radius:14px; }
+  .quick-links .li-icon { width:30px !important; height:30px !important; }
+  .quick-links .li-icon svg { width:15px; height:15px; }
+  .quick-links .fw-6 { margin-top:6px !important; font-size:11px !important; line-height:1.25; white-space:nowrap; }
+</style>
 </head>
 <body>
 <div class="app-aurora"></div>
@@ -47,7 +56,7 @@
     <!-- 快捷入口 -->
     <section class="section animate-fadeIn d1">
       <div class="section-title"><span class="st-dot"></span>快捷入口</div>
-      <div class="grid2">
+      <div class="quick-links">
         <a class="glass-card card-pad" href="sources.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
           <div class="li-icon" style="margin:0 auto;width:40px;height:40px">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/></svg>
@@ -96,6 +105,12 @@
           </div>
           <div class="fw-6 t-strong mt-8" style="font-size:13.5px">彩种与玩法</div>
         </a>
+        <a class="glass-card card-pad" href="ai-analysis.html" style="text-decoration:none;color:inherit;text-align:center;padding:18px 16px">
+          <div class="li-icon" style="margin:0 auto;width:40px;height:40px;background:oklch(0.7 0.2 297 / 16%);color:oklch(0.78 0.15 297)">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L19 15z"/></svg>
+          </div>
+          <div class="fw-6 t-strong mt-8" style="font-size:13.5px">AI研判</div>
+        </a>
       </div>
     </section>
 
@@ -103,22 +118,31 @@
     <section class="section animate-fadeIn d2">
       <div class="section-title"><span class="st-dot"></span>账号安全</div>
       <div class="glass-card card-pad">
+        <form id="passwordForm" novalidate>
         <div class="field">
-          <label>新密码</label>
+          <label for="currentPassword">当前密码</label>
           <div class="input">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-            <input type="password" placeholder="请输入新密码">
+            <input id="currentPassword" name="currentPassword" type="password" placeholder="请输入当前密码" autocomplete="current-password" required>
           </div>
         </div>
         <div class="field">
-          <label>确认新密码</label>
+          <label for="newPassword">新密码</label>
           <div class="input">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-            <input type="password" placeholder="请再次输入新密码">
+            <input id="newPassword" name="newPassword" type="password" placeholder="至少 8 位新密码" autocomplete="new-password" required>
           </div>
         </div>
-        <a class="glow-button" href="#" style="font-size:14px">确认修改</a>
-        <div class="fs-11 t-muted tc mt-12">密码修改成功后将强制重新登录</div>
+        <div class="field">
+          <label for="confirmPassword">确认新密码</label>
+          <div class="input">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <input id="confirmPassword" name="confirmPassword" type="password" placeholder="请再次输入新密码" autocomplete="new-password" required>
+          </div>
+        </div>
+        <button class="glow-button" type="submit" style="font-size:14px;width:100%">确认修改</button>
+        <div class="fs-11 t-muted tc mt-12">演示原型不会修改密码；正式环境修改成功后强制重新登录</div>
+        </form>
       </div>
     </section>
 
@@ -196,9 +220,9 @@
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       工作台
     </a>
-    <a href="ai-analysis.html">
+    <a href="consensus-board.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/></svg>
-      研判
+      共识
     </a>
     <a href="draws.html">
       <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M7 6H4a2 2 0 0 0 0 4h3"/><path d="M17 6h3a2 2 0 0 1 0 4h-3"/></svg>
