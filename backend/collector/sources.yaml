@@ -1880,8 +1880,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_wangpai_2xiao4ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入
+  enabled: false
+  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入；上游栏目 1790421603763 已从顶尖大师目录消失，巡检治理自动停用
   extra:
     title: 王牌推荐 二肖四码
     upstream_id: '1790421603763'
@@ -2022,6 +2022,51 @@ sources:
     upstream_id: '1784459913197'
     kind: mixed
     parser: xiao_num_defense
+- source_id: dingjian_wangshouyi
+  source_name: 王守义 一肖一码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dingjian_wangshouyi.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过审核解析契约与离线证据，正式接入
+  extra:
+    title: 王守义 一肖一码
+    upstream_id: '1790594629278'
+    kind: mixed
+    parser: wangshouyi_defense
+- source_id: dingjian_aocai_2xiao2ma
+  source_name: 澳彩 二肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dingjian_aocai_2xiao2ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过审核解析契约与离线证据，正式接入
+  extra:
+    title: 澳彩 二肖二码
+    upstream_id: '1786798198604'
+    kind: mixed
+    parser: bracket_pairs_2x2m
+- source_id: dingjian_ribao
+  source_name: 顶尖日报
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dingjian_ribao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 动态巡检发现栏目，已通过审核解析契约与离线证据，正式接入
+  extra:
+    title: 顶尖日报
+    upstream_id: '1788088515998'
+    kind: mixed
+    parser: ribao_drag_defense
 draw:
   macau:
     adapter: getLastLottery

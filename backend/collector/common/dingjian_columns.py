@@ -20,6 +20,9 @@ EXTRACTORS = {
     "main_bracket_xiao": ("xiao", 1, r"【([鼠牛虎兔龙蛇马羊猴鸡狗猪])】"),
     "archive_two_numbers": ("num", 2, r"内幕【[鼠牛虎兔龙蛇马羊猴鸡狗猪](\d{2})】\s*VS\s*【[鼠牛虎兔龙蛇马羊猴鸡狗猪](\d{2})】"),
     "xiao_num_defense": ("all", 6, r""),
+    "wangshouyi_defense": ("all", 6, r""),
+    "bracket_pairs_2x2m": ("all", 4, r""),
+    "ribao_drag_defense": ("all", 6, r""),
 }
 
 
@@ -45,6 +48,72 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
                     {"kind": "xiao", "value": xiao_match.group(1), "text": selected},
                     {"kind": "num", "value": main_number, "text": selected},
                     *({"kind": "num", "value": value, "text": selected} for value in numbers),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "wangshouyi_defense":
+            m_xiao = re.search(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})", block)
+            m_def = re.search(r"(?m)^\s*(\d{2}(?:\s*[-－]\s*\d{2}){3})\s*$", block)
+            if not m_xiao or not m_def:
+                continue
+            xiao, main_num = m_xiao.group(1), m_xiao.group(2)
+            def_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_def.group(1))
+            if not (1 <= int(main_num) <= 49) or len(def_nums) != 4 or any(not 1 <= int(n) <= 49 for n in def_nums):
+                continue
+            nums = [main_num, *def_nums]
+            if len(set(nums)) != 5:
+                continue
+            selected = f"{xiao}-{main_num} 防:{m_def.group(1)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "bracket_pairs_2x2m":
+            pairs = re.findall(r"\[([鼠牛虎兔龙蛇马羊猴鸡狗猪])(\d{2})\]", block)
+            if len(pairs) != 2:
+                continue
+            xiaos = [p[0] for p in pairs]
+            nums = [p[1] for p in pairs]
+            if any(not 1 <= int(n) <= 49 for n in nums) or len(set(nums)) != 2 or len(set(xiaos)) != 2:
+                continue
+            selected = " ".join(f"[{x}{n}]" for x, n in pairs)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    *({"kind": "xiao", "value": x, "text": selected} for x in xiaos),
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "ribao_drag_defense":
+            m_main = re.search(r"搞钱[②2]码\s*\(([\d.]+)\)\s*拖\s*\(([\d.]+)\)", block)
+            m_xiao = re.search(r"协防\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])", block)
+            if not m_main or not m_xiao:
+                continue
+            main_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_main.group(1))
+            tuo_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_main.group(2))
+            xiao = m_xiao.group(1)
+            if len(main_nums) != 2 or len(tuo_nums) != 3:
+                continue
+            all_nums = [*main_nums, *tuo_nums]
+            if any(not 1 <= int(n) <= 49 for n in all_nums) or len(set(all_nums)) != 5:
+                continue
+            selected = f"搞钱2码({m_main.group(1)})拖({m_main.group(2)}) 协防{xiao}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in all_nums),
                 ],
                 claimed=claimed_from_block(block),
                 raw_text=block,

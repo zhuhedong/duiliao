@@ -65,6 +65,28 @@ class TestDingjianNewColumns(unittest.TestCase):
         rows = extract_dingjian_column(live, "xiao_num_defense")
         self.assertEqual([atom["value"] for atom in rows[0].preds], ["兔", "40", "14", "26", "15", "27"])
 
+    def test_newest_three_columns_contracts(self):
+        raw_wangshouyi = """
+        第268期\n兔-40\n30-42-08-21\n开奖:兔40中\n第272期\n王守义，一肖一码\n开奖:發88中
+        """
+        rows1 = extract_dingjian_column(raw_wangshouyi, "wangshouyi_defense")
+        self.assertEqual(len(rows1), 1)
+        self.assertEqual([a["value"] for a in rows1[0].preds], ["兔", "40", "30", "42", "08", "21"])
+
+        raw_aocai2x2m = """
+        268期 澳彩二码 开：兔40准\n精 [鸡46][兔40] 准\n272期 澳彩二码 开：發88准\n精 [發88][财88] 准
+        """
+        rows2 = extract_dingjian_column(raw_aocai2x2m, "bracket_pairs_2x2m")
+        self.assertEqual(len(rows2), 1)
+        self.assertEqual([a["value"] for a in rows2[0].preds], ["鸡", "兔", "46", "40"])
+
+        raw_ribao = """
+        268期:搞钱②码(40.28)拖(29.41.33)\n协防猪跟着发财!\n开奖:兔40准\n272期:搞钱②码(88.88)拖(88.88.88)\n协防發跟着发财!
+        """
+        rows3 = extract_dingjian_column(raw_ribao, "ribao_drag_defense")
+        self.assertEqual(len(rows3), 1)
+        self.assertEqual([a["value"] for a in rows3[0].preds], ["猪", "40", "28", "29", "41", "33"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)
