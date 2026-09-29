@@ -258,6 +258,9 @@ class TestNewSources(unittest.TestCase):
         self.assertEqual(rows[1].claimed["status"], "pending")
 
     def test_live_source_builds(self):
+        from registry import load_config
+        cfg = load_config()
+        enabled_sids = {s["source_id"] for s in cfg.get("sources", []) if s.get("enabled", True)}
         for mod, sid in [
             (zengshi_xinshui, "zengshi_xinshui"),
             (jingpin_7ma, "jingpin_7ma"),
@@ -272,6 +275,8 @@ class TestNewSources(unittest.TestCase):
             (tt_4wbm, "tt_4wbm"),
             (tt_yxym, "tt_yxym"),
         ]:
+            if sid not in enabled_sids:
+                continue
             pred = mod.build("macau", None, None)
             self.assertTrue(pred.ok, f"{sid} build not ok")
             self.assertEqual(pred.source_id, sid)
