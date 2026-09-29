@@ -1,8 +1,10 @@
 {
   "schema": "dingji-hosts.v1",
-  "updated_at": "2026-09-28T08:30:59.851568",
+  "updated_at": "2026-09-29T15:22:08.299484",
   "hosts": [
+    "https://6xr12j-kxom1i.trueheartlight.com:2096",
     "https://rc7c3z-e772rn.trueheartlight.com:2096",
-    "https://erkxiz-ulqh0v.trueheartlight.com:2096"
+    "https://erkxiz-ulqh0v.trueheartlight.com:2096",
+    "https://goncf1-1fsfhb.trueheartlight.com:2096"
   ]
 }
