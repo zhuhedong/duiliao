@@ -144,7 +144,7 @@ def _render_dynamic_site_template(body: dict[str, Any]) -> str | None:
         upstream_id = str(extra.get("upstream_id") or "").strip()
         if upstream_id.isdigit():
             path = f"/api/v1/index/config/byid/{upstream_id}"
-    if family not in {"dingjian_dashi", "tongtian_83191", "dingji_77452"} or not path:
+    if family not in {"dingjian_dashi", "tongtian_83191", "dingji_77452", "shensuan_70246"} or not path:
         return None
 
     sid = validate_source_id(str(body.get("source_id") or ""))
@@ -180,6 +180,12 @@ def _render_dynamic_site_template(body: dict[str, Any]) -> str | None:
         imports = "from tt_util import build_tt_pred, urls_for"
         call = "build_tt_pred"
         extra_call = "kind=KIND,"
+    elif family == "shensuan_70246":
+        sub_label = str(extra.get("sub_label") or name)
+        article_id = int(extra.get("article_id") or extra.get("upstream_id") or 24464)
+        imports = "from shensuan_util import build_shensuan_pred, urls_for"
+        call = "build_shensuan_pred"
+        extra_call = f"sub_label={q(sub_label)}, kind=KIND, article_id={article_id},"
     else:
         imports = "from dingji_util import build_dj_pred, urls_for"
         call = "build_dj_pred"

@@ -2067,6 +2067,216 @@ sources:
     upstream_id: '1788088515998'
     kind: mixed
     parser: ribao_drag_defense
+- source_id: ss_1xiao
+  source_name: 神算一肖
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/ss_1xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料一肖
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐一肖
+    kind: xiao
+- source_id: ss_3xiao
+  source_name: 神算三肖
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/ss_3xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料三肖
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐三肖
+    kind: xiao
+- source_id: ss_5xiao
+  source_name: 神算五肖
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/ss_5xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料五肖
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐五肖
+    kind: xiao
+- source_id: ss_7xiao
+  source_name: 神算七肖
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/ss_7xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料七肖
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐七肖
+    kind: xiao
+- source_id: ss_9xiao
+  source_name: 神算九肖
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/ss_9xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料九肖
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐九肖
+    kind: xiao
+- source_id: ss_1ma
+  source_name: 神算一码
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/ss_1ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料一码
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐①碼
+    kind: num
+- source_id: ss_3ma
+  source_name: 神算三码
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/ss_3ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料三码
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐③碼
+    kind: num
+- source_id: ss_5ma
+  source_name: 神算五码
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/ss_5ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料五码
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐⑤碼
+    kind: num
+- source_id: ss_7ma
+  source_name: 神算七码
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/ss_7ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料七码
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐⑦碼
+    kind: num
+- source_id: ss_9ma
+  source_name: 神算九码
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/ss_9ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料九码
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐⑨碼
+    kind: num
+- source_id: ss_danshuang
+  source_name: 神算特码单双
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: tema_twoface
+  hit_mode: any
+  script_path: sources/ss_danshuang.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料单双
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐单双
+    kind: twoface
+- source_id: ss_shuangbo
+  source_name: 神算特码双波
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: tema_bose
+  hit_mode: any
+  script_path: sources/ss_shuangbo.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料双波
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐双波
+    kind: bose
+- source_id: ss_pingte
+  source_name: 神算平特一肖
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: pingte_xiao
+  hit_mode: any
+  script_path: sources/ss_pingte.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料平特
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐平特
+    kind: xiao
+- source_id: ss_8wei
+  source_name: 神算八尾
+  site_family: shensuan_70246
+  lottery: macau
+  play_type: tema_wei_n
+  hit_mode: any
+  script_path: sources/ss_8wei.py
+  timeout_sec: 30
+  enabled: true
+  remark: 神算集团澳门内幕来料八尾
+  extra:
+    path: /api/index/content_list/2
+    upstream_id: '24464'
+    sub_label: 推荐八尾
+    kind: wei
 draw:
   macau:
     adapter: getLastLottery
@@ -2140,3 +2350,20 @@ site_families:
       /htm/tz/amtz/066.html: 左右肖未纳入判定规则
       /htm/tz/amtz/068.html: 五行分类未纳入判定规则
       /htm/tz/amtz/069.html: 红蓝绿肖不是波色，未纳入判定规则
+  shensuan_70246:
+    entry_urls:
+    - https://70246.com/
+    expected_title: 神算
+    catalog_ignore:
+      '23761': 外链与导航大站导流
+      '25255': 外链与导航大站导流
+      '24253': 外链与导航大站导流
+      '11492': 外链与导航大站导流
+      '24602': 外链与导航大站导流
+      '25070': 官方指定综合图库外链
+      '22326': 香港外链与导航大站导流
+      '25254': 香港外链与导航大站导流
+      '24254': 香港外链与导航大站导流
+      '11470': 香港外链与导航大站导流
+      '24603': 香港外链与导航大站导流
+      '25071': 香港官方指定综合图库外链

@@ -15,12 +15,14 @@ FAMILY_MODULES: dict[str, str] = {
     "dingjian_dashi": "source_catalog",
     "tongtian_83191": "tongtian_catalog",
     "dingji_77452": "dingji_catalog",
+    "shensuan_70246": "shensuan_catalog",
 }
 
 FAMILY_LABELS: dict[str, str] = {
     "dingjian_dashi": "588080.com / 顶尖大师",
     "tongtian_83191": "83191.com / 通天论坛",
     "dingji_77452": "77452.com / 顶级论坛",
+    "shensuan_70246": "70246.com / 神算集团",
 }
 
 FAMILY_ALIASES = {
@@ -33,6 +35,11 @@ FAMILY_ALIASES = {
     "77452": "dingji_77452",
     "77452.com": "dingji_77452",
     "顶级论坛": "dingji_77452",
+    "70246": "shensuan_70246",
+    "70246.com": "shensuan_70246",
+    "神算": "shensuan_70246",
+    "神算集团": "shensuan_70246",
+    "ss49": "shensuan_70246",
 }
 
 
@@ -162,7 +169,7 @@ def _aggregate(sites: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "enabled": active,
         "interval_minutes": min(intervals) if intervals else 15,
         "site_family": "all",
-        "site_label": "三站点",
+        "site_label": "全站点 / 汇总",
         "sites": sites,
         # ``families`` is an alias kept for clients that prefer a semantic name.
         "families": sites,
