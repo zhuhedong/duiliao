@@ -99,7 +99,11 @@ def analyze_scraped_data(
     target_period = str(period).strip() if period else detect_period_from_data(scraped_data, default="262")
 
     # 3. Format context data
-    formatted_context = format_scraped_data_for_ai(scraped_data, mode=format_mode)
+    formatted_context = format_scraped_data_for_ai(
+        scraped_data,
+        mode=format_mode,
+        period=target_period,
+    )
 
     # 4. Construct prompt messages with dynamic period
     if custom_prompt:
@@ -204,7 +208,11 @@ def analyze_scraped_data_stream(
 
     # 3. Format context data
     yield {"stage": "status", "message": "正在清洗提炼预测卡片数据..."}
-    formatted_context = format_scraped_data_for_ai(scraped_data, mode=format_mode)
+    formatted_context = format_scraped_data_for_ai(
+        scraped_data,
+        mode=format_mode,
+        period=target_period,
+    )
 
     # 4. Construct prompt messages with dynamic period
     if custom_prompt:
@@ -472,4 +480,3 @@ def analyze_zodiac_streaks_stream(
             "error": f"AI 分析调用失败: {str(e)}",
             "elapsed_sec": round(elapsed, 2),
         }
-

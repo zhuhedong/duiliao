@@ -73,6 +73,42 @@ class TestAIService(unittest.TestCase):
         self.assertNotIn("澳门新葡京广告", formatted)
         self.assertNotIn("body { background", formatted)
 
+    def test_format_scraped_data_extracts_target_period_before_counting(self):
+        sample_data = {
+            "site_title": "测试顶尖大师",
+            "modules": [
+                {
+                    "id": 1,
+                    "name": "专家甲",
+                    "type": "content",
+                    "content": (
+                        "<p>第272期 马-08-20</p>"
+                        "<p>第273期 兔-08-20-33，发发发</p>"
+                        "<p>开奖:兔40中</p>"
+                        "<p>第274期 牛-49</p>"
+                    ),
+                },
+                {
+                    "id": 2,
+                    "name": "专家乙",
+                    "type": "content",
+                    "content": "第273期 猫-88\n杀肖马\n推荐 鸡-20-33",
+                },
+            ],
+        }
+        formatted = format_scraped_data_for_ai(sample_data, period="273")
+
+        self.assertIn("结构化抽取: 第 273 期", formatted)
+        self.assertIn("兔:1", formatted)
+        self.assertIn("鸡:1", formatted)
+        self.assertIn("20:2", formatted)
+        self.assertIn("33:2", formatted)
+        self.assertNotIn("第 272 期", formatted)
+        self.assertNotIn("第 274 期", formatted)
+        self.assertNotIn("88:", formatted)
+        self.assertNotIn("发发发", formatted)
+        self.assertNotIn("马", formatted)
+
     def test_prompt_templates(self):
         prompts = list_prompt_templates()
         self.assertGreaterEqual(len(prompts), 5)
