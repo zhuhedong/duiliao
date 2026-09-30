@@ -10,3 +10,5 @@ collector/out/
 collector/data/*.db
 collector/data/*.db-wal
 collector/data/*.db-shm
+collector/html/*
+!collector/html/.gitkeep

@@ -57,24 +57,59 @@ class AIAnalyzeRequest(BaseModel):
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     fetch_fresh: bool = Field(
         default=True,
-        description="Whether to fetch fresh data from 588080.com. If false, custom_data must be supplied.",
+        description="Whether to fetch fresh data from 588080.com. If false, custom_data must be supplied as a file path or object.",
     )
-    custom_data: dict[str, Any] | None = Field(
+    custom_data: dict[str, Any] | str | None = Field(
         default=None,
-        description="Optional pre-fetched data object to analyze instead of fetching fresh.",
+        description="Optional persisted scrape file path or pre-fetched data object.",
     )
 
     @field_validator("custom_data")
     @classmethod
-    def _limit_custom_data(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+    def _limit_custom_data(cls, value: dict[str, Any] | str | None) -> dict[str, Any] | str | None:
         if value is None:
             return None
+        if isinstance(value, str):
+            value = value.strip()
+            if not value or "\x00" in value:
+                raise ValueError("custom_data 文件路径无效")
+            if len(value) > 4096:
+                raise ValueError("custom_data 文件路径不能超过 4096 个字符")
+            return value
+        if len(value) > 10_000:
+            raise ValueError("custom_data 顶层字段不能超过 10000 个")
         try:
             encoded = json.dumps(value, ensure_ascii=False, default=str)
         except (TypeError, ValueError) as exc:
             raise ValueError("custom_data 必须是可序列化的数据对象") from exc
         if len(encoded.encode("utf-8")) > 1_000_000:
             raise ValueError("custom_data 不能超过 1 MB")
+        return value
+
+
+class AIFileAnalyzeRequest(AIAnalyzeRequest):
+    """File references are supported only by streaming and report generation."""
+
+    custom_data: dict[str, Any] | str | None = Field(
+        default=None,
+        description="Pre-fetched data object or backend-relative JSON/HTML/TXT file path.",
+    )
+
+    @field_validator("custom_data")
+    @classmethod
+    def _limit_custom_data(cls, value: dict[str, Any] | str | None) -> dict[str, Any] | str | None:
+        if isinstance(value, str):
+            value = value.strip()
+            if not value or "\x00" in value:
+                raise ValueError("custom_data 文件路径无效")
+            if len(value) > 4096:
+                raise ValueError("custom_data 文件路径不能超过 4096 个字符")
+            return value
+        if value is None:
+            return None
+        # The file-aware endpoints do not need a serialized byte ceiling:
+        # their normal input is a path, and inline dictionaries are still
+        # bounded by their top-level field count.
         if len(value) > 10_000:
             raise ValueError("custom_data 顶层字段不能超过 10000 个")
         return value
@@ -123,14 +158,17 @@ def analyze_588080_page(
 
 @router.post("/analyze-stream")
 def analyze_stream_page(
-    req: AIAnalyzeRequest = Body(...),
+    req: AIFileAnalyzeRequest = Body(...),
     _: User = _staff,
 ):
     """Stream AI analysis progress and generation tokens in real time (SSE)."""
     data_source = None
     if not req.fetch_fresh:
         if not req.custom_data:
-            raise HTTPException(status_code=400, detail="fetch_fresh 为 false 时必须提供 custom_data 数据对象")
+            raise HTTPException(
+                status_code=400,
+                detail="fetch_fresh 为 false 时必须提供 custom_data 文件路径或数据对象",
+            )
         data_source = req.custom_data
 
     if not _AI_CONCURRENCY.acquire(timeout=5):
@@ -172,7 +210,7 @@ def analyze_stream_page(
 # scrape 588080 and bill an LLM request. With a mobile client that is one outbound
 # scrape and one LLM invoice per user per view. These endpoints separate reading a
 # report (any signed-in user, free) from producing one (staff/admin, paid).
-class AIReportGenerateRequest(AIAnalyzeRequest):
+class AIReportGenerateRequest(AIFileAnalyzeRequest):
     lottery: str = Field(default="macau", description="Lottery the report belongs to")
 
 
@@ -218,7 +256,8 @@ def generate_ai_report(
     if not req.fetch_fresh:
         if not req.custom_data:
             raise HTTPException(
-                status_code=400, detail="fetch_fresh 为 false 时必须提供 custom_data 数据对象"
+                status_code=400,
+                detail="fetch_fresh 为 false 时必须提供 custom_data 文件路径或数据对象",
             )
         data_source = req.custom_data
 

@@ -296,7 +296,10 @@ class ApiClient {
       let errText = await resp.text();
       try {
         const errJson = JSON.parse(errText);
-        errText = errJson.detail || errText;
+        // FastAPI validation errors use ``detail`` as an array of objects.
+        // Passing that array directly to Error produces the unhelpful
+        // "[object Object]" in the analysis panel.
+        errText = extractMessage(errJson, errText);
       } catch {}
       const err = new ApiError(errText || `请求失败 (HTTP ${resp.status})`, resp.status);
       callbacks.onError?.(err);
@@ -370,8 +373,24 @@ function extractMessage(payload: unknown, fallback: string): string {
   if (payload && typeof payload === "object" && "detail" in payload) {
     const detail = (payload as { detail: unknown }).detail;
     if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      const messages = detail.map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const message = (item as { msg?: unknown; message?: unknown }).msg
+            ?? (item as { message?: unknown }).message;
+          if (typeof message === "string") return message;
+          try { return JSON.stringify(item); } catch { return String(item); }
+        }
+        return String(item);
+      }).filter(Boolean);
+      if (messages.length) return messages.join("；");
+    }
     if (detail && typeof detail === "object" && "message" in detail) {
       return String((detail as { message: unknown }).message);
+    }
+    if (detail && typeof detail === "object") {
+      try { return JSON.stringify(detail); } catch { return String(detail); }
     }
   }
   if (typeof payload === "string" && payload) return payload;

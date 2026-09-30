@@ -690,6 +690,14 @@ def dump_588080(
         raise HTTPException(status_code=502, detail=f"抓取 588080 失败: {result.error}")
 
     data: dict[str, Any] = result.to_summary()
+    from app.services.ai.scraped_data import save_scraped_data
+
+    # Paths are relative to ``backend`` so they are portable between local
+    # development and deployments and do not expose the server's absolute
+    # filesystem layout to the browser.
+    paths = save_scraped_data(result)
+    data.update(paths)
+    data["data_file_path"] = data["file_path"]
     if req.include_html:
         data["html"] = result.html
         data["raw_html"] = result.raw_html

@@ -205,7 +205,11 @@ export function CollectorAIAnalysisPage() {
       }
       if (scrapedData) {
         payload.fetch_fresh = false;
-        payload.custom_data = scrapedData;
+        const persistedPath = scrapedData.data_file_path || scrapedData.file_path;
+        if (!persistedPath) {
+          throw new Error("抓取结果未生成后端数据文件，请重新抓取后再分析");
+        }
+        payload.custom_data = persistedPath;
       }
 
       await api.stream("/ai/analyze-stream", payload, {

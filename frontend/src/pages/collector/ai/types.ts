@@ -33,6 +33,10 @@ export interface ScrapedSummary {
   html?: string;
   raw_html?: string;
   raw_html_error?: string | null;
+  /** Relative backend path to the persisted structured scrape result. */
+  file_path?: string;
+  data_file_path?: string;
+  html_file_path?: string;
   modules?: ScrapedModule[];
 }
 

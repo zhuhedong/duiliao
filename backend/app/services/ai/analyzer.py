@@ -16,7 +16,8 @@ if str(COLLECTOR_DIR) not in sys.path:
 from app.services.ai.client import AIResponse, BaseAIProvider, get_ai_client
 from app.services.ai.formatter import format_scraped_data_for_ai
 from app.services.ai.prompts import detect_period_from_data, get_prompt_template
-from collector.fetch_588080 import fetch_588080_full_page
+from app.services.ai.scraped_data import load_scraped_data
+from collector.fetch_588080 import FetchResult, fetch_588080_full_page
 
 log = logging.getLogger("duiliao.ai.analyzer")
 
@@ -40,7 +41,7 @@ class AnalysisResult:
 
 def analyze_scraped_data(
     *,
-    scraped_data: dict[str, Any] | Any | None = None,
+    scraped_data: dict[str, Any] | str | Path | FetchResult | None = None,
     prompt_id: str = "macau_analyst_expert",
     period: str | None = None,
     custom_prompt: str | None = None,
@@ -72,6 +73,23 @@ def analyze_scraped_data(
                 scraped_summary={},
                 error=f"网页数据抓取失败: {scraped_data.error}",
             )
+
+    try:
+        if isinstance(scraped_data, (str, Path)):
+            scraped_data = load_scraped_data(scraped_data)
+    except (OSError, ValueError) as exc:
+        return AnalysisResult(
+            ok=False,
+            provider=provider or "unknown",
+            model=model or "unknown",
+            prompt_id=prompt_id,
+            period=period or "262",
+            analysis="",
+            usage={},
+            elapsed_sec=round(time.perf_counter() - t0, 2),
+            scraped_summary={},
+            error=f"读取抓取数据失败: {exc}",
+        )
 
     scraped_summary = (
         scraped_data.to_summary() if hasattr(scraped_data, "to_summary") else (scraped_data.get("summary") or {})
@@ -147,7 +165,7 @@ def analyze_scraped_data(
 
 def analyze_scraped_data_stream(
     *,
-    scraped_data: dict[str, Any] | Any | None = None,
+    scraped_data: dict[str, Any] | str | Path | FetchResult | None = None,
     prompt_id: str = "macau_analyst_expert",
     period: str | None = None,
     custom_prompt: str | None = None,
@@ -169,6 +187,13 @@ def analyze_scraped_data_stream(
         if not scraped_data.ok:
             yield {"stage": "error", "error": f"网页数据抓取失败: {scraped_data.error}"}
             return
+
+    try:
+        if isinstance(scraped_data, (str, Path)):
+            scraped_data = load_scraped_data(scraped_data)
+    except (OSError, ValueError) as exc:
+        yield {"stage": "error", "error": f"读取抓取数据失败: {exc}"}
+        return
 
     scraped_summary = (
         scraped_data.to_summary() if hasattr(scraped_data, "to_summary") else (scraped_data.get("summary") or {})
