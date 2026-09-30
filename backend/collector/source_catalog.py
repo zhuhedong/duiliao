@@ -95,6 +95,8 @@ def local_inventory(cfg: dict[str, Any], script_root: Path | None = None) -> tup
     root = script_root or sources_dir()
     registered: dict[str, list[dict]] = {}
     for row in cfg.get("sources") or []:
+        if row.get("site_family") != SITE_FAMILY:
+            continue
         extra = row.get("extra") or {}
         ids = {str(extra["upstream_id"])} if extra.get("upstream_id") not in {None, ""} else set()
         ids.update(_script_ids(root / Path(row.get("script_path") or f"{row['source_id']}.py").name))

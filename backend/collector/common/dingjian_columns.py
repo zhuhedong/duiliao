@@ -23,6 +23,9 @@ EXTRACTORS = {
     "wangshouyi_defense": ("all", 6, r""),
     "bracket_pairs_2x2m": ("all", 4, r""),
     "ribao_drag_defense": ("all", 6, r""),
+    "baofu_3xiao": ("xiao", 3, r""),
+    "diamond_four_numbers": ("num", 4, r""),
+    "datoumi_defense": ("all", 5, r""),
 }
 
 
@@ -109,6 +112,60 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             if any(not 1 <= int(n) <= 49 for n in all_nums) or len(set(all_nums)) != 5:
                 continue
             selected = f"搞钱2码({m_main.group(1)})拖({m_main.group(2)}) 协防{xiao}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in all_nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "baofu_3xiao":
+            m = re.search(r"【([鼠牛虎兔龙蛇马羊猴鸡狗猪])】\s*【([鼠牛虎兔龙蛇马羊猴鸡狗猪])】\s*\+\s*小买\s*【([鼠牛虎兔龙蛇马羊猴鸡狗猪])】", block)
+            if not m:
+                continue
+            xiaos = list(dict.fromkeys(m.groups()))
+            if len(xiaos) != 3:
+                continue
+            selected = f"【{m.group(1)}】【{m.group(2)}】+小买【{m.group(3)}】"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "xiao", "value": x, "text": selected} for x in xiaos],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "diamond_four_numbers":
+            nums = re.findall(r"(?<!\d)(\d{2})(?:中)?(?!\d)", block)
+            nums = [n for n in nums if 1 <= int(n) <= 49 and n != period]
+            if len(nums) < 4:
+                continue
+            target = nums[:4]
+            if len(set(target)) != 4:
+                continue
+            selected = " ".join(target)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in target],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "datoumi_defense":
+            m_xiao = re.search(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})\s*[-－]\s*(\d{2})", block)
+            m_def = re.search(r"防\s*[:：]\s*(\d{2})\s*[-－]\s*(\d{2})", block)
+            if not m_xiao:
+                continue
+            xiao = m_xiao.group(1)
+            m1, m2 = m_xiao.group(2), m_xiao.group(3)
+            all_nums = [m1, m2]
+            if m_def:
+                all_nums.extend([m_def.group(1), m_def.group(2)])
+            if len(all_nums) != 4 or len(set(all_nums)) != 4 or any(not 1 <= int(n) <= 49 for n in all_nums):
+                continue
+            selected = f"{xiao}-{m1}-{m2} 防:{m_def.group(1)}-{m_def.group(2)}" if m_def else f"{xiao}-{m1}-{m2}"
             rows.append(ParsedRow(
                 period_raw=period,
                 preds=[

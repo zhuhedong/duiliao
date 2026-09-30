@@ -92,10 +92,13 @@ def _refresh_registry_coverage(name: str, value: dict[str, Any]) -> dict[str, An
         current_keys: set[str] = set()
         failed_keys = {str(item.get("path") or "") for item in value.get("scan_errors") or []}
         for item in items:
+            if item.get("upstream_id"):
+                current_keys.add(str(item["upstream_id"]))
+            if item.get("path"):
+                current_keys.add(str(item["path"]))
             key = str(item.get("upstream_id") or item.get("path") or "")
             if not key:
                 continue
-            current_keys.add(key)
             sources = [dict(row) for row in (registered.get(key) or [])]
             # 77452/83191 sources can be registered by a relative path; keep
             # the stored path shape stable while normalizing the lookup key.

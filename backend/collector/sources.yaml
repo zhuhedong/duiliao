@@ -1576,8 +1576,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_shenwei.py
   timeout_sec: 30
-  enabled: true
-  remark: 588080.com神威二肖
+  enabled: false
+  remark: 上游栏目 1785153298599 已下线 (404)
   extra:
     title: 神威二肖
     upstream_id: '1785153298599'
@@ -1865,8 +1865,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_jiucai.py
   timeout_sec: 30
-  enabled: true
-  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入
+  enabled: false
+  remark: 上游栏目 1788003193307 已下线 (404)
   extra:
     title: 拯救彩民特辑
     upstream_id: '1788003193307'
@@ -1910,8 +1910,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_touzi_8ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 动态巡检发现栏目，已通过离线证据与解析契约验收，正式接入
+  enabled: false
+  remark: 上游栏目 1790162440477 已下线 (404)
   extra:
     title: 投资八码
     upstream_id: '1790162440477'
@@ -1970,8 +1970,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_neibu_6ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 动态巡检发现栏目，已通过审核解析契约与离线证据，正式接入
+  enabled: false
+  remark: 上游栏目 1790508453436 已下线 (404)
   extra:
     title: 内部资料 六码中特
     upstream_id: '1790508453436'
@@ -2277,6 +2277,51 @@ sources:
     upstream_id: '24464'
     sub_label: 推荐八尾
     kind: wei
+- source_id: dj_baofu_3xiao
+  source_name: 顶尖暴富三肖
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_baofu_3xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师暴富2+1三肖
+  extra:
+    upstream_id: '1784033741321'
+    parser: baofu_3xiao
+    kind: xiao
+    path: /api/v1/index/config/byid/1784033741321
+- source_id: dj_diamond_4ma
+  source_name: 澳彩中心钻石四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_diamond_4ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师澳彩中心钻石四码
+  extra:
+    upstream_id: '1786877946782'
+    parser: diamond_four_numbers
+    kind: num
+    path: /api/v1/index/config/byid/1786877946782
+- source_id: dj_datoumi_1x2m
+  source_name: 顶尖大透密一肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_datoumi_1x2m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师大透密一肖二码及协防
+  extra:
+    upstream_id: '1790682774156'
+    parser: datoumi_defense
+    kind: mixed
+    path: /api/v1/index/config/byid/1790682774156
 draw:
   macau:
     adapter: getLastLottery

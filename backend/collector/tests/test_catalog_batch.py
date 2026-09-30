@@ -87,6 +87,27 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(len(rows3), 1)
         self.assertEqual([a["value"] for a in rows3[0].preds], ["猪", "40", "28", "29", "41", "33"])
 
+        raw_baofu = """
+        272期【猪】【羊】+小买【蛇】\n开:蛇02中\n273期【發】【發】+小买【發】
+        """
+        rows4 = extract_dingjian_column(raw_baofu, "baofu_3xiao")
+        self.assertEqual(len(rows4), 1)
+        self.assertEqual([a["value"] for a in rows4[0].preds], ["猪", "羊", "蛇"])
+
+        raw_diamond = """
+        2026年澳门第272期\n18\n06\n14\n02中\n2026年澳门第273期\n88\n88\n88\n88
+        """
+        rows5 = extract_dingjian_column(raw_diamond, "diamond_four_numbers")
+        self.assertEqual(len(rows5), 1)
+        self.assertEqual([a["value"] for a in rows5[0].preds], ["18", "06", "14", "02"])
+
+        raw_datoumi = """
+        第272期\n蛇-02-14\n防:12-24\n开奖:蛇02中\n第273期\n内部大佬大透密\n开奖:發88中
+        """
+        rows6 = extract_dingjian_column(raw_datoumi, "datoumi_defense")
+        self.assertEqual(len(rows6), 1)
+        self.assertEqual([a["value"] for a in rows6[0].preds], ["蛇", "02", "14", "12", "24"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

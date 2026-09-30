@@ -187,10 +187,12 @@ def scan(*, record: bool = True) -> dict[str, Any]:
 
     # Calculate missing registered sources
     current_ids = {i["upstream_id"] for i in items}
+    current_paths = {i["path"] for i in items}
+    current_all = current_ids | current_paths
     missing: list[dict[str, Any]] = []
     for uid, src_list in registered.items():
         enabled_srcs = [s for s in src_list if s["enabled"]]
-        if enabled_srcs and uid not in current_ids and not uid.startswith("/"):
+        if enabled_srcs and uid not in current_all:
             missing.append({"upstream_id": uid, "sources": enabled_srcs})
 
     result = {
