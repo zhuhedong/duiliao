@@ -1,8 +1,10 @@
 """Tests for multi-model AI adapters, prompts, context formatter, and analyzer."""
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 # Add backend and collector to sys.path
@@ -108,6 +110,48 @@ class TestAIService(unittest.TestCase):
         self.assertNotIn("88:", formatted)
         self.assertNotIn("发发发", formatted)
         self.assertNotIn("马", formatted)
+
+    def test_raw_html_preserves_full_page_even_with_target_period(self):
+        full_html = "<html><body>" + "完整帖文" * 25_000 + "<p>第273期 兔-08-20</p></body></html>"
+        for data in ({"html": full_html}, SimpleNamespace(html=full_html)):
+            for period in (None, "273"):
+                with self.subTest(data_type=type(data).__name__, period=period):
+                    formatted = format_scraped_data_for_ai(data, mode="raw_html", period=period)
+                    self.assertEqual(formatted, full_html)
+
+    def test_module_summary_keeps_content_beyond_old_character_limit(self):
+        full_text = "完整帖文" * 25_000 + "末尾实码：49"
+        data = {"modules": [
+            {"id": 1, "name": "长帖文", "type": "content", "content": f"<p>{full_text}</p>"},
+            {"id": 2, "name": "末尾栏目", "type": "content", "content": "<p>第273期 兔-08-20</p>"},
+        ]}
+        formatted = format_scraped_data_for_ai(data)
+        self.assertIn(full_text, formatted)
+        self.assertIn("末尾栏目", formatted)
+        self.assertIn("第273期 兔-08-20", formatted)
+        self.assertNotIn("截断", formatted)
+
+    def test_file_analysis_sends_entire_html_to_sync_and_stream_clients(self):
+        from app.services.ai.client import AIResponse
+
+        full_html = "<html><body>" + "完整帖文" * 25_000 + "<p>第273期 兔-08-20</p></body></html>"
+        client = MagicMock()
+        client.default_model = "test-model"
+        client.generate.return_value = AIResponse(content="报告", provider="openai", model="test-model")
+        client.generate_stream.return_value = iter(["报告"])
+        with tempfile.TemporaryDirectory() as directory:
+            file_path = Path(directory) / "scrape.html"
+            file_path.write_text(full_html, encoding="utf-8")
+            with patch("app.services.ai.scraped_data.SCRAPED_DATA_DIR", Path(directory)):
+                kwargs = dict(scraped_data=str(file_path), period="273", format_mode="raw_html", client=client)
+                result = analyze_scraped_data(**kwargs)
+                events = list(analyze_scraped_data_stream(**kwargs))
+
+        self.assertTrue(result.ok, result.error)
+        self.assertEqual(events[-1]["stage"], "done")
+        for generate in (client.generate, client.generate_stream):
+            generate.assert_called_once()
+            self.assertIn(full_html, generate.call_args.args[0][1]["content"])
 
     def test_prompt_templates(self):
         prompts = list_prompt_templates()

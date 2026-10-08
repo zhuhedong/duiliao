@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import logging
 import sys
-from datetime import date
+from collections import Counter
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,59 @@ def _bucket_by_kind(items: list[dict[str, Any]]) -> dict[str, list[dict[str, Any
 # ---------------------------------------------------------------------------
 # 1. Data Extraction
 # ---------------------------------------------------------------------------
+
+def get_zodiac_by_year(
+    lottery: str = "macau",
+    year: int | None = None,
+) -> dict[str, Any]:
+    """Read every stored draw in a calendar year, retaining within-draw repeats."""
+    from app import collector_bridge as cb
+
+    cb.bootstrap()
+
+    from sqlalchemy import select
+    from db import session_scope
+    from schema import Draw
+    from common.xiao import num_to_xiao
+
+    today = datetime.now(timezone(timedelta(hours=8))).date()
+    target_year = year if year is not None else today.year
+    with session_scope(guard=False) as s:
+        rows = s.scalars(
+            select(Draw)
+            .where(
+                Draw.lottery == lottery,
+                Draw.draw_date >= date(target_year, 1, 1),
+                Draw.draw_date < date(target_year + 1, 1, 1),
+                Draw.draw_date <= today,
+            )
+            .order_by(Draw.draw_date.asc(), Draw.period.asc())
+        )
+        periods = []
+        for draw in rows:
+            balls = [draw.z1, draw.z2, draw.z3, draw.z4, draw.z5, draw.z6, draw.tema]
+            xiaos = [num_to_xiao(number, draw.draw_date) for number in balls]
+            counts = Counter(xiaos)
+            repeated = [
+                {
+                    "xiao": xiao,
+                    "count": count,
+                    "positions": [position for position, value in zip(POSITIONS, xiaos) if value == xiao],
+                }
+                for xiao, count in counts.items()
+                if count >= 2
+            ]
+            periods.append({
+                "period": draw.period,
+                "date": draw.draw_date.isoformat(),
+                "balls": balls,
+                "xiaos": xiaos,
+                "has_repeated_xiao": bool(repeated),
+                "repeated_xiaos": repeated,
+            })
+
+    return {"ok": True, "lottery": lottery, "year": target_year, "total_periods": len(periods), "periods": periods}
+
 
 def get_zodiac_by_periods(
     lottery: str = "macau",

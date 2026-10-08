@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import json
 import threading
-from typing import Any
+from typing import Any, Literal
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -310,6 +310,18 @@ class ZodiacStreakRequest(BaseModel):
     provider: str | None = Field(default=None, max_length=64)
     model: str | None = Field(default=None, max_length=128)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+
+
+@router.get("/zodiac-year-data")
+def get_zodiac_year_data(
+    lottery: Literal["macau", "hk"] = "macau",
+    year: int | None = Query(default=None, ge=2000, le=2100),
+    _: User = _user,
+) -> dict[str, Any]:
+    """Return all stored draws for the year, including repeated zodiac counts."""
+    from app.services.ai.zodiac_streak import get_zodiac_by_year
+
+    return get_zodiac_by_year(lottery=lottery, year=year)
 
 
 @router.get("/zodiac-streak-data")

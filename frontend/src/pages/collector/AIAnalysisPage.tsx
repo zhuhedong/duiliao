@@ -23,6 +23,7 @@ import { PromptDock, DEFAULT_ANALYST_PROMPT } from "./ai/PromptDock";
 import { DataPanel } from "./ai/DataPanel";
 import { StreakConfigBar, StreakDataView } from "./ai/StreakPanel";
 import { AdvancedDrawer } from "./ai/AdvancedDrawer";
+import { YearZodiacPanel } from "./ai/YearZodiacPanel";
 
 const PROVIDERS = [
   { id: "openai" as const, label: "OpenAI" },
@@ -553,6 +554,8 @@ export function CollectorAIAnalysisPage() {
           isLoadingData={isLoadingStreakData}
         />
       )}
+
+      <YearZodiacPanel />
 
       {/* ═══ 报告画布（主角）═══ */}
       <ReportCanvas

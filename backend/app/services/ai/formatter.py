@@ -136,28 +136,19 @@ def format_scraped_data_for_ai(
     data: dict[str, Any] | Any,
     *,
     mode: str = "modules_summary",
-    max_chars: int = 80000,
     period: str | None = None,
 ) -> str:
-    """Format scraped 588080.com data for AI consumption.
+    """Format scraped 588080.com data without a local character limit.
 
     Args:
         data: FetchResult object or dict containing 'modules', 'site_title', 'html'.
         mode: 'modules_summary' (denoised text, recommended) or 'raw_html'.
-        max_chars: character cutoff safeguard.
-        period: target period; when supplied, extract that period before AI analysis.
+        period: target period for modules_summary extraction; raw_html stays intact.
     """
-    if mode == "raw_html" and period:
-        # Even when the UI requests raw HTML, analysis must receive the same
-        # target-period extraction. Otherwise the full page hits the legacy
-        # character cap before the model ever sees the requested period.
-        return _format_period_extraction(data, period=str(period).strip())
-
     if mode == "raw_html":
-        raw = getattr(data, "html", None) or (data.get("html") if isinstance(data, dict) else str(data))
-        if len(raw) > max_chars:
-            return raw[:max_chars] + f"\n\n[... 截断：超出 {max_chars} 字符限制 ...]"
-        return raw
+        if isinstance(data, dict):
+            return data.get("html") or ""
+        return getattr(data, "html", None) or str(data)
 
     if period:
         extracted = _format_period_extraction(data, period=str(period).strip())
@@ -199,7 +190,4 @@ def format_scraped_data_for_ai(
             f"{clean_text}\n"
         )
 
-    formatted = "\n".join(blocks)
-    if len(formatted) > max_chars:
-        return formatted[:max_chars] + f"\n\n[... 截断：超出 {max_chars} 字符限制 ...]"
-    return formatted
+    return "\n".join(blocks)
