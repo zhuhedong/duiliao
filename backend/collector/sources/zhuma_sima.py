@@ -21,7 +21,7 @@ PLAY_TYPE = "tema_n"
 HIT_MODE = "any"
 URLS = urls_for("/api/v1/index/config/byid/1787383047657")
 
-HEADER_RE = re.compile(r"^\s*(?P<period>\d{1,7})\s*期\s+主买四码")
+HEADER_RE = re.compile(r"^\s*(?P<period>\d{1,7})\s*期\s*主买四码")
 CANDIDATE_RE = re.compile(r"主买\s*《(?P<candidates>[^》]+)》")
 
 

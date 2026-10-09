@@ -26,6 +26,13 @@ EXTRACTORS = {
     "baofu_3xiao": ("xiao", 3, r""),
     "diamond_four_numbers": ("num", 4, r""),
     "datoumi_defense": ("all", 5, r""),
+    "wangzhe_defense": ("all", 0, r""),
+    "juemi_2x4m": ("all", 6, r""),
+    "xingyun_6ma": ("num", 6, r""),
+    "jipin_defense": ("all", 5, r""),
+    "zhugong_3ma": ("num", 3, r""),
+    "kaijiang_2xiao": ("xiao", 2, r""),
+    "boshi_jingxuan": ("all", 6, r""),
 }
 
 
@@ -166,6 +173,137 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             if len(all_nums) != 4 or len(set(all_nums)) != 4 or any(not 1 <= int(n) <= 49 for n in all_nums):
                 continue
             selected = f"{xiao}-{m1}-{m2} 防:{m_def.group(1)}-{m_def.group(2)}" if m_def else f"{xiao}-{m1}-{m2}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in all_nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "wangzhe_defense":
+            m_main = re.search(r"精准\s*【([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})】", block)
+            if not m_main:
+                continue
+            xiao = m_main.group(1)
+            main_num = m_main.group(2)
+            m_def = re.search(r"防[:：]?\s*([\d.]+)", block)
+            def_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_def.group(1)) if m_def else []
+            all_nums = list(dict.fromkeys([main_num, *def_nums]))
+            if any(not 1 <= int(n) <= 49 for n in all_nums):
+                continue
+            selected = f"【{xiao}-{main_num}】" + (f" 防:{m_def.group(1)}" if m_def else "")
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in all_nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "juemi_2x4m":
+            lines = [l.strip() for l in block.splitlines() if l.strip() and "期" not in l and "开奖" not in l and "顶尖" not in l and "独家" not in l]
+            if len(lines) < 2:
+                continue
+            xiaos = list(dict.fromkeys(re.findall(r"[鼠牛虎兔龙蛇马羊猴鸡狗猪]", lines[0])))
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", lines[1])))
+            if len(xiaos) != 2 or len(nums) != 4 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"{' '.join(xiaos)} {' '.join(nums)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    *({"kind": "xiao", "value": x, "text": selected} for x in xiaos),
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "xingyun_6ma":
+            m_jx = re.search(r"精选\s*[「【\[]([\d.]+)[」】\]]", block)
+            m_zs = re.search(r"赠送\s*[「【\[]([\d.]+)[」】\]]", block)
+            if not m_jx or not m_zs:
+                continue
+            jx_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_jx.group(1))
+            zs_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_zs.group(1))
+            all_nums = list(dict.fromkeys([*jx_nums, *zs_nums]))
+            if len(all_nums) != 6 or any(not 1 <= int(n) <= 49 for n in all_nums):
+                continue
+            selected = f"精选「{m_jx.group(1)}」赠送「{m_zs.group(1)}」"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in all_nums],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "jipin_defense":
+            m_main = re.search(r"玄机①码\s*[:：]?\s*[✡*]?\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])?\s*(\d{2})\s*[✡*]?", block)
+            m_defense = re.search(r"(?m)^\s*[✡*]\s*([\d.\s]+)\s*[✡*]\s*$", block)
+            if not m_main or not m_defense:
+                continue
+            xiao = m_main.group(1)
+            main_num = m_main.group(2)
+            other_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_defense.group(1))
+            all_nums = list(dict.fromkeys([main_num, *other_nums]))
+            if len(all_nums) != 5 or any(not 1 <= int(n) <= 49 for n in all_nums):
+                continue
+            selected = f"玄机①码:{xiao or ''}{main_num} 防:{' '.join(other_nums)}"
+            preds = []
+            if xiao:
+                preds.append({"kind": "xiao", "value": xiao, "text": selected})
+            preds.extend({"kind": "num", "value": n, "text": selected} for n in all_nums)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=preds,
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "zhugong_3ma":
+            m_zg = re.search(r"主攻三码\s*([\d\s·.]+)\s*次参考码", block)
+            if not m_zg:
+                continue
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m_zg.group(1))))
+            if len(nums) != 3 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"主攻三码 {' '.join(nums)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "kaijiang_2xiao":
+            lines = [l.strip() for l in block.splitlines() if l.strip() and "期" not in l and "密函" not in l and "顶尖" not in l and "内部" not in l and "澳门" not in l and "拆封" not in l]
+            xiaos = [line for line in lines if re.fullmatch(r"[鼠牛虎兔龙蛇马羊猴鸡狗猪]", line)]
+            if len(xiaos) != 2:
+                continue
+            selected = " ".join(xiaos)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "xiao", "value": x, "text": selected} for x in xiaos],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "boshi_jingxuan":
+            m = re.search(r"【([鼠牛虎兔龙蛇马羊猴鸡狗猪])(\d{2})】\s*【([\d.\s]+)】", block)
+            if not m:
+                continue
+            xiao = m.group(1)
+            main_num = m.group(2)
+            other_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(3))
+            all_nums = list(dict.fromkeys([main_num, *other_nums]))
+            if len(all_nums) != 5 or any(not 1 <= int(n) <= 49 for n in all_nums):
+                continue
+            selected = f"【{xiao}{main_num}】 【{m.group(3)}】"
             rows.append(ParsedRow(
                 period_raw=period,
                 preds=[

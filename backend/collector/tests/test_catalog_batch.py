@@ -108,6 +108,59 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(len(rows6), 1)
         self.assertEqual([a["value"] for a in rows6[0].preds], ["蛇", "02", "14", "12", "24"])
 
+    def test_october_new_columns_contracts(self):
+        # 1. wangzhe_defense
+        raw_wz = "第280期 ①肖①码 开：龙15 ⚡\n精准【虎-17】分析\n防15.27.02.38\n第283期 ①肖①码 开：發88 ⚡\n精准【發-88】分析"
+        rows1 = extract_dingjian_column(raw_wz, "wangzhe_defense")
+        self.assertEqual(len(rows1), 1)
+        self.assertEqual(rows1[0].preds[0]["value"], "虎")
+        self.assertEqual([a["value"] for a in rows1[0].preds[1:]], ["17", "15", "27", "02", "38"])
+
+        # 2. juemi_2x4m
+        raw_jm = "第279期\n鸡 牛\n10 -22-18-30\n开奖: 鸡10 中\n第283期\n發 财\n加好友\n开奖: 發88 中"
+        rows2 = extract_dingjian_column(raw_jm, "juemi_2x4m")
+        self.assertEqual(len(rows2), 1)
+        self.assertEqual([a["value"] for a in rows2[0].preds[:2]], ["鸡", "牛"])
+        self.assertEqual([a["value"] for a in rows2[0].preds[2:]], ["10", "22", "18", "30"])
+
+        # 3. xingyun_6ma
+        raw_xy = "279期 ★ 幸运之星 ★\n開： 鸡10中\n精选「24.34」\n赠送「12.36.10.22」\n283期 ★ 幸运之星 ★\n開： 發88中\n精选「88.88」"
+        rows3 = extract_dingjian_column(raw_xy, "xingyun_6ma")
+        self.assertEqual(len(rows3), 1)
+        self.assertEqual([a["value"] for a in rows3[0].preds], ["24", "34", "12", "36", "10", "22"])
+
+        # 4. four_number_line (jinding_4ma)
+        raw_jd = "第278期\n02-14-04-16\n开奖: 蛇02 中\n第283期\n88-88-88-88\n开奖: 發88 中"
+        rows4 = extract_dingjian_column(raw_jd, "four_number_line")
+        self.assertEqual(len(rows4), 1)
+        self.assertEqual([a["value"] for a in rows4[0].preds], ["02", "14", "04", "16"])
+
+        # 5. jipin_defense
+        raw_jp = "第277期：极品内幕\n玄机①码: ✡猴11✡\n✡ 02.14.19.31 ✡\n第283期：极品内幕\n玄机①码: ✡發88✡\n✡ 88.88.88.88 ✡"
+        rows5 = extract_dingjian_column(raw_jp, "jipin_defense")
+        self.assertEqual(len(rows5), 1)
+        self.assertEqual(rows5[0].preds[0]["value"], "猴")
+        self.assertEqual([a["value"] for a in rows5[0].preds[1:]], ["11", "02", "14", "19", "31"])
+
+        # 6. zhugong_3ma
+        raw_zg = "第279期\n开奖：鸡10准\n主攻三码\n21 · 33 · 45\n次参考码\n10 · 46 · 12 · 48\n第283期\n主攻三码\n88 · 88 · 88"
+        rows6 = extract_dingjian_column(raw_zg, "zhugong_3ma")
+        self.assertEqual(len(rows6), 1)
+        self.assertEqual([a["value"] for a in rows6[0].preds], ["21", "33", "45"])
+
+        # 7. kaijiang_2xiao
+        raw_kj = "第278期开奖二肖已公开\n密函直达\n鼠\n蛇\n第283期开奖二肖待公布\n發\n财"
+        rows7 = extract_dingjian_column(raw_kj, "kaijiang_2xiao")
+        self.assertEqual(len(rows7), 1)
+        self.assertEqual([a["value"] for a in rows7[0].preds], ["鼠", "蛇"])
+
+        # 8. boshi_jingxuan
+        raw_bs = "277期：博士精选 开：猴11\n【马13】 【11.23.24.36】 今晚重点资料\n283期：博士精选 开：發88\n【發88】 【88.88.88.88】"
+        rows8 = extract_dingjian_column(raw_bs, "boshi_jingxuan")
+        self.assertEqual(len(rows8), 1)
+        self.assertEqual(rows8[0].preds[0]["value"], "马")
+        self.assertEqual([a["value"] for a in rows8[0].preds[1:]], ["13", "11", "23", "24", "36"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)
