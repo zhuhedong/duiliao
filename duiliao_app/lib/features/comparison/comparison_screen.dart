@@ -31,13 +31,23 @@ final latestPeriodProvider = FutureProvider.family<String?, Lottery>((
   ref,
   lottery,
 ) async {
+  final cn = DateTime.now().toUtc().add(const Duration(hours: 8));
+  final doy = cn.difference(DateTime.utc(cn.year, 1, 1)).inDays + 1;
+  final fallback = '${cn.year}${doy.toString().padLeft(3, '0')}';
+  try {
+    final res = await ref
+        .read(apiClientProvider)
+        .get('/collector/consensus/latest', query: {'lottery': lottery.code});
+    final current = res['current_period']?.toString();
+    if (current != null && current.isNotEmpty) return current;
+  } catch (_) {}
   try {
     final draws = await ref
         .read(collectorRepositoryProvider)
         .draws(lottery: lottery.code, limit: 1);
-    return draws.value.items.isEmpty ? '2026277' : draws.value.items.first.period;
+    return draws.value.items.isEmpty ? fallback : draws.value.items.first.period;
   } catch (_) {
-    return '2026277';
+    return fallback;
   }
 });
 

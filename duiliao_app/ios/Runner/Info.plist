@@ -11,9 +11,9 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Duiliao App</string>
+	<string>对料</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>用于解锁 Duiliao 运营端</string>
+	<string>用于解锁对料运营端</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
@@ -25,7 +25,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>duiliao_app</string>
+	<string>对料</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

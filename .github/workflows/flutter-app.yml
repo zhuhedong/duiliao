@@ -42,11 +42,46 @@ jobs:
         working-directory: duiliao_app
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
       - run: flutter pub get
+
+      - name: Resolve and auto-bump app version
+        id: version
+        run: |
+          RAW_VER=$(grep '^version:' pubspec.yaml | awk '{print $2}' | tr -d '\r')
+          BASE_SEMVER="${RAW_VER%+*}"
+          BASE_BUILD="${RAW_VER#*+}"
+          if [ "$BASE_BUILD" = "$RAW_VER" ]; then
+            BASE_BUILD=1
+          fi
+
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            FINAL_VER="${GITHUB_REF#refs/tags/v}"
+            FINAL_VER="${FINAL_VER%+*}"
+          else
+            MAJOR=$(echo "$BASE_SEMVER" | cut -d. -f1)
+            MINOR=$(echo "$BASE_SEMVER" | cut -d. -f2)
+            PATCH=$(echo "$BASE_SEMVER" | cut -d. -f3)
+
+            # Find highest existing tag v${MAJOR}.${MINOR}.* to guarantee patch version always increments
+            LATEST_TAG_PATCH=$(git tag -l "v${MAJOR}.${MINOR}.*" | sed -E "s/^v${MAJOR}\.${MINOR}\.([0-9]+).*$/\1/" | sort -n | tail -n 1)
+            if [ -n "$LATEST_TAG_PATCH" ] && [ "$LATEST_TAG_PATCH" -ge "$PATCH" ]; then
+              PATCH=$((LATEST_TAG_PATCH + 1))
+            fi
+            FINAL_VER="${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          BUILD_NUM=$((BASE_BUILD + GITHUB_RUN_NUMBER))
+          echo "version=${FINAL_VER}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${BUILD_NUM}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${FINAL_VER}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: v${FINAL_VER}+${BUILD_NUM}"
+
       - name: Prepare Android signing
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -61,51 +96,46 @@ jobs:
           else
             echo "ANDROID_KEYSTORE_BASE64 not set, falling back to debug signing for release build"
           fi
-      - run: >-
+
+      - name: Build Android APK with version
+        run: >-
           flutter build apk --release --split-per-abi
+          --build-name="${{ steps.version.outputs.version }}"
+          --build-number="${{ steps.version.outputs.build_number }}"
           --dart-define=API_BASE_URL="${{ vars.APP_API_BASE_URL }}"
           --dart-define=APP_SIGNING_SECRET="${{ secrets.APP_SIGNING_SECRET }}"
           --dart-define=APP_ID=android-internal
-        # dart-defines are passed explicitly so a release can never silently use
-        # the placeholder signing secret. The protected signing key is prepared
-        # above and the Gradle release build refuses to use it unless present.
-      - uses: actions/upload-artifact@v4
+
+      - name: Rename APKs and package versioned archive
+        run: |
+          VER="${{ steps.version.outputs.version }}"
+          OUT_DIR="build/release-apk"
+          mkdir -p "$OUT_DIR"
+          for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
+            base=$(basename "$apk")
+            # app-arm64-v8a-release.apk -> duiliao-v2.1.2-arm64-v8a-release.apk
+            abi_part="${base#app-}"
+            cp "$apk" "${OUT_DIR}/duiliao-v${VER}-${abi_part}"
+          done
+          cd "$OUT_DIR"
+          zip -9 "duiliao-android-v${VER}.zip" duiliao-v${VER}-*.apk
+          ls -lh
+
+      - name: Upload versioned APK artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: duiliao-android-apk
-          path: duiliao_app/build/app/outputs/flutter-apk/*.apk
+          name: duiliao-android-v${{ steps.version.outputs.version }}
+          path: duiliao_app/build/release-apk/duiliao-v${{ steps.version.outputs.version }}-*.apk
+
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          files: duiliao_app/build/app/outputs/flutter-apk/*.apk
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: 对料 App ${{ steps.version.outputs.tag }}
+          files: |
+            duiliao_app/build/release-apk/duiliao-v${{ steps.version.outputs.version }}-*.apk
+            duiliao_app/build/release-apk/duiliao-android-v${{ steps.version.outputs.version }}.zip
           generate_release_notes: true
           draft: false
           prerelease: false
-
-#   ios-build:
-#     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
-#     needs: verify
-#     runs-on: macos-latest
-#     defaults:
-#       run:
-#         working-directory: duiliao_app
-#     steps:
-#       - uses: actions/checkout@v4
-#       - uses: subosito/flutter-action@v2
-#         with:
-#           channel: stable
-#           cache: true
-#       - run: flutter pub get
-#       - run: >-
-#           flutter build ios --release --no-codesign
-#           --dart-define=API_BASE_URL="${{ vars.APP_API_BASE_URL }}"
-#           --dart-define=APP_SIGNING_SECRET="${{ secrets.APP_SIGNING_SECRET }}"
-#           --dart-define=APP_ID=ios-internal
-#         # Signing and TestFlight upload require the team's Apple certificate and
-#         # provisioning profile. This job still verifies the native iOS target;
-#         # the signed archive is produced by the release machine described in
-#         # docs/app_release.md.
-#       - uses: actions/upload-artifact@v4
-#         with:
-#           name: duiliao-ios-runner-app
-#           path: duiliao_app/build/ios/iphoneos/Runner.app

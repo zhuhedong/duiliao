@@ -364,9 +364,15 @@ final bettingRecordsProvider =
       BettingRecordsNotifier.new,
     );
 
+String _dateBasedPeriod([DateTime? now]) {
+  final cn = (now ?? DateTime.now()).toUtc().add(const Duration(hours: 8));
+  final doy = cn.difference(DateTime.utc(cn.year, 1, 1)).inDays + 1;
+  return '${cn.year}${doy.toString().padLeft(3, '0')}';
+}
+
 String _nextPeriodFrom(String? latestDrawPeriod) {
   if (latestDrawPeriod == null || latestDrawPeriod.isEmpty) {
-    return '2026277';
+    return _dateBasedPeriod();
   }
   final parsed = int.tryParse(latestDrawPeriod);
   if (parsed != null) {
@@ -374,6 +380,111 @@ String _nextPeriodFrom(String? latestDrawPeriod) {
   }
   return latestDrawPeriod;
 }
+
+typedef RecordPeriodContext = ({
+  String currentPeriod,
+  String? officialDrawPeriod,
+  String? predictionPeriod,
+  List<String> selectablePeriods,
+});
+
+final recordPeriodContextProvider =
+    FutureProvider.family<RecordPeriodContext, Lottery>((ref, lottery) async {
+      String? officialPeriod;
+      String? predictionPeriod;
+      String? serverCurrent;
+      String? latestDrawDate;
+      final drawPeriods = <String>[];
+
+      try {
+        final api = ref.read(apiClientProvider);
+        final res = await api.get(
+          '/collector/consensus/latest',
+          query: {'lottery': lottery.code},
+        );
+        officialPeriod = res['official_draw_period']?.toString();
+        predictionPeriod = res['latest_prediction_period']?.toString();
+        serverCurrent = res['current_period']?.toString();
+      } catch (_) {}
+
+      try {
+        final drawsRes = await ref
+            .read(collectorRepositoryProvider)
+            .draws(lottery: lottery.code, limit: 20);
+        for (final item in drawsRes.value.items) {
+          if (item.period.isNotEmpty && !drawPeriods.contains(item.period)) {
+            drawPeriods.add(item.period);
+          }
+        }
+        if (drawsRes.value.items.isNotEmpty) {
+          officialPeriod ??= drawsRes.value.items.first.period;
+          latestDrawDate = drawsRes.value.items.first.drawDate;
+        }
+      } catch (_) {}
+
+      final nowCn = DateTime.now().toUtc().add(const Duration(hours: 8));
+      final todayIso =
+          '${nowCn.year}-${nowCn.month.toString().padLeft(2, '0')}-${nowCn.day.toString().padLeft(2, '0')}';
+      final todayShort =
+          '${nowCn.month.toString().padLeft(2, '0')}-${nowCn.day.toString().padLeft(2, '0')}';
+      final drawIsToday =
+          latestDrawDate != null &&
+          (latestDrawDate.contains(todayIso) ||
+              latestDrawDate.startsWith(todayShort));
+
+      String resolvedCurrent;
+      if (predictionPeriod != null &&
+          predictionPeriod.isNotEmpty &&
+          (officialPeriod == null ||
+              predictionPeriod.compareTo(officialPeriod) >= 0)) {
+        // If prediction period is already ahead of official draw, it is the current period.
+        // If equal to official draw, check whether today's draw has already opened.
+        if (predictionPeriod == officialPeriod && !drawIsToday) {
+          resolvedCurrent = _nextPeriodFrom(officialPeriod);
+        } else {
+          resolvedCurrent = predictionPeriod;
+        }
+      } else if (officialPeriod != null && officialPeriod.isNotEmpty) {
+        resolvedCurrent = drawIsToday
+            ? officialPeriod
+            : _nextPeriodFrom(officialPeriod);
+      } else if (serverCurrent != null && serverCurrent.isNotEmpty) {
+        resolvedCurrent = serverCurrent;
+      } else {
+        resolvedCurrent = _dateBasedPeriod(nowCn);
+      }
+
+      final options = <String>[];
+      void addPeriod(String? p) {
+        if (p != null && p.isNotEmpty && !options.contains(p)) {
+          options.add(p);
+        }
+      }
+
+      final nextAfterCurrent = _nextPeriodFrom(resolvedCurrent);
+      addPeriod(resolvedCurrent);
+      if (drawIsToday) {
+        addPeriod(nextAfterCurrent);
+      }
+      addPeriod(officialPeriod);
+      addPeriod(predictionPeriod);
+      for (final dp in drawPeriods) {
+        addPeriod(dp);
+      }
+      final baseInt = int.tryParse(resolvedCurrent);
+      if (baseInt != null) {
+        for (var i = 1; i <= 8; i++) {
+          addPeriod('${baseInt - i}');
+        }
+      }
+
+      return (
+        currentPeriod: resolvedCurrent,
+        officialDrawPeriod: officialPeriod,
+        predictionPeriod: predictionPeriod,
+        selectablePeriods: options,
+      );
+    });
 
 /// Records List Screen (records.html).
 class RecordsScreen extends ConsumerStatefulWidget {
@@ -1121,7 +1232,7 @@ class RecordAddScreen extends ConsumerStatefulWidget {
 class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   late String _mode;
   Lottery _lottery = Lottery.macau;
-  String _period = '2026277';
+  late String _period;
   bool _periodManuallySet = false;
   late String _selectedPlay;
   late final TextEditingController _inputController;
@@ -1223,6 +1334,8 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   @override
   void initState() {
     super.initState();
+    _lottery = ref.read(selectedLotteryProvider);
+    _period = _dateBasedPeriod();
     _mode = widget.mode;
     _selectedPlay = switch (_mode) {
       '连肖复试' => '4 连',
@@ -1296,8 +1409,8 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
           controller: ctrl,
           keyboardType: TextInputType.number,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: '例如：2026277',
+          decoration: InputDecoration(
+            hintText: '例如：$_period（支持填3位如 285 自动补全年份）',
           ),
         ),
         actions: [
@@ -1313,11 +1426,142 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
       ),
     );
     if (result != null && result.isNotEmpty) {
+      final yearPrefix = '${DateTime.now().toUtc().add(const Duration(hours: 8)).year}';
+      final normalized = result.length == 3 ? '$yearPrefix$result' : result;
       setState(() {
-        _period = result;
+        _period = normalized;
         _periodManuallySet = true;
       });
     }
+  }
+
+  Future<void> _openPeriodPickerSheet(
+    BuildContext context, {
+    required List<String> allPeriods,
+    required String currentPeriod,
+    required String? officialDrawPeriod,
+  }) async {
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF111827),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '选择期号 · ${_lottery.label}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx, '__custom__');
+                      },
+                      icon: const Icon(Icons.edit_rounded, size: 15),
+                      label: const Text('手动输入'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: allPeriods.length,
+                    separatorBuilder: (_, _) => Divider(
+                      height: 1,
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
+                    itemBuilder: (_, idx) {
+                      final p = allPeriods[idx];
+                      final isSelected = p == _period;
+                      final isCurrent = p == currentPeriod;
+                      final isOfficial = p == officialDrawPeriod;
+                      return ListTile(
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        title: Row(
+                          children: [
+                            Text(
+                              '第 $p 期',
+                              style: tabularStyle(
+                                TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : null,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (isCurrent)
+                              const GlassStatusPill(
+                                label: '当前期 · 默认',
+                                color: DuiliaoColors.hit,
+                                showDot: false,
+                              )
+                            else if (isOfficial)
+                              const GlassStatusPill(
+                                label: '最新已开',
+                                color: DuiliaoColors.primary,
+                                showDot: false,
+                              ),
+                          ],
+                        ),
+                        trailing: isSelected
+                            ? Icon(
+                                Icons.check_circle_rounded,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 20,
+                              )
+                            : null,
+                        onTap: () => Navigator.pop(ctx, p),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (!context.mounted || chosen == null) return;
+    if (chosen == '__custom__') {
+      await _promptCustomPeriod(context);
+      return;
+    }
+    setState(() {
+      _period = chosen;
+      _periodManuallySet = true;
+    });
+  }
+
+  String _periodChipLabel(
+    String p, {
+    required String currentPeriod,
+    required String? officialDrawPeriod,
+  }) {
+    if (p == currentPeriod) return '第 $p 期 (当前)';
+    if (p == officialDrawPeriod) return '第 $p 期 (上期)';
+    return '第 $p 期';
   }
 
   void _switchMode(String nextMode) {
@@ -1426,25 +1670,39 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final periodCtx = ref.watch(recordPeriodContextProvider(_lottery)).value;
     final homeSnap = ref
         .watch(
           homeProvider((lottery: _lottery, playType: 'pingte_xiao')),
         )
         .value;
-    final latestOfficialPeriod = homeSnap?.snapshot.latestDraw?.period;
-    final dynamicNextPeriod = _nextPeriodFrom(latestOfficialPeriod);
-    final dynamicPrevPeriod = latestOfficialPeriod ?? '2026276';
-    if (!_periodManuallySet &&
-        latestOfficialPeriod != null &&
-        latestOfficialPeriod.isNotEmpty &&
-        _period == '2026277') {
-      _period = dynamicNextPeriod;
+    final latestOfficialPeriod =
+        periodCtx?.officialDrawPeriod ?? homeSnap?.snapshot.latestDraw?.period;
+    final currentPeriod =
+        periodCtx?.currentPeriod ?? _nextPeriodFrom(latestOfficialPeriod);
+    final dynamicPrevPeriod =
+        latestOfficialPeriod ??
+        (int.tryParse(currentPeriod) != null
+            ? '${int.parse(currentPeriod) - 1}'
+            : currentPeriod);
+
+    if (!_periodManuallySet && _period != currentPeriod) {
+      _period = currentPeriod;
     }
-    final periodOptions = <String>{
-      dynamicNextPeriod,
+
+    final allSelectablePeriods = <String>{
+      currentPeriod,
       dynamicPrevPeriod,
+      ...?periodCtx?.selectablePeriods,
       if (_period.isNotEmpty) _period,
     }.toList(growable: false);
+
+    final periodOptions = <String>{
+      currentPeriod,
+      dynamicPrevPeriod,
+      ...allSelectablePeriods.take(4),
+      if (_period.isNotEmpty) _period,
+    }.take(5).toList(growable: false);
 
     final text = _inputController.text;
     final parsedStake = _extractStake(text);
@@ -1522,27 +1780,35 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                       onChanged: _switchMode,
                     ),
 
-                    // 彩种 (record-add.html lines 48-61)
+                    // 彩种与期号 (默认当前期数，支持直接选期/更多期号/自定义)
                     const DesignSectionHeader(title: '彩种'),
                     GlassCard(
                       margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
+                            spacing: 6,
+                            runSpacing: 6,
                             children: [
                               for (final item in Lottery.all)
                                 GlassChipTag(
                                   label: item.label,
+                                  compact: true,
                                   active: item == _lottery,
-                                  onTap: () => setState(() => _lottery = item),
+                                  onTap: () => setState(() {
+                                    _lottery = item;
+                                    _periodManuallySet = false;
+                                  }),
                                 ),
                               for (final extra in const ['台湾', '新彩'])
                                 GlassChipTag(
                                   label: extra,
+                                  compact: true,
                                   onTap: () {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -1553,29 +1819,53 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          InkWell(
-                            onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const PlayCatalogScreen(),
-                              ),
-                            ),
+                          const SizedBox(height: 8),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  '查看彩种与玩法目录',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                Text('期号：', style: context.texts.labelSmall),
+                                for (final p in periodOptions.take(2)) ...[
+                                  GlassChipTag(
+                                    label: _periodChipLabel(
+                                      p,
+                                      currentPeriod: currentPeriod,
+                                      officialDrawPeriod: latestOfficialPeriod,
+                                    ),
+                                    compact: true,
+                                    active: _period == p,
+                                    onTap: () => setState(() {
+                                      _period = p;
+                                      _periodManuallySet = true;
+                                    }),
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
+                                if (!periodOptions.take(2).contains(_period)) ...[
+                                  GlassChipTag(
+                                    label: '第 $_period 期',
+                                    compact: true,
+                                    active: true,
+                                    onTap: () {},
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
+                                GlassChipTag(
+                                  label: '选期 ▾',
+                                  compact: true,
+                                  onTap: () => _openPeriodPickerSheet(
+                                    context,
+                                    allPeriods: allSelectablePeriods,
+                                    currentPeriod: currentPeriod,
+                                    officialDrawPeriod: latestOfficialPeriod,
                                   ),
                                 ),
-                                Icon(
-                                  Icons.chevron_right_rounded,
-                                  size: 14,
-                                  color: Theme.of(context).colorScheme.primary,
+                                const SizedBox(width: 6),
+                                GlassChipTag(
+                                  label: '自定义…',
+                                  compact: true,
+                                  icon: Icons.edit_rounded,
+                                  onTap: () => _promptCustomPeriod(context),
                                 ),
                               ],
                             ),
@@ -1972,13 +2262,26 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             children: [
                               for (final p in periodOptions)
                                 GlassChipTag(
-                                  label: '第 $p 期',
+                                  label: _periodChipLabel(
+                                    p,
+                                    currentPeriod: currentPeriod,
+                                    officialDrawPeriod: latestOfficialPeriod,
+                                  ),
                                   active: _period == p,
                                   onTap: () => setState(() {
                                     _period = p;
                                     _periodManuallySet = true;
                                   }),
                                 ),
+                              GlassChipTag(
+                                label: '更多期号 ▾',
+                                onTap: () => _openPeriodPickerSheet(
+                                  context,
+                                  allPeriods: allSelectablePeriods,
+                                  currentPeriod: currentPeriod,
+                                  officialDrawPeriod: latestOfficialPeriod,
+                                ),
+                              ),
                               GlassChipTag(
                                 label: '自定义期号…',
                                 icon: Icons.edit_rounded,
