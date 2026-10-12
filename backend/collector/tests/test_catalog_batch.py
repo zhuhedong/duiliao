@@ -161,6 +161,39 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(rows8[0].preds[0]["value"], "马")
         self.assertEqual([a["value"] for a in rows8[0].preds[1:]], ["13", "11", "23", "24", "36"])
 
+        # 9. neibu_1x4m
+        raw_nb = "第281期\n本期必开内部一肖+四码\n蛇.12.24.10.22\n第285期\n本期必开内部一肖+四码\n内部资料渠道不易"
+        rows9 = extract_dingjian_column(raw_nb, "neibu_1x4m")
+        self.assertEqual(len(rows9), 1)
+        self.assertEqual(rows9[0].preds[0]["value"], "蛇")
+        self.assertEqual([a["value"] for a in rows9[0].preds[1:]], ["12", "24", "10", "22"])
+
+        # 10. zhanggong_2xiao
+        raw_zg2 = "第281期\n鸡 龙\n开奖: 鸡10 中\n第282期\n兔-猴\n开奖: 猴23 中\n第285期\n张公神算\n开奖: 發88 中"
+        rows10 = extract_dingjian_column(raw_zg2, "zhanggong_2xiao")
+        self.assertEqual(len(rows10), 2)
+        self.assertEqual([a["value"] for a in rows10[0].preds], ["鸡", "龙"])
+        self.assertEqual([a["value"] for a in rows10[1].preds], ["兔", "猴"])
+
+        # 11. hengcai_defense
+        raw_hc = "第280期\n龙-15\n防:28-40\n开奖: 龙15 中\n第285期\n發-88\n防:88-88\n开奖: 發88 中"
+        rows11 = extract_dingjian_column(raw_hc, "hengcai_defense")
+        self.assertEqual(len(rows11), 1)
+        self.assertEqual(rows11[0].preds[0]["value"], "龙")
+        self.assertEqual([a["value"] for a in rows11[0].preds[1:]], ["15", "28", "40"])
+
+        # 12. five_bracket_numbers
+        raw_sj5 = "280期：数据五码\n【15.27.19.07.33】\n中奖\n285期：数据五码\n【88.88.88.88.88】"
+        rows12 = extract_dingjian_column(raw_sj5, "five_bracket_numbers")
+        self.assertEqual(len(rows12), 1)
+        self.assertEqual([a["value"] for a in rows12[0].preds], ["15", "27", "19", "07", "33"])
+
+        # 13. dashi_xinshui
+        raw_ds = "280 期\n大师心水 开: 龙15 准\n本期主【 龙 】防【 虎 】\n285 期\n大师心水 开: 發88 准\n本期主【發】防【财】"
+        rows13 = extract_dingjian_column(raw_ds, "dashi_xinshui")
+        self.assertEqual(len(rows13), 1)
+        self.assertEqual([a["value"] for a in rows13[0].preds], ["龙", "虎"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

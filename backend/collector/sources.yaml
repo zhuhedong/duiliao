@@ -623,8 +623,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_baoliao.py
   timeout_sec: 30
-  enabled: false
-  remark: 顶尖爆料一肖二码及开奖验证（上游已下线）
+  enabled: true
+  remark: 顶尖爆料一肖二码及开奖验证，动态巡检重新上线
   extra:
     title: 顶尖爆料·一肖二码
     upstream_id: '1789907465205'
@@ -636,8 +636,8 @@ sources:
   hit_mode: any
   script_path: sources/sima_shuju.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师研究所数据四码，动态巡检重新上线
+  enabled: false
+  remark: 上游栏目 1789908353019 已下线
   extra:
     title: 四码数据
     upstream_id: '1789908353019'
@@ -2345,8 +2345,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_juemi_2x4m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师绝密宝典二肖四码
+  enabled: false
+  remark: 上游栏目 1791550236012 已下线
   extra:
     upstream_id: '1791550236012'
     parser: juemi_2x4m
@@ -2375,8 +2375,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_jinding_4ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师金鼎内部四码中特
+  enabled: false
+  remark: 上游栏目 1791463814781 已下线
   extra:
     upstream_id: '1791463814781'
     parser: four_number_line
@@ -2390,8 +2390,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_jipin_1x5m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师极品内幕一肖五码
+  enabled: false
+  remark: 上游栏目 1787559900635 已下线
   extra:
     upstream_id: '1787559900635'
     parser: jipin_defense
@@ -2405,8 +2405,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_zhugong_3ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师主攻三码
+  enabled: false
+  remark: 上游栏目 1785588773280 已下线
   extra:
     upstream_id: '1785588773280'
     parser: zhugong_3ma
@@ -2442,6 +2442,81 @@ sources:
     parser: boshi_jingxuan
     kind: mixed
     path: /api/v1/index/config/byid/1788869300544
+- source_id: dj_neibu_1x4m
+  source_name: 顶尖内部一肖四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_neibu_1x4m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师内部一肖四码
+  extra:
+    upstream_id: '1786967402292'
+    parser: neibu_1x4m
+    kind: mixed
+    path: /api/v1/index/config/byid/1786967402292
+- source_id: dj_zhanggong_2xiao
+  source_name: 神算张公二肖暴富
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_zhanggong_2xiao.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师神算张公二肖暴富
+  extra:
+    upstream_id: '1791716079749'
+    parser: zhanggong_2xiao
+    kind: xiao
+    path: /api/v1/index/config/byid/1791716079749
+- source_id: dj_hengcai_1x1m
+  source_name: 天降横财一肖一码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_hengcai_1x1m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师天降横财一肖一码及防码
+  extra:
+    upstream_id: '1791632597194'
+    parser: hengcai_defense
+    kind: mixed
+    path: /api/v1/index/config/byid/1791632597194
+- source_id: dj_shuju_5ma
+  source_name: 顶尖数据五码中特
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_shuju_5ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师数据观察员五码中特
+  extra:
+    upstream_id: '1785324091013'
+    parser: five_bracket_numbers
+    kind: num
+    path: /api/v1/index/config/byid/1785324091013
+- source_id: dj_dashi_xinshui
+  source_name: 顶尖大师心水主防二肖
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_dashi_xinshui.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师心水主防二肖
+  extra:
+    upstream_id: '1788956207286'
+    parser: dashi_xinshui
+    kind: xiao
+    path: /api/v1/index/config/byid/1788956207286
 draw:
   macau:
     adapter: getLastLottery
