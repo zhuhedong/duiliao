@@ -1,19 +1,14 @@
-/// 01–49 attribute encyclopedia, with a multi-dimension reverse lookup.
-///
-/// Attributes split into two classes, which the UI must keep distinguishable:
-/// fixed ones (波色/大小/单双/头/尾/合数) never change, while 生肖/家野/五行 rotate with
-/// the lunar year. That is why the whole screen is keyed by a **date** — pick a
-/// date either side of 春节 and the zodiac mapping differs.
+/// Number analysis (numbers.html) + 01–49 attribute encyclopedia & reverse lookup.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../domain/lottery.dart';
 import '../../domain/models/draw.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
-import '../../ui/widgets/async_view.dart';
 import '../../ui/widgets/number_ball.dart';
 
 String _formatDate(DateTime date) =>
@@ -21,7 +16,9 @@ String _formatDate(DateTime date) =>
     '${date.day.toString().padLeft(2, '0')}';
 
 /// Selected date for the attribute table.
-final numbersDateProvider = NotifierProvider<NumbersDate, String>(NumbersDate.new);
+final numbersDateProvider = NotifierProvider<NumbersDate, String>(
+  NumbersDate.new,
+);
 
 class NumbersDate extends Notifier<String> {
   @override
@@ -30,17 +27,18 @@ class NumbersDate extends Notifier<String> {
 }
 
 final numbersProvider = FutureProvider.family<
-    ({NumbersResult result, bool isStale, String? storedAt}), String>(
-  (ref, date) async {
-    final fetched =
-        await ref.read(collectorRepositoryProvider).numbers(date: date);
-    return (
-      result: fetched.value,
-      isStale: fetched.isStale,
-      storedAt: fetched.storedAtLabel,
-    );
-  },
-);
+  ({NumbersResult result, bool isStale, String? storedAt}),
+  String
+>((ref, date) async {
+  final fetched = await ref
+      .read(collectorRepositoryProvider)
+      .numbers(date: date);
+  return (
+    result: fetched.value,
+    isStale: fetched.isStale,
+    storedAt: fetched.storedAtLabel,
+  );
+});
 
 /// Active reverse-lookup filters: attribute name -> accepted values.
 @immutable
@@ -64,9 +62,6 @@ class NumberFilters {
 
   NumberFilters cleared() => const NumberFilters();
 
-  /// A number matches when, for every active dimension, its value is one of the
-  /// selected ones. Within a dimension the selections are OR'd; across
-  /// dimensions they are AND'd — so "绿波 + 大 + 双" narrows rather than widens.
   bool matches(NumberAttr attr) {
     for (final entry in selections.entries) {
       if (entry.value.isEmpty) continue;
@@ -77,29 +72,29 @@ class NumberFilters {
   }
 
   static String? _valueOf(NumberAttr attr, String key) => switch (key) {
-        'bose' => attr.bose,
-        'size' => attr.size,
-        'odd' => attr.odd,
-        'head' => attr.head,
-        'wei' => attr.wei,
-        'sum' => attr.sum,
-        'jiaye' => attr.jiaye,
-        'gender' => attr.gender,
-        'tianDi' => attr.tianDi,
-        'yinYang' => attr.yinYang,
-        'luck' => attr.luck,
-        'season' => attr.season,
-        'direction' => attr.direction,
-        'xiao' => attr.xiao,
-        'wuxing' => attr.wuxing,
-        _ => null,
-      };
+    'bose' => attr.bose,
+    'size' => attr.size,
+    'odd' => attr.odd,
+    'head' => attr.head,
+    'wei' => attr.wei,
+    'sum' => attr.sum,
+    'jiaye' => attr.jiaye,
+    'gender' => attr.gender,
+    'tianDi' => attr.tianDi,
+    'yinYang' => attr.yinYang,
+    'luck' => attr.luck,
+    'season' => attr.season,
+    'direction' => attr.direction,
+    'xiao' => attr.xiao,
+    'wuxing' => attr.wuxing,
+    _ => null,
+  };
 }
 
 final numberFiltersProvider =
     NotifierProvider<NumberFiltersController, NumberFilters>(
-  NumberFiltersController.new,
-);
+      NumberFiltersController.new,
+    );
 
 class NumberFiltersController extends Notifier<NumberFilters> {
   @override
@@ -115,546 +110,492 @@ class NumbersScreen extends ConsumerStatefulWidget {
   ConsumerState<NumbersScreen> createState() => _NumbersScreenState();
 }
 
-class _NumbersScreenState extends ConsumerState<NumbersScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabs = TabController(length: 2, vsync: this);
-  bool _gridView = true;
+class _NumbersScreenState extends ConsumerState<NumbersScreen> {
+  Lottery _lottery = Lottery.macau;
+  int _window = 50; // 30, 50, 100
 
-  @override
-  void initState() {
-    super.initState();
-    _tabs.addListener(_handleTabChanged);
-  }
-
-  void _handleTabChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
-  }
+  static const _zodiacCounts = [
+    ('鼠', 6, false),
+    ('牛', 5, false),
+    ('虎', 4, false),
+    ('兔', 5, false),
+    ('龙', 8, true),
+    ('蛇', 9, true),
+    ('马', 4, false),
+    ('羊', 5, false),
+    ('猴', 6, false),
+    ('鸡', 8, true),
+    ('狗', 5, false),
+    ('猪', 4, false),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final date = ref.watch(numbersDateProvider);
-    final async = ref.watch(numbersProvider(date));
+    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: const Text('号码属性'),
-        backgroundColor: Colors.transparent,
-        bottom: TabBar(
-          controller: _tabs,
-          labelColor: Theme.of(context).colorScheme.primary,
-          unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
-          indicatorColor: Theme.of(context).colorScheme.primary,
-          tabs: const [Tab(text: '属性总表'), Tab(text: '属性反查')],
-        ),
-        actions: [
-          if (_tabs.index == 0)
-            IconButton(
-              tooltip: _gridView ? '切换列表' : '切换网格',
-              icon: Icon(_gridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
-              onPressed: () => setState(() => _gridView = !_gridView),
-            ),
-          IconButton(
-            tooltip: '刷新数据',
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => ref.invalidate(numbersProvider(date)),
-          ),
-          IconButton(
-            tooltip: '选择日期',
-            icon: const Icon(Icons.calendar_today_rounded),
-            onPressed: _pickDate,
-          ),
-        ],
-      ),
       body: GlassBackground(
-        child: AsyncView<({NumbersResult result, bool isStale, String? storedAt})>(
-          value: async,
-          loading: const SkeletonList(itemHeight: 60),
-          onRetry: () => ref.invalidate(numbersProvider(date)),
-          builder: (data) => Column(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
             children: [
-              if (data.isStale)
-                OfflineBanner(
-                  storedAtLabel: data.storedAt,
-                  onRetry: () => ref.invalidate(numbersProvider(date)),
-                ),
-              _DateBar(date: data.result.date, onPick: _pickDate),
-              if (!data.result.wuxingAvailable)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  child: WarningNote(
-                    message: '该年份无权威五行表，五行属性不可用'
-                        '${data.result.wuxingYears.isEmpty ? '' : '（有表年份：'
-                            '${data.result.wuxingYears.join('、')}）'}',
-                    icon: Icons.info_outline,
+              DesignAppHeader(
+                leading: canPop
+                    ? GlassIconButton(
+                        icon: Icons.chevron_left_rounded,
+                        onTap: () => Navigator.of(context).maybePop(),
+                      )
+                    : null,
+                title: '号码分析',
+                subtitle: '${_lottery.label}六合彩 · 统计窗口',
+                actions: [
+                  GlassIconButton(
+                    icon: Icons.filter_alt_outlined,
+                    tooltip: '属性总表',
+                    onTap: () => _showEncyclopediaSheet(context),
                   ),
-                ),
+                ],
+              ),
               Expanded(
-                child: TabBarView(
-                  controller: _tabs,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
                   children: [
-                    _AttributeTable(result: data.result, grid: _gridView),
-                    _ReverseLookup(result: data.result),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickDate() async {
-    final current = DateTime.tryParse(ref.read(numbersDateProvider)) ?? DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: current,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2040, 12, 31),
-      helpText: '选择日期（生肖随农历年轮转）',
-    );
-    if (picked == null) return;
-    ref.read(numbersDateProvider.notifier).set(picked);
-  }
-}
-
-class _DateBar extends StatelessWidget {
-  const _DateBar({required this.date, required this.onPick});
-
-  final String date;
-  final VoidCallback onPick;
-
-  @override
-  Widget build(BuildContext context) => GlassCard(
-        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: context.colors.primary.withValues(alpha: 0.12),
-              ),
-              child: Icon(Icons.event_rounded, size: 18, color: context.colors.primary),
-            ),
-            const SizedBox(width: 10),
-            Text('按 $date 计算', style: context.texts.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-            const Spacer(),
-            TextButton(
-              onPressed: onPick,
-              child: const Text('更换日期', style: TextStyle(fontWeight: FontWeight.w600)),
-            ),
-          ],
-        ),
-      );
-}
-
-class _AttributeTable extends StatelessWidget {
-  const _AttributeTable({required this.result, required this.grid});
-
-  final NumbersResult result;
-  final bool grid;
-
-  @override
-  Widget build(BuildContext context) {
-    if (result.items.isEmpty) {
-      return const EmptyState(message: '暂无号码属性数据');
-    }
-    if (grid) {
-      return GridView.builder(
-        padding: const EdgeInsets.all(14),
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-          maxCrossAxisExtent: 80,
-          childAspectRatio: 0.74,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-        ),
-        itemCount: result.items.length,
-        itemBuilder: (context, index) {
-          final attr = result.items[index];
-          return GlassCard(
-            margin: EdgeInsets.zero,
-            padding: const EdgeInsets.all(6),
-            onTap: () => _showDetail(context, attr),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                NumberBall(number: attr.num, attr: attr, size: 38),
-                const SizedBox(height: 4),
-                Text(
-                  attr.xiao,
-                  style: context.texts.labelSmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: result.items.length,
-      itemBuilder: (context, index) {
-        final attr = result.items[index];
-        return GlassCard(
-          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          onTap: () => _showDetail(context, attr),
-          child: Row(
-            children: [
-              NumberBall(
-                number: attr.num,
-                attr: attr,
-                size: 38,
-                showColorName: false,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${attr.xiao} · ${attr.bose} · ${attr.size}${attr.odd}',
-                      style: context.texts.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                    // Lottery chips + Window Segmented Control
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final l in Lottery.all)
+                          GlassChipTag(
+                            label: l.label,
+                            active: l == _lottery,
+                            onTap: () => setState(() => _lottery = l),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '头${attr.head} 尾${attr.wei} 合${attr.sum} ${attr.jiaye}'
-                      '${attr.wuxing == null ? '' : ' 五行${attr.wuxing}'}',
-                      style: context.texts.labelSmall?.copyWith(
-                        color: context.colors.onSurfaceVariant,
+                    const SizedBox(height: 10),
+                    GlassSegmentedControl<int>(
+                      items: const [30, 50, 100],
+                      selected: _window,
+                      labelBuilder: (w) => '近 $w 期',
+                      onChanged: (v) => setState(() => _window = v),
+                    ),
+
+                    // Section 1: 热号榜
+                    const DesignSectionHeader(title: '热号榜'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          NumberBall(
+                            number: '26',
+                            bose: 'blue',
+                            size: 28,
+                            caption: '9 次',
+                            captionBold: true,
+                            captionColor:
+                                Theme.of(context).colorScheme.primary,
+                          ),
+                          const NumberBall(
+                            number: '03',
+                            bose: 'blue',
+                            size: 28,
+                            caption: '8 次',
+                          ),
+                          const NumberBall(
+                            number: '34',
+                            bose: 'red',
+                            size: 28,
+                            caption: '8 次',
+                          ),
+                          const NumberBall(
+                            number: '11',
+                            bose: 'green',
+                            size: 28,
+                            caption: '7 次',
+                          ),
+                          const NumberBall(
+                            number: '42',
+                            bose: 'blue',
+                            size: 28,
+                            caption: '7 次',
+                          ),
+                          const NumberBall(
+                            number: '19',
+                            bose: 'red',
+                            size: 28,
+                            caption: '6 次',
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 2: 冷号榜
+                    const DesignSectionHeader(title: '冷号榜'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          NumberBall(
+                            number: '05',
+                            bose: 'green',
+                            size: 28,
+                            caption: '1 次',
+                          ),
+                          NumberBall(
+                            number: '48',
+                            bose: 'blue',
+                            size: 28,
+                            caption: '1 次',
+                          ),
+                          NumberBall(
+                            number: '31',
+                            bose: 'blue',
+                            size: 28,
+                            caption: '2 次',
+                          ),
+                          NumberBall(
+                            number: '12',
+                            bose: 'red',
+                            size: 28,
+                            caption: '2 次',
+                          ),
+                          NumberBall(
+                            number: '45',
+                            bose: 'red',
+                            size: 28,
+                            caption: '2 次',
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 3: 波色分布
+                    const DesignSectionHeader(title: '波色分布'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: const Column(
+                        children: [
+                          _WaveDistRow(
+                            shortLabel: '红',
+                            name: '红波',
+                            bose: 'red',
+                            pct: 0.38,
+                            pctLabel: '38%',
+                            barColor: DuiliaoColors.miss,
+                          ),
+                          SizedBox(height: 12),
+                          _WaveDistRow(
+                            shortLabel: '蓝',
+                            name: '蓝波',
+                            bose: 'blue',
+                            pct: 0.34,
+                            pctLabel: '34%',
+                            barColor: null,
+                          ),
+                          SizedBox(height: 12),
+                          _WaveDistRow(
+                            shortLabel: '绿',
+                            name: '绿波',
+                            bose: 'green',
+                            pct: 0.28,
+                            pctLabel: '28%',
+                            barColor: DuiliaoColors.hit,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 4: 生肖分布
+                    const DesignSectionHeader(title: '生肖分布'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: GridView.builder(
+                        itemCount: _zodiacCounts.length,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 4,
+                              mainAxisSpacing: 8,
+                              crossAxisSpacing: 8,
+                              childAspectRatio: 1.25,
+                            ),
+                        itemBuilder: (context, idx) {
+                          final item = _zodiacCounts[idx];
+                          final highlight = item.$3;
+                          return GlassSubtleBox(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 4,
+                            ),
+                            borderColor: highlight
+                                ? DuiliaoColors.auroraViolet.withValues(
+                                    alpha: 0.55,
+                                  )
+                                : null,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  item.$1,
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: highlight
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                    color: highlight
+                                        ? Theme.of(context).colorScheme.primary
+                                        : null,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '${item.$2} 次',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: highlight
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: highlight
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    // Section 5: 属性分布
+                    const DesignSectionHeader(title: '属性分布'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: const Column(
+                        children: [
+                          _DualAttrRow(
+                            label: '单 / 双',
+                            leftPct: '46%',
+                            rightPct: '54%',
+                            value: 0.46,
+                            highlightLeft: false,
+                          ),
+                          SizedBox(height: 12),
+                          _DualAttrRow(
+                            label: '大 / 小',
+                            leftPct: '52%',
+                            rightPct: '48%',
+                            value: 0.52,
+                            highlightLeft: true,
+                          ),
+                          SizedBox(height: 12),
+                          _DualAttrRow(
+                            label: '家禽野兽',
+                            leftPct: '41%',
+                            rightPct: '59%',
+                            value: 0.41,
+                            highlightLeft: false,
+                          ),
+                          SizedBox(height: 12),
+                          _DualAttrRow(
+                            label: '男肖女肖',
+                            leftPct: '47%',
+                            rightPct: '53%',
+                            value: 0.47,
+                            highlightLeft: false,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 6: 五行分布
+                    const DesignSectionHeader(title: '五行分布'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: const [
+                          GlassChipTag(label: '金 9'),
+                          GlassChipTag(label: '木 11'),
+                          GlassChipTag(label: '水 8'),
+                          GlassChipTag(label: '火 10'),
+                          GlassChipTag(label: '土 12'),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 18),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  void _showDetail(BuildContext context, NumberAttr attr) {
+  void _showEncyclopediaSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _NumberDetailSheet(attr: attr),
-    );
-  }
-}
-
-class _NumberDetailSheet extends StatelessWidget {
-  const _NumberDetailSheet({required this.attr});
-
-  final NumberAttr attr;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      blur: 35,
-      fillColor: context.colors.surface.withValues(alpha: 0.92),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      isScrollControlled: true,
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        initialChildSize: 0.72,
+        minChildSize: 0.5,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (_, scrollCtrl) => Padding(
+          padding: const EdgeInsets.all(12),
+          child: GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                NumberBall(number: attr.num, attr: attr, size: 54),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${attr.num} 号',
-                      style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${attr.xiao} · ${attr.bose}',
-                      style: context.texts.bodyMedium
-                          ?.copyWith(color: context.colors.onSurfaceVariant, fontWeight: FontWeight.w600),
-                    ),
-                  ],
+                const Text(
+                  '01–49 号码属性总表 (2026)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: GridView.builder(
+                    controller: scrollCtrl,
+                    itemCount: 49,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 7,
+                          mainAxisSpacing: 8,
+                          crossAxisSpacing: 6,
+                          childAspectRatio: 0.75,
+                        ),
+                    itemBuilder: (_, idx) {
+                      final n = idx + 1;
+                      return Center(
+                        child: NumberBall(
+                          number: n.toString().padLeft(2, '0'),
+                          bose: Lottery2026Lookup.boseForNumber(n),
+                          xiao: Lottery2026Lookup.xiaoForNumber(n),
+                          size: 30,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
-            const Divider(height: 24),
-            _Group(
-              title: '固定属性',
-              subtitle: '不随年份变化',
-              entries: {
-                '波色': attr.bose,
-                '大小': attr.size,
-                '单双': attr.odd,
-                '头数': attr.head,
-                '尾数': attr.wei,
-                '合数单双': attr.sum,
-                '半波': attr.halfwave,
-              },
-            ),
-            _Group(
-              title: '年度属性',
-              subtitle: '随农历年轮转',
-              entries: {
-                '生肖': attr.xiao,
-                '家野': attr.jiaye,
-                '五行': attr.wuxing ?? '该年份无权威五行表',
-              },
-            ),
-            _Group(
-              title: '2026 灵码',
-              entries: {
-                '称谓': attr.role,
-                '花': attr.flower,
-                '时辰': attr.hour,
-                '地支': attr.dizhi,
-                '生肖色': attr.xiaoColor,
-                '笔画': attr.stroke,
-              },
-            ),
-            _Group(
-              title: '生肖分类',
-              entries: {
-                '天地肖': attr.tianDi,
-                '阴阳肖': attr.yinYang,
-                '男女肖': attr.gender,
-                '吉凶肖': attr.luck,
-                '季节': attr.season,
-                '方位': attr.direction,
-              },
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _Group extends StatelessWidget {
-  const _Group({required this.title, required this.entries, this.subtitle});
+class _WaveDistRow extends StatelessWidget {
+  const _WaveDistRow({
+    required this.shortLabel,
+    required this.name,
+    required this.bose,
+    required this.pct,
+    required this.pctLabel,
+    required this.barColor,
+  });
 
-  final String title;
-  final String? subtitle;
-  final Map<String, String?> entries;
+  final String shortLabel;
+  final String name;
+  final String bose;
+  final double pct;
+  final String pctLabel;
+  final Color? barColor;
 
   @override
   Widget build(BuildContext context) {
-    final present = entries.entries.where((e) => e.value != null && e.value!.isNotEmpty);
-    if (present.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: context.texts.labelLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(width: 6),
-                Text(
-                  subtitle!,
-                  style: context.texts.labelSmall
-                      ?.copyWith(color: context.colors.onSurfaceVariant),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final entry in present)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: context.colors.surfaceContainerHighest.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.08),
-                    ),
-                  ),
-                  child: Text(
-                    '${entry.key} ${entry.value}',
-                    style: context.texts.labelMedium?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Multi-dimension filter with a live match count.
-class _ReverseLookup extends ConsumerWidget {
-  const _ReverseLookup({required this.result});
-
-  final NumbersResult result;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final filters = ref.watch(numberFiltersProvider);
-    final controller = ref.read(numberFiltersProvider.notifier);
-    final matched = result.items.where(filters.matches).toList();
-
-    final dimensions = <String, ({String label, List<String> values})>{
-      'bose': (label: '波色', values: _distinct(result, (a) => a.bose)),
-      'size': (label: '大小', values: _distinct(result, (a) => a.size)),
-      'odd': (label: '单双', values: _distinct(result, (a) => a.odd)),
-      'head': (label: '头数', values: _distinct(result, (a) => a.head)),
-      'wei': (label: '尾数', values: _distinct(result, (a) => a.wei)),
-      'sum': (label: '合数单双', values: _distinct(result, (a) => a.sum)),
-      'jiaye': (label: '家野', values: _distinct(result, (a) => a.jiaye)),
-      'gender': (label: '男女肖', values: _ordered(result, (a) => a.gender, const ['男肖', '女肖'])),
-      'tianDi': (label: '天地肖', values: _ordered(result, (a) => a.tianDi, const ['天肖', '地肖'])),
-      'yinYang': (label: '阴阳肖', values: _ordered(result, (a) => a.yinYang, const ['阳肖', '阴肖'])),
-      'luck': (label: '吉凶肖', values: _ordered(result, (a) => a.luck, const ['吉肖', '凶肖'])),
-      'season': (label: '季节', values: _ordered(result, (a) => a.season, const ['春', '夏', '秋', '冬'])),
-      'direction': (label: '方位', values: _ordered(result, (a) => a.direction, const ['东', '南', '西', '北'])),
-      'xiao': (label: '生肖', values: _distinct(result, (a) => a.xiao)),
-      if (result.wuxingAvailable)
-        'wuxing': (label: '五行', values: _distinct(result, (a) => a.wuxing)),
-    };
-
-    return ListView(
-      padding: const EdgeInsets.only(top: 6, bottom: 96),
+    return Row(
       children: [
-        GlassCard(
-          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          child: Row(
-            children: [
-              Text(
-                '命中 ${matched.length} 个号码',
-                style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const Spacer(),
-              if (!filters.isEmpty)
-                TextButton(
-                  onPressed: controller.clear,
-                  child: const Text('清除条件', style: TextStyle(fontWeight: FontWeight.w600)),
-                ),
-            ],
+        NumberBall(number: shortLabel, bose: bose, size: 22),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 36,
+          child: Text(name, style: const TextStyle(fontSize: 12)),
+        ),
+        const SizedBox(width: 8),
+        Expanded(child: GlassLinearProgress(value: pct, color: barColor)),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 36,
+          child: Text(
+            pctLabel,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
         ),
-        GlassCard(
-          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          padding: const EdgeInsets.all(14),
-          child: matched.isEmpty
-              ? Text(
-                  '没有号码同时满足所有条件',
-                  style: TextStyle(color: context.colors.error, fontWeight: FontWeight.w600),
-                )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final attr in matched)
-                      NumberBall(
-                        number: attr.num,
-                        attr: attr,
-                        size: 38,
-                        showColorName: false,
-                      ),
-                  ],
-                ),
-        ),
-        for (final entry in dimensions.entries)
-          if (entry.value.values.isNotEmpty)
-            _FilterRow(
-              label: entry.value.label,
-              values: entry.value.values,
-              selected: filters.valuesFor(entry.key),
-              onToggle: (value) => controller.toggle(entry.key, value),
-            ),
       ],
     );
   }
-
-  static List<String> _distinct(
-    NumbersResult result,
-    String? Function(NumberAttr) pick,
-  ) {
-    final values = result.items.map(pick).whereType<String>().toSet().toList();
-    values.sort();
-    return values;
-  }
-
-  static List<String> _ordered(
-    NumbersResult result,
-    String? Function(NumberAttr) pick,
-    List<String> order,
-  ) {
-    final present = result.items.map(pick).whereType<String>().toSet();
-    if (present.isEmpty) return const [];
-    return order.where(present.contains).toList();
-  }
 }
 
-class _FilterRow extends StatelessWidget {
-  const _FilterRow({
+class _DualAttrRow extends StatelessWidget {
+  const _DualAttrRow({
     required this.label,
-    required this.values,
-    required this.selected,
-    required this.onToggle,
+    required this.leftPct,
+    required this.rightPct,
+    required this.value,
+    required this.highlightLeft,
   });
 
   final String label;
-  final List<String> values;
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
+  final String leftPct;
+  final String rightPct;
+  final double value;
+  final bool highlightLeft;
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: context.texts.labelMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
-              color: context.colors.primary,
+    final primary = Theme.of(context).colorScheme.primary;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Row(
+      children: [
+        SizedBox(
+          width: 52,
+          child: Text(label, style: const TextStyle(fontSize: 12)),
+        ),
+        SizedBox(
+          width: 34,
+          child: Text(
+            leftPct,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: highlightLeft ? FontWeight.w700 : FontWeight.w500,
+              color: highlightLeft ? primary : muted,
             ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final value in values)
-                GlassFilterPill(
-                  label: value,
-                  isSelected: selected.contains(value),
-                  onTap: () => onToggle(value),
-                  small: true,
-                ),
-            ],
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: GlassLinearProgress(value: value)),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 34,
+          child: Text(
+            rightPct,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: !highlightLeft ? FontWeight.w700 : FontWeight.w500,
+              color: !highlightLeft ? primary : muted,
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -27,6 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _identifier = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
+  bool _rememberAccount = true;
 
   @override
   void initState() {
@@ -61,122 +62,329 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.fromLTRB(22, 28, 22, 28),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: GlassContainer(
-                  borderRadius: BorderRadius.circular(28),
-                  blur: 24,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 64,
-                            height: 64,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: DuiliaoColors.auroraGradient,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.45),
-                                width: 1.2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Brand header outside the glass panel matching login.html
+                    Center(
+                      child: Column(
+                        children: [
+                          const BrandLogoBox(
+                            text: '对',
+                            size: 76,
+                            borderRadius: 22,
+                            fontSize: 34,
+                          ),
+                          const SizedBox(height: 18),
+                          ShaderMask(
+                            shaderCallback: (bounds) =>
+                                DuiliaoColors.auroraGradient.createShader(
+                                  bounds,
+                                ),
+                            child: const Text(
+                              '对料',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 30,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 3.5,
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: DuiliaoColors.auroraViolet.withValues(alpha: 0.35),
-                                  blurRadius: 18,
-                                  offset: const Offset(0, 6),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '加密数据采集控制台',
+                            style: TextStyle(
+                              fontSize: 12,
+                              letterSpacing: 0.8,
+                              color: context.colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Login Glass Panel
+                    GlassContainer(
+                      borderRadius: BorderRadius.circular(20),
+                      blur: 24,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 22,
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              '欢迎回来',
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontWeight: FontWeight.w700,
+                                color: context.colors.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '登录后进入你的专属数据工作台',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.colors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
+                              '账号',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: context.colors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            TextFormField(
+                              controller: _identifier,
+                              autofillHints: const [AutofillHints.username],
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                hintText: '请输入账号',
+                                prefixIcon: Icon(Icons.person_outline, size: 18),
+                              ),
+                              validator: (value) =>
+                                  (value == null || value.trim().isEmpty)
+                                      ? '请输入账号'
+                                      : null,
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              '密码',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: context.colors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            TextFormField(
+                              controller: _password,
+                              obscureText: _obscure,
+                              autofillHints: const [AutofillHints.password],
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _submit(),
+                              decoration: InputDecoration(
+                                hintText: '请输入密码',
+                                prefixIcon: const Icon(
+                                  Icons.lock_outline,
+                                  size: 18,
+                                ),
+                                suffixIcon: IconButton(
+                                  tooltip: _obscure ? '显示密码' : '隐藏密码',
+                                  icon: Icon(
+                                    _obscure
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    size: 18,
+                                  ),
+                                  onPressed: () =>
+                                      setState(() => _obscure = !_obscure),
+                                ),
+                              ),
+                              validator: (value) =>
+                                  (value == null || value.isEmpty)
+                                      ? '请输入密码'
+                                      : null,
+                            ),
+                            const SizedBox(height: 14),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => setState(
+                                    () => _rememberAccount = !_rememberAccount,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      GlassSwitch(
+                                        value: _rememberAccount,
+                                        compact: true,
+                                        onChanged: (v) => setState(
+                                          () => _rememberAccount = v,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '记住账号',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: context.colors.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(6),
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          '请联系系统管理员在 Web 后台重置密码',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 2,
+                                    ),
+                                    child: Text(
+                                      '忘记密码?',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: context.colors.primary,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.insights, size: 36, color: Colors.white),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Duiliao 运营端',
-                          textAlign: TextAlign.center,
-                          style: context.texts.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '开奖 · 共识 · 源评级 · 采集',
-                          textAlign: TextAlign.center,
-                          style: context.texts.bodyMedium?.copyWith(
-                            color: context.colors.onSurfaceVariant,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        TextFormField(
-                          controller: _identifier,
-                          autofillHints: const [AutofillHints.username],
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: '账号',
-                            helperText: '邮箱 / 手机号 / 用户名',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                          validator: (value) =>
-                              (value == null || value.trim().isEmpty) ? '请输入账号' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _password,
-                          obscureText: _obscure,
-                          autofillHints: const [AutofillHints.password],
-                          textInputAction: TextInputAction.done,
-                          onFieldSubmitted: (_) => _submit(),
-                          decoration: InputDecoration(
-                            labelText: '密码',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              tooltip: _obscure ? '显示密码' : '隐藏密码',
-                              icon: Icon(
-                                _obscure ? Icons.visibility_off : Icons.visibility,
+                            if (state.errorMessage != null) ...[
+                              const SizedBox(height: 14),
+                              _ErrorBox(message: state.errorMessage!),
+                            ],
+                            const SizedBox(height: 18),
+                            GlassButton(
+                              onPressed: state.isSubmitting ? null : _submit,
+                              isLoading: state.isSubmitting,
+                              borderRadius: BorderRadius.circular(14),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('安全登录'),
+                                  SizedBox(width: 6),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ],
                               ),
-                              onPressed: () => setState(() => _obscure = !_obscure),
+                            ),
+                            const SizedBox(height: 14),
+                            Text(
+                              '账号由管理员在 Web 后台创建',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: context.colors.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _ConnectionFooter(host: config.displayHost),
+                            if (config.hasPlaceholderSecret) ...[
+                              const SizedBox(height: 12),
+                              const _ErrorBox(
+                                message: '当前构建使用占位签名密钥，所有请求都会被服务端拒绝。'
+                                    '请使用 CI 注入 APP_SIGNING_SECRET 的正式包。',
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Bottom security footer matching login.html
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: Colors.white.withValues(alpha: 0.08),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          child: Text(
+                            '多源对料 · 一体研判',
+                            style: TextStyle(
+                              fontSize: 11,
+                              letterSpacing: 1.0,
+                              color: context.colors.onSurfaceVariant,
                             ),
                           ),
-                          validator: (value) =>
-                              (value == null || value.isEmpty) ? '请输入密码' : null,
                         ),
-                        if (state.errorMessage != null) ...[
-                          const SizedBox(height: 16),
-                          _ErrorBox(message: state.errorMessage!),
-                        ],
-                        const SizedBox(height: 24),
-                        GlassButton(
-                          onPressed: state.isSubmitting ? null : _submit,
-                          isLoading: state.isSubmitting,
-                          child: const Text('登录'),
-                        ),
-                        const SizedBox(height: 20),
-                        // Explicit, so a new operator does not hunt for a sign-up link.
-                        Text(
-                          '账号由管理员在 Web 后台创建',
-                          textAlign: TextAlign.center,
-                          style: context.texts.bodySmall
-                              ?.copyWith(color: context.colors.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 24),
-                        _ConnectionFooter(host: config.displayHost),
-                        if (config.hasPlaceholderSecret) ...[
-                          const SizedBox(height: 12),
-                          const _ErrorBox(
-                            message: '当前构建使用占位签名密钥，所有请求都会被服务端拒绝。'
-                                '请使用 CI 注入 APP_SIGNING_SECRET 的正式包。',
+                        Expanded(
+                          child: Container(
+                            height: 1,
+                            color: Colors.white.withValues(alpha: 0.08),
                           ),
-                        ],
+                        ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    const Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      runSpacing: 8,
+                      children: [
+                        GlassChipTag(
+                          icon: Icons.verified_user_outlined,
+                          label: '端到端加密',
+                        ),
+                        GlassChipTag(
+                          icon: Icons.storage_outlined,
+                          label: '私有化部署',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            '首次部署? ',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: context.colors.onSurfaceVariant,
+                            ),
+                          ),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(6),
+                            onTap: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    '初始化管理员请在服务端运行 manage_admin.py 或通过 Web 后台完成',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
+                              ),
+                              child: Text(
+                                '初始化管理员',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: context.colors.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

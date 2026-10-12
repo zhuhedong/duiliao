@@ -269,55 +269,180 @@ class _RestoringView extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.transparent,
     body: GlassBackground(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: GlassContainer(
-            borderRadius: BorderRadius.circular(28),
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(22),
-                    gradient: DuiliaoColors.auroraGradient,
-                    boxShadow: [
-                      BoxShadow(
-                        color: DuiliaoColors.auroraViolet.withValues(
-                          alpha: 0.45,
+      child: SafeArea(
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Decorative ambient balls matching splash.html
+            Positioned(
+              top: 110,
+              left: 36,
+              child: Opacity(
+                opacity: 0.32,
+                child: _DecoSphere(
+                  label: '08',
+                  size: 34,
+                  stopA: DuiliaoColors.waveRedA,
+                  stopB: DuiliaoColors.waveRedB,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 195,
+              right: 32,
+              child: Opacity(
+                opacity: 0.26,
+                child: _DecoSphere(
+                  label: '26',
+                  size: 40,
+                  stopA: DuiliaoColors.waveBlueA,
+                  stopB: DuiliaoColors.waveBlueB,
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 160,
+              left: 48,
+              child: Opacity(
+                opacity: 0.28,
+                child: _DecoSphere(
+                  label: '16',
+                  size: 34,
+                  stopA: DuiliaoColors.waveGreenA,
+                  stopB: DuiliaoColors.waveGreenB,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 24, 28, 36),
+              child: Column(
+                children: [
+                  const Spacer(),
+                  const BrandLogoBox(
+                    text: '对',
+                    size: 96,
+                    borderRadius: 26,
+                    fontSize: 44,
+                  ),
+                  const SizedBox(height: 22),
+                  ShaderMask(
+                    shaderCallback: (bounds) =>
+                        DuiliaoColors.auroraGradient.createShader(bounds),
+                    child: const Text(
+                      '对料',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 4.0,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '加密数据采集控制台',
+                    style: TextStyle(
+                      fontSize: 12,
+                      letterSpacing: 1.0,
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 36),
+                  const SizedBox(
+                    width: 210,
+                    child: GlassLinearProgress(value: 0.68, height: 6),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '正在建立加密链路…',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: Colors.white.withValues(alpha: 0.08),
                         ),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Text(
+                          '多源对料 · 一体研判',
+                          style: TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 1.0,
+                            color: context.colors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: Colors.white.withValues(alpha: 0.08),
+                        ),
                       ),
                     ],
                   ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    '对',
+                  const SizedBox(height: 12),
+                  Text(
+                    'v2.1.0',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 34,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      color: context.colors.onSurfaceVariant,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                Text('对料', style: context.texts.titleLarge),
-                const SizedBox(height: 5),
-                Text('正在建立安全链路…', style: context.texts.bodySmall),
-                const SizedBox(height: 20),
-                const SizedBox(
-                  width: 180,
-                  child: LinearProgressIndicator(minHeight: 3),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     ),
   );
 }
+
+class _DecoSphere extends StatelessWidget {
+  const _DecoSphere({
+    required this.label,
+    required this.size,
+    required this.stopA,
+    required this.stopB,
+  });
+
+  final String label;
+  final double size;
+  final Color stopA;
+  final Color stopB;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          center: const Alignment(-0.36, -0.44),
+          radius: 0.92,
+          colors: [stopA, stopB],
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: size >= 40 ? 16 : 14,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+

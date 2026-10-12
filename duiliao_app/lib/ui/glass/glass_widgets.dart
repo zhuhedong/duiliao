@@ -387,7 +387,7 @@ class GlassCard extends StatelessWidget {
     return GlassContainer(
       margin: margin,
       padding: padding,
-      borderRadius: borderRadius ?? BorderRadius.circular(24),
+      borderRadius: borderRadius ?? BorderRadius.circular(20),
       onTap: onTap,
       blur: blur,
       borderColor: borderColor,
@@ -397,7 +397,7 @@ class GlassCard extends StatelessWidget {
   }
 }
 
-/// A frosted segmented pill selector.
+/// A frosted segmented pill selector matching `.segmented` & `.seg-on` in `app.css`.
 class GlassSegmentedControl<T> extends StatelessWidget {
   const GlassSegmentedControl({
     super.key,
@@ -420,12 +420,15 @@ class GlassSegmentedControl<T> extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
 
     return GlassContainer(
-      blur: 14,
-      borderRadius: BorderRadius.circular(16),
+      blur: 12,
+      borderRadius: BorderRadius.circular(13),
       borderWidth: 1.0,
       fillColor: isDark
-          ? const Color(0xFF1A1A2E).withValues(alpha: 0.55)
-          : Colors.white.withValues(alpha: 0.60),
+          ? Colors.white.withValues(alpha: 0.05)
+          : Colors.white.withValues(alpha: 0.65),
+      borderColor: isDark
+          ? Colors.white.withValues(alpha: 0.07)
+          : Colors.white.withValues(alpha: 0.80),
       padding: const EdgeInsets.all(4),
       child: Row(
         children: [
@@ -468,35 +471,30 @@ class _GlassSegmentItem<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activeTextColor = isDark ? Colors.white : primary;
+    const activeTextColor = Colors.white;
     final inactiveTextColor = isDark
-        ? Colors.white.withValues(alpha: 0.60)
+        ? Colors.white.withValues(alpha: 0.62)
         : const Color(0xFF5A5670);
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        color: isSelected
-            ? (isDark
-                  ? primary.withValues(alpha: 0.28)
-                  : Colors.white.withValues(alpha: 0.90))
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        gradient: isSelected ? DuiliaoColors.auroraGradient : null,
+        borderRadius: BorderRadius.circular(10),
         border: isSelected
             ? Border.all(
-                color: isDark
-                    ? primary.withValues(alpha: 0.45)
-                    : Colors.white.withValues(alpha: 0.85),
-                width: 1,
+                color: Colors.white.withValues(alpha: 0.25),
+                width: 0.9,
               )
             : null,
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: primary.withValues(alpha: isDark ? 0.25 : 0.16),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
+                  color: DuiliaoColors.auroraViolet.withValues(alpha: 0.45),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: -2,
                 ),
               ]
             : null,
@@ -504,7 +502,7 @@ class _GlassSegmentItem<T> extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
@@ -514,17 +512,21 @@ class _GlassSegmentItem<T> extends StatelessWidget {
                 if (icon != null) ...[
                   Icon(
                     icon,
-                    size: 15,
+                    size: 14,
                     color: isSelected ? activeTextColor : inactiveTextColor,
                   ),
                   const SizedBox(width: 4),
                 ],
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? activeTextColor : inactiveTextColor,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? activeTextColor : inactiveTextColor,
+                    ),
                   ),
                 ),
               ],
@@ -760,52 +762,133 @@ class GlassSectionCard extends StatelessWidget {
   }
 }
 
+enum GlassPillTone { primary, success, warning, danger, neutral }
+
 class GlassStatusPill extends StatelessWidget {
   const GlassStatusPill({
     super.key,
     required this.label,
     this.color,
+    this.tone,
     this.icon,
     this.dot = true,
+    this.showDot,
+    this.pulse = false,
+    this.compact = false,
   });
 
   final String label;
   final Color? color;
+  final GlassPillTone? tone;
   final IconData? icon;
   final bool dot;
+  final bool? showDot;
+  final bool pulse;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final tone = color ?? context.colors.primary;
+    final effectiveColor = color ??
+        switch (tone) {
+          GlassPillTone.primary => context.colors.primary,
+          GlassPillTone.success => DuiliaoColors.hit,
+          GlassPillTone.warning => DuiliaoColors.warning,
+          GlassPillTone.danger => DuiliaoColors.miss,
+          GlassPillTone.neutral => context.colors.onSurfaceVariant,
+          null => context.colors.primary,
+        };
+    final effectiveDot = showDot ?? dot;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 9,
+        vertical: compact ? 2 : 3.5,
+      ),
       decoration: BoxDecoration(
-        color: tone.withValues(alpha: context.isDark ? 0.18 : 0.10),
+        color: effectiveColor.withValues(alpha: context.isDark ? 0.16 : 0.10),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: tone.withValues(alpha: context.isDark ? 0.38 : 0.28),
+          color: effectiveColor.withValues(alpha: context.isDark ? 0.35 : 0.28),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (dot)
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
-            ),
-          if (icon != null) Icon(icon, size: 12, color: tone),
-          if (dot || icon != null) const SizedBox(width: 5),
+          if (effectiveDot)
+            pulse
+                ? _PulsingDot(color: effectiveColor)
+                : Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: effectiveColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+          if (icon != null) Icon(icon, size: 12, color: effectiveColor),
+          if (effectiveDot || icon != null) const SizedBox(width: 5),
           Text(
             label,
             style: context.texts.labelSmall?.copyWith(
-              color: tone,
-              fontWeight: FontWeight.w700,
+              color: effectiveColor,
+              fontSize: compact ? 10.0 : 10.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PulsingDot extends StatefulWidget {
+  const _PulsingDot({required this.color});
+  final Color color;
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb &&
+        !WidgetsBinding
+            .instance
+            .platformDispatcher
+            .accessibilityFeatures
+            .disableAnimations) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final alpha = 1.0 - (_controller.value * 0.65);
+        return Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: widget.color.withValues(alpha: alpha),
+            shape: BoxShape.circle,
+          ),
+        );
+      },
     );
   }
 }
@@ -842,12 +925,14 @@ class GlassGroup extends StatelessWidget {
     required this.children,
     this.margin = const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
     this.borderRadius,
+    this.borderColor,
     this.dividerIndent = 16.0,
   });
 
   final List<Widget> children;
   final EdgeInsetsGeometry margin;
   final BorderRadius? borderRadius;
+  final Color? borderColor;
   final double dividerIndent;
 
   @override
@@ -861,6 +946,7 @@ class GlassGroup extends StatelessWidget {
     return GlassCard(
       margin: margin,
       borderRadius: borderRadius,
+      borderColor: borderColor,
       padding: EdgeInsets.zero,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1013,7 +1099,7 @@ class GlassLinearProgress extends StatelessWidget {
   const GlassLinearProgress({
     super.key,
     required this.value,
-    this.height = 10,
+    this.height = 6,
     this.color,
     this.gradient,
     this.borderRadius,
@@ -1033,8 +1119,8 @@ class GlassLinearProgress extends StatelessWidget {
     final clamped = value.clamp(0.0, 1.0);
 
     final trackBg = isDark
-        ? Colors.white.withValues(alpha: 0.06)
-        : Colors.black.withValues(alpha: 0.05);
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.06);
 
     final effectiveGradient =
         gradient ??
@@ -1042,8 +1128,8 @@ class GlassLinearProgress extends StatelessWidget {
             ? DuiliaoColors.auroraGradient
             : LinearGradient(
                 colors: [
-                  primary.withValues(alpha: 0.85),
-                  Color.lerp(primary, DuiliaoColors.auroraFuchsia, 0.35)!,
+                  primary.withValues(alpha: 0.90),
+                  Color.lerp(primary, Colors.white, 0.18)!,
                 ],
               ));
 
@@ -1052,12 +1138,6 @@ class GlassLinearProgress extends StatelessWidget {
       decoration: BoxDecoration(
         color: trackBg,
         borderRadius: radius,
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.white.withValues(alpha: 0.60),
-          width: 0.8,
-        ),
       ),
       child: ClipRRect(
         borderRadius: radius,
@@ -1069,12 +1149,6 @@ class GlassLinearProgress extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: effectiveGradient,
-                  boxShadow: [
-                    BoxShadow(
-                      color: primary.withValues(alpha: 0.35),
-                      blurRadius: 6,
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -1084,3 +1158,853 @@ class GlassLinearProgress extends StatelessWidget {
     );
   }
 }
+
+// --------------------------------------------------------------------------- //
+// app-design Shared Components (.ztag, .chip, .btn-icon, .btn-ghost, .switch,
+// .section-title, .app-header, .glass-subtle, .brand-logo, .hit-mark)
+// --------------------------------------------------------------------------- //
+
+enum ZTagVariant { neutral, primary, success, hit, warning, danger, miss }
+
+/// Matches `.ztag` in `app-design/assets/app.css`:
+/// `padding: 2px 8px; border-radius: 7px; font-size: 10.5px; font-weight: 600`
+class ZTag extends StatelessWidget {
+  const ZTag({
+    super.key,
+    required this.label,
+    this.isPrimary = false,
+    this.variant,
+    this.color,
+    this.fontSize = 10.5,
+    this.padding = const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
+    this.onTap,
+  });
+
+  final String label;
+  final bool isPrimary;
+  final ZTagVariant? variant;
+  final Color? color;
+  final double fontSize;
+  final EdgeInsetsGeometry padding;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final variantColor = switch (variant) {
+      ZTagVariant.primary => Theme.of(context).colorScheme.primary,
+      ZTagVariant.success || ZTagVariant.hit => DuiliaoColors.hit,
+      ZTagVariant.warning => DuiliaoColors.warning,
+      ZTagVariant.danger || ZTagVariant.miss => DuiliaoColors.miss,
+      ZTagVariant.neutral || null => null,
+    };
+    final tone =
+        color ??
+        variantColor ??
+        (isPrimary ? Theme.of(context).colorScheme.primary : null);
+    final bgColor = tone != null
+        ? tone.withValues(alpha: isDark ? 0.14 : 0.10)
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.07)
+              : Colors.black.withValues(alpha: 0.04));
+    final borderColor = tone != null
+        ? tone.withValues(alpha: 0.35)
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.09)
+              : Colors.black.withValues(alpha: 0.10));
+    final textColor =
+        tone ?? Theme.of(context).colorScheme.onSurfaceVariant;
+
+    final box = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w600,
+          color: textColor,
+        ),
+      ),
+    );
+
+    if (onTap == null) return box;
+    return InkWell(
+      borderRadius: BorderRadius.circular(7),
+      onTap: onTap,
+      child: box,
+    );
+  }
+}
+
+/// Matches `.chip` in `app-design/assets/app.css`:
+/// `padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 500`
+class GlassChipTag extends StatelessWidget {
+  const GlassChipTag({
+    super.key,
+    required this.label,
+    this.icon,
+    this.trailingText,
+    this.trailingColor,
+    this.selected = false,
+    this.active,
+    this.compact = false,
+    this.onTap,
+  });
+
+  final String label;
+  final IconData? icon;
+  final String? trailingText;
+  final Color? trailingColor;
+  final bool selected;
+  final bool? active;
+  final bool compact;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+    final isSelected = active ?? selected;
+    final bg = isSelected
+        ? primary.withValues(alpha: isDark ? 0.24 : 0.14)
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.04));
+    final border = isSelected
+        ? primary.withValues(alpha: 0.48)
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.09)
+              : Colors.black.withValues(alpha: 0.10));
+    final fg = isSelected
+        ? primary
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+
+    final pill = Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 3 : 4.5,
+      ),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: fg),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: compact ? 10.5 : 11,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: fg,
+            ),
+          ),
+          if (trailingText != null) ...[
+            const SizedBox(width: 4),
+            Text(
+              trailingText!,
+              style: TextStyle(
+                fontSize: compact ? 10.5 : 11,
+                fontWeight: FontWeight.w600,
+                color: trailingColor ?? fg,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    if (onTap == null) return pill;
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onTap,
+      child: pill,
+    );
+  }
+}
+
+/// Matches `.btn-icon` in `app-design/assets/app.css`:
+/// `width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--border)`
+class GlassIconButton extends StatelessWidget {
+  const GlassIconButton({
+    super.key,
+    required this.icon,
+    this.onTap,
+    this.tooltip,
+    this.size = 36,
+    this.iconSize = 18,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final String? tooltip;
+  final double size;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final button = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.09)
+                  : Colors.black.withValues(alpha: 0.10),
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: iconSize,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+    );
+
+    if (tooltip != null && tooltip!.isNotEmpty) {
+      return Tooltip(message: tooltip!, child: button);
+    }
+    return button;
+  }
+}
+
+/// Matches `.btn-ghost` in `app-design/assets/app.css`:
+/// `padding: 9px 14px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--glass-bg-subtle)`
+class GlassGhostButton extends StatelessWidget {
+  const GlassGhostButton({
+    super.key,
+    required this.label,
+    this.onTap,
+    this.onPressed,
+    this.icon,
+    this.isDanger = false,
+    this.fullWidth = false,
+    this.compact = false,
+    this.padding,
+    this.fontSize,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool isDanger;
+  final bool fullWidth;
+  final bool compact;
+  final EdgeInsetsGeometry? padding;
+  final double? fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fg = isDanger
+        ? DuiliaoColors.miss
+        : Theme.of(context).colorScheme.onSurface;
+    final effectivePadding =
+        padding ??
+        EdgeInsets.symmetric(
+          horizontal: compact ? 10 : 14,
+          vertical: compact ? 6 : 9,
+        );
+    final effectiveFontSize = fontSize ?? (compact ? 11.5 : 13.0);
+    return SizedBox(
+      width: fullWidth ? double.infinity : null,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap ?? onPressed,
+          child: Container(
+            padding: effectivePadding,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.black.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.16)
+                    : Colors.black.withValues(alpha: 0.14),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: fullWidth ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: compact ? 12 : 14, color: fg),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: effectiveFontSize,
+                    fontWeight: FontWeight.w500,
+                    color: fg,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Matches `.switch` in `app-design/assets/app.css`:
+/// `width: 44px; height: 26px; border-radius: 99px` with aurora gradient when `.on`.
+class GlassSwitch extends StatelessWidget {
+  const GlassSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.compact = false,
+  });
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final width = compact ? 34.0 : 44.0;
+    final height = compact ? 20.0 : 26.0;
+    final thumbSize = compact ? 14.0 : 20.0;
+
+    return Semantics(
+      toggled: value,
+      button: true,
+      child: GestureDetector(
+        onTap: onChanged == null ? null : () => onChanged!(!value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          width: width,
+          height: height,
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: value ? DuiliaoColors.auroraGradient : null,
+            color: value
+                ? null
+                : (isDark
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.black.withValues(alpha: 0.12)),
+            border: Border.all(
+              color: value
+                  ? Colors.transparent
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.16)
+                        : Colors.black.withValues(alpha: 0.15)),
+            ),
+          ),
+          alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: thumbSize,
+            height: thumbSize,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x55000000),
+                  blurRadius: 5,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Matches `.section-title` in `app-design/assets/app.css`:
+/// `<span class="st-dot"></span>Title <a class="st-link">Action ›</a>`
+class DesignSectionHeader extends StatelessWidget {
+  const DesignSectionHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.actionLabel,
+    this.trailingText,
+    this.onActionTap,
+    this.onTrailingTap,
+    this.trailing,
+    this.padding = const EdgeInsets.fromLTRB(16, 18, 16, 10),
+  });
+
+  final String title;
+  final String? subtitle;
+  final String? actionLabel;
+  final String? trailingText;
+  final VoidCallback? onActionTap;
+  final VoidCallback? onTrailingTap;
+  final Widget? trailing;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final effectiveLabel = actionLabel ?? trailingText;
+    final effectiveTap = onActionTap ?? onTrailingTap;
+    return Padding(
+      padding: padding,
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 14,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(99),
+              gradient: DuiliaoColors.auroraGradient,
+              boxShadow: [
+                BoxShadow(
+                  color: DuiliaoColors.auroraViolet.withValues(alpha: 0.60),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          if (subtitle != null && subtitle!.isNotEmpty) ...[
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ] else
+            const Spacer(),
+          if (trailing != null)
+            trailing!
+          else if (effectiveLabel != null)
+            effectiveTap != null
+                ? InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: effectiveTap,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            effectiveLabel,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: primary,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(Icons.chevron_right, size: 14, color: primary),
+                        ],
+                      ),
+                    ),
+                  )
+                : Text(
+                    effectiveLabel,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Matches `.app-header` and `.app-header.center` in `app-design/assets/app.css`.
+class DesignAppHeader extends StatelessWidget {
+  const DesignAppHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.leadingSubtitle,
+    this.center = false,
+    this.centerTitle,
+    this.showBack = false,
+    this.onBack,
+    this.leading,
+    this.trailing,
+    this.actions = const [],
+    this.padding = const EdgeInsets.fromLTRB(16, 10, 16, 12),
+  });
+
+  final String title;
+  final String? subtitle;
+  final String? leadingSubtitle;
+  final bool center;
+  final bool? centerTitle;
+  final bool showBack;
+  final VoidCallback? onBack;
+  final Widget? leading;
+  final Widget? trailing;
+  final List<Widget> actions;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final isCenter = centerTitle ?? center;
+    final allActions = <Widget>[
+      ...actions,
+      ?trailing,
+    ];
+
+    if (isCenter) {
+      return Padding(
+        padding: padding,
+        child: SizedBox(
+          height: subtitle != null ? 42 : 36,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              if (leading != null)
+                Align(alignment: Alignment.centerLeft, child: leading!)
+              else if (showBack || Navigator.of(context).canPop())
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: GlassIconButton(
+                    icon: Icons.chevron_left_rounded,
+                    iconSize: 22,
+                    tooltip: '返回',
+                    onTap: onBack ?? () => Navigator.of(context).maybePop(),
+                  ),
+                ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  if (subtitle != null && subtitle!.isNotEmpty)
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
+              if (allActions.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < allActions.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 8),
+                        allActions[i],
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: padding,
+      child: Row(
+        children: [
+          if (leading != null) ...[
+            leading!,
+            const SizedBox(width: 10),
+          ] else if (showBack) ...[
+            GlassIconButton(
+              icon: Icons.chevron_left_rounded,
+              iconSize: 22,
+              tooltip: '返回',
+              onTap: onBack ?? () => Navigator.of(context).maybePop(),
+            ),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (leadingSubtitle != null && leadingSubtitle!.isNotEmpty)
+                  Text(
+                    leadingSubtitle!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+                if (subtitle != null && subtitle!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 1),
+                    child: Text(
+                      subtitle!,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          for (var i = 0; i < allActions.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            allActions[i],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Matches `.glass-subtle` in `app-design/assets/app.css`.
+class GlassSubtleBox extends StatelessWidget {
+  const GlassSubtleBox({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(12),
+    this.margin,
+    this.borderRadius,
+    this.borderColor,
+    this.selected = false,
+    this.onTap,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? margin;
+  final Object? borderRadius;
+  final Color? borderColor;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = Theme.of(context).colorScheme.primary;
+    final radius = switch (borderRadius) {
+      final BorderRadius r => r,
+      final num n => BorderRadius.circular(n.toDouble()),
+      _ => BorderRadius.circular(14),
+    };
+
+    Widget box = Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
+        borderRadius: radius,
+        border: Border.all(
+          color: borderColor ??
+              (selected
+                  ? primary.withValues(alpha: 0.60)
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.black.withValues(alpha: 0.08))),
+          width: selected ? 1.2 : 1.0,
+        ),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: primary.withValues(alpha: 0.18),
+                  blurRadius: 8,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+      child: child,
+    );
+
+    if (onTap != null) {
+      box = Material(
+        color: Colors.transparent,
+        child: InkWell(borderRadius: radius, onTap: onTap, child: box),
+      );
+    }
+
+    if (margin != null) {
+      return Padding(padding: margin!, child: box);
+    }
+    return box;
+  }
+}
+
+/// Matches `.brand-logo` in `app-design/assets/app.css`.
+class BrandLogoBox extends StatelessWidget {
+  const BrandLogoBox({
+    super.key,
+    this.text,
+    this.label,
+    this.size = 38,
+    this.borderRadius = 12,
+    this.fontSize = 16,
+  });
+
+  final String? text;
+  final String? label;
+  final double size;
+  final double borderRadius;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveText = text ?? label ?? '对';
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        gradient: DuiliaoColors.auroraGradient,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: DuiliaoColors.auroraViolet.withValues(alpha: 0.50),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+            spreadRadius: -4,
+          ),
+        ],
+      ),
+      child: Text(
+        effectiveText,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: fontSize,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+enum HitMarkStatus { hit, miss, neutral, pending, fake }
+
+/// Matches `.hit-mark` in `app-design/assets/app.css`:
+/// `20x20px` circular badge for hit (`✓`/`中`), miss (`✕`/`挂`), or neutral (`–`).
+class HitMarkBadge extends StatelessWidget {
+  const HitMarkBadge({
+    super.key,
+    this.isHit,
+    this.hit,
+    this.status,
+    this.label,
+    this.size = 20,
+  });
+
+  /// `true` = hit (green), `false` = miss (red), `null` = neutral (`–`).
+  final bool? isHit;
+  final bool? hit;
+  final HitMarkStatus? status;
+  final String? label;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveIsHit = status != null
+        ? switch (status!) {
+            HitMarkStatus.hit => true,
+            HitMarkStatus.miss => false,
+            HitMarkStatus.neutral ||
+            HitMarkStatus.pending ||
+            HitMarkStatus.fake => null,
+          }
+        : (isHit ?? hit);
+    final tone = status == HitMarkStatus.fake
+        ? DuiliaoColors.warning
+        : switch (effectiveIsHit) {
+            true => DuiliaoColors.hit,
+            false => DuiliaoColors.miss,
+            null => Theme.of(context).colorScheme.onSurfaceVariant,
+          };
+    final text =
+        label ??
+        (status == HitMarkStatus.fake
+            ? '!'
+            : switch (effectiveIsHit) {
+                true => '✓',
+                false => '✕',
+                null => '–',
+              });
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: tone.withValues(alpha: 0.16),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: size * 0.55,
+          fontWeight: FontWeight.w700,
+          color: tone,
+        ),
+      ),
+    );
+  }
+}
+

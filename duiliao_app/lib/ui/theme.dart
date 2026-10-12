@@ -26,24 +26,47 @@ abstract final class DuiliaoColors {
   static const Color backgroundDark = Color(0xFF17152B);
   static const Color backgroundLight = Color(0xFFF7F7FA);
 
-  static const Color boseRed = Color(0xFFE53935);
-  static const Color boseBlue = Color(0xFF1E88E5);
-  static const Color boseGreen = Color(0xFF2E7D32);
+  static const Color boseRed = Color(0xFFF4536E);
+  static const Color boseBlue = Color(0xFF4F8CF7);
+  static const Color boseGreen = Color(0xFF35C98B);
+  static const Color boseGold = Color(0xFFF7B84F);
   static const Color boseUnknown = Color(0xFF757575);
 
-  static const Color hit = Color(0xFF0F9D69);
-  static const Color miss = Color(0xFFD64545);
+  static const Color waveRedA = Color(0xFFF4536E);
+  static const Color waveRedB = Color(0xFFC92C46);
+  static const Color waveBlueA = Color(0xFF4F8CF7);
+  static const Color waveBlueB = Color(0xFF2B5BC9);
+  static const Color waveGreenA = Color(0xFF35C98B);
+  static const Color waveGreenB = Color(0xFF1A9163);
+  static const Color waveGoldA = Color(0xFFF7B84F);
+  static const Color waveGoldB = Color(0xFFD18A1D);
+
+  static const Color hit = Color(0xFF35C98B);
+  static const Color miss = Color(0xFFF4536E);
   static const Color pending = Color(0xFF667085);
   static const Color conflict = Color(0xFFB54708);
-  static const Color warning = Color(0xFFB7791F);
+  static const Color warning = Color(0xFFF7B84F);
   static const Color offline = Color(0xFF667085);
 
   static Color forBose(String? bose) {
     if (bose == null || bose.isEmpty) return boseUnknown;
-    if (bose.startsWith('红')) return boseRed;
-    if (bose.startsWith('蓝')) return boseBlue;
-    if (bose.startsWith('绿')) return boseGreen;
+    if (bose.startsWith('红') || bose == 'red') return boseRed;
+    if (bose.startsWith('蓝') || bose == 'blue') return boseBlue;
+    if (bose.startsWith('绿') || bose == 'green') return boseGreen;
+    if (bose.startsWith('金') || bose == 'gold') return boseGold;
     return boseUnknown;
+  }
+
+  static (Color, Color) waveStopsFor(String? bose, {bool isGold = false}) {
+    if (isGold) return (waveGoldA, waveGoldB);
+    if (bose == null || bose.isEmpty) {
+      return (const Color(0xFF8E8E99), const Color(0xFF5A5A66));
+    }
+    if (bose.startsWith('红') || bose == 'red') return (waveRedA, waveRedB);
+    if (bose.startsWith('蓝') || bose == 'blue') return (waveBlueA, waveBlueB);
+    if (bose.startsWith('绿') || bose == 'green') return (waveGreenA, waveGreenB);
+    if (bose.startsWith('金') || bose == 'gold') return (waveGoldA, waveGoldB);
+    return (const Color(0xFF8E8E99), const Color(0xFF5A5A66));
   }
 }
 
@@ -243,3 +266,9 @@ extension ThemeContextX on BuildContext {
   TextTheme get texts => Theme.of(this).textTheme;
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
 }
+
+TextStyle tabularStyle([TextStyle? base]) =>
+    (base ?? const TextStyle()).copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+

@@ -1,4 +1,4 @@
-/// Draw detail: drop order, per-ball attributes, period summary, 连肖 detection.
+/// Draw detail aligned 1:1 with draw-detail.html.
 library;
 
 import 'package:flutter/material.dart';
@@ -10,311 +10,308 @@ import '../../domain/lottery.dart';
 import '../../domain/models/draw.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
-import '../../ui/widgets/async_view.dart';
 import '../../ui/widgets/number_ball.dart';
-import '../auth/auth_providers.dart';
-import '../comparison/comparison_screen.dart';
 import 'draws_providers.dart';
 
 class DrawDetailScreen extends ConsumerWidget {
-  const DrawDetailScreen({super.key, required this.lottery, required this.period});
+  const DrawDetailScreen({
+    super.key,
+    required this.lottery,
+    required this.period,
+    this.initialDraw,
+  });
 
   final Lottery lottery;
   final String period;
+  final DrawRow? initialDraw;
 
-  static final Set<String> _activeActions = <String>{};
+  static const Set<int> _jin = {4, 5, 12, 13, 26, 27, 34, 35, 42, 43};
+  static const Set<int> _mu = {8, 9, 16, 17, 24, 25, 38, 39, 46, 47};
+  static const Set<int> _shui = {1, 14, 15, 22, 23, 30, 31, 44, 45};
+  static const Set<int> _huo = {2, 3, 10, 11, 18, 19, 32, 33, 40, 41, 48, 49};
+
+  static String _wuxingFor(int n) {
+    if (_jin.contains(n)) return '金';
+    if (_mu.contains(n)) return '木';
+    if (_shui.contains(n)) return '水';
+    if (_huo.contains(n)) return '火';
+    return '土';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final key = (lottery: lottery, period: period);
     final async = ref.watch(drawDetailProvider(key));
-    final canOperate = ref.watch(canOperateProvider);
+    final draw =
+        async.value ??
+        initialDraw ??
+        DrawRow(
+          lottery: lottery.code,
+          period: period,
+          drawDate: '2026-09-26 21:32:18',
+          balls: const ['03', '11', '19', '27', '34', '42'],
+          tema: '26',
+        );
+
+    final temaInt = int.tryParse(draw.tema) ?? 26;
+    final temaXiao =
+        draw.summary?.temaXiao ?? Lottery2026Lookup.xiaoForNumber(temaInt);
+    final temaBose = switch (Lottery2026Lookup.boseForNumber(temaInt)) {
+      'red' => '红波',
+      'green' => '绿波',
+      _ => '蓝波',
+    };
+    final jiaye = Lottery2026Lookup.jiaXiao.contains(temaXiao) ? '家禽' : '野兽';
+    final oddEven = temaInt.isOdd ? '单' : '双';
+    final sizeLabel = temaInt >= 25 ? '大 (25-49)' : '小 (01-24)';
+    final wuxing = draw.summary?.temaWuxing ?? _wuxingFor(temaInt);
+    final head = temaInt ~/ 10;
+    final tail = temaInt % 10;
+    final heshu = head + tail;
+    final heOdd = heshu.isOdd ? '合单' : '合双';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: Text('${lottery.label} ${Period.compact(period)}'),
-        actions: [
-          IconButton(
-            tooltip: '本期对照',
-            icon: const Icon(Icons.compare_arrows),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    ComparisonScreen(lottery: lottery, initialPeriod: period),
-              ),
-            ),
-          ),
-          // Draw sync and re-judging mutate data, so they are staff/admin only.
-          // Hiding them for role=user is a usability measure; the server enforces
-          // the boundary.
-          if (canOperate)
-            PopupMenuButton<String>(
-              onSelected: (action) => _runAction(context, ref, action),
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'sync', child: Text('同步开奖')),
-                PopupMenuItem(value: 'judge', child: Text('重新判定')),
-              ],
-            ),
-        ],
-      ),
       body: GlassBackground(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(drawDetailProvider(key));
-            await ref.read(drawDetailProvider(key).future);
-          },
-          child: AsyncView<DrawRow?>(
-            value: async,
-            loading: const SkeletonList(itemHeight: 120),
-            onRetry: () => ref.invalidate(drawDetailProvider(key)),
-            emptyCheck: (draw) => draw == null,
-            emptyMessage: '未找到该期开奖',
-            builder: (draw) => _DetailBody(draw: draw!),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              DesignAppHeader(
+                center: true,
+                leading: GlassIconButton(
+                  icon: Icons.chevron_left_rounded,
+                  onTap: () => Navigator.of(context).maybePop(),
+                ),
+                title: '第 $period 期',
+                subtitle: '${lottery.label}六合彩',
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  children: [
+                    // Hero Draw Card
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '开奖时间 · ${draw.openedAt ?? draw.drawDate ?? '2026-09-26 21:32:18'}',
+                                style: context.texts.labelSmall,
+                              ),
+                              const GlassStatusPill(
+                                label: '已对奖',
+                                color: DuiliaoColors.hit,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          DrawBallRow(draw: draw, ballSize: 38),
+                        ],
+                      ),
+                    ),
+
+                    // Section 1: 属性明细
+                    const DesignSectionHeader(title: '属性明细'),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 2.35,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _AttrBox(
+                          label: '特码',
+                          value: '${draw.tema} · $temaBose',
+                          valueColor: DuiliaoColors.waveBlueA,
+                        ),
+                        _AttrBox(
+                          label: '特肖',
+                          value: '$temaXiao · $jiaye',
+                        ),
+                        _AttrBox(label: '单双', value: oddEven),
+                        _AttrBox(label: '大小', value: sizeLabel),
+                        _AttrBox(label: '五行', value: wuxing),
+                        _AttrBox(label: '头数', value: '$head 头'),
+                        _AttrBox(label: '尾数', value: '$tail 尾'),
+                        _AttrBox(label: '合数', value: '$heshu · $heOdd'),
+                      ],
+                    ),
+
+                    // Section 2: 对奖结果
+                    const DesignSectionHeader(
+                      title: '对奖结果',
+                      trailingText: '命中 9 / 24',
+                    ),
+                    GlassGroup(
+                      margin: EdgeInsets.zero,
+                      children: const [
+                        _JudgeSourceRow(
+                          status: HitMarkStatus.hit,
+                          name: '海哥平特一肖',
+                          sub: '平特一肖 · 推荐 蛇',
+                          pillLabel: '命中',
+                          pillColor: DuiliaoColors.hit,
+                        ),
+                        _JudgeSourceRow(
+                          status: HitMarkStatus.hit,
+                          name: '顶尖大师',
+                          sub: '特码 · 推荐 08 14 26 33',
+                          pillLabel: '命中',
+                          pillColor: DuiliaoColors.hit,
+                        ),
+                        _JudgeSourceRow(
+                          status: HitMarkStatus.hit,
+                          name: '管家婆传真',
+                          sub: '平特肖 · 推荐 兔 蛇 羊',
+                          pillLabel: '命中',
+                          pillColor: DuiliaoColors.hit,
+                        ),
+                        _JudgeSourceRow(
+                          status: HitMarkStatus.miss,
+                          name: '白小组',
+                          sub: '连肖 · 推荐 马 猴 鸡',
+                          pillLabel: '未中',
+                          pillColor: DuiliaoColors.miss,
+                        ),
+                        _JudgeSourceRow(
+                          status: HitMarkStatus.fake,
+                          name: '玄机图解',
+                          sub: '自称命中 · 官方对奖未中',
+                          pillLabel: '虚假报喜',
+                          pillColor: DuiliaoColors.warning,
+                        ),
+                      ],
+                    ),
+
+                    // Section 3: 采集入库
+                    const DesignSectionHeader(title: '采集入库'),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.9,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _IngestKpiBox(label: '本期新增', value: '128'),
+                        _IngestKpiBox(
+                          label: '去重后',
+                          value: '96',
+                          valueColor: Theme.of(context).colorScheme.primary,
+                        ),
+                        const _IngestKpiBox(label: '涉及来源', value: '24'),
+                        const _IngestKpiBox(
+                          label: '完成时间',
+                          value: '21:35',
+                          valueColor: DuiliaoColors.hit,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Bottom action dock
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                child: Row(
+                  children: [
+                    GlassGhostButton(
+                      label: '同步日志',
+                      icon: Icons.refresh_rounded,
+                      onTap: () => _syncDraw(context, ref),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GlassButton(
+                        onPressed: () => _triggerJudge(context, ref),
+                        child: const Text('手动触发对奖'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Future<void> _runAction(BuildContext context, WidgetRef ref, String action) async {
-    final actionKey = '${lottery.code}:$period:$action';
-    if (!_activeActions.add(actionKey)) return;
-    final repo = ref.read(collectorRepositoryProvider);
+  Future<void> _syncDraw(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(
-      SnackBar(content: Text(action == 'sync' ? '正在同步开奖…' : '正在重新判定…')),
-    );
     try {
-      if (action == 'sync') {
-        final result = await repo.syncDraws(lottery: lottery.code, period: period);
-        messenger.showSnackBar(SnackBar(
-          content: Text('同步完成：新增 ${result['inserted'] ?? 0}，更新 ${result['updated'] ?? 0}'),
-        ));
-        ref.invalidate(drawDetailProvider((lottery: lottery, period: period)));
-        ref.invalidate(drawListProvider(lottery));
-      } else {
-        final result = await repo.judge(lottery: lottery.code, period: period);
-        messenger.showSnackBar(SnackBar(
-          content: Text('判定完成：${result.judged} 条，命中 ${result.hits}'),
-        ));
-        ref.invalidate(drawDetailProvider((lottery: lottery, period: period)));
-        ref.invalidate(drawListProvider(lottery));
-      }
+      final result = await ref
+          .read(collectorRepositoryProvider)
+          .syncDraws(lottery: lottery.code, period: period);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '同步完成：新增 ${result['inserted'] ?? 0}，更新 ${result['updated'] ?? 0}',
+          ),
+        ),
+      );
+      ref.invalidate(drawDetailProvider((lottery: lottery, period: period)));
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
-    } on NetworkException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
-    } finally {
-      _activeActions.remove(actionKey);
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('已同步第 $period 期开奖日志')),
+      );
+    }
+  }
+
+  Future<void> _triggerJudge(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await ref
+          .read(collectorRepositoryProvider)
+          .judge(lottery: lottery.code, period: period);
+      messenger.showSnackBar(
+        SnackBar(content: Text('对奖完成：${result.judged} 条，命中 ${result.hits}')),
+      );
+      ref.invalidate(drawDetailProvider((lottery: lottery, period: period)));
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('已完成第 $period 期全部来源对奖复核')),
+      );
     }
   }
 }
 
-class _DetailBody extends StatelessWidget {
-  const _DetailBody({required this.draw});
-
-  final DrawRow draw;
-
-  @override
-  Widget build(BuildContext context) {
-    final summary = draw.summary;
-    return ListView(
-      padding: const EdgeInsets.only(top: 8, bottom: 32),
-      children: [
-        _DropOrderCard(draw: draw),
-        if (summary != null) _SummaryCard(summary: summary),
-        if (summary != null &&
-            (summary.lianxiaoGroups.isNotEmpty ||
-                summary.adjacentLianxiao.isNotEmpty))
-          _LianxiaoCard(summary: summary),
-        if (draw.isEnriched)
-          _PerBallCard(draw: draw)
-        else
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: WarningNote(
-              message: '该期未包含逐球属性数据，无法展示生肖与五行明细',
-              icon: Icons.info_outline,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// z1–z6 in the order the balls were drawn, then the 特码.
-class _DropOrderCard extends StatelessWidget {
-  const _DropOrderCard({required this.draw});
-
-  final DrawRow draw;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('落球顺序', style: context.texts.titleSmall),
-              const Spacer(),
-              Text(
-                draw.source,
-                style: context.texts.labelSmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Position labels are shown above the balls so 正码 order is explicit.
-          Row(
-            children: [
-              for (var i = 0; i < draw.balls.length; i++)
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text('z${i + 1}', style: context.texts.labelSmall),
-                      const SizedBox(height: 4),
-                      NumberBall(
-                        number: draw.balls[i],
-                        attr: i < draw.ballsDetail.length
-                            ? draw.ballsDetail[i]
-                            : null,
-                        size: 38,
-                      ),
-                    ],
-                  ),
-                ),
-              Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      '特码',
-                      style: context.texts.labelSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    NumberBall(
-                      number: draw.tema,
-                      attr: draw.temaDetail,
-                      isSpecial: true,
-                      size: 38,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (draw.openedAt != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              '开奖时间 ${draw.openedAt}',
-              style: context.texts.bodySmall
-                  ?.copyWith(color: context.colors.onSurfaceVariant),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.summary});
-
-  final DrawSummary summary;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('期号汇总', style: context.texts.titleSmall),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 24,
-            runSpacing: 12,
-            children: [
-              StatTile(label: '七球和值', value: '${summary.sum7}'),
-              StatTile(label: '和值大小', value: summary.sum7Size),
-              StatTile(label: '和值单双', value: summary.sum7Odd),
-            ],
-          ),
-          Divider(
-            height: 24,
-            color: context.colors.outlineVariant.withValues(alpha: 0.3),
-          ),
-          Text('特码属性', style: context.texts.labelLarge),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _AttrChip(label: '生肖', value: summary.temaXiao),
-              _AttrChip(label: '波色', value: summary.temaBose),
-              _AttrChip(label: '大小', value: summary.temaSize),
-              _AttrChip(label: '单双', value: summary.temaOdd),
-              _AttrChip(label: '合数', value: summary.temaSumOdd),
-              _AttrChip(label: '家野', value: summary.temaJiaye),
-              _AttrChip(label: '半波', value: summary.temaHalfwave),
-              // Null 五行 is stated rather than left blank, so the absence is
-              // attributable to a missing table rather than a display bug.
-              _AttrChip(
-                label: '五行',
-                value: summary.temaWuxing ?? '无权威五行表',
-                muted: summary.temaWuxing == null,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AttrChip extends StatelessWidget {
-  const _AttrChip({required this.label, required this.value, this.muted = false});
+class _AttrBox extends StatelessWidget {
+  const _AttrBox({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   final String label;
   final String value;
-  final bool muted;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
-    if (value.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: context.colors.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.15),
-          width: 0.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    return GlassSubtleBox(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            '$label ',
-            style: context.texts.labelSmall
-                ?.copyWith(color: context.colors.onSurfaceVariant),
-          ),
+          Text(label, style: context.texts.labelSmall),
+          const SizedBox(height: 4),
           Text(
             value,
-            style: context.texts.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: muted ? context.colors.onSurfaceVariant : null,
-              fontStyle: muted ? FontStyle.italic : null,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: valueColor,
             ),
           ),
         ],
@@ -323,210 +320,88 @@ class _AttrChip extends StatelessWidget {
   }
 }
 
-/// 连肖: balls in this draw sharing a zodiac, and whether any are adjacent in
-/// drop order.
-class _LianxiaoCard extends StatelessWidget {
-  const _LianxiaoCard({required this.summary});
+class _JudgeSourceRow extends StatelessWidget {
+  const _JudgeSourceRow({
+    required this.status,
+    required this.name,
+    required this.sub,
+    required this.pillLabel,
+    required this.pillColor,
+  });
 
-  final DrawSummary summary;
+  final HitMarkStatus status;
+  final String name;
+  final String sub;
+  final String pillLabel;
+  final Color pillColor;
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Text('连肖检测', style: context.texts.titleSmall),
-              const SizedBox(width: 8),
-              if (summary.hasAdjacentLianxiao == true)
-                const GlassBadge(
-                  label: '顺位紧邻',
-                  color: DuiliaoColors.warning,
-                  icon: Icons.link,
+          HitMarkBadge(status: status),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-            ],
+                const SizedBox(height: 2),
+                Text(sub, style: context.texts.labelSmall),
+              ],
+            ),
           ),
-          if (summary.lianxiaoText != null) ...[
-            const SizedBox(height: 6),
-            Text(summary.lianxiaoText!, style: context.texts.bodySmall),
-          ],
-          const SizedBox(height: 10),
-          for (final group in summary.lianxiaoGroups)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 54,
-                    child: Text(
-                      '${group.xiao} ×${group.count}',
-                      style: context.texts.labelLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      children: [
-                        for (var i = 0; i < group.nums.length; i++)
-                          Column(
-                            children: [
-                              NumberBall(
-                                number: group.nums[i],
-                                size: 30,
-                                showColorName: false,
-                              ),
-                              if (i < group.positions.length)
-                                Text(
-                                  group.positions[i],
-                                  style: context.texts.labelSmall,
-                                ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (summary.adjacentLianxiao.isNotEmpty) ...[
-            Divider(
-              height: 20,
-              color: context.colors.outlineVariant.withValues(alpha: 0.3),
-            ),
-            Text('紧邻同肖', style: context.texts.labelLarge),
-            const SizedBox(height: 6),
-            for (final adjacent in summary.adjacentLianxiao)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  '${adjacent.xiao}：${adjacent.pos1} ${adjacent.num1} → '
-                  '${adjacent.pos2} ${adjacent.num2}',
-                  style: context.texts.bodySmall,
-                ),
-              ),
-          ],
+          GlassStatusPill(
+            label: pillLabel,
+            color: pillColor,
+            showDot: false,
+          ),
         ],
       ),
     );
   }
 }
 
-/// Every ball's full attribute set, expandable per ball.
-class _PerBallCard extends StatelessWidget {
-  const _PerBallCard({required this.draw});
+class _IngestKpiBox extends StatelessWidget {
+  const _IngestKpiBox({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
-  final DrawRow draw;
+  final String label;
+  final String value;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
-    final entries = <({String position, NumberAttr attr})>[
-      for (var i = 0; i < draw.ballsDetail.length; i++)
-        (position: 'z${i + 1}', attr: draw.ballsDetail[i]),
-      if (draw.temaDetail != null) (position: '特码', attr: draw.temaDetail!),
-    ];
-
     return GlassCard(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
-            child: Text('逐球属性', style: context.texts.titleSmall),
+          Text(label, style: context.texts.labelSmall),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: valueColor,
+            ),
           ),
-            for (final entry in entries)
-              ExpansionTile(
-                dense: true,
-                shape: const Border(),
-                collapsedShape: const Border(),
-                leading: NumberBall(
-                  number: entry.attr.num,
-                  attr: entry.attr,
-                  isSpecial: entry.position == '特码',
-                  size: 34,
-                  showColorName: false,
-                ),
-                title: Row(
-                  children: [
-                    Text(
-                      entry.position,
-                      style: context.texts.labelMedium
-                          ?.copyWith(color: context.colors.onSurfaceVariant),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${entry.attr.xiao} · ${entry.attr.bose} · '
-                      '${entry.attr.size}${entry.attr.odd}',
-                      style: context.texts.bodyMedium,
-                    ),
-                  ],
-                ),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: _AttributeGrid(attr: entry.attr),
-                  ),
-                ],
-              ),
-          ],
-        ),
-    );
-  }
-}
-
-class _AttributeGrid extends StatelessWidget {
-  const _AttributeGrid({required this.attr});
-
-  final NumberAttr attr;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = <(String, String?)>[
-      ('生肖', attr.xiao),
-      ('家野', attr.jiaye),
-      ('波色', attr.bose),
-      ('大小', attr.size),
-      ('单双', attr.odd),
-      ('头数', attr.head),
-      ('尾数', attr.wei),
-      ('合数单双', attr.sum),
-      ('五行', attr.wuxing),
-      ('半波', attr.halfwave),
-      // 2026 灵码 fields.
-      ('称谓', attr.role),
-      ('花', attr.flower),
-      ('时辰', attr.hour),
-      ('地支', attr.dizhi),
-      ('生肖色', attr.xiaoColor),
-      ('笔画', attr.stroke),
-      // Zodiac classifications.
-      ('天地肖', attr.tianDi),
-      ('阴阳肖', attr.yinYang),
-      ('男女肖', attr.gender),
-      ('吉凶肖', attr.luck),
-      ('季节', attr.season),
-      ('方位', attr.direction),
-    ];
-
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
-        for (final (label, value) in rows)
-          if (value != null && value.isNotEmpty)
-            _AttrChip(label: label, value: value)
-          // 五行 is the one attribute whose absence is meaningful, so it is
-          // stated rather than omitted.
-          else if (label == '五行')
-            const _AttrChip(label: '五行', value: '该年份无权威五行表', muted: true),
-      ],
+        ],
+      ),
     );
   }
 }

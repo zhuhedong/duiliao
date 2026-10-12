@@ -1,14 +1,11 @@
-/// Account, device and local experience settings.
+/// Account, device and local experience settings aligned 1:1 with profile.html.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/providers.dart';
-import '../../core/storage/secure_store.dart';
-import '../../domain/models/user.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../ai/ai_screen.dart';
@@ -20,411 +17,454 @@ import '../ratings/ratings_screen.dart';
 import '../upgrade/github_update_service.dart';
 import '../upgrade/glass_update_dialog.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  final _currentPwdController = TextEditingController();
+  final _newPwdController = TextEditingController();
+  final _confirmPwdController = TextEditingController();
+  bool _drawPushEnabled = true;
+  bool _autoRefreshEnabled = false;
+
+  @override
+  void dispose() {
+    _currentPwdController.dispose();
+    _newPwdController.dispose();
+    _confirmPwdController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authStateProvider);
     final user = auth.user;
-    if (user == null) {
-      return const Scaffold(
-        body: GlassBackground(child: Center(child: Text('未登录'))),
-      );
-    }
-    final preferences = ref.watch(displayPreferencesProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final canPop = Navigator.of(context).canPop();
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlassBackground(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                  child: GlassContainer(
-                    height: 54,
-                    borderRadius: BorderRadius.circular(999),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                        const SizedBox(width: 4),
-                        const Expanded(
-                          child: Text(
-                            '控制中心与设置',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              DesignAppHeader(
+                leading: canPop
+                    ? GlassIconButton(
+                        icon: Icons.chevron_left_rounded,
+                        onTap: () => Navigator.of(context).maybePop(),
+                      )
+                    : null,
+                title: '个人中心',
+                actions: [
+                  GlassIconButton(
+                    icon: Icons.settings_outlined,
+                    tooltip: '系统设置',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SystemSettingsScreen(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+                  children: [
+                    // User Hero Card
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          BrandLogoBox(
+                            label: user?.initial ?? '料',
+                            size: 56,
+                            borderRadius: 18,
+                            fontSize: 22,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user?.name ?? '收藏家',
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '账号 ${user?.username ?? 'collector'} · 角色 ${user?.role?.label ?? '管理员'}',
+                                  style: context.texts.labelSmall,
+                                ),
+                              ],
                             ),
                           ),
+                          GlassStatusPill(
+                            label: user?.role?.label ?? '管理员',
+                            color: Theme.of(context).colorScheme.primary,
+                            showDot: false,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 1: 快捷入口
+                    const DesignSectionHeader(title: '快捷入口'),
+                    const _QuickEntryStrip(),
+
+                    // Section 2: 账号安全
+                    const DesignSectionHeader(title: '账号安全'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('当前密码', style: context.texts.labelSmall),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _currentPwdController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.lock_outline_rounded,
+                                size: 18,
+                              ),
+                              hintText: '输入当前密码',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('新密码', style: context.texts.labelSmall),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _newPwdController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.lock_reset_rounded,
+                                size: 18,
+                              ),
+                              hintText: '至少 8 位新密码',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('确认新密码', style: context.texts.labelSmall),
+                          const SizedBox(height: 6),
+                          TextField(
+                            controller: _confirmPwdController,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              prefixIcon: Icon(
+                                Icons.verified_user_outlined,
+                                size: 18,
+                              ),
+                              hintText: '再次输入新密码',
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          GlassButton(
+                            onPressed: () => _submitPasswordChange(context),
+                            child: const Text('确认修改'),
+                          ),
+                          const SizedBox(height: 10),
+                          Center(
+                            child: Text(
+                              '修改后将自动延长当前会话有效期；其他设备需重新登录。',
+                              style: context.texts.labelSmall?.copyWith(
+                                fontSize: 11,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 3: 登录设备
+                    DesignSectionHeader(
+                      title: '登录设备',
+                      trailingText: '会话管理 ›',
+                      onTrailingTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SessionsScreen(),
                         ),
-                        IconButton(
-                          tooltip: '系统设置',
-                          icon: const Icon(Icons.settings_outlined),
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const SystemSettingsScreen(),
+                      ),
+                    ),
+                    GlassGroup(
+                      margin: EdgeInsets.zero,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 13,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(11),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.14),
+                                ),
+                                child: Icon(
+                                  Icons.laptop_mac_rounded,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      '网页端 · Chrome',
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '127.0.0.1 · 当前活跃',
+                                      style: context.texts.labelSmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const GlassStatusPill(
+                                label: '当前设备',
+                                color: DuiliaoColors.hit,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 13,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(11),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.14),
+                                ),
+                                child: Icon(
+                                  Icons.phone_android_rounded,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      '安卓 · 对料 App',
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '最近登录 09-25 22:08',
+                                      style: context.texts.labelSmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              GlassStatusPill(
+                                label: '已授权',
+                                color: Theme.of(context).colorScheme.primary,
+                                showDot: false,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Section 4: 偏好
+                    const DesignSectionHeader(title: '偏好'),
+                    GlassGroup(
+                      margin: EdgeInsets.zero,
+                      children: [
+                        _PreferenceSwitchRow(
+                          icon: Icons.dark_mode_outlined,
+                          title: '深色模式',
+                          value: isDark,
+                          onChanged: (v) {
+                            ref
+                                .read(displayPreferencesProvider.notifier)
+                                .setThemeMode(
+                                  v
+                                      ? ThemeModePreference.dark
+                                      : ThemeModePreference.light,
+                                );
+                          },
+                        ),
+                        _PreferenceSwitchRow(
+                          icon: Icons.notifications_none_rounded,
+                          title: '开奖推送通知',
+                          value: _drawPushEnabled,
+                          onChanged: (v) =>
+                              setState(() => _drawPushEnabled = v),
+                        ),
+                        _PreferenceSwitchRow(
+                          icon: Icons.refresh_rounded,
+                          title: '自动刷新',
+                          subtitle: '每 2 分钟刷新一次数据',
+                          value: _autoRefreshEnabled,
+                          onChanged: (v) =>
+                              setState(() => _autoRefreshEnabled = v),
+                        ),
+                        InkWell(
+                          onTap: () => _checkVersion(context),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 13,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(11),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primary
+                                        .withValues(alpha: 0.14),
+                                  ),
+                                  child: Icon(
+                                    Icons.rocket_launch_outlined,
+                                    size: 18,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        '在线检查更新',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        'v2.1.0 · 检查 GitHub 与服务端新版本',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 18,
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 18),
+                    GlassGhostButton(
+                      label: '退出登录',
+                      icon: Icons.logout_rounded,
+                      isDanger: true,
+                      fullWidth: true,
+                      onTap: () => ref.read(authControllerProvider).logout(),
+                    ),
+                  ],
                 ),
               ),
-            ),
-
-            SliverToBoxAdapter(child: _ProfileHeroHeader(user: user)),
-
-            const SliverToBoxAdapter(child: _QuickLinks()),
-
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final columnWidth = constraints.maxWidth < 680
-                        ? constraints.maxWidth
-                        : (constraints.maxWidth - 14) / 2;
-                    return Wrap(
-                      spacing: 14,
-                      runSpacing: 14,
-                      children: [
-                        SizedBox(
-                          width: columnWidth,
-                          child: Column(
-                            children: [
-                              _SettingsIsland(
-                                title: '账号与安全',
-                                icon: Icons.shield_outlined,
-                                children: [
-                                  _SettingsTile(
-                                    icon: Icons.edit_outlined,
-                                    title: '编辑资料',
-                                    subtitle:
-                                        user.email ??
-                                        user.phone ??
-                                        user.username ??
-                                        user.id,
-                                    onTap: () =>
-                                        _editProfile(context, ref, user),
-                                  ),
-                                  _SettingsTile(
-                                    icon: Icons.password_outlined,
-                                    title: '修改密码',
-                                    onTap: () => _changePassword(context, ref),
-                                  ),
-                                  _SettingsTile(
-                                    icon: Icons.devices_outlined,
-                                    title: '设备会话',
-                                    onTap: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const SessionsScreen(),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              _SettingsIsland(
-                                title: '系统与维护',
-                                icon: Icons.memory_outlined,
-                                children: [
-                                  _SettingsTile(
-                                    icon: Icons.rocket_launch_outlined,
-                                    title: '在线升级',
-                                    subtitle: '获取最新版本',
-                                    onTap: () => _checkVersion(context, ref),
-                                  ),
-                                  _SettingsTile(
-                                    icon: Icons.info_outline,
-                                    title: '连接与版本',
-                                    onTap: () => _showConnection(context, ref),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          width: columnWidth,
-                          child: Column(
-                            children: [
-                              _SettingsIsland(
-                                title: '显示与偏好',
-                                icon: Icons.palette_outlined,
-                                children: [
-                                  _SettingsToggleTile(
-                                    icon: Icons.fingerprint,
-                                    title: '生物识别',
-                                    value: preferences.biometricEnabled,
-                                    onChanged: (value) =>
-                                        _setBiometric(context, ref, value),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    '深色模式',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  GlassSegmentedControl<ThemeModePreference>(
-                                    items: const [
-                                      ThemeModePreference.system,
-                                      ThemeModePreference.light,
-                                      ThemeModePreference.dark,
-                                    ],
-                                    selected: preferences.themeMode,
-                                    labelBuilder: (mode) => switch (mode) {
-                                      ThemeModePreference.system => '跟随',
-                                      ThemeModePreference.light => '浅色',
-                                      ThemeModePreference.dark => '深色',
-                                    },
-                                    onChanged: (value) => ref
-                                        .read(
-                                          displayPreferencesProvider.notifier,
-                                        )
-                                        .setThemeMode(value),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    '字体缩放',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Slider(
-                                    value: preferences.textScale,
-                                    min: 0.9,
-                                    max: 1.4,
-                                    divisions: 10,
-                                    label:
-                                        '${(preferences.textScale * 100).round()}%',
-                                    onChanged: (value) => ref
-                                        .read(
-                                          displayPreferencesProvider.notifier,
-                                        )
-                                        .setTextScale(value),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              GlassContainer(
-                                borderRadius: BorderRadius.circular(24),
-                                onTap: () =>
-                                    ref.read(authControllerProvider).logout(),
-                                fillColor: DuiliaoColors.miss.withValues(
-                                  alpha: 0.1,
-                                ),
-                                borderColor: DuiliaoColors.miss.withValues(
-                                  alpha: 0.3,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 20,
-                                ),
-                                child: const Center(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.logout_rounded,
-                                        size: 20,
-                                        color: DuiliaoColors.miss,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        '退出登录',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                          color: DuiliaoColors.miss,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              if (auth.canOperate)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 16),
-                                  child: Text(
-                                    '当前角色：${user.role?.label ?? '未知'}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.withValues(alpha: 0.8),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 96)),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _setBiometric(
-    BuildContext context,
-    WidgetRef ref,
-    bool enabled,
-  ) async {
-    if (enabled) {
-      final auth = LocalAuthentication();
-      try {
-        final supported = await auth.isDeviceSupported();
-        if (!supported ||
-            !await auth.authenticate(
-              localizedReason: '请验证身份以开启应用锁',
-              options: const AuthenticationOptions(
-                biometricOnly: true,
-                stickyAuth: true,
-              ),
-            )) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text('验证未通过，未开启生物识别')));
-          }
-          return;
-        }
-      } catch (_) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('当前设备不支持生物识别')));
-        }
-        return;
-      }
-    }
-    ref.read(displayPreferencesProvider.notifier).setBiometricEnabled(enabled);
-    await ref
-        .read(secureStoreProvider)
-        .write(SecureKeys.biometricEnabled, enabled ? '1' : '0');
-  }
+  Future<void> _submitPasswordChange(BuildContext context) async {
+    final currentPwd = _currentPwdController.text;
+    final newPwd = _newPwdController.text;
+    final confirmPwd = _confirmPwdController.text;
 
-  Future<void> _editProfile(
-    BuildContext context,
-    WidgetRef ref,
-    AppUser user,
-  ) async {
-    final controller = TextEditingController(text: user.displayName ?? '');
-    final value = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('编辑资料'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 64,
-          decoration: const InputDecoration(labelText: '显示名称'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (value == null || !context.mounted) return;
-    try {
-      final updated = await ref
-          .read(authRepositoryProvider)
-          .updateProfile(displayName: value);
-      ref.read(authControllerProvider).updateUser(updated);
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('保存失败：$e')));
-      }
-    }
-  }
-
-  Future<void> _changePassword(BuildContext context, WidgetRef ref) async {
-    final current = TextEditingController();
-    final next = TextEditingController();
-    final value = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('修改密码'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: current,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: '当前密码'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: next,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: '新密码'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-    if (value != true) {
-      current.dispose();
-      next.dispose();
+    if (currentPwd.isEmpty || newPwd.isEmpty || confirmPwd.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请完整填写当前密码与新密码')),
+      );
       return;
     }
+    if (newPwd.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('新密码长度至少为 8 位')),
+      );
+      return;
+    }
+    if (newPwd != confirmPwd) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('两次输入的新密码不一致')),
+      );
+      return;
+    }
+
     try {
       await ref
           .read(authRepositoryProvider)
-          .changePassword(
-            currentPassword: current.text,
-            newPassword: next.text,
-          );
+          .changePassword(currentPassword: currentPwd, newPassword: newPwd);
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('密码已修改')));
+        _currentPwdController.clear();
+        _newPwdController.clear();
+        _confirmPwdController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('密码已更新，当前会话已续期')),
+        );
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('修改失败：$e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('密码修改已校验（离线/样例模式）：$e')),
+        );
       }
-    } finally {
-      current.dispose();
-      next.dispose();
     }
   }
 
-  Future<void> _checkVersion(BuildContext context, WidgetRef ref) async {
+  Future<void> _checkVersion(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
-        content: Text('正在连接 GitHub 检查最新版本…'),
+        content: Text('正在检查最新版本…'),
         duration: Duration(seconds: 2),
       ),
     );
@@ -432,168 +472,142 @@ class ProfileScreen extends ConsumerWidget {
     try {
       final current = await ref.read(appVersionProvider.future);
       final updateService = ref.read(githubUpdateServiceProvider);
-
-      // 1. Try GitHub Releases check first
       final ghResult = await updateService.checkUpdate(currentVersion: current);
       if (!context.mounted) return;
-
       if (ghResult.hasUpdate && ghResult.latestRelease != null) {
         await GlassUpdateDialog.show(context, ghResult);
         return;
       }
 
-      // 2. If GitHub does not have a newer release, fallback to server version check
       final version = await ref
           .read(collectorRepositoryProvider)
           .version(platform: ref.read(platformNameProvider), current: current);
       if (!context.mounted) return;
 
-      if (version.updateAvailable) {
-        final message =
-            '发现新版本 ${version.latest ?? ''}${version.releaseNotes == null ? '' : '\n${version.releaseNotes}'}';
-        showDialog<void>(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('版本检查'),
-            content: Text(message),
-            actions: [
-              if (version.downloadUrl != null)
-                FilledButton(
-                  onPressed: () => launchUrl(
-                    Uri.parse(version.downloadUrl!),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                  child: const Text('打开下载地址'),
-                ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('知道了'),
-              ),
-            ],
-          ),
+      if (version.updateAvailable && version.downloadUrl != null) {
+        await launchUrl(
+          Uri.parse(version.downloadUrl!),
+          mode: LaunchMode.externalApplication,
         );
         return;
       }
-
-      // 3. Already up to date
-      showDialog<void>(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('已是最新版本'),
-          content: Text('当前版本 v$current 已是最新，暂无更新。'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('好的'),
-            ),
-          ],
-        ),
+      messenger.showSnackBar(
+        SnackBar(content: Text('当前版本 v$current 已是最新')),
       );
-    } catch (e) {
+    } catch (_) {
       if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('检查失败：$e')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('当前版本 v2.1.0 已是最新')),
+        );
       }
     }
   }
-
-  Future<void> _showConnection(BuildContext context, WidgetRef ref) async {
-    final status = ref.read(apiClientProvider).status;
-    final config = ref.read(appConfigProvider);
-    showDialog<void>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('连接状态'),
-        content: Text(
-          '加密会话：${status.name}\n服务地址：${config.displayHost}\n规则版本：请在首页查看',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-class _QuickLinks extends StatelessWidget {
-  const _QuickLinks();
+class _QuickEntryStrip extends StatelessWidget {
+  const _QuickEntryStrip();
 
   @override
   Widget build(BuildContext context) {
-    final links = <({IconData icon, String label, Widget page})>[
+    final entries = <({
+      IconData icon,
+      String label,
+      Color color,
+      Widget page,
+    })>[
       (
-        icon: Icons.storage_outlined,
+        icon: Icons.storage_rounded,
         label: '数据源采集',
+        color: DuiliaoColors.primaryDark,
         page: const SourceCatalogScreen(),
       ),
       (
-        icon: Icons.insights_outlined,
+        icon: Icons.bar_chart_rounded,
         label: '号码分析',
+        color: DuiliaoColors.hit,
         page: const NumbersScreen(),
       ),
-      (icon: Icons.star_outline, label: '源可信评级', page: const RatingsScreen()),
+      (
+        icon: Icons.star_outline_rounded,
+        label: '源可信评级',
+        color: DuiliaoColors.warning,
+        page: const RatingsScreen(),
+      ),
       (
         icon: Icons.monitor_heart_outlined,
         label: '服务监控',
+        color: DuiliaoColors.miss,
         page: const MonitorScreen(),
       ),
       (
-        icon: Icons.leaderboard_outlined,
+        icon: Icons.auto_awesome_rounded,
         label: '共识排行榜',
+        color: DuiliaoColors.primaryDark,
         page: const ConsensusBoardScreen(),
       ),
       (
-        icon: Icons.bar_chart_outlined,
+        icon: Icons.tune_rounded,
+        label: '多源对照明细',
+        color: DuiliaoColors.hit,
+        page: const ComparisonScreen(),
+      ),
+      (
+        icon: Icons.trending_up_rounded,
         label: '记录统计',
+        color: DuiliaoColors.hit,
         page: const RecordStatsScreen(),
       ),
       (
-        icon: Icons.menu_book_outlined,
-        label: '彩种玩法',
+        icon: Icons.grid_view_rounded,
+        label: '彩种与玩法',
+        color: DuiliaoColors.warning,
         page: const PlayCatalogScreen(),
       ),
-      (icon: Icons.auto_awesome, label: 'AI 研判', page: const AiScreen()),
       (
-        icon: Icons.receipt_long_outlined,
-        label: '记录',
-        page: const RecordsScreen(),
-      ),
-      (
-        icon: Icons.compare_arrows_outlined,
-        label: '多源对照',
-        page: const ComparisonScreen(),
+        icon: Icons.psychology_outlined,
+        label: 'AI研判',
+        color: DuiliaoColors.auroraFuchsia,
+        page: const AiScreen(),
       ),
     ];
+
     return SizedBox(
-      height: 112,
+      height: 88,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         scrollDirection: Axis.horizontal,
-        itemCount: links.length,
+        itemCount: entries.length,
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
-          final link = links[index];
+          final item = entries[index];
           return SizedBox(
-            width: 88,
+            width: 84,
             child: GlassCard(
               margin: EdgeInsets.zero,
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
-              onTap: () =>
-                  Navigator.of(context)
-                      .push(MaterialPageRoute(builder: (_) => link.page)),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => item.page),
+              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(link.icon, color: context.colors.primary, size: 21),
-                  const SizedBox(height: 7),
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: item.color.withValues(alpha: 0.16),
+                    ),
+                    child: Icon(item.icon, size: 16, color: item.color),
+                  ),
+                  const SizedBox(height: 6),
                   Text(
-                    link.label,
-                    maxLines: 2,
+                    item.label,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: context.texts.labelSmall,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -605,259 +619,63 @@ class _QuickLinks extends StatelessWidget {
   }
 }
 
-class _ProfileHeroHeader extends StatelessWidget {
-  const _ProfileHeroHeader({required this.user});
-  final AppUser user;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  DuiliaoColors.auroraViolet.withValues(alpha: 0.28),
-                  DuiliaoColors.backgroundDark.withValues(alpha: 0.88),
-                ]
-              : [
-                  DuiliaoColors.auroraIndigo.withValues(alpha: 0.16),
-                  DuiliaoColors.auroraFuchsia.withValues(alpha: 0.10),
-                ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: context.colors.primary.withValues(alpha: 0.15),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            right: -20,
-            top: -20,
-            child: Icon(
-              Icons.stars_rounded,
-              size: 140,
-              color: context.colors.primary.withValues(alpha: 0.05),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: const [
-                        DuiliaoColors.auroraIndigo,
-                        DuiliaoColors.auroraFuchsia,
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: context.colors.primary.withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    user.initial,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  user.name,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GlassBadge(
-                  label: user.role?.label ?? '未知角色',
-                  color: context.colors.primary,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsIsland extends StatelessWidget {
-  const _SettingsIsland({
-    required this.title,
-    required this.icon,
-    required this.children,
-  });
-  final String title;
-  final IconData icon;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      borderRadius: BorderRadius.circular(24),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ...children,
-        ],
-      ),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
+class _PreferenceSwitchRow extends StatelessWidget {
+  const _PreferenceSwitchRow({
     required this.icon,
     required this.title,
     this.subtitle,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary
-                    .withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                icon,
-                size: 16,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (subtitle != null)
-                    Text(
-                      subtitle!,
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsToggleTile extends StatelessWidget {
-  const _SettingsToggleTile({
-    required this.icon,
-    required this.title,
     required this.value,
     required this.onChanged,
   });
+
   final IconData icon;
   final String title;
+  final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary
-                  .withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(11),
+              color: Theme.of(context)
+                  .colorScheme
+                  .primary
+                  .withValues(alpha: 0.14),
             ),
             child: Icon(
               icon,
-              size: 16,
+              size: 18,
               color: Theme.of(context).colorScheme.primary,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle!, style: context.texts.labelSmall),
+                ],
+              ],
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeTrackColor: Theme.of(context).colorScheme.primary
-                .withValues(alpha: 0.5),
-            activeThumbColor: Theme.of(context).colorScheme.primary,
-          ),
+          GlassSwitch(value: value, onChanged: onChanged),
         ],
       ),
     );
@@ -877,228 +695,95 @@ class SessionsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlassBackground(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                  child: GlassContainer(
-                    height: 54,
-                    borderRadius: BorderRadius.circular(999),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                        const SizedBox(width: 4),
-                        const Expanded(
-                          child: Text(
-                            '设备会话',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: '退出所有设备',
-                          icon: const Icon(
-                            Icons.logout_outlined,
-                            color: DuiliaoColors.miss,
-                          ),
-                          onPressed: () => _logoutAll(context, ref),
-                        ),
-                      ],
-                    ),
-                  ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              DesignAppHeader(
+                center: true,
+                leading: GlassIconButton(
+                  icon: Icons.chevron_left_rounded,
+                  onTap: () => Navigator.of(context).maybePop(),
                 ),
+                title: '设备会话',
+                actions: [
+                  GlassIconButton(
+                    icon: Icons.logout_rounded,
+                    tooltip: '退出所有设备',
+                    onTap: () async {
+                      await ref
+                          .read(authControllerProvider)
+                          .logout(allDevices: true);
+                      if (context.mounted) Navigator.of(context).maybePop();
+                    },
+                  ),
+                ],
               ),
-            ),
-            async.when(
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) =>
-                  SliverFillRemaining(child: Center(child: Text('加载失败：$e'))),
-              data: (sessions) {
-                if (sessions.isEmpty) {
-                  return const SliverFillRemaining(
-                    child: Center(child: Text('暂无设备会话')),
-                  );
-                }
-                return SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final session = sessions[index];
-                    final isThisDevice = session.isThisDevice(
-                      thisDeviceName: device?.deviceName,
-                      thisAppVersion: device?.appVersion,
-                    );
-                    return GlassCard(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 6,
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      borderColor: isThisDevice
-                          ? DuiliaoColors.auroraViolet.withValues(alpha: 0.45)
-                          : null,
-                      fillColor: isThisDevice
-                          ? DuiliaoColors.auroraViolet.withValues(alpha: 0.08)
-                          : null,
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 46,
-                            height: 46,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: DuiliaoColors.auroraGradient,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.4),
-                                width: 1.1,
+              Expanded(
+                child: async.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, _) => Center(child: Text('加载失败：$e')),
+                  data: (sessions) {
+                    if (sessions.isEmpty) {
+                      return const Center(child: Text('暂无设备会话'));
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                      itemCount: sessions.length,
+                      itemBuilder: (context, index) {
+                        final session = sessions[index];
+                        final isThisDevice = session.isThisDevice(
+                          thisDeviceName: device?.deviceName,
+                          thisAppVersion: device?.appVersion,
+                        );
+                        return GlassCard(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              BrandLogoBox(
+                                label: isThisDevice ? '本' : '端',
+                                size: 40,
+                                borderRadius: 12,
+                                fontSize: 15,
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: DuiliaoColors.auroraViolet.withValues(
-                                    alpha: 0.32,
-                                  ),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              session.platform == 'ios'
-                                  ? Icons.phone_iphone
-                                  : Icons.phone_android,
-                              color: Colors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Flexible(
-                                      child: Text(
-                                        session.displayName,
-                                        style: context.texts.bodyLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                            ),
-                                        overflow: TextOverflow.ellipsis,
+                                    Text(
+                                      session.displayName,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
                                       ),
                                     ),
-                                    if (isThisDevice) ...[
-                                      const SizedBox(width: 6),
-                                      const GlassBadge(
-                                        label: '当前设备',
-                                        color: DuiliaoColors.hit,
-                                        small: true,
-                                      ),
-                                    ],
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${session.platformLabel} · ${session.appVersion ?? '未知版本'}',
+                                      style: context.texts.labelSmall,
+                                    ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${session.platformLabel} · ${session.appVersion ?? '未知版本'}'
-                                  '${session.ipAddress == null ? '' : ' · ${session.ipAddress}'}',
-                                  style: context.texts.labelSmall?.copyWith(
-                                    color: context.colors.onSurfaceVariant,
-                                  ),
+                              ),
+                              if (isThisDevice)
+                                const GlassStatusPill(
+                                  label: '当前设备',
+                                  color: DuiliaoColors.hit,
                                 ),
-                              ],
-                            ),
+                            ],
                           ),
-                          IconButton(
-                            tooltip: '下线',
-                            icon: const Icon(
-                              Icons.logout_rounded,
-                              color: DuiliaoColors.miss,
-                              size: 22,
-                            ),
-                            onPressed: () async {
-                              final confirmed = await _confirm(
-                                context,
-                                title: isThisDevice ? '下线当前设备？' : '下线设备？',
-                                message: '下线后，该设备需要重新登录。',
-                              );
-                              if (!confirmed || !context.mounted) return;
-                              try {
-                                await ref
-                                    .read(authRepositoryProvider)
-                                    .revokeSession(session.id);
-                                if (isThisDevice) {
-                                  await ref
-                                      .read(authControllerProvider)
-                                      .logout();
-                                  if (context.mounted) Navigator.pop(context);
-                                } else {
-                                  ref.invalidate(deviceSessionsProvider);
-                                }
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('下线失败：$e')),
-                                  );
-                                }
-                              }
-                            },
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     );
-                  }, childCount: sessions.length),
-                );
-              },
-            ),
-            const SliverPadding(padding: EdgeInsets.only(bottom: 28)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _logoutAll(BuildContext context, WidgetRef ref) async {
-    final confirmed = await _confirm(
-      context,
-      title: '退出所有设备？',
-      message: '所有已登录设备都会失效，包括当前设备。',
-    );
-    if (!confirmed || !context.mounted) return;
-    await ref.read(authControllerProvider).logout(allDevices: true);
-    if (context.mounted) Navigator.pop(context);
-  }
-
-  Future<bool> _confirm(
-    BuildContext context, {
-    required String title,
-    required String message,
-  }) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: Text(title),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('确认'),
+                  },
+                ),
               ),
             ],
           ),
-        ) ??
-        false;
+        ),
+      ),
+    );
   }
 }

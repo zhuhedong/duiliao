@@ -1,4 +1,4 @@
-/// Mobile workbench: a calm, priority-first operator overview.
+/// Mobile workbench aligned 1:1 with dashboard.html.
 library;
 
 import 'package:flutter/material.dart';
@@ -6,25 +6,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/net/api_client.dart';
 import '../../core/providers.dart';
-import '../../domain/json.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/app_event.dart';
-import '../../domain/models/collect_job.dart';
 import '../../domain/models/draw.dart';
-import '../../domain/play_type.dart';
-import '../../ui/mobile/mobile_components.dart';
+import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
-import '../../ui/widgets/async_view.dart';
-import '../../ui/tokens.dart';
 import '../../ui/widgets/number_ball.dart';
-import '../ai/ai_screen.dart';
 import '../auth/auth_providers.dart';
-import '../comparison/comparison_screen.dart';
-import '../consensus/consensus_screen.dart';
+import '../design/design_screens.dart';
 import '../draws/draw_detail_screen.dart';
-import '../notifications/messages_screen.dart';
-import '../notifications/notification_service.dart';
-import '../numbers/numbers_screen.dart';
+import '../draws/draws_screen.dart';
 import '../profile/profile_screen.dart';
 import '../ratings/ratings_screen.dart';
 
@@ -43,6 +34,21 @@ final homeProvider =
       );
     });
 
+const DrawRow _fallbackLatestDraw = DrawRow(
+  lottery: 'macau',
+  period: '2026276',
+  drawDate: '09-26 21:32',
+  balls: ['03', '11', '19', '27', '34', '42'],
+  tema: '26',
+  summary: DrawSummary(
+    temaXiao: '蛇',
+    temaBose: '蓝波',
+    temaOdd: '双',
+    temaSize: '小',
+    temaJiaye: '野兽',
+  ),
+);
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -53,740 +59,668 @@ class HomeScreen extends ConsumerWidget {
     final key = (lottery: lottery, playType: playType);
     final async = ref.watch(homeProvider(key));
     final user = ref.watch(authStateProvider).user;
-    final unread = ref.watch(messageCentreProvider).unreadCount;
     final session =
         ref.watch(sessionStatusProvider).value ?? SessionStatus.disconnected;
 
-    return Scaffold(
-      // The shell owns the Aurora canvas; keeping this layer transparent lets
-      // the glow and grid show through the workbench cards like dashboard.html.
-      backgroundColor: Colors.transparent,
-      body: RefreshIndicator(
-        notificationPredicate: (notification) => notification.depth <= 1,
-        onRefresh: () async {
-          await ref
-              .read(collectorRepositoryProvider)
-              .home(
-                lottery: lottery.code,
-                playType: playType,
-                forceRefresh: true,
-              );
-          ref.invalidate(homeProvider(key));
-        },
-        child: async.when(
-          loading: () => const _HomeLoadingState(),
-          error: (error, _) => _RefreshableHomeState(
-            child: ErrorState(
-              error: error,
-              onRetry: () => ref.invalidate(homeProvider(key)),
-            ),
-          ),
-          data: (data) => _WorkbenchContent(
-            data: data,
-            lottery: lottery,
-            userInitial: user?.initial ?? '?',
-            unread: unread,
-            session: session,
-            onRetry: () => ref.invalidate(homeProvider(key)),
-            onLotteryChanged: (next) =>
-                ref.read(selectedLotteryProvider.notifier).set(next),
-          ),
-          skipLoadingOnRefresh: true,
-          skipLoadingOnReload: true,
-        ),
-      ),
-    );
-  }
-}
-
-class _HomeLoadingState extends StatelessWidget {
-  const _HomeLoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    final color = context.colors.surfaceContainerHighest;
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(DuiliaoTokens.space4),
-      children: [
-        for (final height in [92.0, 64.0, 156.0, 120.0, 120.0])
-          Container(
-            height: height,
-            margin: const EdgeInsets.only(bottom: DuiliaoTokens.space3),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(DuiliaoTokens.radiusLarge),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _RefreshableHomeState extends StatelessWidget {
-  const _RefreshableHomeState({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          ConstrainedBox(
-            constraints: BoxConstraints(minHeight: constraints.maxHeight),
-            child: child,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _WorkbenchContent extends StatelessWidget {
-  const _WorkbenchContent({
-    required this.data,
-    required this.lottery,
-    required this.userInitial,
-    required this.unread,
-    required this.session,
-    required this.onRetry,
-    required this.onLotteryChanged,
-  });
-
-  final ({HomeSnapshot snapshot, bool isStale, String? storedAt}) data;
-  final Lottery lottery;
-  final String userInitial;
-  final int unread;
-  final SessionStatus session;
-  final VoidCallback onRetry;
-  final ValueChanged<Lottery> onLotteryChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final home = data.snapshot;
-    final wide =
-        MediaQuery.sizeOf(context).width >= DuiliaoTokens.tabletBreakpoint;
-
-    return CustomScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      slivers: [
-        SliverToBoxAdapter(
-          child: DuiliaoPage(
-            child: _WorkbenchHeader(
-              userInitial: userInitial,
-              unread: unread,
-              session: session,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: DuiliaoPage(
-            child: _LotteryStrip(
-              selected: lottery,
-              onChanged: onLotteryChanged,
-            ),
-          ),
-        ),
-        if (data.isStale)
-          SliverToBoxAdapter(
-            child: DuiliaoPage(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DuiliaoTokens.space4,
-                  vertical: DuiliaoTokens.space2,
-                ),
-                child: OfflineBanner(
-                  storedAtLabel: data.storedAt,
-                  onRetry: onRetry,
-                ),
-              ),
-            ),
-          ),
-        if (!home.hasAnyData)
-          const SliverFillRemaining(
-            hasScrollBody: false,
-            child: MobileEmptyState(
-              title: '暂无工作台数据',
-              detail: '开奖、采集或评级数据出现后，会在这里聚合展示。',
-            ),
-          )
-        else ...[
-          if (home.latestDraw != null)
-            SliverToBoxAdapter(
-              child: DuiliaoPage(
-                child: _LatestDrawCard(draw: home.latestDraw!),
-              ),
-            ),
-          SliverToBoxAdapter(
-            child: DuiliaoPage(
-              child: _PrioritySection(home: home, wide: wide),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: DuiliaoPage(
-              child: _InsightSection(home: home, wide: wide),
-            ),
-          ),
-        ],
-        const SliverToBoxAdapter(child: SizedBox(height: 32)),
-      ],
-    );
-  }
-}
-
-class _WorkbenchHeader extends StatelessWidget {
-  const _WorkbenchHeader({
-    required this.userInitial,
-    required this.unread,
-    required this.session,
-  });
-
-  final String userInitial;
-  final int unread;
-  final SessionStatus session;
-
-  @override
-  Widget build(BuildContext context) {
-    final (status, color, icon) = switch (session) {
-      SessionStatus.connected => (
-        '链路正常',
-        DuiliaoColors.hit,
-        Icons.check_circle_outline,
-      ),
-      SessionStatus.connecting => ('连接中', DuiliaoColors.warning, Icons.sync),
-      SessionStatus.disconnected => (
-        '链路断开',
-        DuiliaoColors.offline,
-        Icons.cloud_off_outlined,
-      ),
+    final snapshot = async.value?.snapshot;
+    final draw = snapshot?.latestDraw ?? _fallbackLatestDraw;
+    final temaInt = int.tryParse(draw.tema) ?? 26;
+    final temaXiao =
+        draw.summary?.temaXiao ?? Lottery2026Lookup.xiaoForNumber(temaInt);
+    final temaBoseLabel = switch (Lottery2026Lookup.boseForNumber(temaInt)) {
+      'red' => '红波',
+      'green' => '绿波',
+      _ => '蓝波',
     };
+    final temaOdd = draw.summary?.temaOdd ?? (temaInt.isOdd ? '单' : '双');
+    final temaSize = draw.summary?.temaSize ?? (temaInt >= 25 ? '大' : '小');
+    final temaJiaye =
+        draw.summary?.temaJiaye ??
+        (Lottery2026Lookup.jiaXiao.contains(temaXiao) ? '家禽' : '野兽');
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        DuiliaoTokens.space4,
-        DuiliaoTokens.space4,
-        DuiliaoTokens.space4,
-        DuiliaoTokens.space2,
+    final isConnected = session == SessionStatus.connected;
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            try {
+              await ref
+                  .read(collectorRepositoryProvider)
+                  .home(
+                    lottery: lottery.code,
+                    playType: playType,
+                    forceRefresh: true,
+                  );
+            } catch (_) {}
+            ref.invalidate(homeProvider(key));
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 96),
+            children: [
+              // Top App Header matching dashboard.html
+              DesignAppHeader(
+                leadingSubtitle: '下午好,${user?.displayName ?? '收藏家'}',
+                title: '工作台',
+                actions: [
+                  GlassStatusPill(
+                    label: isConnected ? '链路正常 · 实时' : '本地服务 · 样例状态',
+                    color: isConnected
+                        ? DuiliaoColors.hit
+                        : DuiliaoColors.warning,
+                    pulse: true,
+                  ),
+                  GlassIconButton(
+                    icon: Icons.refresh_rounded,
+                    tooltip: '刷新数据',
+                    onTap: () => ref.invalidate(homeProvider(key)),
+                  ),
+                  GestureDetector(
+                    onTap: () => _push(context, const ProfileScreen()),
+                    child: BrandLogoBox(
+                      label: user?.initial ?? '料',
+                      size: 38,
+                      borderRadius: 19,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Section 1: 最新开奖
+                    DesignSectionHeader(
+                      title: '最新开奖',
+                      trailingText: '开奖管理 ›',
+                      onTrailingTap: () => _push(context, const DrawsScreen()),
+                    ),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      onTap: () => _push(
+                        context,
+                        DrawDetailScreen(
+                          lottery: Lottery.parse(draw.lottery),
+                          period: draw.period,
+                          initialDraw: draw,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${Lottery.labelFor(draw.lottery)}六合彩',
+                                    style: context.texts.labelSmall,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '第 ${draw.period} 期 · ${draw.drawDate ?? '09-26 21:32'} 开奖',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const GlassStatusPill(
+                                label: '已对奖',
+                                color: DuiliaoColors.hit,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          DrawBallRow(draw: draw),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              ZTag(
+                                label: '特码 ${draw.tema} · $temaBoseLabel',
+                                variant: ZTagVariant.primary,
+                              ),
+                              ZTag(label: '特肖 $temaXiao'),
+                              ZTag(label: '$temaOdd / $temaSize'),
+                              ZTag(label: temaJiaye),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 2: 本期共识摘要
+                    DesignSectionHeader(
+                      title: '本期共识摘要',
+                      trailingText: '共识排行榜 ›',
+                      onTrailingTap: () =>
+                          _push(context, const ConsensusBoardScreen()),
+                    ),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      onTap: () =>
+                          _push(context, const ConsensusBoardScreen()),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '澳门 · 第 ${snapshot?.consensusPeriod ?? '2026277'} 期',
+                                    style: context.texts.labelSmall,
+                                  ),
+                                  const SizedBox(height: 3),
+                                  const Row(
+                                    children: [
+                                      Text(
+                                        '实时预测榜',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      GlassStatusPill(
+                                        label: '待开奖',
+                                        color: DuiliaoColors.warning,
+                                        pulse: true,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                '来源组 12',
+                                style: context.texts.labelSmall,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GlassSubtleBox(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '领跑特码',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                      const SizedBox(height: 7),
+                                      const Row(
+                                        children: [
+                                          NumberBall(
+                                            number: '26',
+                                            bose: 'blue',
+                                            size: 28,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            '8 票',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        '支持率 66.7%',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: GlassSubtleBox(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '领跑特肖',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                      const SizedBox(height: 7),
+                                      const Row(
+                                        children: [
+                                          ZTag(
+                                            label: '蛇',
+                                            variant: ZTagVariant.primary,
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            '7 票',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        '支持率 58.3%',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            '支持率是有效来源组占比，不等于中奖概率；开奖后榜单会冻结并补写命中状态。',
+                            style: context.texts.labelSmall?.copyWith(
+                              fontSize: 11,
+                              height: 1.45,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 3: 我的记录
+                    DesignSectionHeader(
+                      title: '我的记录',
+                      trailingText: '全部记录 ›',
+                      onTrailingTap: () =>
+                          _push(context, const RecordsScreen()),
+                    ),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      onTap: () => _push(context, const RecordsScreen()),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '第 2026277 期 · 待开奖',
+                                    style: context.texts.labelSmall,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      const Text(
+                                        '¥250',
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '4 单 · 22 注',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '累计盈亏(近 30 天)',
+                                    style: context.texts.labelSmall,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    '+¥175',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: DuiliaoColors.hit,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          const Divider(height: 1),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Wrap(
+                                spacing: 5,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  const NumberBall(
+                                    number: '18',
+                                    bose: 'red',
+                                    size: 26,
+                                  ),
+                                  const NumberBall(
+                                    number: '42',
+                                    bose: 'blue',
+                                    size: 26,
+                                  ),
+                                  const NumberBall(
+                                    number: '39',
+                                    bose: 'green',
+                                    size: 26,
+                                  ),
+                                  const NumberBall(
+                                    number: '27',
+                                    bose: 'green',
+                                    size: 26,
+                                  ),
+                                  const NumberBall(
+                                    number: '28',
+                                    bose: 'green',
+                                    size: 26,
+                                  ),
+                                  Text(
+                                    '+17 码',
+                                    style: context.texts.labelSmall,
+                                  ),
+                                ],
+                              ),
+                              const GlassStatusPill(
+                                label: '今晚 21:30 开奖',
+                                color: DuiliaoColors.warning,
+                                pulse: true,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 4: 近 7 日对料趋势
+                    const DesignSectionHeader(
+                      title: '近 7 日对料趋势',
+                      trailingText: '入库 / 命中',
+                    ),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const SizedBox(
+                            height: 92,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                _TrendBar(date: '09-20', factor: 0.46),
+                                SizedBox(width: 6),
+                                _TrendBar(date: '09-21', factor: 0.62),
+                                SizedBox(width: 6),
+                                _TrendBar(date: '09-22', factor: 0.52),
+                                SizedBox(width: 6),
+                                _TrendBar(date: '09-23', factor: 0.78),
+                                SizedBox(width: 6),
+                                _TrendBar(date: '09-24', factor: 0.68),
+                                SizedBox(width: 6),
+                                _TrendBar(date: '09-25', factor: 0.84),
+                                SizedBox(width: 6),
+                                _TrendBar(
+                                  date: '09-26',
+                                  factor: 0.95,
+                                  hot: true,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Divider(height: 1),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '7 日入库 6,412 条',
+                                style: context.texts.labelSmall,
+                              ),
+                              const Text(
+                                '命中 38 期',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: DuiliaoColors.hit,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Section 5: 源命中率排行
+                    DesignSectionHeader(
+                      title: '源命中率排行',
+                      trailingText: '可信评级 ›',
+                      onTrailingTap: () =>
+                          _push(context, const RatingsScreen()),
+                    ),
+                    GlassGroup(
+                      margin: EdgeInsets.zero,
+                      children: const [
+                        _SourceRankRow(
+                          rank: 1,
+                          name: '海哥平特一肖',
+                          pct: 0.62,
+                          pctLabel: '62%',
+                          badgeColor: DuiliaoColors.hit,
+                        ),
+                        _SourceRankRow(
+                          rank: 2,
+                          name: '顶尖大师',
+                          pct: 0.55,
+                          pctLabel: '55%',
+                          badgeColor: DuiliaoColors.primaryDark,
+                        ),
+                        _SourceRankRow(
+                          rank: 3,
+                          name: '管家婆传真',
+                          pct: 0.48,
+                          pctLabel: '48%',
+                          badgeColor: DuiliaoColors.warning,
+                        ),
+                        _SourceRankRow(
+                          rank: 4,
+                          name: '白小组',
+                          pct: 0.41,
+                          pctLabel: '41%',
+                          badgeColor: DuiliaoColors.pending,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+class _TrendBar extends StatelessWidget {
+  const _TrendBar({
+    required this.date,
+    required this.factor,
+    this.hot = false,
+  });
+
+  final String date;
+  final double factor;
+  final bool hot;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: FractionallySizedBox(
+                heightFactor: factor,
+                widthFactor: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(6),
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: hot
+                          ? const [
+                              DuiliaoColors.auroraFuchsia,
+                              DuiliaoColors.auroraViolet,
+                            ]
+                          : [
+                              DuiliaoColors.auroraViolet.withValues(
+                                alpha: 0.85,
+                              ),
+                              DuiliaoColors.auroraIndigo.withValues(
+                                alpha: 0.35,
+                              ),
+                            ],
+                    ),
+                    boxShadow: hot
+                        ? [
+                            BoxShadow(
+                              color: DuiliaoColors.auroraFuchsia.withValues(
+                                alpha: 0.45,
+                              ),
+                              blurRadius: 10,
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            date,
+            style: context.texts.labelSmall?.copyWith(fontSize: 9.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SourceRankRow extends StatelessWidget {
+  const _SourceRankRow({
+    required this.rank,
+    required this.name,
+    required this.pct,
+    required this.pctLabel,
+    required this.badgeColor,
+  });
+
+  final int rank;
+  final String name;
+  final double pct;
+  final String pctLabel;
+  final Color badgeColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: badgeColor.withValues(alpha: 0.16),
+            ),
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                color: badgeColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('对料工作台', style: context.texts.headlineSmall),
-                const SizedBox(height: 4),
-                Text('今天先看关键变化，再处理需要动作的事项。', style: context.texts.bodySmall),
-                const SizedBox(height: 8),
-                Semantics(
-                  label: '连接状态：$status',
-                  child: MobileStatusChip(
-                    label: status,
-                    color: color,
-                    icon: icon,
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
                   ),
+                ),
+                const SizedBox(height: 6),
+                GlassLinearProgress(
+                  value: pct,
+                  color: rank == 1 ? DuiliaoColors.hit : null,
                 ),
               ],
             ),
           ),
-          IconButton(
-            tooltip: '消息中心${unread > 0 ? '，$unread 条未读' : ''}',
-            onPressed: () => _push(context, const MessagesScreen()),
-            icon: Badge(
-              isLabelVisible: unread > 0,
-              label: Text('$unread'),
-              child: const Icon(Icons.notifications_none_rounded),
-            ),
-          ),
-          const SizedBox(width: 4),
-          Semantics(
-            button: true,
-            label: '个人中心',
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: () => _push(context, const ProfileScreen()),
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: context.colors.primaryContainer,
-                child: Text(
-                  userInitial,
-                  style: TextStyle(
-                    color: context.colors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LotteryStrip extends StatelessWidget {
-  const _LotteryStrip({required this.selected, required this.onChanged});
-
-  final Lottery selected;
-  final ValueChanged<Lottery> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 62,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(
-          horizontal: DuiliaoTokens.space4,
-          vertical: 8,
-        ),
-        scrollDirection: Axis.horizontal,
-        itemCount: Lottery.all.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final item = Lottery.all[index];
-          final active = item == selected;
-          return Semantics(
-            button: true,
-            selected: active,
-            label: '${item.label}${active ? '，当前彩种' : ''}',
-            child: ChoiceChip(
-              selected: active,
-              label: Text(item.label),
-              onSelected: (_) => onChanged(item),
-              avatar: Icon(
-                active
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_unchecked,
-                size: 16,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _LatestDrawCard extends StatelessWidget {
-  const _LatestDrawCard({required this.draw});
-
-  final DrawRow draw;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        DuiliaoTokens.space4,
-        DuiliaoTokens.space3,
-        DuiliaoTokens.space4,
-        DuiliaoTokens.space2,
-      ),
-      child: MobileSurface(
-        color: context.colors.primaryContainer,
-        padding: const EdgeInsets.all(DuiliaoTokens.space6),
-        onTap: () => _push(
-          context,
-          DrawDetailScreen(
-            lottery: Lottery.parse(draw.lottery),
-            period: draw.period,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '最新开奖 · ${draw.drawDate ?? '刚刚更新'}',
-                    style: context.texts.labelSmall?.copyWith(
-                      color: context.colors.primary,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.chevron_right_rounded),
-              ],
-            ),
-            const SizedBox(height: DuiliaoTokens.space2),
-            Text(
-              Period.compact(draw.period),
-              style: context.texts.headlineSmall,
-            ),
-            const SizedBox(height: DuiliaoTokens.space4),
-            DrawBallRow(draw: draw, ballSize: 30, showColorNames: false),
-            if (draw.summary != null) ...[
-              const SizedBox(height: DuiliaoTokens.space3),
-              Text(
-                '和值 ${draw.summary!.sum7} · ${draw.summary!.sum7Size}${draw.summary!.sum7Odd} · 特${draw.summary!.temaXiao}',
-                style: context.texts.bodySmall,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PrioritySection extends StatelessWidget {
-  const _PrioritySection({required this.home, required this.wide});
-
-  final HomeSnapshot home;
-  final bool wide;
-
-  @override
-  Widget build(BuildContext context) {
-    final summary = home.comparisonSummary;
-    final alerts = <String>[
-      if (summary != null && summary.conflicts > 0)
-        '${summary.conflicts} 条预测与判定存在冲突',
-      if (home.worker?.running == true) '采集任务正在运行',
-      if (home.recentJobs.any((job) => job.status == JobStatus.failed))
-        '最近采集有失败数据源',
-    ];
-
-    return MobileSection(
-      title: '优先处理',
-      subtitle: alerts.isEmpty ? '当前没有需要立即介入的异常' : '建议先处理这些变化',
-      action: TextButton.icon(
-        onPressed: () => _push(context, const ComparisonScreen()),
-        icon: const Icon(Icons.open_in_new, size: 16),
-        label: const Text('查看对照'),
-      ),
-      child: Column(
-        children: [
-          if (alerts.isNotEmpty)
-            MobileSurface(
-              color: context.colors.errorContainer,
-              margin: const EdgeInsets.only(bottom: DuiliaoTokens.space3),
-              padding: const EdgeInsets.all(DuiliaoTokens.space4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    color: context.colors.onErrorContainer,
-                  ),
-                  const SizedBox(width: DuiliaoTokens.space3),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '需要关注',
-                          style: context.texts.titleSmall?.copyWith(
-                            color: context.colors.onErrorContainer,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        for (final alert in alerts)
-                          Text(
-                            '· $alert',
-                            style: context.texts.bodySmall?.copyWith(
-                              color: context.colors.onErrorContainer,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          if (summary != null)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = wide && constraints.maxWidth >= 640 ? 4 : 2;
-                return GridView.builder(
-                  itemCount: 4,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    mainAxisSpacing: DuiliaoTokens.space2,
-                    crossAxisSpacing: DuiliaoTokens.space2,
-                    mainAxisExtent: wide ? 132 : 128,
-                  ),
-                  itemBuilder: (context, index) => [
-                    MobileStatCard(
-                      label: '总数',
-                      value: '${summary.total}',
-                      icon: Icons.list_alt_outlined,
-                    ),
-                    MobileStatCard(
-                      label: '命中',
-                      value: '${summary.hits}',
-                      color: DuiliaoColors.hit,
-                      icon: Icons.check_circle_outline,
-                    ),
-                    MobileStatCard(
-                      label: '未中',
-                      value: '${summary.misses}',
-                      color: DuiliaoColors.miss,
-                      icon: Icons.cancel_outlined,
-                    ),
-                    MobileStatCard(
-                      label: '命中率',
-                      value: summary.judged == 0
-                          ? '—'
-                          : '${(summary.hitRate * 100).toStringAsFixed(1)}%',
-                      caption: '已判 ${summary.judged} 组',
-                      icon: Icons.percent,
-                    ),
-                  ][index],
-                );
-              },
-            ),
-          if (home.recentJobs.isNotEmpty) ...[
-            const SizedBox(height: DuiliaoTokens.space3),
-            MobileSurface(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.sync_alt_rounded,
-                        size: 18,
-                        color: context.colors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text('最近采集', style: context.texts.titleSmall),
-                      const Spacer(),
-                      Text(
-                        '${home.recentJobs.length} 条',
-                        style: context.texts.labelSmall,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: DuiliaoTokens.space2),
-                  for (final job in home.recentJobs.take(3)) _JobRow(job: job),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _JobRow extends StatelessWidget {
-  const _JobRow({required this.job});
-
-  final CollectJob job;
-
-  @override
-  Widget build(BuildContext context) {
-    final (color, icon) = switch (job.status) {
-      JobStatus.done => (DuiliaoColors.hit, Icons.check_circle_outline),
-      JobStatus.failed => (DuiliaoColors.miss, Icons.error_outline),
-      JobStatus.running => (DuiliaoColors.warning, Icons.sync),
-      _ => (DuiliaoColors.pending, Icons.schedule),
-    };
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        children: [
-          Icon(icon, size: 17, color: color),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text('任务 #${job.id}', style: context.texts.bodyMedium),
-          ),
-          MobileStatusChip(label: job.status.label, color: color),
-        ],
-      ),
-    );
-  }
-}
-
-class _InsightSection extends StatelessWidget {
-  const _InsightSection({required this.home, required this.wide});
-
-  final HomeSnapshot home;
-  final bool wide;
-
-  @override
-  Widget build(BuildContext context) {
-    return MobileSection(
-      title: '快速洞察',
-      subtitle: '从共识、评级和规则中快速进入下一步',
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final columns = wide && constraints.maxWidth >= 640 ? 2 : 1;
-          final cards = <Widget>[
-            if (home.consensusGroups.isNotEmpty) _ConsensusCard(home: home),
-            if (home.ratingsTop.isNotEmpty) _RatingsCard(home: home),
-            _ActionCard(
-              icon: Icons.auto_awesome,
-              title: 'AI 研判',
-              detail: '阅读缓存报告或生成新的运营研判',
-              onTap: () =>
-                  _push(context, AiScreen(initialPeriod: home.consensusPeriod)),
-            ),
-            _ActionCard(
-              icon: Icons.grid_view_rounded,
-              title: '号码百科',
-              detail: '查询号码属性与玩法规则',
-              onTap: () => _push(context, const NumbersScreen()),
-            ),
-          ];
-          return GridView.builder(
-            itemCount: cards.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns,
-              mainAxisSpacing: DuiliaoTokens.space2,
-              crossAxisSpacing: DuiliaoTokens.space2,
-              mainAxisExtent: wide ? 156 : 168,
-            ),
-            itemBuilder: (context, index) => cards[index],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ConsensusCard extends StatelessWidget {
-  const _ConsensusCard({required this.home});
-
-  final HomeSnapshot home;
-
-  @override
-  Widget build(BuildContext context) {
-    return MobileSurface(
-      onTap: () => _push(
-        context,
-        ConsensusScreen(
-          lottery: Lottery.parse(home.lottery),
-          initialPeriod: home.consensusPeriod,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Icon(
-                Icons.pie_chart_outline,
-                size: 18,
-                color: context.colors.primary,
+              Text(
+                pctLabel,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: rank == 1 ? DuiliaoColors.hit : null,
+                ),
               ),
-              const SizedBox(width: 8),
-              Text('共识领先', style: context.texts.titleSmall),
+              Text(
+                '近 50 期',
+                style: context.texts.labelSmall?.copyWith(fontSize: 10.5),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            home.consensusGroups
-                .take(2)
-                .map(
-                  (group) =>
-                      '${PlayTypes.labelFor(group.playType)} ${group.leaderVotes}/${group.nVotes}',
-                )
-                .join(' · '),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: context.texts.bodySmall,
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _RatingsCard extends StatelessWidget {
-  const _RatingsCard({required this.home});
-
-  final HomeSnapshot home;
-
-  @override
-  Widget build(BuildContext context) {
-    final window = home.ratingsWindows.isEmpty ? 30 : home.ratingsWindows.first;
-    final top = home.ratingsTop.first;
-    return MobileSurface(
-      onTap: () => _push(context, const RatingsScreen()),
-      child: Row(
-        children: [
-          Expanded(
-            child: MobileStatCard(
-              label: '评级 Top 1',
-              value: formatRate(top.hitRate(window)),
-              caption: top.sourceName.length > 16
-                  ? '${top.sourceName.substring(0, 16)}…'
-                  : top.sourceName,
-              color: context.colors.primary,
-              icon: Icons.insights_outlined,
-            ),
-          ),
-          const SizedBox(width: DuiliaoTokens.space3),
-          Expanded(
-            child: Text(
-              '查看 ${home.ratingsTop.length} 个数据源的近期稳定性与完整性。',
-              style: context.texts.bodySmall,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.icon,
-    required this.title,
-    required this.detail,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String detail;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '$title：$detail',
-      child: MobileSurface(
-        onTap: onTap,
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: context.colors.primaryContainer,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Icon(icon, color: context.colors.primary),
-            ),
-            const SizedBox(width: DuiliaoTokens.space3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title, style: context.texts.titleSmall),
-                  const SizedBox(height: 3),
-                  Text(
-                    detail,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.texts.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded),
-          ],
-        ),
       ),
     );
   }

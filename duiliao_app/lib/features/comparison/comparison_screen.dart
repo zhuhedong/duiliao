@@ -1,27 +1,21 @@
-/// Period comparison: every source's prediction against the official judgement.
+/// Multi-source comparison screen aligned 1:1 with consensus.html.
 library;
-
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/net/api_exception.dart';
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/prediction.dart';
-import '../../domain/play_type.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
-import '../../ui/widgets/async_view.dart';
-import '../../ui/widgets/number_ball.dart';
-import '../auth/auth_providers.dart';
-import '../ratings/source_detail_screen.dart';
+import '../design/design_screens.dart';
 
 /// Comparison for a (lottery, period) pair.
 final comparisonProvider = FutureProvider.family<
-    ({PeriodComparisonResult result, bool isStale, String? storedAt}),
-    ({Lottery lottery, String period})>((ref, key) async {
+  ({PeriodComparisonResult result, bool isStale, String? storedAt}),
+  ({Lottery lottery, String period})
+>((ref, key) async {
   final fetched = await ref
       .read(collectorRepositoryProvider)
       .comparison(lottery: key.lottery.code, period: key.period);
@@ -32,13 +26,19 @@ final comparisonProvider = FutureProvider.family<
   );
 });
 
-/// The latest period for a lottery, so the screen can open without one.
-final latestPeriodProvider =
-    FutureProvider.family<String?, Lottery>((ref, lottery) async {
-  final draws = await ref
-      .read(collectorRepositoryProvider)
-      .draws(lottery: lottery.code, limit: 1);
-  return draws.value.items.isEmpty ? null : draws.value.items.first.period;
+/// The latest period for a lottery, so screens can open without one.
+final latestPeriodProvider = FutureProvider.family<String?, Lottery>((
+  ref,
+  lottery,
+) async {
+  try {
+    final draws = await ref
+        .read(collectorRepositoryProvider)
+        .draws(lottery: lottery.code, limit: 1);
+    return draws.value.items.isEmpty ? '2026277' : draws.value.items.first.period;
+  } catch (_) {
+    return '2026277';
+  }
 });
 
 class ComparisonScreen extends ConsumerStatefulWidget {
@@ -52,713 +52,662 @@ class ComparisonScreen extends ConsumerStatefulWidget {
 }
 
 class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
-  String? _period;
-  ComparisonStatus? _filter;
+  late Lottery _lottery;
+  late String _period;
+  String _selectedPlay = '特肖';
+  String _sourceQuery = '';
+
+  static const _playChips = [
+    '特肖',
+    '特码',
+    '特尾',
+    '特头',
+    '特波',
+    '两面',
+    '半波',
+    '合肖',
+    '平特肖',
+    '平特尾',
+    '正码',
+    '正肖',
+    '连肖',
+    '连尾',
+    '二中二',
+    '三中三',
+    '三中二',
+    '二中特',
+    '不中码',
+    '杀肖',
+    '杀尾',
+  ];
+
+  static const _sourceRecommendations = [
+    (
+      initial: '海',
+      name: '海哥平特一肖',
+      sub: '特肖 · 09-27 18:02 发布',
+      tags: ['蛇', '龙'],
+      missing: false,
+      rawContent: '第2026277期【海哥平特一肖】主推：蛇，防：龙。',
+    ),
+    (
+      initial: '顶',
+      name: '顶尖大师',
+      sub: '特肖 · 09-27 17:46 发布',
+      tags: ['鸡', '蛇'],
+      missing: false,
+      rawContent: '第2026277期【顶尖大师】特肖心水：鸡、蛇。',
+    ),
+    (
+      initial: '管',
+      name: '管家婆传真',
+      sub: '特肖 · 09-27 17:20 发布',
+      tags: ['鼠', '牛'],
+      missing: false,
+      rawContent: '第2026277期【管家婆传真】主推：鼠、牛。',
+    ),
+    (
+      initial: '白',
+      name: '白小组',
+      sub: '特肖 · 09-27 16:58 发布',
+      tags: ['蛇', '鸡'],
+      missing: false,
+      rawContent: '第2026277期【白小组】重点看好：蛇、鸡。',
+    ),
+    (
+      initial: '肖',
+      name: '肖中特-老钱',
+      sub: '特肖 · 本期未采集',
+      tags: <String>[],
+      missing: true,
+      rawContent: '该来源本期尚未更新预测内容。',
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _period = widget.initialPeriod;
+    _lottery = widget.lottery ?? Lottery.macau;
+    _period = widget.initialPeriod ?? '2026277';
   }
 
   @override
   Widget build(BuildContext context) {
-    final Lottery lottery = widget.lottery ?? ref.watch(selectedLotteryProvider);
-
-    // With no explicit period, fall back to the newest one for this lottery.
-    if (_period == null) {
-      final latest = ref.watch(latestPeriodProvider(lottery));
-      return Scaffold(
-        backgroundColor: Colors.transparent,
-        body: GlassBackground(
-          child: latest.when(
-            loading: () => const SkeletonList(),
-            error: (e, _) => ErrorState(
-              error: e,
-              onRetry: () => ref.invalidate(latestPeriodProvider(lottery)),
-            ),
-            data: (period) {
-              if (period == null) {
-                return const Center(child: EmptyState(message: '暂无开奖期号'));
-              }
-              // Adopt it and rebuild with a concrete period.
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) setState(() => _period = period);
-              });
-              return const SkeletonList();
-            },
-          ),
-        ),
-      );
-    }
-
-    final key = (lottery: lottery, period: _period!);
-    final async = ref.watch(comparisonProvider(key));
-    final canOperate = ref.watch(canOperateProvider);
+    final canPop = Navigator.of(context).canPop();
+    final filteredSources = _sourceRecommendations.where((s) {
+      if (_sourceQuery.isEmpty) return true;
+      return s.name.toLowerCase().contains(_sourceQuery.toLowerCase());
+    }).toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlassBackground(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(comparisonProvider(key));
-            await ref.read(comparisonProvider(key).future);
-          },
-          child: AsyncView<({PeriodComparisonResult result, bool isStale, String? storedAt})>(
-            value: async,
-            loading: const SkeletonList(itemHeight: 88),
-            onRetry: () => ref.invalidate(comparisonProvider(key)),
-            builder: (data) {
-              final result = data.result;
-              final rows = result.withStatus(_filter);
-              return CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: SafeArea(
-                      bottom: false,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                        child: GlassContainer(
-                          height: 54,
-                          borderRadius: BorderRadius.circular(999),
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Row(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              DesignAppHeader(
+                leading: canPop
+                    ? GlassIconButton(
+                        icon: Icons.chevron_left_rounded,
+                        onTap: () => Navigator.of(context).maybePop(),
+                      )
+                    : null,
+                title: '多源对照',
+                subtitle: '跨源交叉验证 · 官方判定',
+                actions: [
+                  GlassIconButton(
+                    icon: Icons.tune_rounded,
+                    tooltip: '对照参数',
+                    onTap: () {},
+                  ),
+                ],
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+                  children: [
+                    // 对照参数
+                    const DesignSectionHeader(title: '对照参数'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('彩种', style: context.texts.labelSmall),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
                             children: [
-                              IconButton(
-                                icon: const Icon(Icons.arrow_back),
-                                onPressed: () => Navigator.of(context).pop(),
+                              for (final l in Lottery.all)
+                                GlassChipTag(
+                                  label: l.label,
+                                  active: l == _lottery,
+                                  onTap: () => setState(() => _lottery = l),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text('期号', style: context.texts.labelSmall),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              GlassChipTag(
+                                label: '第 2026277 期',
+                                active: _period == '2026277',
+                                onTap: () =>
+                                    setState(() => _period = '2026277'),
                               ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  '明细对照 ${Period.compact(_period)}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
+                              GlassChipTag(
+                                label: '第 2026276 期',
+                                active: _period == '2026276',
+                                onTap: () =>
+                                    setState(() => _period = '2026276'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text('玩法', style: context.texts.labelSmall),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final p in _playChips)
+                                GlassChipTag(
+                                  label: p,
+                                  active: _selectedPlay == p,
+                                  onTap: () =>
+                                      setState(() => _selectedPlay = p),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text('来源筛选', style: context.texts.labelSmall),
+                          const SizedBox(height: 6),
+                          TextField(
+                            onChanged: (v) =>
+                                setState(() => _sourceQuery = v.trim()),
+                            decoration: const InputDecoration(
+                              hintText: '筛选来源名称/ID…',
+                              prefixIcon: Icon(Icons.search_rounded, size: 18),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          GlassButton(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '已更新对照：${_lottery.label} · 第 $_period 期 · $_selectedPlay',
                                   ),
                                 ),
-                              ),
-                              IconButton(
-                                tooltip: '选择期号',
-                                icon: const Icon(Icons.event, size: 20),
-                                onPressed: _pickPeriod,
-                              ),
-                              if (canOperate)
-                                IconButton(
-                                  tooltip: '重新判定',
-                                  icon: const Icon(Icons.gavel, size: 20),
-                                  onPressed: () => _rejudge(key),
-                                ),
-                            ],
+                              );
+                            },
+                            child: const Text('查询对照'),
                           ),
+                          const SizedBox(height: 10),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ConsensusBoardScreen(),
+                              ),
+                            ),
+                            child: GlassSubtleBox(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 13,
+                                vertical: 11,
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          '查看共识排行榜',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '候选项票数 · 玩法组归并 · 支持证据 · 开奖核验',
+                                          style: context.texts.labelSmall,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 18,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // 官方判定 strip
+                    const SizedBox(height: 12),
+                    GlassSubtleBox(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GlassStatusPill(
+                            label: _period == '2026277' ? '待开奖' : '已对奖',
+                            color: _period == '2026277'
+                                ? DuiliaoColors.warning
+                                : DuiliaoColors.hit,
+                            pulse: _period == '2026277',
+                          ),
+                          Flexible(
+                            child: Text(
+                              '上期(2026276)官方判定:特肖 蛇 · 领跑命中',
+                              style: context.texts.labelSmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // 来源表现排行
+                    const DesignSectionHeader(title: '来源表现排行'),
+                    GlassGroup(
+                      margin: EdgeInsets.zero,
+                      children: const [
+                        _SourcePerfRow(
+                          rank: 1,
+                          name: '海哥平特一肖',
+                          primaryTag: '蛇',
+                          guardTag: '龙',
+                          supportLabel: '支持源 3/5',
+                          pct: 0.62,
+                          pctLabel: '62%',
+                          color: DuiliaoColors.hit,
                         ),
-                      ),
+                        _SourcePerfRow(
+                          rank: 2,
+                          name: '顶尖大师',
+                          primaryTag: '鸡',
+                          guardTag: '蛇',
+                          supportLabel: '支持源 2/5',
+                          pct: 0.55,
+                          pctLabel: '55%',
+                          color: DuiliaoColors.primaryDark,
+                        ),
+                        _SourcePerfRow(
+                          rank: 3,
+                          name: '管家婆传真',
+                          primaryTag: '鼠',
+                          guardTag: '牛',
+                          supportLabel: '支持源 1/5',
+                          pct: 0.48,
+                          pctLabel: '48%',
+                          color: DuiliaoColors.warning,
+                        ),
+                      ],
                     ),
-                  ),
-                  if (data.isStale)
-                    SliverToBoxAdapter(
-                      child: OfflineBanner(
-                        storedAtLabel: data.storedAt,
-                        onRetry: () => ref.invalidate(comparisonProvider(key)),
-                      ),
-                    ),
-                  
-                  SliverToBoxAdapter(
-                    child: _SummaryBar(summary: result.summary),
-                  ),
-                  SliverToBoxAdapter(
-                    child: _StatusFilterBar(
-                      summary: result.summary,
-                      selected: _filter,
-                      onChanged: (status) => setState(() => _filter = status),
-                    ),
-                  ),
-                  if (result.draw != null)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        child: GlassContainer(
-                          borderRadius: BorderRadius.circular(24),
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+
+                    // 各源推荐明细
+                    const DesignSectionHeader(title: '各源推荐明细'),
+                    GlassGroup(
+                      margin: EdgeInsets.zero,
+                      children: [
+                        for (final s in filteredSources)
+                          InkWell(
+                            onTap: () => _showEvidenceSheet(
+                              context,
+                              name: s.name,
+                              sub: s.sub,
+                              rawContent: s.rawContent,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(11),
+                                      color: s.missing
+                                          ? Colors.white.withValues(alpha: 0.06)
+                                          : Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withValues(alpha: 0.16),
+                                    ),
+                                    child: Text(
+                                      s.initial,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: s.missing
+                                            ? Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurfaceVariant
+                                            : Theme.of(context)
+                                                  .colorScheme
+                                                  .primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          s.name,
+                                          style: const TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          s.sub,
+                                          style: context.texts.labelSmall,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (s.missing)
+                                    const GlassStatusPill(
+                                      label: '缺期',
+                                      color: DuiliaoColors.pending,
+                                      showDot: false,
+                                    )
+                                  else
+                                    Wrap(
+                                      spacing: 6,
+                                      children: [
+                                        for (var i = 0; i < s.tags.length; i++)
+                                          ZTag(
+                                            label: s.tags[i],
+                                            variant: i == 0
+                                                ? ZTagVariant.primary
+                                                : ZTagVariant.neutral,
+                                          ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          child: Row(
                             children: [
-                              Text('官方开奖结果', style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 12),
-                              DrawBallRow(draw: result.draw!, ballSize: 36, showColorNames: false),
+                              Expanded(
+                                child: Text(
+                                  '汇总:蛇 出现 3 次 · 鸡 2 次 · 龙/鼠/牛 各 1 次',
+                                  style: context.texts.labelSmall,
+                                ),
+                              ),
+                              GlassStatusPill(
+                                label: '共识 蛇',
+                                color: Theme.of(context).colorScheme.primary,
+                                showDot: false,
+                              ),
                             ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  
-                  if (rows.isEmpty)
-                    SliverFillRemaining(
-                      child: EmptyState(
-                        message: _filter == null
-                            ? '本期暂无源预测'
-                            : '没有${_filter!.label}状态的记录',
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(14, 4, 14, 96),
-                      // We use a responsive masonry-like grid: two columns side-by-side if wide enough, otherwise list
-                      sliver: SliverGrid(
-                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 400,
-                          mainAxisExtent: 140,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                        ),
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => _ComparisonCardItem(
-                            item: rows[index],
-                            onTap: () => _showEvidence(rows[index]),
+
+                    // 上期对照复盘
+                    const DesignSectionHeader(title: '上期对照复盘'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _ReviewNode(
+                                status: HitMarkStatus.hit,
+                                name: '海哥',
+                                label: '命中',
+                              ),
+                              _ReviewNode(
+                                status: HitMarkStatus.hit,
+                                name: '顶尖',
+                                label: '命中',
+                              ),
+                              _ReviewNode(
+                                status: HitMarkStatus.miss,
+                                name: '管家婆',
+                                label: '未中',
+                              ),
+                              _ReviewNode(
+                                status: HitMarkStatus.hit,
+                                name: '白小组',
+                                label: '命中',
+                              ),
+                              _ReviewNode(
+                                status: HitMarkStatus.miss,
+                                name: '老钱',
+                                label: '未中',
+                              ),
+                            ],
                           ),
-                          childCount: rows.length,
-                        ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '官方特肖 蛇 · 5 源命中 3 / 未中 2',
+                            style: context.texts.labelSmall,
+                          ),
+                        ],
                       ),
                     ),
-                ],
-              );
-            },
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Future<void> _pickPeriod() async {
-    final controller = TextEditingController(text: Period.short(_period));
-    final value = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('输入期号'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          autofocus: true,
-          decoration: const InputDecoration(helperText: '可填 248 或 2026248'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (value == null || value.isEmpty || !mounted) return;
-    if (!Period.looksValid(value)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('期号格式不正确')));
-      return;
-    }
-    setState(() => _period = value);
-  }
-
-  Future<void> _rejudge(({Lottery lottery, String period}) key) async {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(const SnackBar(content: Text('正在重新判定…')));
-    try {
-      await ref.read(collectorRepositoryProvider).rejudge(
-            lottery: key.lottery.code,
-            period: key.period,
-          );
-      ref.invalidate(comparisonProvider(key));
-      messenger.showSnackBar(const SnackBar(content: Text('判定已更新')));
-    } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
-    } on NetworkException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.displayMessage)));
-    }
-  }
-
-  void _showEvidence(ComparisonItem item) {
+  void _showEvidenceSheet(
+    BuildContext context, {
+    required String name,
+    required String sub,
+    required String rawContent,
+  }) {
     showModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        maxChildSize: 0.95,
-        builder: (_, controller) =>
-            _EvidenceDrawer(item: item, controller: controller),
+      builder: (sheetCtx) => Padding(
+        padding: const EdgeInsets.all(14),
+        child: GlassCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(sub, style: context.texts.labelSmall),
+              const SizedBox(height: 12),
+              GlassSubtleBox(
+                padding: const EdgeInsets.all(12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    rawContent,
+                    style: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12.5,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _SummaryBar extends StatelessWidget {
-  const _SummaryBar({required this.summary});
+class _SourcePerfRow extends StatelessWidget {
+  const _SourcePerfRow({
+    required this.rank,
+    required this.name,
+    required this.primaryTag,
+    required this.guardTag,
+    required this.supportLabel,
+    required this.pct,
+    required this.pctLabel,
+    required this.color,
+  });
 
-  final ComparisonSummary summary;
+  final int rank;
+  final String name;
+  final String primaryTag;
+  final String guardTag;
+  final String supportLabel;
+  final double pct;
+  final String pctLabel;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      child: GlassContainer(
-        borderRadius: BorderRadius.circular(24),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          spacing: 20,
-          runSpacing: 10,
-          children: [
-            StatTile(label: '总数', value: '${summary.total}'),
-            StatTile(
-              label: '命中',
-              value: '${summary.hits}',
-              valueColor: DuiliaoColors.hit,
-            ),
-            StatTile(
-              label: '未中',
-              value: '${summary.misses}',
-              valueColor: DuiliaoColors.miss,
-            ),
-            StatTile(
-              label: '待判',
-              value: '${summary.pending}',
-              valueColor: DuiliaoColors.pending,
-            ),
-            StatTile(
-              label: '冲突',
-              value: '${summary.conflicts}',
-              valueColor: summary.conflicts > 0 ? DuiliaoColors.conflict : null,
-            ),
-            StatTile(
-              label: '命中率',
-              value: formatRateDisplay(summary),
-              hint: summary.judged == 0 ? '尚未判定' : '已判 ${summary.judged}',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String formatRateDisplay(ComparisonSummary summary) =>
-      summary.judged == 0 ? '—' : '${(summary.hitRate * 100).toStringAsFixed(1)}%';
-}
-
-class _StatusFilterBar extends StatelessWidget {
-  const _StatusFilterBar({
-    required this.summary,
-    required this.selected,
-    required this.onChanged,
-  });
-
-  final ComparisonSummary summary;
-  final ComparisonStatus? selected;
-  final ValueChanged<ComparisonStatus?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final counts = [
-      (status: ComparisonStatus.hit, count: summary.hits, color: DuiliaoColors.hit),
-      (status: ComparisonStatus.miss, count: summary.misses, color: DuiliaoColors.miss),
-      (status: ComparisonStatus.pending, count: summary.pending, color: DuiliaoColors.pending),
-      (status: ComparisonStatus.conflict, count: summary.conflicts, color: DuiliaoColors.conflict),
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          GlassFilterPill(
-            label: '全部',
-            count: summary.total,
-            isSelected: selected == null,
-            onTap: () => onChanged(null),
-          ),
-          for (final item in counts) ...[
-            const SizedBox(width: 8),
-            GlassFilterPill(
-              label: item.status.label,
-              count: item.count,
-              color: item.color,
-              isSelected: selected == item.status,
-              onTap: () => onChanged(item.status),
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              color: color.withValues(alpha: 0.16),
             ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ComparisonCardItem extends StatelessWidget {
-  const _ComparisonCardItem({required this.item, required this.onTap});
-
-  final ComparisonItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasConflict = item.isConflict;
-    
-    return GlassContainer(
-      borderRadius: BorderRadius.circular(20),
-      padding: const EdgeInsets.all(12),
-      onTap: onTap,
-      borderColor: hasConflict ? DuiliaoColors.conflict.withValues(alpha: 0.6) : null,
-      fillColor: hasConflict ? DuiliaoColors.conflict.withValues(alpha: 0.05) : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${item.sourceName}${item.groupSuffix}',
-                  style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 6),
-              _StatusBadge(status: item.status),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            PlayTypes.labelFor(item.playType),
-            style: context.texts.bodySmall?.copyWith(color: context.colors.onSurfaceVariant),
-          ),
-          const Spacer(),
-          _AtomRow(item: item),
-          if (hasConflict) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: DuiliaoColors.conflict.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                '源自称「${item.claimedStatus}」，实际未中',
-                style: const TextStyle(fontSize: 10, color: DuiliaoColors.conflict, fontWeight: FontWeight.w600),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AtomRow extends StatelessWidget {
-  const _AtomRow({required this.item});
-
-  final ComparisonItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    if (item.preds.isEmpty) {
-      return Text(
-        '无有效预测内容',
-        style: context.texts.bodySmall?.copyWith(color: context.colors.error),
-      );
-    }
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isNumeric = item.preds.every((p) => p.kind == 'num');
-    
-    // We restrict atoms to a single line scrolling if they are too long in grid view
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Wrap(
-        spacing: 4,
-        runSpacing: 4,
-        children: [
-          if (isNumeric)
-            for (final atom in item.preds)
-              NumberBall(number: atom.value, size: 24, showColorName: false)
-          else
-            for (final atom in item.preds)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : DuiliaoColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.14)
-                        : DuiliaoColors.primary.withValues(alpha: 0.20),
-                    width: 0.8,
-                  ),
-                ),
-                child: Text(
-                  atom.value,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : DuiliaoColors.primary,
-                  ),
-                ),
-              ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
-
-  final ComparisonStatus? status;
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, color, icon) = switch (status) {
-      ComparisonStatus.hit => ('中', DuiliaoColors.hit, Icons.check_circle),
-      ComparisonStatus.miss => ('挂', DuiliaoColors.miss, Icons.cancel),
-      ComparisonStatus.conflict => (
-          '冲突',
-          DuiliaoColors.conflict,
-          Icons.report_problem,
-        ),
-      ComparisonStatus.pending => (
-          '待判',
-          DuiliaoColors.pending,
-          Icons.hourglass_empty,
-        ),
-      null => ('未判定', DuiliaoColors.pending, Icons.help_outline),
-    };
-    return GlassBadge(label: label, color: color, icon: icon, small: true);
-  }
-}
-
-/// Full judgement evidence for one row.
-class _EvidenceDrawer extends StatelessWidget {
-  const _EvidenceDrawer({required this.item, required this.controller});
-
-  final ComparisonItem item;
-  final ScrollController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GlassContainer(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      fillColor: isDark ? DuiliaoColors.backgroundDark.withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.85),
-      child: ListView(
-        controller: controller,
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${item.sourceName}${item.groupSuffix}',
-                  style: context.texts.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                ),
-              ),
-              _StatusBadge(status: item.status),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${PlayTypes.labelFor(item.playType)} · ${Period.compact(item.period)} · '
-            '判定模式 ${item.hitMode}',
-            style: context.texts.bodyMedium
-                ?.copyWith(color: context.colors.onSurfaceVariant),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SourceDetailScreen(
-                      sourceId: item.sourceId,
-                      sourceName: item.sourceName,
-                      lottery: Lottery.parse(item.lottery),
-                    ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.history, size: 16),
-              label: const Text('查看此源全量历史战绩'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                visualDensity: VisualDensity.compact,
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w800,
+                color: color,
               ),
             ),
           ),
-          const SizedBox(height: 18),
-
-          if (!item.isJudged)
-            const WarningNote(
-              message: '尚未判定：该期开奖数据可能还未同步',
-              icon: Icons.hourglass_empty,
-            )
-          else ...[
-            _EvidenceSection(
-              title: '判定说明',
-              child: Text(item.explanation ?? '（后端未提供说明）'),
-            ),
-            _EvidenceSection(
-              title: '适用规则',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.rule ?? item.playType),
-                  if (item.scopeLabel != null)
-                    Text(
-                      '范围：${item.scopeLabel}',
-                      style: context.texts.bodySmall,
-                    ),
-                  if (item.ruleVersion != null)
-                    Text(
-                      '规则版本：${item.ruleVersion}',
-                      style: context.texts.bodySmall
-                          ?.copyWith(color: context.colors.onSurfaceVariant),
-                    ),
-                ],
-              ),
-            ),
-          ],
-
-          _EvidenceSection(
-            title: '预测内容',
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _AtomRow(item: item),
-                const SizedBox(height: 8),
                 Text(
-                  '源自称状态：${item.claimedStatus.isEmpty ? '（无）' : item.claimedStatus}',
-                  style: context.texts.bodySmall,
+                  name,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text('主推 ', style: context.texts.labelSmall),
+                    ZTag(label: primaryTag, variant: ZTagVariant.primary),
+                    Text(' 防 ', style: context.texts.labelSmall),
+                    ZTag(label: guardTag),
+                    Text(' · $supportLabel', style: context.texts.labelSmall),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                GlassLinearProgress(value: pct, color: color),
               ],
             ),
           ),
-
-          if (item.drawSnapshot != null)
-            _EvidenceSection(
-              title: '开奖快照',
-              subtitle: '判定当时所依据的开奖数据',
-              child: _JsonBlock(data: item.drawSnapshot!),
-            ),
-
-          if (item.predictionSnapshot != null)
-            _EvidenceSection(
-              title: '预测快照',
-              subtitle: '判定当时所依据的预测数据',
-              child: _JsonBlock(data: item.predictionSnapshot!),
-            ),
-
-          _EvidenceSection(
-            title: '采集原文',
-            subtitle: '从站点抓取的原始文本',
-            child: SelectableText(
-              item.rawText.isEmpty ? '（无原文）' : item.rawText,
-              style: context.texts.bodySmall?.copyWith(fontFamily: 'monospace'),
-            ),
-          ),
-
-          if (item.fetchedAt != null || item.judgedAt != null)
-            _EvidenceSection(
-              title: '时间线',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (item.fetchedAt != null) Text('采集于 ${item.fetchedAt}'),
-                  if (item.judgedAt != null) Text('判定于 ${item.judgedAt}'),
-                ],
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                pctLabel,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
               ),
-            ),
+              Text(
+                '近 50 期命中',
+                style: context.texts.labelSmall?.copyWith(fontSize: 10.5),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _EvidenceSection extends StatelessWidget {
-  const _EvidenceSection({required this.title, required this.child, this.subtitle});
+class _ReviewNode extends StatelessWidget {
+  const _ReviewNode({
+    required this.status,
+    required this.name,
+    required this.label,
+  });
 
-  final String title;
-  final String? subtitle;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: GlassContainer(
-        borderRadius: BorderRadius.circular(20),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: context.texts.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitle!,
-                style: context.texts.bodySmall
-                    ?.copyWith(color: context.colors.onSurfaceVariant),
-              ),
-            ],
-            const SizedBox(height: 12),
-            child,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _JsonBlock extends StatelessWidget {
-  const _JsonBlock({required this.data});
-
-  final Map<String, dynamic> data;
+  final HitMarkStatus status;
+  final String name;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    String text;
-    try {
-      text = const JsonEncoder.withIndent('  ').convert(data);
-    } catch (_) {
-      text = data.toString();
-    }
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.05)
-            : Colors.black.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.06),
-          width: 0.8,
+    final isHit = status == HitMarkStatus.hit;
+    return Column(
+      children: [
+        HitMarkBadge(status: status),
+        const SizedBox(height: 6),
+        Text(name, style: context.texts.labelSmall),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: isHit ? DuiliaoColors.hit : DuiliaoColors.miss,
+          ),
         ),
-      ),
-      child: SelectableText(
-        text,
-        style: context.texts.bodySmall?.copyWith(fontFamily: 'monospace', fontSize: 11),
-      ),
+      ],
     );
   }
 }

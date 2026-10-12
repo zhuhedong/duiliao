@@ -63,6 +63,12 @@ class CollectorSource {
   /// True when the source is configured but cannot actually run.
   bool get isBroken => scriptExists == false || scriptPathValid == false;
 
+  String? get brokenReason {
+    if (scriptPathValid == false) return '脚本路径无效';
+    if (scriptExists == false) return '脚本文件不存在';
+    return null;
+  }
+
   /// Case-insensitive match across the fields an operator would search by.
   bool matches(String query) {
     if (query.isEmpty) return true;

@@ -165,7 +165,6 @@ class _MobileNavigation extends StatelessWidget {
       child: GlassFloatingNavigationBar(
         selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
         onDestinationSelected: (index) => onSelected(destinations[index].id),
-        onMore: onMore,
         items: [
           for (final item in destinations)
             GlassNavItem(

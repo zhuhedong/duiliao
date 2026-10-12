@@ -81,11 +81,13 @@ class SourceDetailScreen extends ConsumerStatefulWidget {
     required this.sourceId,
     required this.lottery,
     this.sourceName,
+    this.initialPlayType,
   });
 
   final String sourceId;
   final Lottery lottery;
   final String? sourceName;
+  final String? initialPlayType;
 
   @override
   ConsumerState<SourceDetailScreen> createState() => _SourceDetailScreenState();

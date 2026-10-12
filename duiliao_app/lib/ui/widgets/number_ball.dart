@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../domain/lottery.dart';
 import '../../domain/models/draw.dart';
 import '../theme.dart';
 
@@ -13,6 +14,35 @@ import '../theme.dart';
 /// attached as a semantics label. Roughly 1 in 12 men has a red-green colour
 /// vision deficiency, and 红波 vs 绿波 is exactly that pairing — an operator
 /// deciding whether a 波色 prediction hit cannot be asked to rely on hue.
+/// Lookup table for 2026 wave colors and zodiacs when backend attr is absent.
+abstract final class Lottery2026Lookup {
+  static const Set<int> redNums = {
+    1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46,
+  };
+  static const Set<int> blueNums = {
+    3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48,
+  };
+  static const List<String> xiaoList = [
+    '鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪',
+  ];
+  static const Set<String> jiaXiao = {'牛', '马', '羊', '鸡', '狗', '猪'};
+
+  static String boseForNumber(Object raw) {
+    final n = raw is int ? raw : int.tryParse(raw.toString().trim());
+    if (n == null || n < 1 || n > 49) return '';
+    if (redNums.contains(n)) return '红波';
+    if (blueNums.contains(n)) return '蓝波';
+    return '绿波';
+  }
+
+  static String xiaoForNumber(Object raw, {int year = 2026}) {
+    final n = raw is int ? raw : int.tryParse(raw.toString().trim());
+    if (n == null || n < 1 || n > 49) return '';
+    final idx = (((year - 4) % 12 - (n - 1)) % 12 + 12) % 12;
+    return xiaoList[idx];
+  }
+}
+
 class NumberBall extends StatelessWidget {
   const NumberBall({
     super.key,
@@ -20,8 +50,16 @@ class NumberBall extends StatelessWidget {
     this.bose,
     this.attr,
     this.isSpecial = false,
-    this.size = 40,
+    this.isGold = false,
+    this.goldBorder = false,
+    this.hitHighlight = false,
+    this.size = 34,
     this.showColorName = true,
+    this.showCaption,
+    this.caption,
+    this.xiao,
+    this.captionColor,
+    this.captionBold = false,
     this.badge,
     this.dimmed = false,
     this.onTap,
@@ -30,19 +68,36 @@ class NumberBall extends StatelessWidget {
   /// Zero-padded number, e.g. `08`.
   final String number;
 
-  /// 波色 string; taken from [attr] when that is supplied.
+  /// 波色 string; taken from [attr] or inferred from [number] when omitted.
   final String? bose;
 
   /// Full attributes, used for the semantics label and the 波色.
   final NumberAttr? attr;
 
-  /// 特码 gets a radiant halo ring so it is distinguishable from the six 正码 at a glance.
+  /// 特码 gets a gold sphere or radiant halo ring so it is distinguishable from the six 正码.
   final bool isSpecial;
+
+  /// Renders with the `.ball.gold` radial gradient from `app-design/assets/app.css`.
+  final bool isGold;
+
+  /// Renders a 2px gold border around a wave-colored ball (used in `ai-report.html`).
+  final bool goldBorder;
+
+  /// Renders a glowing green ring around a hit ball (used in `record-detail.html`).
+  final bool hitHighlight;
 
   final double size;
 
-  /// Whether to render the 波色 name under the ball.
+  /// Whether to render the 波色 name under the ball when [caption] is not provided.
   final bool showColorName;
+  final bool? showCaption;
+
+  /// Explicit under-ball caption (e.g. zodiac `蛇` or `中`). Overrides [showColorName].
+  final String? caption;
+  final String? xiao;
+
+  final Color? captionColor;
+  final bool captionBold;
 
   /// Small corner marker, e.g. the 连肖 indicator.
   final Widget? badge;
@@ -52,103 +107,120 @@ class NumberBall extends StatelessWidget {
 
   final VoidCallback? onTap;
 
-  String? get _bose => attr?.bose ?? bose;
+  String? get _bose {
+    final raw = attr?.bose ?? bose;
+    if (raw != null && raw.isNotEmpty) return raw;
+    final inferred = Lottery2026Lookup.boseForNumber(number);
+    return inferred.isEmpty ? null : inferred;
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = DuiliaoColors.forBose(_bose);
-    final effective = dimmed ? color.withValues(alpha: 0.28) : color;
+    final useGold = isGold;
+    final (stopA, stopB) = DuiliaoColors.waveStopsFor(_bose, isGold: useGold);
+    final effectiveA = dimmed ? stopA.withValues(alpha: 0.25) : stopA;
+    final effectiveB = dimmed ? stopB.withValues(alpha: 0.25) : stopB;
     final label = attr?.semanticLabel ?? _fallbackLabel();
 
-    // 3D Liquid Crystal Sphere styling
-    final ball = Container(
-      width: size,
-      height: size,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        // Specular radial gradient creating 3D refractive sphere depth
-        gradient: RadialGradient(
-          center: const Alignment(-0.32, -0.36),
-          radius: 0.88,
-          colors: [
-            Color.lerp(Colors.white, effective, 0.22)!,
-            effective,
-            Color.lerp(effective, Colors.black, 0.38)!,
-          ],
-          stops: const [0.0, 0.52, 1.0],
-        ),
-        // Luminous glass border + special halo for 特码
-        border: isSpecial
-            ? Border.all(
-                color: isDark ? const Color(0xFFFFE082) : const Color(0xFFF59E0B),
-                width: 2.2,
-              )
-            : Border.all(
-                color: Colors.white.withValues(alpha: isDark ? 0.35 : 0.45),
-                width: 0.9,
-              ),
-        boxShadow: [
-          // Ambient colored bloom matching 波色
-          BoxShadow(
-            color: effective.withValues(alpha: dimmed ? 0.05 : (isDark ? 0.45 : 0.28)),
-            blurRadius: size * 0.32,
-            offset: Offset(0, size * 0.12),
-          ),
-          if (isSpecial)
-            BoxShadow(
-              color: (isDark ? const Color(0xFFFFB800) : const Color(0xFFD97706))
-                  .withValues(alpha: 0.55),
-              blurRadius: 10,
-              spreadRadius: 1,
-            ),
-        ],
-      ),
-      child: Stack(
+    Border? ballBorder;
+    if (hitHighlight) {
+      ballBorder = Border.all(color: DuiliaoColors.hit, width: 2.0);
+    } else if (goldBorder || (isSpecial && !useGold)) {
+      ballBorder = Border.all(color: DuiliaoColors.waveGoldA, width: 2.0);
+    }
+
+    // Matches `.ball` in `app-design/assets/app.css`
+    final ball = Opacity(
+      opacity: dimmed ? 0.35 : 1.0,
+      child: Container(
+        width: size,
+        height: size,
         alignment: Alignment.center,
-        children: [
-          // Top-left specular lens highlight arc
-          Positioned(
-            top: size * 0.08,
-            left: size * 0.18,
-            child: Container(
-              width: size * 0.42,
-              height: size * 0.20,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.elliptical(size * 0.42, size * 0.20)),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.75),
-                    Colors.white.withValues(alpha: 0.05),
-                  ],
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            center: const Alignment(-0.36, -0.44),
+            radius: 0.92,
+            colors: [effectiveA, effectiveB],
+          ),
+          border: ballBorder,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: dimmed ? 0.15 : 0.42),
+              blurRadius: 8,
+              spreadRadius: -2,
+              offset: const Offset(0, 3),
+            ),
+            if (useGold || isSpecial)
+              BoxShadow(
+                color: DuiliaoColors.waveGoldA.withValues(
+                  alpha: dimmed ? 0.12 : (isDark ? 0.55 : 0.40),
+                ),
+                blurRadius: 14,
+                spreadRadius: -2,
+              ),
+            if (hitHighlight)
+              BoxShadow(
+                color: DuiliaoColors.hit.withValues(alpha: 0.45),
+                blurRadius: 14,
+                spreadRadius: 0,
+              ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Subtle top-left inner highlight matching `inset 0 2px 3px oklch(1 0 0 / 35%)`
+            Positioned(
+              top: size * 0.08,
+              left: size * 0.18,
+              child: Container(
+                width: size * 0.38,
+                height: size * 0.16,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.all(
+                    Radius.elliptical(size * 0.38, size * 0.16),
+                  ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withValues(alpha: useGold ? 0.30 : 0.45),
+                      Colors.white.withValues(alpha: 0.0),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          // Ball number text with slight specular shadow for maximum legibility
-          Text(
-            number,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: size * 0.42,
-              letterSpacing: -0.5,
-              shadows: const [
-                Shadow(
-                  color: Color(0x66000000),
-                  offset: Offset(0, 1.2),
-                  blurRadius: 2.5,
-                ),
-              ],
-              fontFeatures: const [FontFeature.tabularFigures()],
+            Text(
+              number,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: size <= 26 ? 11.5 : (size >= 40 ? 16.0 : 14.0),
+                letterSpacing: -0.2,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x55000000),
+                    offset: Offset(0, 1),
+                    blurRadius: 2,
+                  ),
+                ],
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+
+    final shouldShowCaption = showCaption ?? showColorName;
+    final explicitCaption = caption ?? xiao;
+    final effectiveCaption = shouldShowCaption
+        ? (explicitCaption ??
+              (_bose != null && _bose!.isNotEmpty ? _boseShort : null))
+        : explicitCaption;
 
     final content = Column(
       mainAxisSize: MainAxisSize.min,
@@ -163,15 +235,18 @@ class NumberBall extends StatelessWidget {
               Positioned(right: -2, top: -2, child: badge!),
             ],
           ),
-        if (showColorName && _bose != null && _bose!.isNotEmpty)
+        if (effectiveCaption != null && effectiveCaption.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 3),
+            padding: const EdgeInsets.only(top: 5),
             child: Text(
-              _boseShort,
+              effectiveCaption,
               style: TextStyle(
-                fontSize: size * 0.26,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 11,
+                fontWeight: captionBold ? FontWeight.w700 : FontWeight.w500,
+                color: captionColor ??
+                    (captionBold
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
           ),
@@ -208,63 +283,92 @@ class NumberBall extends StatelessWidget {
   }
 }
 
-/// A row of balls for a draw: the six 正码 in drop order, then the 特码.
+/// A row of balls for a draw: the six 正码 in drop order, `+`, then the gold 特码,
+/// with aligned zodiac labels directly underneath each ball matching `app-design`.
 class DrawBallRow extends StatelessWidget {
   const DrawBallRow({
     super.key,
     required this.draw,
-    this.ballSize = 40,
+    this.ballSize = 34,
     this.showColorNames = true,
+    this.showXiaoSubRow = true,
+    this.goldSpecial = true,
+    this.spaceBetween = true,
     this.onBallTap,
   });
 
   final DrawRow draw;
   final double ballSize;
   final bool showColorNames;
+  final bool showXiaoSubRow;
+  final bool goldSpecial;
+  final bool spaceBetween;
 
   /// Called with the index into [DrawRow.allNumbers]; index 6 is the 特码.
   final void Function(int index)? onBallTap;
 
+  String _xiaoAt(int index, String numStr, NumberAttr? attr) {
+    final x = attr?.xiao;
+    if (x != null && x.isNotEmpty) return x;
+    final year = Period.year(draw.period) ?? 2026;
+    return Lottery2026Lookup.xiaoForNumber(numStr, year: year);
+  }
+
   @override
   Widget build(BuildContext context) {
     final details = draw.ballsDetail;
+    final items = <Widget>[
+      for (var i = 0; i < draw.balls.length; i++)
+        NumberBall(
+          number: draw.balls[i],
+          attr: i < details.length ? details[i] : null,
+          size: ballSize,
+          showColorName: !showXiaoSubRow && showColorNames,
+          caption: showXiaoSubRow
+              ? _xiaoAt(i, draw.balls[i], i < details.length ? details[i] : null)
+              : null,
+          badge: _lianxiaoBadge(context, i < details.length ? details[i] : null),
+          onTap: onBallTap == null ? null : () => onBallTap!(i),
+        ),
+      Padding(
+        padding: EdgeInsets.only(bottom: (showXiaoSubRow || showColorNames) ? 16 : 0),
+        child: Text(
+          '+',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+      NumberBall(
+        number: draw.tema,
+        attr: draw.temaDetail,
+        isSpecial: true,
+        isGold: goldSpecial,
+        size: ballSize,
+        showColorName: !showXiaoSubRow && showColorNames,
+        caption: showXiaoSubRow ? _xiaoAt(6, draw.tema, draw.temaDetail) : null,
+        captionBold: showXiaoSubRow,
+        captionColor: showXiaoSubRow ? Theme.of(context).colorScheme.primary : null,
+        badge: _lianxiaoBadge(context, draw.temaDetail),
+        onTap: onBallTap == null ? null : () => onBallTap!(draw.balls.length),
+      ),
+    ];
+
+    if (spaceBetween) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: items,
+      );
+    }
+
     return Wrap(
-      spacing: 8,
+      spacing: 7,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        for (var i = 0; i < draw.balls.length; i++)
-          NumberBall(
-            number: draw.balls[i],
-            attr: i < details.length ? details[i] : null,
-            size: ballSize,
-            showColorName: showColorNames,
-            badge: _lianxiaoBadge(context, i < details.length ? details[i] : null),
-            onTap: onBallTap == null ? null : () => onBallTap!(i),
-          ),
-        // A separator makes the 正码 / 特码 split explicit rather than relying on
-        // the ring alone.
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Text(
-            '+',
-            style: TextStyle(
-              fontSize: ballSize * 0.44,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
-            ),
-          ),
-        ),
-        NumberBall(
-          number: draw.tema,
-          attr: draw.temaDetail,
-          isSpecial: true,
-          size: ballSize,
-          showColorName: showColorNames,
-          badge: _lianxiaoBadge(context, draw.temaDetail),
-          onTap: onBallTap == null ? null : () => onBallTap!(draw.balls.length),
-        ),
-      ],
+      children: items,
     );
   }
 
@@ -291,3 +395,4 @@ class DrawBallRow extends StatelessWidget {
     );
   }
 }
+
