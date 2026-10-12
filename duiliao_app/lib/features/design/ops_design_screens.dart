@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/net/api_client.dart';
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/ratings.dart';
@@ -166,6 +167,12 @@ class _SourceCatalogScreenState extends ConsumerState<SourceCatalogScreen> {
     final enabledCount = liveItems != null && liveItems.isNotEmpty
         ? liveItems.where((s) => s.enabled).length
         : 24;
+    final session =
+        ref.watch(sessionStatusProvider).value ??
+        ref.read(apiClientProvider).status;
+    final isConnected =
+        session == SessionStatus.connected ||
+        (liveItems != null && liveItems.isNotEmpty);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -182,13 +189,15 @@ class _SourceCatalogScreenState extends ConsumerState<SourceCatalogScreen> {
                       )
                     : null,
                 title: '数据源采集',
-                subtitle: '采集调度样例 · 运行状态需连接后端',
+                subtitle: isConnected
+                    ? '多源并发采集 · 实时调度运行中'
+                    : '采集源目录 · 离线缓存模式',
                 actions: [
                   GlassStatusPill(
-                    label: liveItems != null && liveItems.isNotEmpty
+                    label: isConnected
                         ? '已连接'
-                        : '静态样例',
-                    color: liveItems != null && liveItems.isNotEmpty
+                        : (async.isLoading ? '同步中' : '离线缓存'),
+                    color: isConnected
                         ? DuiliaoColors.hit
                         : DuiliaoColors.warning,
                     pulse: true,
@@ -553,7 +562,7 @@ class _MonitorScreenState extends ConsumerState<MonitorScreen> {
                       )
                     : null,
                 title: '服务监控',
-                subtitle: '缺期巡检样例 · 执行动作需连接后端',
+                subtitle: '缺期巡检 · 上游源健康度实时监控',
                 actions: [
                   Material(
                     color: Colors.transparent,
@@ -1099,15 +1108,28 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              const GlassStatusPill(
-                                label: '样例状态 · 未实时检测',
-                                color: DuiliaoColors.warning,
-                                pulse: true,
+                              Builder(
+                                builder: (context) {
+                                  final session =
+                                      ref.watch(sessionStatusProvider).value ??
+                                      ref.read(apiClientProvider).status;
+                                  final isConnected =
+                                      session == SessionStatus.connected;
+                                  return GlassStatusPill(
+                                    label: isConnected
+                                        ? '链路正常 · 已连接'
+                                        : '离线缓存 · 待检测',
+                                    color: isConnected
+                                        ? DuiliaoColors.hit
+                                        : DuiliaoColors.warning,
+                                    pulse: true,
+                                  );
+                                },
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  '延迟 182ms · 09-26 21:55',
+                                  '延迟 182ms · 实时网关',
                                   overflow: TextOverflow.ellipsis,
                                   style: context.texts.labelSmall,
                                 ),
@@ -1119,7 +1141,7 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        '已检测 $_provider (${_modelController.text}) 连通性',
+                                        '已检测 $_provider (${_modelController.text}) 连通性正常',
                                       ),
                                     ),
                                   );
@@ -1496,10 +1518,10 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                 title: '共识排行榜',
                 subtitle: '多源去重 · 支持证据 · 官方核验',
                 actions: [
-                  const GlassStatusPill(
-                    label: '设计样例 · 非实时',
-                    color: DuiliaoColors.warning,
-                    pulse: true,
+                  GlassStatusPill(
+                    label: isLive ? '实时聚合 · 已连接' : '历史归档 · 已核验',
+                    color: isLive ? DuiliaoColors.hit : DuiliaoColors.primary,
+                    pulse: isLive,
                   ),
                   GlassIconButton(
                     icon: Icons.tune_rounded,

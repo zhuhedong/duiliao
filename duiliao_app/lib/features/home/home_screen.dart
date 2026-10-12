@@ -60,7 +60,8 @@ class HomeScreen extends ConsumerWidget {
     final async = ref.watch(homeProvider(key));
     final user = ref.watch(authStateProvider).user;
     final session =
-        ref.watch(sessionStatusProvider).value ?? SessionStatus.disconnected;
+        ref.watch(sessionStatusProvider).value ??
+        ref.read(apiClientProvider).status;
 
     final snapshot = async.value?.snapshot;
     final draw = snapshot?.latestDraw ?? _fallbackLatestDraw;
@@ -78,7 +79,12 @@ class HomeScreen extends ConsumerWidget {
         draw.summary?.temaJiaye ??
         (Lottery2026Lookup.jiaXiao.contains(temaXiao) ? '家禽' : '野兽');
 
-    final isConnected = session == SessionStatus.connected;
+    final isConnected =
+        session == SessionStatus.connected ||
+        (snapshot != null && !(async.value?.isStale ?? false));
+    final statusLabel = isConnected
+        ? '链路正常 · 实时'
+        : (async.isLoading ? '正在连接 · 同步中' : '离线缓存 · 待重连');
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -108,7 +114,7 @@ class HomeScreen extends ConsumerWidget {
                   title: '工作台',
                   actions: [
                     GlassStatusPill(
-                      label: isConnected ? '链路正常 · 实时' : '本地服务 · 样例状态',
+                      label: statusLabel,
                       color: isConnected
                           ? DuiliaoColors.hit
                           : DuiliaoColors.warning,

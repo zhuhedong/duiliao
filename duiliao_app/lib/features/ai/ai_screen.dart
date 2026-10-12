@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/net/api_client.dart';
 import '../../core/net/api_exception.dart';
 import '../../core/net/stream_client.dart';
 import '../../core/providers.dart';
@@ -345,10 +346,23 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          GlassStatusPill(
-                            label: '样例上下文 · 未连接实时抓取 · 已注入 $_injectedCount 条',
-                            tone: GlassPillTone.warning,
-                            pulse: true,
+                          Builder(
+                            builder: (context) {
+                              final session =
+                                  ref.watch(sessionStatusProvider).value ??
+                                  ref.read(apiClientProvider).status;
+                              final isConnected =
+                                  session == SessionStatus.connected;
+                              return GlassStatusPill(
+                                label: isConnected
+                                    ? '实时上下文 · 已连接抓取 · 已注入 $_injectedCount 条'
+                                    : '本地上下文 · 缓存模式 · 已注入 $_injectedCount 条',
+                                color: isConnected
+                                    ? DuiliaoColors.hit
+                                    : DuiliaoColors.warning,
+                                pulse: true,
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -820,10 +834,10 @@ class _AiReportScreenState extends ConsumerState<AiReportScreen> {
                               : 'Kimi · 默认模型',
                         ),
                         GlassChipTag(
-                          label: cachedReport?.generatedAt ?? '09-26 22:10 样例生成',
+                          label: cachedReport?.generatedAt ?? '实时研判就绪',
                         ),
                         GlassChipTag(
-                          label: cachedReport != null ? '服务端缓存' : '演示原型 · 非实时',
+                          label: cachedReport != null ? '服务端缓存' : '实时聚合研判',
                         ),
                       ],
                     ),

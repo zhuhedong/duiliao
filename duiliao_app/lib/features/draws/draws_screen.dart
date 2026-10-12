@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/net/api_client.dart';
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/draw.dart';
@@ -53,6 +54,11 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
     final liveItems = async.value?.items ?? const <DrawRow>[];
     final items = liveItems.isNotEmpty ? liveItems : _fallbackDraws;
     final canPop = Navigator.of(context).canPop();
+    final session =
+        ref.watch(sessionStatusProvider).value ??
+        ref.read(apiClientProvider).status;
+    final isConnected =
+        session == SessionStatus.connected || liveItems.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -72,8 +78,10 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                 subtitle: '官方落球顺序 · 实时同步',
                 actions: [
                   GlassStatusPill(
-                    label: liveItems.isNotEmpty ? '实时同步' : '静态样例',
-                    color: liveItems.isNotEmpty
+                    label: isConnected
+                        ? '实时同步'
+                        : (async.isLoading ? '同步中' : '离线缓存'),
+                    color: isConnected
                         ? DuiliaoColors.hit
                         : DuiliaoColors.warning,
                     pulse: true,

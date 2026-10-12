@@ -44,9 +44,10 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 });
 
 /// Encrypted-session connection state, for the status indicator.
-final sessionStatusProvider = StreamProvider<SessionStatus>((ref) {
+final sessionStatusProvider = StreamProvider<SessionStatus>((ref) async* {
   final client = ref.watch(apiClientProvider);
-  return client.statusStream;
+  yield client.status;
+  yield* client.statusStream;
 });
 
 // --------------------------------------------------------------------------- //
