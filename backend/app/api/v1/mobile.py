@@ -606,3 +606,114 @@ def _load_subscription_row(db: Session, user_id: str) -> dict[str, Any]:
         "notify_rules": rules,
         "updated_at": row.updated_at.isoformat() if row.updated_at else None,
     }
+
+
+# --------------------------------------------------------------------------- #
+# User betting records (/app/records)
+# --------------------------------------------------------------------------- #
+class BettingRecordPayload(BaseModel):
+    lottery: str = Field("macau")
+    period: str = Field(..., min_length=1, max_length=32)
+    mode: str = Field("号码单式")
+    play_type: str = Field("特码")
+    numbers: list[str] = Field(default_factory=list)
+    xiaos: list[str] = Field(default_factory=list)
+    stake_per_note: int = Field(10, ge=1, le=1_000_000)
+    multiplier: int = Field(1, ge=1, le=10_000)
+    notes_count: int | None = Field(None, ge=1, le=100_000)
+    total_amount: int | None = Field(None, ge=1, le=100_000_000)
+    odds: float | None = Field(None, gt=0)
+    raw_input: str | None = Field("")
+    note: str | None = Field(None, max_length=255)
+    source_badge: str | None = Field(None, max_length=64)
+
+
+class BettingRecordUpdatePayload(BaseModel):
+    lottery: str | None = None
+    period: str | None = Field(None, min_length=1, max_length=32)
+    mode: str | None = None
+    play_type: str | None = None
+    numbers: list[str] | None = None
+    xiaos: list[str] | None = None
+    stake_per_note: int | None = Field(None, ge=1, le=1_000_000)
+    multiplier: int | None = Field(None, ge=1, le=10_000)
+    notes_count: int | None = Field(None, ge=1, le=100_000)
+    total_amount: int | None = Field(None, ge=1, le=100_000_000)
+    odds: float | None = Field(None, gt=0)
+    raw_input: str | None = None
+    note: str | None = Field(None, max_length=255)
+    source_badge: str | None = Field(None, max_length=64)
+
+
+@router.get("/records")
+def get_records(
+    lottery: str | None = Query(None),
+    status_filter: str | None = Query(None, alias="status"),
+    db: Session = Depends(get_db),
+    user: User = _user,
+) -> dict[str, Any]:
+    """List the current user's betting records, auto-settling against any published draws."""
+    if lottery:
+        _validate_lottery(lottery)
+    from app.services.betting_records_service import list_user_records
+
+    return list_user_records(
+        db=db,
+        user_id=user.id,
+        lottery=lottery,
+        status_filter=status_filter,
+        auto_settle=True,
+    )
+
+
+@router.post("/records", status_code=status.HTTP_201_CREATED)
+def post_record(
+    payload: BettingRecordPayload,
+    db: Session = Depends(get_db),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Create a betting record for the signed-in user and settle immediately if drawn."""
+    _validate_lottery(payload.lottery)
+    from app.services.betting_records_service import create_user_record
+
+    record = create_user_record(db=db, user_id=user.id, payload=payload.model_dump())
+    return {"ok": True, "record": record}
+
+
+@router.put("/records/{record_id}")
+def put_record(
+    record_id: str,
+    payload: BettingRecordUpdatePayload,
+    db: Session = Depends(get_db),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Update an existing betting record owned by the signed-in user."""
+    if payload.lottery:
+        _validate_lottery(payload.lottery)
+    from app.services.betting_records_service import update_user_record
+
+    record = update_user_record(
+        db=db,
+        user_id=user.id,
+        record_id=record_id,
+        payload=payload.model_dump(exclude_unset=True),
+    )
+    if record is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="record not found")
+    return {"ok": True, "record": record}
+
+
+@router.delete("/records/{record_id}")
+def remove_record(
+    record_id: str,
+    db: Session = Depends(get_db),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Delete a betting record owned by the signed-in user."""
+    from app.services.betting_records_service import delete_user_record
+
+    deleted = delete_user_record(db=db, user_id=user.id, record_id=record_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="record not found")
+    return {"ok": True, "deleted": True, "id": record_id}
+

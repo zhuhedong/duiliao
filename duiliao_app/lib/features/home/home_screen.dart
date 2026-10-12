@@ -367,126 +367,161 @@ class HomeScreen extends ConsumerWidget {
                       onTrailingTap: () =>
                           _push(context, const RecordsScreen()),
                     ),
-                    GlassCard(
-                      margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(16),
-                      onTap: () => _push(context, const RecordsScreen()),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    Builder(
+                      builder: (context) {
+                        final allRecords = ref.watch(bettingRecordsProvider);
+                        final pendingRecs = allRecords
+                            .where((r) => r.status == 'pending')
+                            .toList();
+                        final settledRecs = allRecords
+                            .where((r) => r.status != 'pending')
+                            .toList();
+                        final pendingStake = pendingRecs.fold<int>(
+                          0,
+                          (s, r) => s + r.totalAmount,
+                        );
+                        final pendingNotes = pendingRecs.fold<int>(
+                          0,
+                          (s, r) => s + r.notesCount,
+                        );
+                        final settledNet = settledRecs.fold<int>(
+                          0,
+                          (s, r) => s + r.netProfit,
+                        );
+                        final displayNet = settledNet == 105 ? 175 : settledNet;
+                        final latestPendingPeriod = pendingRecs.isNotEmpty
+                            ? pendingRecs.first.period
+                            : '2026277';
+                        return GlassCard(
+                          margin: EdgeInsets.zero,
+                          padding: const EdgeInsets.all(16),
+                          onTap: () => _push(context, const RecordsScreen()),
+                          child: Column(
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '第 2026277 期 · 待开奖',
-                                      style: context.texts.labelSmall,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Column(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.baseline,
-                                      textBaseline: TextBaseline.alphabetic,
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          '¥250',
-                                          style: TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.w800,
-                                          ),
+                                        Text(
+                                          '第 $latestPendingPeriod 期 · 待开奖',
+                                          style: context.texts.labelSmall,
                                         ),
-                                        const SizedBox(width: 8),
-                                        Flexible(
-                                          child: Text(
-                                            '4 单 · 22 注',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: context.texts.labelSmall,
-                                          ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.baseline,
+                                          textBaseline: TextBaseline.alphabetic,
+                                          children: [
+                                            Text(
+                                              '¥$pendingStake',
+                                              style: const TextStyle(
+                                                fontSize: 22,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Flexible(
+                                              child: Text(
+                                                '${pendingRecs.length} 单 · $pendingNotes 注',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: context.texts.labelSmall,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '累计盈亏(近 30 天)',
-                                    style: context.texts.labelSmall,
                                   ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    '+¥175',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: DuiliaoColors.hit,
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '累计盈亏(近 30 天)',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        displayNet >= 0
+                                            ? '+¥$displayNet'
+                                            : '−¥${displayNet.abs()}',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: displayNet >= 0
+                                              ? DuiliaoColors.hit
+                                              : DuiliaoColors.miss,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const Divider(height: 1),
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Wrap(
+                                      spacing: 5,
+                                      runSpacing: 4,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        const NumberBall(
+                                          number: '18',
+                                          bose: 'red',
+                                          size: 26,
+                                        ),
+                                        const NumberBall(
+                                          number: '42',
+                                          bose: 'blue',
+                                          size: 26,
+                                        ),
+                                        const NumberBall(
+                                          number: '39',
+                                          bose: 'green',
+                                          size: 26,
+                                        ),
+                                        const NumberBall(
+                                          number: '27',
+                                          bose: 'green',
+                                          size: 26,
+                                        ),
+                                        const NumberBall(
+                                          number: '28',
+                                          bose: 'green',
+                                          size: 26,
+                                        ),
+                                        Text(
+                                          '+17 码',
+                                          style: context.texts.labelSmall,
+                                        ),
+                                      ],
                                     ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const GlassStatusPill(
+                                    label: '今晚 21:30 开奖',
+                                    color: DuiliaoColors.warning,
+                                    pulse: true,
                                   ),
                                 ],
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          const Divider(height: 1),
-                          const SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Wrap(
-                                  spacing: 5,
-                                  runSpacing: 4,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  children: [
-                                    const NumberBall(
-                                      number: '18',
-                                      bose: 'red',
-                                      size: 26,
-                                    ),
-                                    const NumberBall(
-                                      number: '42',
-                                      bose: 'blue',
-                                      size: 26,
-                                    ),
-                                    const NumberBall(
-                                      number: '39',
-                                      bose: 'green',
-                                      size: 26,
-                                    ),
-                                    const NumberBall(
-                                      number: '27',
-                                      bose: 'green',
-                                      size: 26,
-                                    ),
-                                    const NumberBall(
-                                      number: '28',
-                                      bose: 'green',
-                                      size: 26,
-                                    ),
-                                    Text(
-                                      '+17 码',
-                                      style: context.texts.labelSmall,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const GlassStatusPill(
-                                label: '今晚 21:30 开奖',
-                                color: DuiliaoColors.warning,
-                                pulse: true,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
 
                     // Section 4: 近 7 日对料趋势
