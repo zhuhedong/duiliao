@@ -1,3 +1,4 @@
+import 'package:duiliao_app/domain/lottery.dart';
 import 'package:duiliao_app/features/design/records_screens.dart';
 import 'package:duiliao_app/ui/theme.dart';
 import 'package:flutter/material.dart';
@@ -14,33 +15,62 @@ void main() {
     );
   }
 
-  testWidgets('RecordsScreen renders without layout exceptions and filters records',
+  testWidgets(
+      'RecordsScreen starts with 0 fake records, supports adding and deleting records cleanly',
       (tester) async {
     tester.view.physicalSize = const Size(393 * 3, 852 * 3);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(wrap(const RecordsScreen()));
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: DuiliaoTheme.dark(),
+          home: const RecordsScreen(),
+        ),
+      ),
+    );
     await tester.pump();
 
+    // 1. Starts empty with no un-deletable fake records
     expect(find.text('记录'), findsOneWidget);
-    expect(find.text('智能识别 · 自动对奖'), findsOneWidget);
-    expect(find.text('本期汇总'), findsOneWidget);
-    expect(find.text('¥250'), findsOneWidget);
-    expect(find.text('4 单 · 22 注'), findsOneWidget);
+    expect(find.text('暂无投注记录'), findsOneWidget);
+    expect(find.text('¥0'), findsOneWidget);
+    expect(find.text('0 单 · 0 注'), findsOneWidget);
 
-    // Filter tabs work without layout errors
-    await tester.tap(find.text('待开奖').first);
+    // 2. Add a real record and verify it appears and can be deleted directly on the list page
+    container.read(bettingRecordsProvider.notifier).addRecord(
+          const BettingRecordItem(
+            id: 'rec-user-1',
+            lottery: Lottery.macau,
+            period: '2026277',
+            playType: '正码',
+            timeLabel: '20:15',
+            numbers: ['03', '15', '27', '39', '04', '16', '28', '40'],
+            xiaos: [],
+            stakePerNote: 5,
+            multiplier: 1,
+            notesCount: 8,
+            totalAmount: 40,
+            status: 'pending',
+            rawInput: '龙兔各数5',
+          ),
+        );
     await tester.pump();
+
     expect(find.text('第 2026277 期'), findsOneWidget);
+    expect(find.text('1 单 · 8 注'), findsOneWidget);
 
-    await tester.tap(find.text('已中奖'));
+    // Tap the delete button on the record card
+    await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);
     await tester.pump();
-    expect(find.text('第 2026276 期'), findsOneWidget);
 
-    await tester.tap(find.text('未中'));
-    await tester.pump();
-    expect(find.text('第 2026275 期'), findsOneWidget);
+    expect(container.read(bettingRecordsProvider), isEmpty);
+    expect(find.text('暂无投注记录'), findsOneWidget);
   });
 
   testWidgets('RecordAddScreen renders all 3 modes and saves record',
@@ -95,7 +125,31 @@ void main() {
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(wrap(const RecordDetailScreen()));
+    const wonRecord = BettingRecordItem(
+      id: 'rec-won-1',
+      lottery: Lottery.macau,
+      period: '2026276',
+      playType: '正码',
+      timeLabel: '09-26 19:52',
+      numbers: ['06', '11', '17', '26', '30', '42'],
+      xiaos: [],
+      stakePerNote: 5,
+      multiplier: 1,
+      notesCount: 6,
+      totalAmount: 30,
+      status: 'won',
+      hitNumbers: ['11', '26', '42'],
+      hitNotes: 3,
+      payout: 105,
+      netProfit: 75,
+      winPillLabel: '中 3 码 +¥75',
+      rawInput: '06.11.17.26.30.42个数5',
+      drawNumbers: ['03', '11', '19', '27', '34', '42'],
+      specialNumber: '26',
+      drawTime: '09-26 21:32',
+    );
+
+    await tester.pumpWidget(wrap(const RecordDetailScreen(record: wonRecord)));
     await tester.pump();
 
     expect(find.text('记录详情'), findsOneWidget);

@@ -471,3 +471,10 @@ def test_betting_record_multi_link_fushi_3_4_and_settlement(user_client):
     assert settled_rec["net_profit"] == settled_rec["payout"] - 75
     assert settled_rec["win_pill_label"] == f"中 5 注 +¥{settled_rec['net_profit']}"
 
+    cleared = user_client.delete("/app/records", params={"lottery": "macau"})
+    assert cleared["ok"] is True
+    assert cleared["deleted_count"] >= 1
+    after_clear = user_client.get("/app/records", params={"lottery": "macau"})
+    assert after_clear["items"] == []
+
+

@@ -410,6 +410,12 @@ def get_source(source_id: str, _: User = _user) -> dict[str, Any]:
     try:
         return reg.get_source(source_id)
     except reg.RegistryError as exc:
+        resolved = cb.resolve_source_id(source_id)
+        if resolved != source_id:
+            try:
+                return reg.get_source(resolved)
+            except reg.RegistryError:
+                pass
         raise HTTPException(status_code=404, detail=exc.message)
 
 

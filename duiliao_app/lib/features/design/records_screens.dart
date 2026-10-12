@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
+import '../home/home_screen.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/number_ball.dart';
@@ -31,15 +32,17 @@ class BettingRecordItem {
     this.fushiLink,
     this.fushiLinks = const <int>[],
     this.hitNumbers = const <String>[],
+    this.hitNotes = 0,
+    this.odds = 7.0,
     this.payout = 0,
     this.netProfit = 0,
     this.winPillLabel,
     this.rawInput = '',
     this.note,
     this.sourceBadge,
-    this.drawNumbers = const <String>['03', '11', '19', '27', '34', '42'],
-    this.specialNumber = '26',
-    this.drawTime = '09-26 21:32',
+    this.drawNumbers = const <String>[],
+    this.specialNumber = '',
+    this.drawTime = '',
   });
 
   final String id;
@@ -57,6 +60,8 @@ class BettingRecordItem {
   final int? fushiLink;
   final List<int> fushiLinks;
   final List<String> hitNumbers;
+  final int hitNotes;
+  final double odds;
   final int payout;
   final int netProfit;
   final String? winPillLabel;
@@ -83,6 +88,8 @@ class BettingRecordItem {
     'fushi_link': fushiLink,
     'fushi_links': fushiLinks,
     'hit_numbers': hitNumbers,
+    'hit_notes': hitNotes,
+    'odds': odds,
     'payout': payout,
     'net_profit': netProfit,
     'win_pill_label': winPillLabel,
@@ -101,16 +108,21 @@ class BettingRecordItem {
     final rawBalls =
         (drawMap?['balls'] as List?) ?? (json['draw_numbers'] as List?);
     final drawNums = rawBalls != null && rawBalls.isNotEmpty
-        ? rawBalls.map((e) => e.toString().padLeft(2, '0')).toList()
-        : const <String>['03', '11', '19', '27', '34', '42'];
-    final tema = (drawMap?['tema'] ?? json['special_number'] ?? '26')
+        ? rawBalls
+              .map((e) => e.toString().trim())
+              .where((s) => s.isNotEmpty)
+              .map((s) => s.padLeft(2, '0'))
+              .toList()
+        : const <String>[];
+    final rawTema = (drawMap?['tema'] ?? json['special_number'] ?? '')
         .toString()
-        .padLeft(2, '0');
+        .trim();
+    final tema = rawTema.isNotEmpty ? rawTema.padLeft(2, '0') : '';
     final drawTime =
         (drawMap?['opened_at'] ??
                 drawMap?['draw_date'] ??
                 json['draw_time'] ??
-                '09-26 21:32')
+                '')
             .toString();
     final hitNums =
         ((json['hit_numbers'] as List?) ?? const <Object?>[])
@@ -118,17 +130,25 @@ class BettingRecordItem {
             .toList();
     final status = (json['status'] ?? 'pending').toString();
     final netProfit = (json['net_profit'] as num?)?.toInt() ?? 0;
+    final hitNotes = (json['hit_notes'] as num?)?.toInt() ?? hitNums.length;
+    final odds = (json['odds'] as num?)?.toDouble() ?? 7.0;
     final playType = (json['play_type'] ?? '正码').toString();
     String? winPill = json['win_pill_label']?.toString();
     if (winPill == null && status == 'won') {
-      winPill = playType == '特码'
-          ? '特码中 +¥$netProfit'
-          : '中 ${hitNums.length} 码 +¥$netProfit';
+      if (playType.contains('特码')) {
+        winPill = '特码中 +¥$netProfit';
+      } else if (playType.contains('连')) {
+        winPill = '中 $hitNotes 注 +¥$netProfit';
+      } else if (playType.contains('不中')) {
+        winPill = '全不中 +¥$netProfit';
+      } else {
+        winPill = '中 ${hitNums.length} 码 +¥$netProfit';
+      }
     }
     return BettingRecordItem(
       id: (json['id'] ?? '').toString(),
       lottery: Lottery.parse((json['lottery'] ?? 'macau').toString()),
-      period: (json['period'] ?? '2026277').toString(),
+      period: (json['period'] ?? '').toString(),
       playType: playType,
       timeLabel: (json['time_label'] ?? '').toString(),
       numbers: ((json['numbers'] as List?) ?? const <Object?>[])
@@ -137,10 +157,10 @@ class BettingRecordItem {
       xiaos: ((json['xiaos'] as List?) ?? const <Object?>[])
           .map((e) => e.toString())
           .toList(),
-      stakePerNote: (json['stake_per_note'] as num?)?.toInt() ?? 10,
+      stakePerNote: (json['stake_per_note'] as num?)?.toInt() ?? 5,
       multiplier: (json['multiplier'] as num?)?.toInt() ?? 1,
       notesCount: (json['notes_count'] as num?)?.toInt() ?? 1,
-      totalAmount: (json['total_amount'] as num?)?.toInt() ?? 10,
+      totalAmount: (json['total_amount'] as num?)?.toInt() ?? 5,
       status: status,
       fushiLink: (json['fushi_link'] as num?)?.toInt(),
       fushiLinks: ((json['fushi_links'] as List?) ?? const <Object?>[])
@@ -148,6 +168,8 @@ class BettingRecordItem {
           .where((v) => v >= 2 && v <= 5)
           .toList(),
       hitNumbers: hitNums,
+      hitNotes: hitNotes,
+      odds: odds,
       payout: (json['payout'] as num?)?.toInt() ?? 0,
       netProfit: netProfit,
       winPillLabel: winPill,
@@ -162,12 +184,22 @@ class BettingRecordItem {
 }
 
 class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
-  static const _cacheKey = 'betting_records:v1';
+  static const _cacheKey = 'betting_records:v2';
+  static const _legacyFakeIds = <String>{
+    'rec-277-1',
+    'rec-277-2',
+    'rec-277-3',
+    'rec-277-4',
+    'rec-276-1',
+    'rec-276-2',
+    'rec-275-1',
+    'rec-275-2',
+  };
 
   @override
   List<BettingRecordItem> build() {
     Future.microtask(_hydrate);
-    return _defaultRecords;
+    return const <BettingRecordItem>[];
   }
 
   Future<void> _hydrate() async {
@@ -180,7 +212,7 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
       if (cached != null && cached.value is Map) {
         final payload = Map<String, Object?>.from(cached.value as Map);
         final items = payload['items'];
-        if (items is List && items.isNotEmpty) {
+        if (items is List) {
           state = items
               .whereType<Map>()
               .map(
@@ -188,6 +220,7 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
                   Map<String, Object?>.from(m),
                 ),
               )
+              .where((r) => r.id.isNotEmpty && !_legacyFakeIds.contains(r.id))
               .toList(growable: false);
         }
       }
@@ -211,7 +244,7 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
       final api = ref.read(apiClientProvider);
       final res = await api.get('/app/records');
       final rawItems = res['items'];
-      if (rawItems is List && rawItems.isNotEmpty) {
+      if (rawItems is List) {
         final serverList = rawItems
             .whereType<Map>()
             .map(
@@ -219,6 +252,7 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
                 Map<String, Object?>.from(m),
               ),
             )
+            .where((r) => r.id.isNotEmpty && !_legacyFakeIds.contains(r.id))
             .toList(growable: false);
         state = serverList;
         await _persistLocal(serverList);
@@ -286,12 +320,29 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
     } catch (_) {}
   }
 
+  Future<void> clearAllRecords({String? statusFilter}) async {
+    final next = (statusFilter == null || statusFilter == 'all')
+        ? const <BettingRecordItem>[]
+        : state.where((r) => r.status != statusFilter).toList(growable: false);
+    state = next;
+    await _persistLocal(next);
+    try {
+      final api = ref.read(apiClientProvider);
+      await api.delete(
+        '/app/records',
+        query: statusFilter != null && statusFilter != 'all'
+            ? {'status': statusFilter}
+            : null,
+      );
+    } catch (_) {}
+  }
+
   Future<void> settleRecords() async {
     try {
       final api = ref.read(apiClientProvider);
       final res = await api.post('/app/records/settle');
       final rawItems = res['items'];
-      if (rawItems is List && rawItems.isNotEmpty) {
+      if (rawItems is List) {
         final serverList = rawItems
             .whereType<Map>()
             .map(
@@ -299,6 +350,7 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
                 Map<String, Object?>.from(m),
               ),
             )
+            .where((r) => r.id.isNotEmpty && !_legacyFakeIds.contains(r.id))
             .toList(growable: false);
         state = serverList;
         await _persistLocal(serverList);
@@ -312,159 +364,16 @@ final bettingRecordsProvider =
       BettingRecordsNotifier.new,
     );
 
-
-const List<BettingRecordItem> _defaultRecords = [
-  BettingRecordItem(
-    id: 'rec-277-1',
-    lottery: Lottery.macau,
-    period: '2026277',
-    playType: '正码',
-    timeLabel: '20:14',
-    numbers: ['18', '42', '39', '27', '28', '14', '32', '11', '26', '16'],
-    xiaos: [],
-    stakePerNote: 5,
-    multiplier: 1,
-    notesCount: 10,
-    totalAmount: 50,
-    status: 'pending',
-    sourceBadge: '来自 AI 研判',
-    rawInput: '18.42.39.27.28.14.32.11.26.16个数5',
-  ),
-  BettingRecordItem(
-    id: 'rec-277-2',
-    lottery: Lottery.macau,
-    period: '2026277',
-    playType: '正码',
-    timeLabel: '20:14',
-    numbers: ['07', '15', '23', '35'],
-    xiaos: [],
-    stakePerNote: 10,
-    multiplier: 1,
-    notesCount: 4,
-    totalAmount: 40,
-    status: 'pending',
-    rawInput: '07.15.23.35个数10',
-  ),
-  BettingRecordItem(
-    id: 'rec-277-3',
-    lottery: Lottery.macau,
-    period: '2026277',
-    playType: '特码',
-    timeLabel: '19:48',
-    numbers: ['08', '18', '28'],
-    xiaos: [],
-    stakePerNote: 20,
-    multiplier: 1,
-    notesCount: 3,
-    totalAmount: 60,
-    status: 'pending',
-    rawInput: '特码 08.18.28个数20',
-  ),
-  BettingRecordItem(
-    id: 'rec-277-4',
-    lottery: Lottery.macau,
-    period: '2026277',
-    playType: '连肖',
-    timeLabel: '21:10',
-    numbers: [],
-    xiaos: ['龙', '牛', '猴', '鸡', '兔'],
-    fushiLink: 4,
-    stakePerNote: 10,
-    multiplier: 2,
-    notesCount: 5,
-    totalAmount: 100,
-    status: 'pending',
-    rawInput: '龙牛猴鸡兔复试4连个数10',
-  ),
-  BettingRecordItem(
-    id: 'rec-276-1',
-    lottery: Lottery.macau,
-    period: '2026276',
-    playType: '正码',
-    timeLabel: '09-26 19:52',
-    numbers: ['06', '11', '17', '26', '30', '42'],
-    xiaos: [],
-    stakePerNote: 5,
-    multiplier: 1,
-    notesCount: 6,
-    totalAmount: 30,
-    status: 'won',
-    hitNumbers: ['11', '26', '42'],
-    payout: 105,
-    netProfit: 75,
-    winPillLabel: '中 3 码 +¥75',
-    rawInput: '06.11.17.26.30.42个数5',
-    note: '参考海哥+顶尖大师交集',
-    drawNumbers: ['03', '11', '19', '27', '34', '42'],
-    specialNumber: '26',
-    drawTime: '09-26 21:32',
-  ),
-  BettingRecordItem(
-    id: 'rec-276-2',
-    lottery: Lottery.macau,
-    period: '2026276',
-    playType: '特码',
-    timeLabel: '09-26 20:05',
-    numbers: ['09', '19', '26', '33'],
-    xiaos: [],
-    stakePerNote: 5,
-    multiplier: 1,
-    notesCount: 4,
-    totalAmount: 20,
-    status: 'won',
-    hitNumbers: ['26'],
-    payout: 40,
-    netProfit: 20,
-    winPillLabel: '特码中 +¥20',
-    rawInput: '09.19.26.33个数5',
-    drawNumbers: ['03', '11', '19', '27', '34', '42'],
-    specialNumber: '26',
-    drawTime: '09-26 21:32',
-  ),
-  BettingRecordItem(
-    id: 'rec-275-1',
-    lottery: Lottery.macau,
-    period: '2026275',
-    playType: '正码',
-    timeLabel: '09-25 19:40',
-    numbers: ['03', '07', '14', '22', '38', '45'],
-    xiaos: [],
-    stakePerNote: 5,
-    multiplier: 1,
-    notesCount: 6,
-    totalAmount: 30,
-    status: 'won',
-    hitNumbers: ['07', '22'],
-    payout: 70,
-    netProfit: 40,
-    winPillLabel: '中 2 码 +¥40',
-    rawInput: '03.07.14.22.38.45个数5',
-    drawNumbers: ['07', '12', '22', '29', '36', '48'],
-    specialNumber: '15',
-    drawTime: '09-25 21:32',
-  ),
-  BettingRecordItem(
-    id: 'rec-275-2',
-    lottery: Lottery.macau,
-    period: '2026275',
-    playType: '正码',
-    timeLabel: '09-25 20:12',
-    numbers: ['02', '16', '25', '31', '40', '49'],
-    xiaos: [],
-    stakePerNote: 5,
-    multiplier: 1,
-    notesCount: 6,
-    totalAmount: 30,
-    status: 'lost',
-    hitNumbers: [],
-    payout: 0,
-    netProfit: -30,
-    rawInput: '02.16.25.31.40.49个数5',
-    drawNumbers: ['07', '12', '22', '29', '36', '48'],
-    specialNumber: '15',
-    drawTime: '09-25 21:32',
-  ),
-];
+String _nextPeriodFrom(String? latestDrawPeriod) {
+  if (latestDrawPeriod == null || latestDrawPeriod.isEmpty) {
+    return '2026277';
+  }
+  final parsed = int.tryParse(latestDrawPeriod);
+  if (parsed != null) {
+    return '${parsed + 1}';
+  }
+  return latestDrawPeriod;
+}
 
 /// Records List Screen (records.html).
 class RecordsScreen extends ConsumerStatefulWidget {
@@ -477,10 +386,61 @@ class RecordsScreen extends ConsumerStatefulWidget {
 class _RecordsScreenState extends ConsumerState<RecordsScreen> {
   String _filter = 'all'; // 'all', 'pending', 'won', 'lost'
 
+  Future<void> _confirmClearRecords(
+    BuildContext context,
+    int count,
+  ) async {
+    final filterLabel = switch (_filter) {
+      'pending' => '待开奖',
+      'won' => '已中奖',
+      'lost' => '未中',
+      _ => '全部',
+    };
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('清空$filterLabel记录'),
+        content: Text('确定要删除当前显示的 $count 条记录吗？删除后不可恢复。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              '确认清空',
+              style: TextStyle(color: DuiliaoColors.miss),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await ref
+          .read(bettingRecordsProvider.notifier)
+          .clearAllRecords(statusFilter: _filter);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已清空 $count 条记录')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
     final all = ref.watch(bettingRecordsProvider);
+    final lottery = ref.watch(selectedLotteryProvider);
+    final homeSnap = ref
+        .watch(
+          homeProvider((lottery: lottery, playType: 'pingte_xiao')),
+        )
+        .value;
+    final latestOfficialPeriod = homeSnap?.snapshot.latestDraw?.period;
+    final defaultUpcomingPeriod = _nextPeriodFrom(latestOfficialPeriod);
+
     final pendingRecords = all.where((r) => r.status == 'pending').toList();
     final settledRecords = all.where((r) => r.status != 'pending').toList();
     final wonCount = all.where((r) => r.status == 'won').length;
@@ -498,10 +458,29 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
       0,
       (acc, r) => acc + r.netProfit,
     );
-    final displayNet = settledNet == 105 ? 175 : settledNet;
-    final netLabel = displayNet >= 0
-        ? '+¥$displayNet'
-        : '−¥${displayNet.abs()}';
+    final netLabel = settledNet >= 0
+        ? '+¥$settledNet'
+        : '−¥${settledNet.abs()}';
+
+    final totalSettledNotes = settledRecords.fold<int>(
+      0,
+      (acc, r) => acc + r.notesCount,
+    );
+    final totalHitNotes = settledRecords.fold<int>(
+      0,
+      (acc, r) =>
+          acc +
+          (r.hitNotes > 0
+              ? r.hitNotes
+              : (r.status == 'won'
+                    ? (r.hitNumbers.isNotEmpty ? r.hitNumbers.length : 1)
+                    : 0)),
+    );
+    final winRatePct = totalSettledNotes > 0
+        ? (totalHitNotes / totalSettledNotes * 100)
+        : (settledRecords.isNotEmpty
+              ? (wonCount / settledRecords.length * 100)
+              : 0.0);
 
     final filtered = switch (_filter) {
       'pending' => pendingRecords,
@@ -514,6 +493,12 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
     for (final item in filtered) {
       if (!periods.contains(item.period)) periods.add(item.period);
     }
+
+    final summaryPeriodText = pendingRecords.isNotEmpty
+        ? '第 ${pendingRecords.first.period} 期 · 待开奖'
+        : (all.isNotEmpty
+              ? '最新第 ${all.first.period} 期 · 自动对奖'
+              : '第 $defaultUpcomingPeriod 期 · 今晚 21:30 开奖');
 
     final content = SafeArea(
       bottom: false,
@@ -530,6 +515,26 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
             title: '记录',
             subtitle: '智能识别 · 自动对奖',
             actions: [
+              GlassIconButton(
+                icon: Icons.sync_rounded,
+                tooltip: '立即对奖',
+                onTap: () async {
+                  await ref
+                      .read(bettingRecordsProvider.notifier)
+                      .settleRecords();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('已同步官方开奖并完成对奖结算')),
+                    );
+                  }
+                },
+              ),
+              if (filtered.isNotEmpty)
+                GlassIconButton(
+                  icon: Icons.delete_sweep_rounded,
+                  tooltip: '清空记录',
+                  onTap: () => _confirmClearRecords(context, filtered.length),
+                ),
               GlassIconButton(
                 icon: Icons.bar_chart_rounded,
                 tooltip: '统计',
@@ -572,7 +577,7 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                             const SizedBox(width: 8),
                             Flexible(
                               child: Text(
-                                '第 2026277 期 · 今晚 21:30 开奖',
+                                summaryPeriodText,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.right,
@@ -600,8 +605,8 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                               child: _SummaryCol(
                                 label: '累计盈亏',
                                 value: netLabel,
-                                sub: '近 30 天',
-                                valueColor: displayNet >= 0
+                                sub: '已结 ${settledRecords.length} 单',
+                                valueColor: settledNet >= 0
                                     ? DuiliaoColors.hit
                                     : DuiliaoColors.miss,
                               ),
@@ -609,8 +614,8 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                             Expanded(
                               child: _SummaryCol(
                                 label: '中单率',
-                                value: '31.9%',
-                                sub: '23/72 注',
+                                value: '${winRatePct.toStringAsFixed(1)}%',
+                                sub: '$totalHitNotes/$totalSettledNotes 注',
                                 valueColor:
                                     Theme.of(context).colorScheme.onSurface,
                               ),
@@ -623,59 +628,175 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
 
                   const SizedBox(height: 12),
 
-                // 状态过滤 (records.html lines 67-74)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      GlassChipTag(
-                        label: '全部',
-                        active: _filter == 'all',
-                        onTap: () => setState(() => _filter = 'all'),
-                      ),
-                      const SizedBox(width: 8),
-                      GlassChipTag(
-                        label: '待开奖',
-                        trailingText: '${pendingRecords.length}',
-                        trailingColor: DuiliaoColors.warning,
-                        active: _filter == 'pending',
-                        onTap: () => setState(() => _filter = 'pending'),
-                      ),
-                      const SizedBox(width: 8),
-                      GlassChipTag(
-                        label: '已中奖',
-                        trailingText: '$wonCount',
-                        trailingColor: DuiliaoColors.hit,
-                        active: _filter == 'won',
-                        onTap: () => setState(() => _filter = 'won'),
-                      ),
-                      const SizedBox(width: 8),
-                      GlassChipTag(
-                        label: '未中',
-                        trailingText: '$lostCount',
-                        active: _filter == 'lost',
-                        onTap: () => setState(() => _filter = 'lost'),
-                      ),
-                    ],
+                  // 状态过滤 (records.html lines 67-74)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        GlassChipTag(
+                          label: '全部',
+                          trailingText: '${all.length}',
+                          active: _filter == 'all',
+                          onTap: () => setState(() => _filter = 'all'),
+                        ),
+                        const SizedBox(width: 8),
+                        GlassChipTag(
+                          label: '待开奖',
+                          trailingText: '${pendingRecords.length}',
+                          trailingColor: DuiliaoColors.warning,
+                          active: _filter == 'pending',
+                          onTap: () => setState(() => _filter = 'pending'),
+                        ),
+                        const SizedBox(width: 8),
+                        GlassChipTag(
+                          label: '已中奖',
+                          trailingText: '$wonCount',
+                          trailingColor: DuiliaoColors.hit,
+                          active: _filter == 'won',
+                          onTap: () => setState(() => _filter = 'won'),
+                        ),
+                        const SizedBox(width: 8),
+                        GlassChipTag(
+                          label: '未中',
+                          trailingText: '$lostCount',
+                          active: _filter == 'lost',
+                          onTap: () => setState(() => _filter = 'lost'),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
-                for (final period in periods) ...[
-                  DesignSectionHeader(
-                    title: '第 $period 期',
-                    trailing: _buildPeriodTrailing(
-                      period,
-                      filtered.where((r) => r.period == period).toList(),
+                  if (filtered.isEmpty) ...[
+                    const SizedBox(height: 20),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 28,
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 38,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            all.isEmpty ? '暂无投注记录' : '当前筛选下暂无记录',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            all.isEmpty
+                                ? '支持「龙兔各数5」「鼠虎马猴鸡 给我打复试3，4连一组5块」等口语智能录入，服务端保存并在官方开奖后自动对奖结算。'
+                                : '可切换上方筛选标签或点击右上角新增记录。',
+                            textAlign: TextAlign.center,
+                            style: context.texts.labelSmall?.copyWith(
+                              fontSize: 12,
+                              height: 1.5,
+                            ),
+                          ),
+                          if (all.isEmpty) ...[
+                            const SizedBox(height: 16),
+                            GlassButton(
+                              height: 40,
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const RecordAddScreen(),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.add_rounded, size: 16),
+                                  SizedBox(width: 4),
+                                  Text('立即新增记录'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                  for (final item in filtered.where(
-                    (r) => r.period == period,
-                  ))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _RecordCard(item: item),
-                    ),
-                  ],
+                  ] else
+                    for (final period in periods) ...[
+                      DesignSectionHeader(
+                        title: '第 $period 期',
+                        trailing: _buildPeriodTrailing(
+                          period,
+                          filtered.where((r) => r.period == period).toList(),
+                        ),
+                      ),
+                      for (final item in filtered.where(
+                        (r) => r.period == period,
+                      ))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Dismissible(
+                            key: ValueKey('record-${item.id}'),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              decoration: BoxDecoration(
+                                color: DuiliaoColors.miss.withValues(
+                                  alpha: 0.22,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: DuiliaoColors.miss.withValues(
+                                    alpha: 0.45,
+                                  ),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: DuiliaoColors.miss,
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '删除',
+                                    style: TextStyle(
+                                      color: DuiliaoColors.miss,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            onDismissed: (_) {
+                              ref
+                                  .read(bettingRecordsProvider.notifier)
+                                  .removeRecord(item.id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('已删除该条记录')),
+                              );
+                            },
+                            child: _RecordCard(
+                              item: item,
+                              onDelete: () {
+                                ref
+                                    .read(bettingRecordsProvider.notifier)
+                                    .removeRecord(item.id);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('已删除该条记录')),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                    ],
                 ],
               ),
             ),
@@ -692,7 +813,7 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
 
   Widget _buildPeriodTrailing(String period, List<BettingRecordItem> items) {
     final hasPending = items.any((r) => r.status == 'pending');
-    if (hasPending || period == '2026277') {
+    if (hasPending) {
       return const GlassStatusPill(
         label: '待开奖 · 今晚 21:30',
         tone: GlassPillTone.warning,
@@ -802,8 +923,12 @@ class _SummaryCol extends StatelessWidget {
 }
 
 class _RecordCard extends StatelessWidget {
-  const _RecordCard({required this.item});
+  const _RecordCard({
+    required this.item,
+    required this.onDelete,
+  });
   final BettingRecordItem item;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -822,31 +947,51 @@ class _RecordCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top: balls or zodiac tags (records.html lines 84-95, 138-145)
-            if (item.xiaos.isNotEmpty)
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final x in item.xiaos)
-                    ZTag(label: x, variant: ZTagVariant.primary),
-                ],
-              )
-            else
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final numStr in item.numbers)
-                    NumberBall(
-                      number: numStr,
-                      bose: Lottery2026Lookup.boseForNumber(numStr),
-                      size: 28,
-                      showColorName: false,
-                      hitHighlight: item.hitNumbers.contains(numStr),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: item.xiaos.isNotEmpty
+                      ? Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final x in item.xiaos)
+                              ZTag(label: x, variant: ZTagVariant.primary),
+                          ],
+                        )
+                      : Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final numStr in item.numbers)
+                              NumberBall(
+                                number: numStr,
+                                bose: Lottery2026Lookup.boseForNumber(numStr),
+                                size: 28,
+                                showColorName: false,
+                                hitHighlight: item.hitNumbers.contains(numStr),
+                              ),
+                          ],
+                        ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: onDelete,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withValues(alpha: 0.75),
                     ),
-                ],
-              ),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             // Bottom: formula + tags on left, status pill on right (records.html lines 96-105)
             Row(
@@ -977,6 +1122,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   late String _mode;
   Lottery _lottery = Lottery.macau;
   String _period = '2026277';
+  bool _periodManuallySet = false;
   late String _selectedPlay;
   late final TextEditingController _inputController;
   late final TextEditingController _stakeController;
@@ -1116,6 +1262,64 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     };
   }
 
+  void _applyQuickText(String text) {
+    _inputController.text = text;
+    final parsedS = _extractStake(text);
+    if (parsedS != null) {
+      _stakeController.text = '$parsedS';
+    }
+    if ((RegExp(r'复[试式]').hasMatch(text) || _lianxiaoExprRe.hasMatch(text)) &&
+        _parseXiaos(text).isNotEmpty) {
+      _mode = '连肖复试';
+      final ks = _parseFushiLinks(text);
+      _selectedPlay = '${ks.join(",")} 连';
+      _multiplier = 1;
+    } else if (text.contains('不中')) {
+      _mode = '不中码';
+      _selectedPlay = '6 不中';
+      _multiplier = 1;
+    } else {
+      _mode = '号码单式';
+      _selectedPlay = '正码';
+      _multiplier = 1;
+    }
+    setState(() {});
+  }
+
+  Future<void> _promptCustomPeriod(BuildContext context) async {
+    final ctrl = TextEditingController(text: _period);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('输入期号'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: '例如：2026277',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _period = result;
+        _periodManuallySet = true;
+      });
+    }
+  }
+
   void _switchMode(String nextMode) {
     if (nextMode == '全部玩法') {
       Navigator.of(context).push(
@@ -1222,6 +1426,26 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final homeSnap = ref
+        .watch(
+          homeProvider((lottery: _lottery, playType: 'pingte_xiao')),
+        )
+        .value;
+    final latestOfficialPeriod = homeSnap?.snapshot.latestDraw?.period;
+    final dynamicNextPeriod = _nextPeriodFrom(latestOfficialPeriod);
+    final dynamicPrevPeriod = latestOfficialPeriod ?? '2026276';
+    if (!_periodManuallySet &&
+        latestOfficialPeriod != null &&
+        latestOfficialPeriod.isNotEmpty &&
+        _period == '2026277') {
+      _period = dynamicNextPeriod;
+    }
+    final periodOptions = <String>{
+      dynamicNextPeriod,
+      dynamicPrevPeriod,
+      if (_period.isNotEmpty) _period,
+    }.toList(growable: false);
+
     final text = _inputController.text;
     final parsedStake = _extractStake(text);
     final stake =
@@ -1368,13 +1592,34 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            switch (_mode) {
-                              '连肖复试' => '粘贴或输入连肖复试文本',
-                              '不中码' => '粘贴或输入不中码文本',
-                              _ => '粘贴或输入号码文本',
-                            },
-                            style: context.texts.labelSmall,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                switch (_mode) {
+                                  '连肖复试' => '粘贴或输入连肖复试文本',
+                                  '不中码' => '粘贴或输入不中码文本',
+                                  _ => '粘贴或输入号码/生肖文本',
+                                },
+                                style: context.texts.labelSmall,
+                              ),
+                              if (text.isNotEmpty)
+                                InkWell(
+                                  onTap: () => setState(() {
+                                    _inputController.clear();
+                                  }),
+                                  child: Text(
+                                    '清空输入',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 6),
                           TextField(
@@ -1415,8 +1660,35 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               height: 1.5,
                             ),
                             decoration: const InputDecoration(
-                              hintText: '粘贴或输入号码/生肖及单注金额…',
+                              hintText:
+                                  '如：龙兔各数5、鼠虎马猴鸡 给我打复试3，4连一组5块…',
                             ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              GlassChipTag(
+                                label: '示例：龙兔各数5',
+                                compact: true,
+                                onTap: () => _applyQuickText('龙兔各数5'),
+                              ),
+                              GlassChipTag(
+                                label: '示例：复试3,4连一组5块',
+                                compact: true,
+                                onTap: () => _applyQuickText(
+                                  '鼠虎马猴鸡 给我打复试3，4连一组5块',
+                                ),
+                              ),
+                              GlassChipTag(
+                                label: '示例：6不中各10',
+                                compact: true,
+                                onTap: () => _applyQuickText(
+                                  '02.04.06.08.10.12·6不中个数10',
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 12),
                           Wrap(
@@ -1698,17 +1970,19 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
+                              for (final p in periodOptions)
+                                GlassChipTag(
+                                  label: '第 $p 期',
+                                  active: _period == p,
+                                  onTap: () => setState(() {
+                                    _period = p;
+                                    _periodManuallySet = true;
+                                  }),
+                                ),
                               GlassChipTag(
-                                label: '第 2026277 期',
-                                active: _period == '2026277',
-                                onTap: () =>
-                                    setState(() => _period = '2026277'),
-                              ),
-                              GlassChipTag(
-                                label: '第 2026276 期',
-                                active: _period == '2026276',
-                                onTap: () =>
-                                    setState(() => _period = '2026276'),
+                                label: '自定义期号…',
+                                icon: Icons.edit_rounded,
+                                onTap: () => _promptCustomPeriod(context),
                               ),
                             ],
                           ),
@@ -1939,6 +2213,18 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                         child: GlassButton(
                           height: 42,
                           onPressed: () {
+                            if (_mode == '连肖复试' && xiaos.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('请先输入有效的生肖内容')),
+                              );
+                              return;
+                            }
+                            if (_mode != '连肖复试' && numbers.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('请先输入有效的号码或生肖内容')),
+                              );
+                              return;
+                            }
                             final now = TimeOfDay.now();
                             final hh = now.hour.toString().padLeft(2, '0');
                             final mm = now.minute.toString().padLeft(2, '0');
@@ -2013,17 +2299,35 @@ class RecordDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final item =
-        record ??
-        _defaultRecords.firstWhere(
-          (r) => r.id == 'rec-276-1',
-          orElse: () => _defaultRecords.first,
-        );
+    final all = ref.watch(bettingRecordsProvider);
+    final item = record != null
+        ? (all.where((r) => r.id == record!.id).firstOrNull ?? record!)
+        : (all.isNotEmpty
+              ? all.first
+              : const BettingRecordItem(
+                  id: 'empty',
+                  lottery: Lottery.macau,
+                  period: '2026277',
+                  playType: '正码',
+                  timeLabel: '',
+                  numbers: [],
+                  xiaos: [],
+                  stakePerNote: 5,
+                  multiplier: 1,
+                  notesCount: 0,
+                  totalAmount: 0,
+                  status: 'pending',
+                ));
     final isWon = item.status == 'won';
     final isPending = item.status == 'pending';
-    final hitRate = item.numbers.isEmpty
+    final hasDraw =
+        item.drawNumbers.isNotEmpty || item.specialNumber.isNotEmpty;
+    final totalTargets = item.numbers.isNotEmpty
+        ? item.numbers.length
+        : item.xiaos.length;
+    final hitRate = totalTargets == 0
         ? 0
-        : (item.hitNumbers.length / item.numbers.length * 100).round();
+        : (item.hitNumbers.length / totalTargets * 100).round();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -2110,7 +2414,7 @@ class RecordDetailScreen extends ConsumerWidget {
                     // 我的号码 (record-detail.html lines 45-75)
                     DesignSectionHeader(
                       title: isPending
-                          ? '我的号码 · 共 ${item.numbers.isNotEmpty ? item.numbers.length : item.xiaos.length} 项'
+                          ? '我的号码 · 共 $totalTargets 项'
                           : '我的号码 · 中 ${item.hitNumbers.length} 码',
                     ),
                     GlassCard(
@@ -2125,35 +2429,44 @@ class RecordDetailScreen extends ConsumerWidget {
                                   ZTag(label: x, variant: ZTagVariant.primary),
                               ],
                             )
-                          : Wrap(
-                              spacing: 12,
-                              runSpacing: 12,
-                              alignment: WrapAlignment.spaceBetween,
-                              children: [
-                                for (final nStr in item.numbers)
-                                  NumberBall(
-                                    number: nStr,
-                                    bose: Lottery2026Lookup.boseForNumber(nStr),
-                                    size: 38,
-                                    showColorName: false,
-                                    hitHighlight: item.hitNumbers.contains(
-                                      nStr,
-                                    ),
-                                    dimmed:
-                                        !isPending &&
-                                        !item.hitNumbers.contains(nStr),
-                                    caption: isPending
-                                        ? '·'
-                                        : item.hitNumbers.contains(nStr)
-                                        ? '中'
-                                        : '·',
-                                    captionBold: item.hitNumbers.contains(nStr),
-                                    captionColor: item.hitNumbers.contains(nStr)
-                                        ? DuiliaoColors.hit
-                                        : null,
-                                  ),
-                              ],
-                            ),
+                          : (item.numbers.isEmpty
+                                ? Text(
+                                    '暂无号码明细',
+                                    style: context.texts.labelSmall,
+                                  )
+                                : Wrap(
+                                    spacing: 12,
+                                    runSpacing: 12,
+                                    alignment: WrapAlignment.spaceBetween,
+                                    children: [
+                                      for (final nStr in item.numbers)
+                                        NumberBall(
+                                          number: nStr,
+                                          bose: Lottery2026Lookup.boseForNumber(
+                                            nStr,
+                                          ),
+                                          size: 38,
+                                          showColorName: false,
+                                          hitHighlight: item.hitNumbers
+                                              .contains(nStr),
+                                          dimmed:
+                                              !isPending &&
+                                              !item.hitNumbers.contains(nStr),
+                                          caption: isPending
+                                              ? '·'
+                                              : item.hitNumbers.contains(nStr)
+                                              ? '中'
+                                              : '·',
+                                          captionBold: item.hitNumbers.contains(
+                                            nStr,
+                                          ),
+                                          captionColor:
+                                              item.hitNumbers.contains(nStr)
+                                              ? DuiliaoColors.hit
+                                              : null,
+                                        ),
+                                    ],
+                                  )),
                     ),
 
                     // 开奖对照 (record-detail.html lines 78-96)
@@ -2165,43 +2478,55 @@ class RecordDetailScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '第 ${item.period} 期 · ${isPending ? '今晚 21:30 开奖' : item.drawTime}',
+                            '第 ${item.period} 期 · ${hasDraw && item.drawTime.isNotEmpty ? item.drawTime : '等待今晚 21:30 开奖'}',
                             style: context.texts.labelSmall?.copyWith(
                               fontSize: 11,
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              for (final n in item.drawNumbers)
-                                NumberBall(
-                                  number: n,
-                                  bose: Lottery2026Lookup.boseForNumber(n),
-                                  size: 28,
-                                  showColorName: false,
+                          if (hasDraw)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                for (final n in item.drawNumbers)
+                                  NumberBall(
+                                    number: n,
+                                    bose: Lottery2026Lookup.boseForNumber(n),
+                                    size: 28,
+                                    showColorName: false,
+                                  ),
+                                Text(
+                                  '+',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
-                              Text(
-                                '+',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
+                                if (item.specialNumber.isNotEmpty)
+                                  NumberBall(
+                                    number: item.specialNumber,
+                                    bose: Lottery2026Lookup.boseForNumber(
+                                      item.specialNumber,
+                                    ),
+                                    isGold: true,
+                                    isSpecial: true,
+                                    size: 28,
+                                    showColorName: false,
+                                  ),
+                              ],
+                            )
+                          else
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Center(
+                                child: Text(
+                                  '本期尚未开奖 · 官方开奖后系统将自动核对并结算',
+                                  style: context.texts.labelSmall,
                                 ),
                               ),
-                              NumberBall(
-                                number: item.specialNumber,
-                                bose: Lottery2026Lookup.boseForNumber(
-                                  item.specialNumber,
-                                ),
-                                isGold: true,
-                                isSpecial: true,
-                                size: 28,
-                                showColorName: false,
-                              ),
-                            ],
-                          ),
+                            ),
                           const SizedBox(height: 12),
                           Center(
                             child: GlassChipTag(
@@ -2223,21 +2548,23 @@ class RecordDetailScreen extends ConsumerWidget {
                       children: [
                         _DetailRow(
                           label: '投入',
-                          sub: '${item.notesCount} 注 × 单注 ¥${item.stakePerNote}',
+                          sub:
+                              '${item.notesCount} 注 × 单注 ¥${item.stakePerNote}${item.multiplier > 1 ? ' × ${item.multiplier} 倍' : ''}',
                           value: '¥${item.totalAmount}',
                         ),
                         _DetailRow(
                           label: '中单',
-                          sub: item.hitNumbers.isEmpty
-                              ? (isPending ? '等待开奖对奖' : '未命中号码')
-                              : '${item.hitNumbers.join(' · ')} × 赔率 1:7',
-                          value: '${item.hitNumbers.length} 注',
+                          sub: item.hitNumbers.isEmpty && item.hitNotes == 0
+                              ? (isPending ? '等待开奖对奖' : '未命中')
+                              : '${item.hitNumbers.join(' · ')} × 赔率 1:${item.odds % 1 == 0 ? item.odds.toInt() : item.odds}',
+                          value:
+                              '${item.hitNotes > 0 ? item.hitNotes : item.hitNumbers.length} 注',
                         ),
                         _DetailRow(
                           label: '派彩',
                           sub: isPending
                               ? '待开奖后结算'
-                              : '${item.hitNumbers.length} 注 × ¥${item.stakePerNote} × 7 倍',
+                              : '${item.hitNotes > 0 ? item.hitNotes : item.hitNumbers.length} 注 × ¥${item.stakePerNote} × ${item.odds % 1 == 0 ? item.odds.toInt() : item.odds} 倍',
                           value: '¥${item.payout}',
                         ),
                         _DetailRow(
@@ -2413,69 +2740,122 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-/// Record Stats Screen (record-stats.html).
-class RecordStatsScreen extends StatefulWidget {
+/// Record Stats Screen (record-stats.html) computed dynamically from real records.
+class RecordStatsScreen extends ConsumerStatefulWidget {
   const RecordStatsScreen({super.key});
 
   @override
-  State<RecordStatsScreen> createState() => _RecordStatsScreenState();
+  ConsumerState<RecordStatsScreen> createState() => _RecordStatsScreenState();
 }
 
-class _RecordStatsScreenState extends State<RecordStatsScreen> {
+class _RecordStatsScreenState extends ConsumerState<RecordStatsScreen> {
   String _window = '30';
-
-  // Exact bar heights and directions from record-stats.html lines 86-126
-  static const _dailyBars = <({String date, double factor, bool isPos, bool isHot})>[
-    (date: '09-20', factor: 0.37, isPos: true, isHot: false),
-    (date: '09-21', factor: 0.21, isPos: false, isHot: false),
-    (date: '09-22', factor: 0.53, isPos: true, isHot: false),
-    (date: '09-23', factor: 0.16, isPos: false, isHot: false),
-    (date: '09-24', factor: 0.11, isPos: true, isHot: false),
-    (date: '09-25', factor: 0.42, isPos: true, isHot: false),
-    (date: '09-26', factor: 1.00, isPos: true, isHot: true),
-  ];
-
-  static const _frequentHits = <({String numStr, String boseLabel, int count, int profit})>[
-    (numStr: '26', boseLabel: '蓝波', count: 3, profit: 210),
-    (numStr: '11', boseLabel: '绿波', count: 2, profit: 140),
-    (numStr: '07', boseLabel: '红波', count: 2, profit: 70),
-  ];
 
   @override
   Widget build(BuildContext context) {
-    final (invest, payout, net, winRate, ordersSub, payoutSub, netSub, rateSub) =
-        switch (_window) {
-          '7' => (
-            '¥390',
-            '¥585',
-            '+¥195',
-            '35.0%',
-            '8 单 · 20 注',
-            '中 7 注',
-            '环比 +24%',
-            '7/20 注',
+    final all = ref.watch(bettingRecordsProvider);
+    final settled = all.where((r) => r.status != 'pending').toList();
+
+    final totalInvest = settled.fold<int>(0, (s, r) => s + r.totalAmount);
+    final totalPayout = settled.fold<int>(0, (s, r) => s + r.payout);
+    final netProfit = totalPayout - totalInvest;
+    final totalNotes = settled.fold<int>(0, (s, r) => s + r.notesCount);
+    final hitNotes = settled.fold<int>(
+      0,
+      (s, r) =>
+          s +
+          (r.hitNotes > 0
+              ? r.hitNotes
+              : (r.status == 'won'
+                    ? (r.hitNumbers.isNotEmpty ? r.hitNumbers.length : 1)
+                    : 0)),
+    );
+    final winRatePct = totalNotes > 0 ? (hitNotes / totalNotes * 100) : 0.0;
+    final roiPct = totalInvest > 0 ? (netProfit / totalInvest * 100) : 0.0;
+
+    final investStr = '¥$totalInvest';
+    final payoutStr = '¥$totalPayout';
+    final netStr = netProfit >= 0 ? '+¥$netProfit' : '−¥${netProfit.abs()}';
+    final winRateStr = '${winRatePct.toStringAsFixed(1)}%';
+    final ordersSub = '${settled.length} 单 · $totalNotes 注';
+    final payoutSub = '中 $hitNotes 注';
+    final netSub = '回报率 ${roiPct >= 0 ? '+' : ''}${roiPct.toStringAsFixed(1)}%';
+    final rateSub = '$hitNotes/$totalNotes 注';
+
+    // Group by period for bars
+    final byPeriod = <String, int>{};
+    for (final r in settled) {
+      byPeriod[r.period] = (byPeriod[r.period] ?? 0) + r.netProfit;
+    }
+    final sortedPeriods = byPeriod.keys.toList()..sort();
+    final recentPeriods = sortedPeriods.length > 7
+        ? sortedPeriods.sublist(sortedPeriods.length - 7)
+        : sortedPeriods;
+    final maxAbsNet = recentPeriods.isEmpty
+        ? 1
+        : recentPeriods
+              .map((p) => (byPeriod[p] ?? 0).abs())
+              .fold<int>(1, (m, v) => v > m ? v : m);
+    final maxWin = byPeriod.values
+        .where((v) => v > 0)
+        .fold<int>(0, (m, v) => v > m ? v : m);
+    final maxLoss = byPeriod.values
+        .where((v) => v < 0)
+        .fold<int>(0, (m, v) => v < m ? v : m);
+
+    final periodBars = <({String date, double factor, bool isPos, bool isHot})>[
+      for (var i = 0; i < recentPeriods.length; i++)
+        (
+          date: recentPeriods[i].length > 4
+              ? recentPeriods[i].substring(recentPeriods[i].length - 3)
+              : recentPeriods[i],
+          factor: ((byPeriod[recentPeriods[i]] ?? 0).abs() / maxAbsNet).clamp(
+            0.08,
+            1.0,
           ),
-          '90' => (
-            '¥3,420',
-            '¥3,690',
-            '+¥270',
-            '29.8%',
-            '74 单 · 198 注',
-            '中 59 注',
-            '环比 +11%',
-            '59/198 注',
-          ),
-          _ => (
-            '¥1,290',
-            '¥1,465',
-            '+¥175',
-            '31.9%',
-            '27 单 · 72 注',
-            '中 23 注',
-            '环比 +18%',
-            '23/72 注',
-          ),
-        };
+          isPos: (byPeriod[recentPeriods[i]] ?? 0) >= 0,
+          isHot: i == recentPeriods.length - 1,
+        ),
+    ];
+
+    // Play distribution across all records
+    final totalAllStake = all.fold<int>(0, (s, r) => s + r.totalAmount);
+    final byPlay = <String, int>{};
+    for (final r in all) {
+      byPlay[r.playType] = (byPlay[r.playType] ?? 0) + r.totalAmount;
+    }
+    final playEntries = byPlay.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    // Frequent hit numbers
+    final hitCounts = <String, int>{};
+    final hitProfits = <String, int>{};
+    for (final r in settled.where((r) => r.status == 'won')) {
+      for (final numStr in r.hitNumbers) {
+        if (int.tryParse(numStr) != null) {
+          final norm = numStr.padLeft(2, '0');
+          hitCounts[norm] = (hitCounts[norm] ?? 0) + 1;
+          hitProfits[norm] =
+              (hitProfits[norm] ?? 0) + (r.stakePerNote * r.odds).round();
+        }
+      }
+    }
+    final frequentHits =
+        hitCounts.keys
+            .map(
+              (n) => (
+                numStr: n,
+                boseLabel: switch (Lottery2026Lookup.boseForNumber(n)) {
+                  'red' => '红波',
+                  'blue' => '蓝波',
+                  _ => '绿波',
+                },
+                count: hitCounts[n] ?? 0,
+                profit: hitProfits[n] ?? 0,
+              ),
+            )
+            .toList()
+          ..sort((a, b) => b.count.compareTo(a.count));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -2513,7 +2893,7 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                           child: _StatKpiCard(
                             icon: Icons.account_balance_wallet_outlined,
                             label: '总投入',
-                            value: invest,
+                            value: investStr,
                             delta: ordersSub,
                           ),
                         ),
@@ -2522,7 +2902,7 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                           child: _StatKpiCard(
                             icon: Icons.payments_outlined,
                             label: '总派彩',
-                            value: payout,
+                            value: payoutStr,
                             delta: payoutSub,
                           ),
                         ),
@@ -2535,8 +2915,10 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                           child: _StatKpiCard(
                             icon: Icons.trending_up_rounded,
                             label: '净盈亏',
-                            value: net,
-                            valueColor: DuiliaoColors.hit,
+                            value: netStr,
+                            valueColor: netProfit >= 0
+                                ? DuiliaoColors.hit
+                                : DuiliaoColors.miss,
                             delta: netSub,
                           ),
                         ),
@@ -2545,7 +2927,7 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                           child: _StatKpiCard(
                             icon: Icons.track_changes_rounded,
                             label: '中单率',
-                            value: winRate,
+                            value: winRateStr,
                             valueColor: Theme.of(context).colorScheme.primary,
                             delta: rateSub,
                           ),
@@ -2562,13 +2944,15 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                             fontSize: 11,
                           ),
                           children: [
-                            const TextSpan(text: '近 7 天净 '),
+                            const TextSpan(text: '累计净 '),
                             TextSpan(
-                              text: '+¥195',
+                              text: netStr,
                               style: tabularStyle(
-                                const TextStyle(
+                                TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: DuiliaoColors.hit,
+                                  color: netProfit >= 0
+                                      ? DuiliaoColors.hit
+                                      : DuiliaoColors.miss,
                                 ),
                               ),
                             ),
@@ -2581,164 +2965,175 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          SizedBox(
-                            height: 132,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Row(
-                                  children: [
-                                    for (final bar in _dailyBars)
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 4,
-                                          ),
-                                          child: Column(
-                                            children: [
-                                              Expanded(
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.bottomCenter,
-                                                  child: bar.isPos
-                                                      ? FractionallySizedBox(
-                                                          heightFactor:
-                                                              bar.factor,
-                                                          widthFactor: 1.0,
-                                                          child: DecoratedBox(
-                                                            decoration: BoxDecoration(
-                                                              gradient: bar.isHot
-                                                                  ? DuiliaoColors
-                                                                        .auroraGradient
-                                                                  : LinearGradient(
+                          if (periodBars.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 28),
+                              child: Text(
+                                '暂无已结算期次，官方开奖对奖后将自动生成盈亏柱状图',
+                                style: context.texts.labelSmall,
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                          else ...[
+                            SizedBox(
+                              height: 132,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Row(
+                                    children: [
+                                      for (final bar in periodBars)
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                Expanded(
+                                                  child: Align(
+                                                    alignment:
+                                                        Alignment.bottomCenter,
+                                                    child: bar.isPos
+                                                        ? FractionallySizedBox(
+                                                            heightFactor:
+                                                                bar.factor,
+                                                            widthFactor: 1.0,
+                                                            child: DecoratedBox(
+                                                              decoration: BoxDecoration(
+                                                                gradient: bar.isHot
+                                                                    ? DuiliaoColors
+                                                                          .auroraGradient
+                                                                    : LinearGradient(
+                                                                        begin: Alignment
+                                                                            .topCenter,
+                                                                        end: Alignment
+                                                                            .bottomCenter,
+                                                                        colors: [
+                                                                          Theme.of(
+                                                                                context,
+                                                                              )
+                                                                              .colorScheme
+                                                                              .primary
+                                                                              .withValues(
+                                                                                alpha: 0.85,
+                                                                              ),
+                                                                          Theme.of(
+                                                                                context,
+                                                                              )
+                                                                              .colorScheme
+                                                                              .primary
+                                                                              .withValues(
+                                                                                alpha: 0.35,
+                                                                              ),
+                                                                        ],
+                                                                      ),
+                                                                borderRadius:
+                                                                    const BorderRadius.vertical(
+                                                                      top: Radius.circular(
+                                                                        7,
+                                                                      ),
+                                                                      bottom:
+                                                                          Radius.circular(
+                                                                            3,
+                                                                          ),
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                          )
+                                                        : const SizedBox.shrink(),
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  child: Align(
+                                                    alignment:
+                                                        Alignment.topCenter,
+                                                    child: !bar.isPos
+                                                        ? FractionallySizedBox(
+                                                            heightFactor:
+                                                                bar.factor,
+                                                            widthFactor: 1.0,
+                                                            child: DecoratedBox(
+                                                              decoration: BoxDecoration(
+                                                                gradient:
+                                                                    LinearGradient(
                                                                       begin: Alignment
                                                                           .topCenter,
                                                                       end: Alignment
                                                                           .bottomCenter,
                                                                       colors: [
-                                                                        Theme.of(
-                                                                              context,
-                                                                            )
-                                                                            .colorScheme
-                                                                            .primary
+                                                                        DuiliaoColors
+                                                                            .miss
                                                                             .withValues(
-                                                                              alpha: 0.85,
+                                                                              alpha:
+                                                                                  0.70,
                                                                             ),
-                                                                        Theme.of(
-                                                                              context,
-                                                                            )
-                                                                            .colorScheme
-                                                                            .primary
+                                                                        DuiliaoColors
+                                                                            .miss
                                                                             .withValues(
-                                                                              alpha: 0.35,
+                                                                              alpha:
+                                                                                  0.40,
                                                                             ),
                                                                       ],
                                                                     ),
-                                                              borderRadius:
-                                                                  const BorderRadius.vertical(
-                                                                    top: Radius.circular(
-                                                                      7,
-                                                                    ),
-                                                                    bottom:
-                                                                        Radius.circular(
-                                                                          3,
-                                                                        ),
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        )
-                                                      : const SizedBox.shrink(),
-                                                ),
-                                              ),
-                                              Expanded(
-                                                child: Align(
-                                                  alignment:
-                                                      Alignment.topCenter,
-                                                  child: !bar.isPos
-                                                      ? FractionallySizedBox(
-                                                          heightFactor:
-                                                              bar.factor,
-                                                          widthFactor: 1.0,
-                                                          child: DecoratedBox(
-                                                            decoration: BoxDecoration(
-                                                              gradient:
-                                                                  LinearGradient(
-                                                                    begin: Alignment
-                                                                        .topCenter,
-                                                                    end: Alignment
-                                                                        .bottomCenter,
-                                                                    colors: [
-                                                                      DuiliaoColors
-                                                                          .miss
-                                                                          .withValues(
-                                                                            alpha:
-                                                                                0.70,
+                                                                borderRadius:
+                                                                    const BorderRadius.vertical(
+                                                                      top: Radius.circular(
+                                                                        3,
+                                                                      ),
+                                                                      bottom:
+                                                                          Radius.circular(
+                                                                            7,
                                                                           ),
-                                                                      DuiliaoColors
-                                                                          .miss
-                                                                          .withValues(
-                                                                            alpha:
-                                                                                0.40,
-                                                                          ),
-                                                                    ],
-                                                                  ),
-                                                              borderRadius:
-                                                                  const BorderRadius.vertical(
-                                                                    top: Radius.circular(
-                                                                      3,
                                                                     ),
-                                                                    bottom:
-                                                                        Radius.circular(
-                                                                          7,
-                                                                        ),
-                                                                  ),
+                                                              ),
                                                             ),
-                                                          ),
-                                                        )
-                                                      : const SizedBox.shrink(),
+                                                          )
+                                                        : const SizedBox.shrink(),
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                  ],
-                                ),
-                                Container(
-                                  height: 1,
-                                  color: Colors.white.withValues(alpha: 0.16),
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                  Container(
+                                    height: 1,
+                                    color: Colors.white.withValues(alpha: 0.16),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              for (final bar in _dailyBars)
-                                Expanded(
-                                  child: Text(
-                                    bar.date,
-                                    textAlign: TextAlign.center,
-                                    style: tabularStyle(
-                                      TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: bar.isHot
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        color: bar.isHot
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.primary
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.onSurfaceVariant,
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                for (final bar in periodBars)
+                                  Expanded(
+                                    child: Text(
+                                      bar.date,
+                                      textAlign: TextAlign.center,
+                                      style: tabularStyle(
+                                        TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: bar.isHot
+                                              ? FontWeight.w700
+                                              : FontWeight.w500,
+                                          color: bar.isHot
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.primary
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -2748,9 +3143,9 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                                     fontSize: 11,
                                   ),
                                   children: [
-                                    const TextSpan(text: '最大单日盈利 '),
+                                    const TextSpan(text: '最大单期盈利 '),
                                     TextSpan(
-                                      text: '+¥95',
+                                      text: '+¥$maxWin',
                                       style: tabularStyle(
                                         const TextStyle(
                                           fontWeight: FontWeight.w700,
@@ -2767,9 +3162,9 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                                     fontSize: 11,
                                   ),
                                   children: [
-                                    const TextSpan(text: '最大单日亏损 '),
+                                    const TextSpan(text: '最大单期亏损 '),
                                     TextSpan(
-                                      text: '−¥20',
+                                      text: '−¥${maxLoss.abs()}',
                                       style: tabularStyle(
                                         const TextStyle(
                                           fontWeight: FontWeight.w700,
@@ -2791,170 +3186,160 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                     GlassCard(
                       margin: EdgeInsets.zero,
                       padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                '正码',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text.rich(
-                                TextSpan(
-                                  style: context.texts.labelSmall?.copyWith(
-                                    fontSize: 12,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: '¥980',
-                                      style: tabularStyle(
-                                        TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                        ),
-                                      ),
-                                    ),
-                                    const TextSpan(text: ' · 76%'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const GlassLinearProgress(value: 0.76),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                '特码',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text.rich(
-                                TextSpan(
-                                  style: context.texts.labelSmall?.copyWith(
-                                    fontSize: 12,
-                                  ),
-                                  children: [
-                                    TextSpan(
-                                      text: '¥310',
-                                      style: tabularStyle(
-                                        TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
-                                        ),
-                                      ),
-                                    ),
-                                    const TextSpan(text: ' · 24%'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          const GlassLinearProgress(
-                            value: 0.24,
-                            color: DuiliaoColors.hit,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // 常中号码 (record-stats.html lines 152-182)
-                    const DesignSectionHeader(title: '常中号码'),
-                    GlassGroup(
-                      margin: EdgeInsets.zero,
-                      children: [
-                        for (final item in _frequentHits)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 11,
-                            ),
-                            child: Row(
+                      child: playEntries.isEmpty
+                          ? Text(
+                              '暂无玩法投入数据',
+                              style: context.texts.labelSmall,
+                            )
+                          : Column(
                               children: [
-                                NumberBall(
-                                  number: item.numStr,
-                                  bose: Lottery2026Lookup.boseForNumber(
-                                    item.numStr,
-                                  ),
-                                  size: 28,
-                                  showColorName: false,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                for (var i = 0; i < playEntries.length; i++) ...[
+                                  if (i > 0) const SizedBox(height: 14),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        '${item.numStr} 码 · ${item.boseLabel}',
+                                        playEntries[i].key,
                                         style: const TextStyle(
-                                          fontSize: 13.5,
+                                          fontSize: 13,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
                                       Text.rich(
                                         TextSpan(
                                           style: context.texts.labelSmall
-                                              ?.copyWith(fontSize: 11.5),
+                                              ?.copyWith(fontSize: 12),
                                           children: [
                                             TextSpan(
-                                              text:
-                                                  '近 30 天中 ${item.count} 次 · 贡献 ',
-                                            ),
-                                            TextSpan(
-                                              text: '+¥${item.profit}',
+                                              text: '¥${playEntries[i].value}',
                                               style: tabularStyle(
-                                                const TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: DuiliaoColors.hit,
+                                                TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).colorScheme.onSurface,
                                                 ),
                                               ),
+                                            ),
+                                            TextSpan(
+                                              text:
+                                                  ' · ${totalAllStake > 0 ? (playEntries[i].value / totalAllStake * 100).round() : 0}%',
                                             ),
                                           ],
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
-                                Container(
-                                  width: 22,
-                                  height: 22,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: DuiliaoColors.hit.withValues(
-                                      alpha: 0.16,
-                                    ),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: DuiliaoColors.hit.withValues(
-                                        alpha: 0.38,
-                                      ),
-                                    ),
+                                  const SizedBox(height: 8),
+                                  GlassLinearProgress(
+                                    value: totalAllStake > 0
+                                        ? (playEntries[i].value / totalAllStake)
+                                              .clamp(0.0, 1.0)
+                                        : 0.0,
+                                    color: i.isOdd ? DuiliaoColors.hit : null,
                                   ),
-                                  child: const Icon(
-                                    Icons.check_rounded,
-                                    size: 13,
-                                    color: DuiliaoColors.hit,
-                                  ),
-                                ),
+                                ],
                               ],
                             ),
-                          ),
-                      ],
+                    ),
+
+                    // 常中号码 (record-stats.html lines 152-182)
+                    const DesignSectionHeader(title: '常中号码'),
+                    GlassGroup(
+                      margin: EdgeInsets.zero,
+                      children: frequentHits.isEmpty
+                          ? [
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  '暂无已命中号码统计',
+                                  style: context.texts.labelSmall,
+                                ),
+                              ),
+                            ]
+                          : [
+                              for (final item in frequentHits.take(5))
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 11,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      NumberBall(
+                                        number: item.numStr,
+                                        bose: Lottery2026Lookup.boseForNumber(
+                                          item.numStr,
+                                        ),
+                                        size: 28,
+                                        showColorName: false,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${item.numStr} 码 · ${item.boseLabel}',
+                                              style: const TextStyle(
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text.rich(
+                                              TextSpan(
+                                                style: context.texts.labelSmall
+                                                    ?.copyWith(fontSize: 11.5),
+                                                children: [
+                                                  TextSpan(
+                                                    text:
+                                                        '累计中 ${item.count} 次 · 贡献 ',
+                                                  ),
+                                                  TextSpan(
+                                                    text: '+¥${item.profit}',
+                                                    style: tabularStyle(
+                                                      const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color:
+                                                            DuiliaoColors.hit,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 22,
+                                        height: 22,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: DuiliaoColors.hit.withValues(
+                                            alpha: 0.16,
+                                          ),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: DuiliaoColors.hit.withValues(
+                                              alpha: 0.38,
+                                            ),
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.check_rounded,
+                                          size: 13,
+                                          color: DuiliaoColors.hit,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
                     ),
 
                     // 月度小结 (record-stats.html lines 185-190)
@@ -2970,24 +3355,21 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                             fontSize: 12,
                             height: 1.8,
                           ),
-                          children: const [
-                            TextSpan(text: '9 月共 27 单、72 注；投入 ¥1,290，派彩 ¥1,465，净盈亏 '),
+                          children: [
                             TextSpan(
-                              text: '+¥175',
+                              text:
+                                  '累计共 ${all.length} 单（已结 ${settled.length} 单、$totalNotes 注）；已结投入 $investStr，派彩 $payoutStr，净盈亏 ',
+                            ),
+                            TextSpan(
+                              text: netStr,
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: DuiliaoColors.hit,
+                                color: netProfit >= 0
+                                    ? DuiliaoColors.hit
+                                    : DuiliaoColors.miss,
                               ),
                             ),
-                            TextSpan(text: '。最大单日盈利 '),
-                            TextSpan(
-                              text: '+¥95',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: DuiliaoColors.hit,
-                              ),
-                            ),
-                            TextSpan(text: '(09-26)，最大连挂 3 单。理性记录，量力而行。'),
+                            const TextSpan(text: '。理性记录，量力而行。'),
                           ],
                         ),
                       ),

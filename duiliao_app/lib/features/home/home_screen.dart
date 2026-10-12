@@ -388,10 +388,17 @@ class HomeScreen extends ConsumerWidget {
                           0,
                           (s, r) => s + r.netProfit,
                         );
-                        final displayNet = settledNet == 105 ? 175 : settledNet;
                         final latestPendingPeriod = pendingRecs.isNotEmpty
                             ? pendingRecs.first.period
-                            : '2026277';
+                            : (snapshot?.consensusPeriod ?? '2026277');
+                        final previewNums = <String>[];
+                        for (final r in pendingRecs.isNotEmpty
+                            ? pendingRecs
+                            : allRecords) {
+                          for (final n in r.numbers) {
+                            if (!previewNums.contains(n)) previewNums.add(n);
+                          }
+                        }
                         return GlassCard(
                           margin: EdgeInsets.zero,
                           padding: const EdgeInsets.all(16),
@@ -444,18 +451,18 @@ class HomeScreen extends ConsumerWidget {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text(
-                                        '累计盈亏(近 30 天)',
+                                        '累计盈亏(已结 ${settledRecs.length} 单)',
                                         style: context.texts.labelSmall,
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        displayNet >= 0
-                                            ? '+¥$displayNet'
-                                            : '−¥${displayNet.abs()}',
+                                        settledNet >= 0
+                                            ? '+¥$settledNet'
+                                            : '−¥${settledNet.abs()}',
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w800,
-                                          color: displayNet >= 0
+                                          color: settledNet >= 0
                                               ? DuiliaoColors.hit
                                               : DuiliaoColors.miss,
                                         ),
@@ -472,49 +479,44 @@ class HomeScreen extends ConsumerWidget {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
-                                    child: Wrap(
-                                      spacing: 5,
-                                      runSpacing: 4,
-                                      crossAxisAlignment:
-                                          WrapCrossAlignment.center,
-                                      children: [
-                                        const NumberBall(
-                                          number: '18',
-                                          bose: 'red',
-                                          size: 26,
-                                        ),
-                                        const NumberBall(
-                                          number: '42',
-                                          bose: 'blue',
-                                          size: 26,
-                                        ),
-                                        const NumberBall(
-                                          number: '39',
-                                          bose: 'green',
-                                          size: 26,
-                                        ),
-                                        const NumberBall(
-                                          number: '27',
-                                          bose: 'green',
-                                          size: 26,
-                                        ),
-                                        const NumberBall(
-                                          number: '28',
-                                          bose: 'green',
-                                          size: 26,
-                                        ),
-                                        Text(
-                                          '+17 码',
-                                          style: context.texts.labelSmall,
-                                        ),
-                                      ],
-                                    ),
+                                    child: previewNums.isNotEmpty
+                                        ? Wrap(
+                                            spacing: 5,
+                                            runSpacing: 4,
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            children: [
+                                              for (final n
+                                                  in previewNums.take(5))
+                                                NumberBall(
+                                                  number: n,
+                                                  bose: 'red',
+                                                  size: 26,
+                                                ),
+                                              if (previewNums.length > 5)
+                                                Text(
+                                                  '+${previewNums.length - 5} 码',
+                                                  style:
+                                                      context.texts.labelSmall,
+                                                ),
+                                            ],
+                                          )
+                                        : Text(
+                                            allRecords.isEmpty
+                                                ? '暂无记录 · 点击进入智能识别录入'
+                                                : '共 ${allRecords.length} 条记录 · 点击管理或查看对奖',
+                                            style: context.texts.labelSmall,
+                                          ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const GlassStatusPill(
-                                    label: '今晚 21:30 开奖',
-                                    color: DuiliaoColors.warning,
-                                    pulse: true,
+                                  GlassStatusPill(
+                                    label: pendingRecs.isNotEmpty
+                                        ? '今晚 21:30 开奖'
+                                        : '自动对奖',
+                                    color: pendingRecs.isNotEmpty
+                                        ? DuiliaoColors.warning
+                                        : DuiliaoColors.hit,
+                                    pulse: pendingRecs.isNotEmpty,
                                   ),
                                 ],
                               ),

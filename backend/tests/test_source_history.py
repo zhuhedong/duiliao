@@ -11,6 +11,13 @@ def test_get_source_history_not_found(user_client):
     assert exc.value.status_code == 404
 
 
+def test_get_source_history_resolves_legacy_alias_haige_xiao(user_client):
+    res = user_client.get("/collector/sources/haige_xiao/history", params={"lottery": "macau", "limit": 200, "offset": 0})
+    assert res["ok"] is True
+    assert res["source"]["source_id"] == "haige_pingte"
+    assert isinstance(res["items"], list)
+
+
 def test_get_source_history_success(user_client):
     # Retrieve sources list first
     sources = user_client.get("/collector/sources")

@@ -827,6 +827,20 @@ def list_predictions(
     return {"ok": True, "total": int(total), "count": len(items), "items": items, "limit": limit, "offset": offset}
 
 
+_SOURCE_ID_ALIASES: dict[str, str] = {
+    "haige_xiao": "haige_pingte",
+    "haige": "haige_pingte",
+    "top_master": "dj_dashi_xinshui",
+    "gjp_fax": "dj_jp_6xiao",
+    "bxz": "ss_pingte",
+    "xzt_laoqian": "dingjian_dashi_1xiao",
+}
+
+
+def resolve_source_id(source_id: str) -> str:
+    return _SOURCE_ID_ALIASES.get(source_id, source_id)
+
+
 def get_source_history(
     source_id: str,
     lottery: str | None = None,
@@ -843,8 +857,13 @@ def get_source_history(
     from sqlalchemy import select
 
     with session_scope(guard=False) as s:
-        # 1. Verify source exists in DB or YAML
+        # 1. Verify source exists in DB or YAML (supporting legacy alias IDs)
         src_row = s.scalar(select(Source).where(Source.source_id == source_id))
+        if not src_row and source_id in _SOURCE_ID_ALIASES:
+            resolved = _SOURCE_ID_ALIASES[source_id]
+            src_row = s.scalar(select(Source).where(Source.source_id == resolved))
+            if src_row:
+                source_id = resolved
         source_meta = None
         if src_row:
             source_meta = {
@@ -860,11 +879,16 @@ def get_source_history(
                 "remark": src_row.remark,
             }
         else:
-            try:
-                reg = registry_module()
-                source_meta = reg.get_source(source_id)
-            except Exception:
-                pass
+            reg = registry_module()
+            for candidate_id in (source_id, _SOURCE_ID_ALIASES.get(source_id)):
+                if not candidate_id:
+                    continue
+                try:
+                    source_meta = reg.get_source(candidate_id)
+                    source_id = candidate_id
+                    break
+                except Exception:
+                    pass
 
         if not source_meta:
             first_pred = s.scalar(select(Prediction).where(Prediction.source_id == source_id).limit(1))

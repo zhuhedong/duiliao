@@ -140,14 +140,17 @@ def ratings(lottery, play_type, windows=(30, 50, 100), period_from=None, period_
     windows = tuple(dict.fromkeys(int(window) for window in windows if int(window) > 0))
     if not windows:
         raise ValueError("windows must contain at least one positive integer")
+    is_all_play = play_type in ("all", "*", "", None)
 
     with session_scope() as s:
         draw_periods = select(Draw.period.label("period")).where(Draw.lottery == lottery)
         judged_periods = (
             select(Prediction.period.label("period"))
             .join(JudgeResult, JudgeResult.prediction_id == Prediction.id)
-            .where(Prediction.lottery == lottery, Prediction.play_type == play_type)
+            .where(Prediction.lottery == lottery)
         )
+        if not is_all_play:
+            judged_periods = judged_periods.where(Prediction.play_type == play_type)
         calendar = draw_periods.union(judged_periods).subquery()
         period_stmt = select(calendar.c.period)
         if period_from:
@@ -159,25 +162,39 @@ def ratings(lottery, play_type, windows=(30, 50, 100), period_from=None, period_
             draw.period: draw
             for draw in s.scalars(select(Draw).where(Draw.lottery == lottery, Draw.period.in_(periods)))
         } if periods else {}
-        pairs = list(s.execute(
+        pair_stmt = (
             select(Prediction, JudgeResult)
             .outerjoin(JudgeResult, JudgeResult.prediction_id == Prediction.id)
             .where(
                 Prediction.lottery == lottery,
-                Prediction.play_type == play_type,
                 Prediction.period.in_(periods),
             )
-        )) if periods else []
+        )
+        if not is_all_play:
+            pair_stmt = pair_stmt.where(Prediction.play_type == play_type)
+        pairs = list(s.execute(pair_stmt)) if periods else []
         by_source = defaultdict(lambda: defaultdict(list))
+        pred_play_types = {}
         for p, j in pairs:
             by_source[p.source_id][p.period].append((p, j))
+            if p.play_type and p.source_id not in pred_play_types:
+                pred_play_types[p.source_id] = p.play_type
         source_rows = list(s.scalars(select(Source).where(Source.lottery == lottery)))
         names = {row.source_id: row.source_name for row in source_rows}
-        declared = {row.source_id for row in source_rows if row.play_type == play_type}
+        source_play_types = {row.source_id: row.play_type for row in source_rows}
+        declared = (
+            {row.source_id for row in source_rows}
+            if is_all_play
+            else {row.source_id for row in source_rows if row.play_type == play_type}
+        )
         table = []
         for sid in sorted(declared | set(by_source)):
             selected = by_source[sid]
-            rec = dict(source_id=sid, source_name=names.get(sid, sid))
+            rec = dict(
+                source_id=sid,
+                source_name=names.get(sid, sid),
+                play_type=source_play_types.get(sid) or pred_play_types.get(sid) or (play_type if not is_all_play else "texiao"),
+            )
             chosen = [
                 pair
                 for period in periods

@@ -718,6 +718,22 @@ def remove_record(
     return {"ok": True, "deleted": True, "id": record_id}
 
 
+@router.delete("/records")
+def clear_records(
+    lottery: str | None = Query(None),
+    status_filter: str | None = Query(None, alias="status"),
+    db: Session = Depends(get_db),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Delete all (or filtered) betting records owned by the signed-in user."""
+    if lottery:
+        _validate_lottery(lottery)
+    from app.services.betting_records_service import clear_user_records
+
+    count = clear_user_records(db=db, user_id=user.id, lottery=lottery, status_filter=status_filter)
+    return {"ok": True, "deleted_count": count}
+
+
 @router.post("/records/settle")
 def settle_records(
     lottery: str | None = Query(None),

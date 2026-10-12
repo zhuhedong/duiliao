@@ -886,3 +886,23 @@ def delete_user_record(db: Session, user_id: str, record_id: str) -> bool:
     db.delete(rec)
     db.commit()
     return True
+
+
+def clear_user_records(
+    db: Session,
+    user_id: str,
+    lottery: str | None = None,
+    status_filter: str | None = None,
+) -> int:
+    stmt = select(UserBettingRecord).where(UserBettingRecord.user_id == user_id)
+    if lottery:
+        stmt = stmt.where(UserBettingRecord.lottery == lottery)
+    if status_filter and status_filter != "all":
+        stmt = stmt.where(UserBettingRecord.status == status_filter)
+    rows = list(db.scalars(stmt))
+    for r in rows:
+        db.delete(r)
+    if rows:
+        db.commit()
+    return len(rows)
+

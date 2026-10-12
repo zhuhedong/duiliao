@@ -56,7 +56,7 @@ class _SourceSample {
 const _fallbackSources = [
   _SourceSample(
     name: '海哥平特一肖',
-    id: 'haige_xiao',
+    id: 'haige_pingte',
     playLabel: '平特一肖',
     status: 'enabled',
     lastTime: '最近采集 09-26 21:05',
@@ -66,8 +66,8 @@ const _fallbackSources = [
   ),
   _SourceSample(
     name: '顶尖大师',
-    id: 'top_master',
-    playLabel: '特码',
+    id: 'dj_dashi_xinshui',
+    playLabel: '特肖',
     status: 'enabled',
     lastTime: '最近采集 09-26 20:58',
     hitRateLabel: '55%',
@@ -75,9 +75,9 @@ const _fallbackSources = [
     scheduleLabel: '调度 每日 12:00 / 21:00',
   ),
   _SourceSample(
-    name: '管家婆传真',
-    id: 'gjp_fax',
-    playLabel: '平特肖',
+    name: '顶级论坛金牌六肖',
+    id: 'dj_jp_6xiao',
+    playLabel: '特肖',
     status: 'enabled',
     lastTime: '最近采集 09-26 21:02',
     hitRateLabel: '48%',
@@ -85,9 +85,9 @@ const _fallbackSources = [
     scheduleLabel: '调度 每日 12:00',
   ),
   _SourceSample(
-    name: '白小组',
-    id: 'bxz',
-    playLabel: '连肖',
+    name: '神算平特一肖',
+    id: 'ss_pingte',
+    playLabel: '平特肖',
     status: 'paused',
     lastTime: '最近采集 09-24 12:00',
     hitRateLabel: '41%',
@@ -95,8 +95,8 @@ const _fallbackSources = [
     scheduleLabel: '调度已暂停',
   ),
   _SourceSample(
-    name: '肖中特-老钱',
-    id: 'xzt_laoqian',
+    name: '大师一肖',
+    id: 'dingjian_dashi_1xiao',
     playLabel: '特肖',
     status: 'broken',
     lastTime: '连续 3 期未采集',

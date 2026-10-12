@@ -42,6 +42,25 @@ class RatingWindow extends Notifier<int> {
   void set(int window) => state = window;
 }
 
+final ratingPlayTypeProvider = NotifierProvider<RatingPlayType, String>(
+  RatingPlayType.new,
+);
+
+class RatingPlayType extends Notifier<String> {
+  @override
+  String build() => 'all';
+  void set(String playType) => state = playType;
+}
+
+const List<({String code, String label})> _ratingPlayTypeFilters = [
+  (code: 'all', label: '全部玩法'),
+  (code: 'texiao', label: '特肖'),
+  (code: 'pingte_xiao', label: '平特肖'),
+  (code: 'tema_n', label: '特码'),
+  (code: 'tema_twoface', label: '两面'),
+  (code: 'buzhong_num', label: '不中'),
+];
+
 class _RatingSample {
   const _RatingSample({
     required this.grade,
@@ -55,6 +74,7 @@ class _RatingSample {
     required this.maxWin,
     required this.maxLoss,
     required this.missing,
+    this.playType = 'texiao',
     this.warningPill,
     this.footnote,
   });
@@ -70,14 +90,93 @@ class _RatingSample {
   final String maxWin;
   final String maxLoss;
   final String missing;
+  final String playType;
   final String? warningPill;
   final String? footnote;
+
+  factory _RatingSample.fromRow(RatingRow row, int window) {
+    final rate = row.hitRate(window);
+    final n = row.sampleSize(window) ?? row.coveredPeriods;
+    final playCode = (row.raw['play_type'] ?? 'texiao').toString();
+    final playLabel = switch (playCode) {
+      'pingte_xiao' => '平特一肖',
+      'texiao' => '特肖',
+      'tema_n' => '特码',
+      'tema_twoface' => '两面',
+      'buzhong_num' => '不中码',
+      'buzhong_xiao' => '杀肖',
+      'lianxiao_n' => '连肖',
+      'pingte_wei' => '平特尾',
+      _ => playCode,
+    };
+
+    final String grade;
+    final String pillLabel;
+    final Color pillColor;
+    final Color? hitColor;
+
+    if (rate == null || n == 0) {
+      grade = '—';
+      pillLabel = '待对奖';
+      pillColor = DuiliaoColors.pending;
+      hitColor = null;
+    } else if (rate >= 0.60 && !row.hasIntegrityWarning && row.missing <= 1) {
+      grade = 'S';
+      pillLabel = '稳定';
+      pillColor = DuiliaoColors.hit;
+      hitColor = DuiliaoColors.hit;
+    } else if (rate >= 0.50 && !row.hasIntegrityWarning) {
+      grade = 'A';
+      pillLabel = '良好';
+      pillColor = DuiliaoColors.primaryDark;
+      hitColor = DuiliaoColors.primaryDark;
+    } else if (rate >= 0.42) {
+      grade = 'B';
+      pillLabel = '波动';
+      pillColor = DuiliaoColors.warning;
+      hitColor = DuiliaoColors.warning;
+    } else {
+      grade = 'C';
+      pillLabel = '偏弱';
+      pillColor = DuiliaoColors.miss;
+      hitColor = DuiliaoColors.miss;
+    }
+
+    String? warningPill;
+    if (row.dirtyFlags > 0) {
+      warningPill = '虚假报喜 ${row.dirtyFlags} 次(不一致)';
+    } else if (row.afterEdits > 0) {
+      warningPill = '开奖后篡改 ${row.afterEdits} 次';
+    }
+
+    String? footnote;
+    if (rate == null || n < kSmallSampleThreshold) {
+      footnote = '样本 $n 期${row.missing > 0 ? ' · 缺期 ${row.missing} 期' : ''}，积累更多对奖样本后评级更稳定';
+    }
+
+    return _RatingSample(
+      grade: grade,
+      sourceId: row.sourceId,
+      name: row.sourceName.isEmpty ? row.sourceId : row.sourceName,
+      sub: '$playLabel · 样本 $n 期',
+      pillLabel: pillLabel,
+      pillColor: pillColor,
+      hitRate: rate != null ? '${(rate * 100).round()}%' : '—',
+      hitColor: hitColor,
+      maxWin: n > 0 ? '${row.longestHit}' : '—',
+      maxLoss: n > 0 ? '${row.longestMiss}' : '—',
+      missing: '${row.missing}',
+      playType: playCode,
+      warningPill: warningPill,
+      footnote: footnote,
+    );
+  }
 }
 
 const _fallbackRatingSamples = [
   _RatingSample(
     grade: 'S',
-    sourceId: 'haige_xiao',
+    sourceId: 'haige_pingte',
     name: '海哥平特一肖',
     sub: '平特一肖 · 样本 50 期',
     pillLabel: '稳定',
@@ -87,10 +186,11 @@ const _fallbackRatingSamples = [
     maxWin: '6',
     maxLoss: '3',
     missing: '0',
+    playType: 'pingte_xiao',
   ),
   _RatingSample(
     grade: 'A',
-    sourceId: 'top_master',
+    sourceId: 'dj_dashi_xinshui',
     name: '顶尖大师',
     sub: '特肖 · 样本 49 期',
     pillLabel: '良好',
@@ -100,11 +200,12 @@ const _fallbackRatingSamples = [
     maxWin: '4',
     maxLoss: '4',
     missing: '1',
+    playType: 'texiao',
   ),
   _RatingSample(
     grade: 'B',
-    sourceId: 'gjp_fax',
-    name: '管家婆传真',
+    sourceId: 'dj_jp_6xiao',
+    name: '顶级论坛金牌六肖',
     sub: '特肖 · 样本 48 期',
     pillLabel: '波动',
     pillColor: DuiliaoColors.warning,
@@ -113,12 +214,13 @@ const _fallbackRatingSamples = [
     maxWin: '3',
     maxLoss: '5',
     missing: '2',
+    playType: 'texiao',
   ),
   _RatingSample(
     grade: 'C',
-    sourceId: 'bxz',
-    name: '白小组',
-    sub: '特肖 · 样本 46 期',
+    sourceId: 'ss_pingte',
+    name: '神算平特一肖',
+    sub: '平特一肖 · 样本 46 期',
     pillLabel: '偏弱',
     pillColor: DuiliaoColors.miss,
     hitRate: '41%',
@@ -126,12 +228,13 @@ const _fallbackRatingSamples = [
     maxWin: '2',
     maxLoss: '8',
     missing: '4',
+    playType: 'pingte_xiao',
     warningPill: '虚假报喜 1 次(不一致)',
   ),
   _RatingSample(
     grade: '—',
-    sourceId: 'xzt_laoqian',
-    name: '肖中特-老钱',
+    sourceId: 'dingjian_dashi_1xiao',
+    name: '大师一肖',
     sub: '特肖 · 样本 41 期',
     pillLabel: '待对奖',
     pillColor: DuiliaoColors.pending,
@@ -140,6 +243,7 @@ const _fallbackRatingSamples = [
     maxWin: '—',
     maxLoss: '—',
     missing: '9',
+    playType: 'texiao',
     footnote: '数据不足 · 缺期 9 期,补足样本后自动计算评级',
   ),
 ];
@@ -151,6 +255,15 @@ class RatingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lottery = ref.watch(selectedLotteryProvider);
     final window = ref.watch(ratingWindowProvider);
+    final playType = ref.watch(ratingPlayTypeProvider);
+    final ratingsKey = (lottery: lottery, playType: playType);
+    final ratingsAsync = ref.watch(ratingsProvider(ratingsKey));
+    final liveResult = ratingsAsync.value?.result;
+    final liveRows = liveResult?.sources ?? const <RatingRow>[];
+    final items = liveRows.isNotEmpty
+        ? [for (final row in liveRows) _RatingSample.fromRow(row, window)]
+        : (ratingsAsync.hasValue ? const <_RatingSample>[] : _fallbackRatingSamples);
+    final latestPeriod = liveResult?.periodTo;
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
@@ -178,56 +291,112 @@ class RatingsScreen extends ConsumerWidget {
                 ],
               ),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                  children: [
-                    // Lottery chips + Window Segmented Control
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final l in Lottery.all)
-                          GlassChipTag(
-                            label: l.label,
-                            active: l == lottery,
-                            onTap: () => ref
-                                .read(selectedLotteryProvider.notifier)
-                                .set(l),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    GlassSegmentedControl<int>(
-                      items: kRatingWindows,
-                      selected: window,
-                      labelBuilder: (w) => w == 30 ? '窗口 30 期' : '$w 期',
-                      onChanged: (w) =>
-                          ref.read(ratingWindowProvider.notifier).set(w),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Context Strip
-                    GlassSubtleBox(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 9,
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(ratingsProvider(ratingsKey));
+                    await ref.read(ratingsProvider(ratingsKey).future);
+                  },
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                    children: [
+                      // Lottery chips + Window Segmented Control
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final l in Lottery.all)
+                            GlassChipTag(
+                              label: l.label,
+                              active: l == lottery,
+                              onTap: () => ref
+                                  .read(selectedLotteryProvider.notifier)
+                                  .set(l),
+                            ),
+                        ],
                       ),
-                      child: Text(
-                        '当前为 $window 期窗口的静态评级样例 · 数据截至第 2026276 期',
-                        style: context.texts.labelSmall,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    for (final item in _fallbackRatingSamples)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _RatingSampleCard(
-                          item: item,
-                          lottery: lottery,
+                      const SizedBox(height: 10),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (var i = 0; i < _ratingPlayTypeFilters.length; i++) ...[
+                              if (i > 0) const SizedBox(width: 8),
+                              GlassChipTag(
+                                label: _ratingPlayTypeFilters[i].label,
+                                active: playType == _ratingPlayTypeFilters[i].code,
+                                onTap: () => ref
+                                    .read(ratingPlayTypeProvider.notifier)
+                                    .set(_ratingPlayTypeFilters[i].code),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                  ],
+                      const SizedBox(height: 10),
+                      GlassSegmentedControl<int>(
+                        items: kRatingWindows,
+                        selected: window,
+                        labelBuilder: (w) => w == 30 ? '窗口 30 期' : '$w 期',
+                        onChanged: (w) =>
+                            ref.read(ratingWindowProvider.notifier).set(w),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Context Strip
+                      GlassSubtleBox(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 9,
+                        ),
+                        child: Text(
+                          liveRows.isNotEmpty
+                              ? '当前为 $window 期窗口的实时对奖评级 · 共 ${liveRows.length} 个数据源${latestPeriod != null ? ' · 截至第 $latestPeriod 期' : ''}'
+                              : '当前为 $window 期窗口的源可信评级 · 官方开奖对照口径',
+                          style: context.texts.labelSmall,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      if (items.isEmpty)
+                        GlassCard(
+                          margin: EdgeInsets.zero,
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.assessment_outlined,
+                                size: 32,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                '当前筛选条件下暂无已评级数据源',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '切换其他玩法或执行数据采集与对奖后即可自动生成评级',
+                                style: context.texts.labelSmall,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        for (final item in items)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _RatingSampleCard(
+                              item: item,
+                              lottery: lottery,
+                            ),
+                          ),
+                    ],
+                  ),
                 ),
               ),
               // Sticky Bottom Action Bar
@@ -238,10 +407,13 @@ class RatingsScreen extends ConsumerWidget {
                     GlassGhostButton(
                       label: '导出评级',
                       onTap: () {
+                        final summary = items
+                            .take(6)
+                            .map((e) => '${e.grade} ${e.name} ${e.hitRate}')
+                            .join(' | ');
                         Clipboard.setData(
-                          const ClipboardData(
-                            text:
-                                '源可信评级 (50期): S 海哥平特一肖 62% | A 顶尖大师 55% | B 管家婆传真 48% | C 白小组 41%',
+                          ClipboardData(
+                            text: '源可信评级 ($window期): $summary',
                           ),
                         );
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -253,6 +425,7 @@ class RatingsScreen extends ConsumerWidget {
                     Expanded(
                       child: GlassButton(
                         onPressed: () {
+                          ref.invalidate(ratingsProvider(ratingsKey));
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -315,7 +488,7 @@ class _RatingSampleCard extends StatelessWidget {
             lottery: lottery,
             sourceId: item.sourceId,
             sourceName: item.name,
-            initialPlayType: 'texiao',
+            initialPlayType: item.playType,
           ),
         ),
       ),
