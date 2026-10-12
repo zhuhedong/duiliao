@@ -341,3 +341,80 @@ def test_leader_key_is_order_insensitive():
     assert a == b
     assert _leader_key([]) == ""
     assert _leader_key(None) == ""
+
+
+# --------------------------------------------------------------------------- #
+# Betting records: server storage, 龙兔各数5 expansion & auto draw settlement
+# --------------------------------------------------------------------------- #
+def test_betting_record_long_tu_geshu_5_expansion_and_storage(user_client):
+    created = user_client.post(
+        "/app/records",
+        {
+            "lottery": "macau",
+            "period": "2026999",
+            "mode": "号码单式",
+            "play_type": "正码",
+            "raw_input": "龙兔各数5",
+        },
+    )
+    assert created["ok"] is True
+    rec = created["record"]
+    assert rec["numbers"] == ["03", "15", "27", "39", "04", "16", "28", "40"]
+    assert rec["stake_per_note"] == 5
+    assert rec["notes_count"] == 8
+    assert rec["total_amount"] == 40
+    assert rec["status"] == "pending"
+
+    listed = user_client.get("/app/records", params={"lottery": "macau"})
+    assert listed["ok"] is True
+    matched = [r for r in listed["items"] if r["id"] == rec["id"]]
+    assert len(matched) == 1
+    assert matched[0]["numbers"] == ["03", "15", "27", "39", "04", "16", "28", "40"]
+    assert matched[0]["total_amount"] == 40
+
+
+def test_betting_record_auto_settlement_when_draw_published(user_client):
+    from app import collector_bridge as cb
+
+    created = user_client.post(
+        "/app/records",
+        {
+            "lottery": "macau",
+            "period": "2026888",
+            "mode": "号码单式",
+            "play_type": "正码",
+            "raw_input": "龙兔各数5",
+        },
+    )
+    rec_id = created["record"]["id"]
+    assert created["record"]["status"] == "pending"
+    assert created["record"]["total_amount"] == 40
+
+    # Simulate official draw arriving for 2026888 via cb.sync_draws:
+    # 03 (龙), 15 (龙), and 28 (兔) are drawn -> 3 hits × ¥5 × 7 odds = ¥105 payout, +¥65 net profit
+    sync_res = cb.sync_draws(
+        "macau",
+        draws=[
+            {
+                "lottery": "macau",
+                "period": "2026888",
+                "period_raw": "888",
+                "draw_date": "2026-10-12",
+                "openCode": "03,15,19,22,31,45,28",
+                "source": "fixture:official",
+            }
+        ],
+    )
+    assert sync_res.get("betting_records_settled", 0) >= 1
+
+    listed = user_client.get("/app/records", params={"lottery": "macau"})
+    settled_rec = next(r for r in listed["items"] if r["id"] == rec_id)
+    assert settled_rec["status"] == "won"
+    assert settled_rec["hit_numbers"] == ["03", "15", "28"]
+    assert settled_rec["payout"] == 105
+    assert settled_rec["net_profit"] == 65
+    assert settled_rec["win_pill_label"] == "中 3 码 +¥65"
+
+    deleted = user_client.delete(f"/app/records/{rec_id}")
+    assert deleted["ok"] is True
+    assert deleted["deleted"] is True

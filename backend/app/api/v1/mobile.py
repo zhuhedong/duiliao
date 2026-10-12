@@ -618,8 +618,8 @@ class BettingRecordPayload(BaseModel):
     play_type: str = Field("特码")
     numbers: list[str] = Field(default_factory=list)
     xiaos: list[str] = Field(default_factory=list)
-    stake_per_note: int = Field(10, ge=1, le=1_000_000)
-    multiplier: int = Field(1, ge=1, le=10_000)
+    stake_per_note: int | None = Field(None, ge=1, le=1_000_000)
+    multiplier: int | None = Field(None, ge=1, le=10_000)
     notes_count: int | None = Field(None, ge=1, le=100_000)
     total_amount: int | None = Field(None, ge=1, le=100_000_000)
     odds: float | None = Field(None, gt=0)
@@ -716,4 +716,23 @@ def remove_record(
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="record not found")
     return {"ok": True, "deleted": True, "id": record_id}
+
+
+@router.post("/records/settle")
+def settle_records(
+    lottery: str | None = Query(None),
+    db: Session = Depends(get_db),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Settle all pending records for the signed-in user against published official draws."""
+    if lottery:
+        _validate_lottery(lottery)
+    from app.services.betting_records_service import list_user_records
+
+    return list_user_records(
+        db=db,
+        user_id=user.id,
+        lottery=lottery,
+        auto_settle=True,
+    )
 

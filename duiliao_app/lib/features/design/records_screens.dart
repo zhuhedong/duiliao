@@ -278,6 +278,26 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
       await api.delete('/app/records/$id');
     } catch (_) {}
   }
+
+  Future<void> settleRecords() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final res = await api.post('/app/records/settle');
+      final rawItems = res['items'];
+      if (rawItems is List && rawItems.isNotEmpty) {
+        final serverList = rawItems
+            .whereType<Map>()
+            .map(
+              (m) => BettingRecordItem.fromJson(
+                Map<String, Object?>.from(m),
+              ),
+            )
+            .toList(growable: false);
+        state = serverList;
+        await _persistLocal(serverList);
+      }
+    } catch (_) {}
+  }
 }
 
 final bettingRecordsProvider =
@@ -996,7 +1016,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     _noteController = TextEditingController();
     if (widget.initialText != null) {
       final stakeMatch = RegExp(
-        r'(?:个数|各|每码|×|\*)\s*(\d+)',
+        r'(?:各数|个数|各号|每码|每注|各|×|\*)\s*(\d+)',
       ).firstMatch(widget.initialText!);
       if (stakeMatch != null) {
         _stakeController.text = stakeMatch.group(1)!;
@@ -1041,11 +1061,27 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   }
 
   List<String> _parseNumbers(String text) {
-    var cleaned = text.replaceAll(RegExp(r'(?:个数|各|每码)\s*\d+.*$'), '');
+    var cleaned = text.replaceAll(
+      RegExp(r'(?:各数|个数|各号|每码|每注|各|×|\*)\s*\d+.*$'),
+      '',
+    );
     cleaned = cleaned.replaceAll(RegExp(r'[·\s]*\d+\s*不中.*$'), '');
     cleaned = cleaned.replaceAll(RegExp(r'复试\s*\d+\s*连.*$'), '');
-    final matches = RegExp(r'\b([0-4]?\d)\b').allMatches(cleaned);
+    cleaned = cleaned.replaceAll(RegExp(r'(?:倍\s*\d+|\d+\s*倍)'), '');
     final result = <String>[];
+    // Support zodiac-to-number expansion (e.g. "龙兔各数5" -> 龙: 03,15,27,39 + 兔: 04,16,28,40)
+    if (_mode != '连肖复试') {
+      for (final ch in cleaned.characters) {
+        if (Lottery2026Lookup.xiaoList.contains(ch)) {
+          for (final numStr in Lottery2026Lookup.numbersForXiao(ch)) {
+            if (!result.contains(numStr)) {
+              result.add(numStr);
+            }
+          }
+        }
+      }
+    }
+    final matches = RegExp(r'(?<!\d)([0-4]?\d)(?!\d)').allMatches(cleaned);
     for (final m in matches) {
       final n = int.tryParse(m.group(1) ?? '');
       if (n != null && n >= 1 && n <= 49) {
@@ -1102,7 +1138,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   Widget build(BuildContext context) {
     final text = _inputController.text;
     final parsedStakeMatch = RegExp(
-      r'(?:个数|各|每码|×|\*)\s*(\d+)',
+      r'(?:各数|个数|各号|每码|每注|各|×|\*)\s*(\d+)',
     ).firstMatch(text);
     final stake =
         int.tryParse(_stakeController.text.trim()) ??
@@ -1253,7 +1289,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             maxLines: 2,
                             onChanged: (v) {
                               final m = RegExp(
-                                r'(?:个数|各|每码|×|\*)\s*(\d+)',
+                                r'(?:各数|个数|各号|每码|每注|各|×|\*)\s*(\d+)',
                               ).firstMatch(v);
                               if (m != null) {
                                 _stakeController.text = m.group(1)!;
@@ -1294,7 +1330,9 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                   '不中码' =>
                                     '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
                                   _ =>
-                                    '已识别 ${numbers.length} 个号码 · 单注 ¥$stake',
+                                    xiaos.isNotEmpty
+                                        ? '已识别 ${xiaos.join('')}转 ${numbers.length} 个号码 · 单注 ¥$stake'
+                                        : '已识别 ${numbers.length} 个号码 · 单注 ¥$stake',
                                 },
                                 tone: GlassPillTone.success,
                               ),
@@ -1335,7 +1373,22 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                   ),
                               ],
                             )
-                          else
+                          else ...[
+                            if (xiaos.isNotEmpty) ...[
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  for (final x in xiaos)
+                                    ZTag(
+                                      label:
+                                          '$x (${Lottery2026Lookup.numbersForXiao(x).join("·")})',
+                                      variant: ZTagVariant.primary,
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                            ],
                             Wrap(
                               spacing: 6,
                               runSpacing: 6,
@@ -1349,6 +1402,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                   ),
                               ],
                             ),
+                          ],
                           if (_mode == '不中码') ...[
                             const SizedBox(height: 12),
                             GlassSubtleBox(
@@ -1508,21 +1562,22 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                           '连肖复试' => const [
                             _RuleBullet('① 生肖连续书写自动拆分：龙牛猴鸡兔 → 龙/牛/猴/鸡/兔'),
                             _RuleBullet('② 「复试N连」按组合展开：选 M 肖复试 N 连 → C(M,N) 注'),
-                            _RuleBullet('③ 「个数10」识别为每注单额；「倍2」「×2倍」识别为倍数'),
+                            _RuleBullet('③ 「各数10」「个数10」识别为每注单额；「倍2」「×2倍」识别为倍数'),
                             _RuleBullet('④ 本例：5 肖复试 4 连 → C(5,4)=5 注 × ¥10 × 2 倍 = ¥100'),
                           ],
                           '不中码' => const [
                             _RuleBullet('① 「不中码」为整组玩法：N 个号码合成 1 注，不逐码拆分'),
                             _RuleBullet('② 号码个数与 N 自动核对，不一致时标红提示'),
-                            _RuleBullet('③ 「个数10」为该整组单额；「倍2」「×2倍」识别为倍数'),
+                            _RuleBullet('③ 「各数10」「个数10」为该整组单额；「倍2」「×2倍」识别为倍数'),
                             _RuleBullet('④ 本例：6 码 6 不中 → 1 注 × ¥10 = ¥10'),
                           ],
                           _ => const [
                             _RuleBullet('① 号码以「.」「,」「空格」「、」分隔，范围 01–49，自动去重、标注波色'),
-                            _RuleBullet('② 「个数5」「各5」「×5」「每码5」识别为单注金额；「倍2」「×2倍」识别为倍数'),
-                            _RuleBullet('③ 连肖复试：龙牛猴鸡兔复试4连个数10 → C(5,4)=5 注组合 × ¥10'),
-                            _RuleBullet('④ 不中码：02.04.06.08.10.12·6不中个数10 → 整组 1 注，全不开出即中'),
-                            _RuleBullet('⑤ 示例：18.42.39个数5 → 3 注 × ¥5 = ¥15'),
+                            _RuleBullet('② 「各数5」「个数5」「各5」「×5」「每码5」识别为单注金额；「倍2」「×2倍」识别为倍数'),
+                            _RuleBullet('③ 生肖包码：龙兔各数5 → 龙(03·15·27·39)+兔(04·16·28·40)共 8 码 × ¥5 = ¥40'),
+                            _RuleBullet('④ 连肖复试：龙牛猴鸡兔复试4连个数10 → C(5,4)=5 注组合 × ¥10'),
+                            _RuleBullet('⑤ 不中码：02.04.06.08.10.12·6不中个数10 → 整组 1 注，全不开出即中'),
+                            _RuleBullet('⑥ 示例：18.42.39个数5 → 3 注 × ¥5 = ¥15'),
                           ],
                         },
                       ),

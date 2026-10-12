@@ -406,7 +406,7 @@ def sync_draws(
     from sqlalchemy.exc import IntegrityError
 
     try:
-        return draw_sync.sync_draws(rows)
+        res = draw_sync.sync_draws(rows)
     except IntegrityError as exc:
         if not _is_stale_sequence_error(exc):
             raise
@@ -414,7 +414,21 @@ def sync_draws(
         # the insert asked for an id that already exists. Repair and retry once:
         # upsert_draw is idempotent, so replaying the batch is safe.
         _align_sequences("draw sync recovery")
-        return draw_sync.sync_draws(rows)
+        res = draw_sync.sync_draws(rows)
+
+    try:
+        from app.services.betting_records_service import settle_all_users_records
+
+        settled_count = settle_all_users_records(lottery=lottery, period=period)
+        if isinstance(res, dict):
+            res["betting_records_settled"] = (
+                settled_count.get("settled_count", 0)
+                if isinstance(settled_count, dict)
+                else int(settled_count or 0)
+            )
+    except Exception:
+        pass
+    return res
 
 
 def judge(lottery: str, period: str) -> dict[str, Any]:
@@ -423,7 +437,21 @@ def judge(lottery: str, period: str) -> dict[str, Any]:
     import judge as judge_mod
     from common.period import normalize
 
-    return judge_mod.run_judge(lottery, normalize(lottery, period))
+    canonical_period = normalize(lottery, period)
+    res = judge_mod.run_judge(lottery, canonical_period)
+    try:
+        from app.services.betting_records_service import settle_all_users_records
+
+        settled_count = settle_all_users_records(lottery=lottery, period=canonical_period)
+        if isinstance(res, dict):
+            res["betting_records_settled"] = (
+                settled_count.get("settled_count", 0)
+                if isinstance(settled_count, dict)
+                else int(settled_count or 0)
+            )
+    except Exception:
+        pass
+    return res
 
 
 def consensus_compare(lottery: str, period: str, play_type: str | None = None) -> dict[str, Any]:

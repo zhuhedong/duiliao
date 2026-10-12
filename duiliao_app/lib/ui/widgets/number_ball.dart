@@ -41,6 +41,18 @@ abstract final class Lottery2026Lookup {
     final idx = (((year - 4) % 12 - (n - 1)) % 12 + 12) % 12;
     return xiaoList[idx];
   }
+
+  static List<String> numbersForXiao(String xiao, {int year = 2026}) {
+    final target = xiao.trim();
+    if (target.isEmpty) return const <String>[];
+    final out = <String>[];
+    for (var n = 1; n <= 49; n++) {
+      if (xiaoForNumber(n, year: year) == target) {
+        out.add(n.toString().padLeft(2, '0'));
+      }
+    }
+    return out;
+  }
 }
 
 class NumberBall extends StatelessWidget {

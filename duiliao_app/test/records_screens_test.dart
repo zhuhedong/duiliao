@@ -67,6 +67,16 @@ void main() {
     await tester.pump();
     expect(find.text('新增记录 · 不中码'), findsOneWidget);
     expect(find.text('¥10'), findsWidgets);
+
+    // Switch back to 号码单式 and test "龙兔各数5" -> 8 numbers × ¥5 = ¥40
+    await tester.tap(find.text('号码单式'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).first, '龙兔各数5');
+    await tester.pump();
+    expect(find.text('已识别 龙兔转 8 个号码 · 单注 ¥5'), findsOneWidget);
+    expect(find.text('龙 (03·15·27·39)'), findsOneWidget);
+    expect(find.text('兔 (04·16·28·40)'), findsOneWidget);
+    expect(find.text('¥40'), findsWidgets);
   });
 
   testWidgets('RecordDetailScreen and RecordStatsScreen render cleanly',

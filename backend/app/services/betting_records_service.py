@@ -1,4 +1,4 @@
-"""Service for per-user betting records CRUD, auto-settlement against official draws, and P&L statistics."""
+"""Service for per-user betting records CRUD, smart text parsing (including zodiac->number expansion like '龙兔各数5'), auto-settlement against official draws, and P&L statistics."""
 from __future__ import annotations
 
 import itertools
@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import collector_bridge as cb
+from app.db.session import SessionLocal
 from app.models.betting_record import UserBettingRecord
 
 logger = logging.getLogger("app.services.betting_records")
@@ -31,13 +32,25 @@ XIAO_NUMBERS_2026: dict[str, list[str]] = {
     "羊": ["12", "24", "36", "48"],
 }
 
+XIAO_ORDER = ("鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪")
+
 NUM_TO_XIAO_2026: dict[str, str] = {
     num: xiao for xiao, nums in XIAO_NUMBERS_2026.items() for num in nums
 }
 
+RED_BOSE = {
+    "01", "02", "07", "08", "12", "13", "18", "19", "23", "24",
+    "29", "30", "34", "35", "40", "45", "46",
+}
+BLUE_BOSE = {
+    "03", "04", "09", "10", "14", "15", "20", "25", "26", "31",
+    "36", "37", "41", "42", "47", "48",
+}
+
 DEFAULT_ODDS: dict[str, float] = {
     "特码": 47.0,
-    "平码": 7.6,
+    "正码": 7.0,
+    "平码": 7.0,
     "平特肖": 2.05,
     "平特一肖": 2.05,
     "特肖": 11.5,
@@ -45,10 +58,17 @@ DEFAULT_ODDS: dict[str, float] = {
     "2连肖（复试）": 4.2,
     "3连肖": 11.2,
     "3连肖（复试）": 11.2,
+    "3 连": 11.2,
     "4连肖": 33.0,
     "4连肖（复试）": 33.0,
+    "4 连": 33.0,
     "5连肖": 95.0,
     "5连肖（复试）": 95.0,
+    "5 连": 95.0,
+    "5 不中": 2.12,
+    "6 不中": 2.58,
+    "7 不中": 3.15,
+    "8 不中": 3.85,
     "五不中": 2.12,
     "六不中": 2.58,
     "七不中": 3.15,
@@ -67,12 +87,21 @@ NBUZHONG_K: dict[str, int] = {
 }
 
 
+def bose_for_number(num_str: str) -> str:
+    n = _norm_num(num_str)
+    if n in RED_BOSE:
+        return "红波"
+    if n in BLUE_BOSE:
+        return "蓝波"
+    return "绿波"
+
+
 def default_odds_for(play_type: str, mode: str = "号码单式") -> float:
     if play_type in DEFAULT_ODDS:
         return DEFAULT_ODDS[play_type]
     if "不中" in play_type or mode == "不中码":
-        return 2.12
-    if "连肖" in play_type or mode == "连肖复试":
+        return 2.58
+    if "连肖" in play_type or "连" in play_type or mode == "连肖复试":
         if "2" in play_type or "二" in play_type:
             return 4.2
         if "3" in play_type or "三" in play_type:
@@ -84,6 +113,8 @@ def default_odds_for(play_type: str, mode: str = "号码单式") -> float:
         return 2.05
     if "特肖" in play_type:
         return 11.5
+    if "正码" in play_type or "平码" in play_type:
+        return 7.0
     return 47.0
 
 
@@ -95,7 +126,11 @@ def _norm_num(val: str) -> str:
     return f"{n:02d}"
 
 
-def _lianxiao_k(play_type: str) -> int:
+def _lianxiao_k(play_type: str, raw_input: str = "") -> int:
+    combined = f"{play_type} {raw_input}"
+    m = re.search(r"([2345])\s*连", combined)
+    if m:
+        return int(m.group(1))
     for digit in ("2", "3", "4", "5"):
         if digit in play_type:
             return int(digit)
@@ -105,26 +140,113 @@ def _lianxiao_k(play_type: str) -> int:
     return 4
 
 
-def _nbuzhong_k(play_type: str) -> int:
+def _nbuzhong_k(play_type: str, raw_input: str = "") -> int:
     for name, k in NBUZHONG_K.items():
         if name in play_type:
             return k
-    m = re.search(r"(\d+)\s*不中", play_type)
+    m = re.search(r"(\d+)\s*不中", f"{play_type} {raw_input}")
     if m:
         return max(5, min(10, int(m.group(1))))
-    return 5
+    return 6
 
 
-def compute_notes_count(mode: str, play_type: str, numbers: list[str], xiaos: list[str]) -> int:
-    if mode == "连肖复试" or "连肖" in play_type:
-        k = _lianxiao_k(play_type)
+def parse_smart_bet_input(
+    raw_input: str,
+    mode: str = "号码单式",
+    play_type: str = "正码",
+) -> dict[str, Any]:
+    """Parse shorthand betting input.
+
+    Supports:
+    - ``18.42.39个数5`` -> numbers=['18','42','39'], stake=5
+    - ``龙兔各数5`` / ``龙兔个数5`` / ``龙兔各5`` -> in 号码单式 mode, expands 龙(03,15,27,39)
+      and 兔(04,16,28,40) into 8 numbers, each ¥5 (8 notes, total ¥40).
+    - ``龙牛猴鸡兔复试4连个数10`` -> xiaos=['龙','牛','猴','鸡','兔'], mode='连肖复试', k=4, stake=10
+    - ``02.04.06.08.10.12·6不中个数10`` -> numbers=['02',...,'12'], mode='不中码', k=6, stake=10
+    """
+    text = (raw_input or "").strip()
+    stake_match = re.search(r"(?:各数|个数|各号|每码|每注|各|×|\*)\s*(\d+)", text)
+    parsed_stake = int(stake_match.group(1)) if stake_match else None
+
+    mult_match = re.search(r"(?:倍\s*(\d+)|(\d+)\s*倍)", text)
+    parsed_mult = int(mult_match.group(1) or mult_match.group(2)) if mult_match else None
+
+    # Strip trailing stake/multiplier/play descriptors so their digits aren't parsed as lottery numbers
+    cleaned = re.sub(r"(?:各数|个数|各号|每码|每注|各|×|\*)\s*\d+.*$", "", text)
+    cleaned = re.sub(r"[·\s]*\d+\s*不中.*$", "", cleaned)
+    cleaned = re.sub(r"复试\s*\d+\s*连.*$", "", cleaned)
+    cleaned = re.sub(r"(?:倍\s*\d+|\d+\s*倍)", "", cleaned)
+
+    explicit_numbers: list[str] = []
+    for m in re.finditer(r"(?<!\d)([0-4]?\d)(?!\d)", cleaned):
+        n = int(m.group(1))
+        if 1 <= n <= 49:
+            fmt = f"{n:02d}"
+            if fmt not in explicit_numbers:
+                explicit_numbers.append(fmt)
+
+    extracted_xiaos: list[str] = []
+    for ch in cleaned:
+        if ch in XIAO_ORDER and ch not in extracted_xiaos:
+            extracted_xiaos.append(ch)
+
+    is_fushi = (
+        mode == "连肖复试"
+        or "连肖" in play_type
+        or "复试" in text
+        or bool(re.search(r"\d+\s*连", text))
+    )
+    is_nbuzhong = (
+        mode == "不中码"
+        or "不中" in play_type
+        or "不中" in text
+    )
+    # Check if play_type is a pure zodiac play (like 特肖 / 平特肖 / 合肖 / 正肖 / 杀肖) WITHOUT 各数/个数/每码
+    has_per_number_keyword = bool(re.search(r"(?:各数|个数|各号|每码)", text))
+    is_pure_xiao_play = (
+        play_type in ("特肖", "平特肖", "平特一肖", "合肖", "正肖", "杀肖")
+        and not has_per_number_keyword
+    )
+
+    numbers = list(explicit_numbers)
+    xiaos: list[str] = []
+
+    if is_fushi:
+        xiaos = extracted_xiaos
+        numbers = []
+    elif is_nbuzhong:
+        # Even in 不中码, if user typed zodiacs, expand them into numbers
+        for x in extracted_xiaos:
+            for num in XIAO_NUMBERS_2026.get(x, []):
+                if num not in numbers:
+                    numbers.append(num)
+        xiaos = []
+    elif is_pure_xiao_play:
+        xiaos = extracted_xiaos
+    else:
+        # 号码单式 or '各数5' / '个数5' / '各5': expand any zodiacs (e.g. 龙兔) into their constituent numbers!
+        for x in extracted_xiaos:
+            for num in XIAO_NUMBERS_2026.get(x, []):
+                if num not in numbers:
+                    numbers.append(num)
+        xiaos = []
+
+    return {
+        "numbers": numbers,
+        "xiaos": xiaos,
+        "extracted_xiaos": extracted_xiaos,
+        "stake_per_note": parsed_stake,
+        "multiplier": parsed_mult,
+    }
+
+
+def compute_notes_count(mode: str, play_type: str, numbers: list[str], xiaos: list[str], raw_input: str = "") -> int:
+    if mode == "连肖复试" or "连肖" in play_type or "连" in play_type:
+        k = _lianxiao_k(play_type, raw_input)
         if len(xiaos) >= k:
             return len(list(itertools.combinations(xiaos, k)))
         return 1
     if mode == "不中码" or "不中" in play_type:
-        k = _nbuzhong_k(play_type)
-        if len(numbers) >= k:
-            return len(list(itertools.combinations(numbers, k)))
         return 1
     if xiaos and not numbers:
         return len(xiaos)
@@ -147,15 +269,15 @@ def evaluate_record_against_draw(
 
     rec_nums = [_norm_num(n) for n in (record.numbers or []) if n]
     rec_xiaos = [str(x).strip() for x in (record.xiaos or []) if str(x).strip()]
-    play_type = record.play_type or "特码"
+    play_type = record.play_type or "正码"
     mode = record.mode or "号码单式"
     odds = record.odds if record.odds and record.odds > 0 else default_odds_for(play_type, mode)
 
     hit_items: list[str] = []
     hit_notes = 0
 
-    if mode == "连肖复试" or "连肖" in play_type:
-        k = _lianxiao_k(play_type)
+    if mode == "连肖复试" or "连肖" in play_type or ("连" in play_type and rec_xiaos):
+        k = _lianxiao_k(play_type, record.raw_input or "")
         hit_items = [x for x in rec_xiaos if x in draw_xiaos]
         if len(rec_xiaos) >= k:
             for combo in itertools.combinations(rec_xiaos, k):
@@ -164,27 +286,22 @@ def evaluate_record_against_draw(
         elif rec_xiaos and all(x in draw_xiaos for x in rec_xiaos):
             hit_notes = 1
     elif mode == "不中码" or "不中" in play_type:
-        k = _nbuzhong_k(play_type)
-        # In N不中, hit_items records which selected numbers accidentally appeared in the draw
+        # In N不中, if NONE of the selected numbers appeared in the 7 drawn numbers, the whole group wins
         hit_items = [n for n in rec_nums if n in all_draw_nums]
-        if len(rec_nums) >= k:
-            for combo in itertools.combinations(rec_nums, k):
-                if all(n not in all_draw_nums for n in combo):
-                    hit_notes += 1
-        elif rec_nums and all(n not in all_draw_nums for n in rec_nums):
-            hit_notes = 1
-    elif "平特" in play_type and rec_xiaos:
+        if rec_nums and len(hit_items) == 0:
+            hit_notes = record.notes_count or 1
+    elif "平特" in play_type and rec_xiaos and not rec_nums:
         hit_items = [x for x in rec_xiaos if x in draw_xiaos]
         hit_notes = len(hit_items)
-    elif "特肖" in play_type and rec_xiaos:
+    elif "特肖" in play_type and rec_xiaos and not rec_nums:
         hit_items = [x for x in rec_xiaos if x == tema_xiao]
         hit_notes = len(hit_items)
-    elif "平码" in play_type or "平特" in play_type:
-        hit_items = [n for n in rec_nums if n in all_draw_nums]
+    elif "特码" in play_type:
+        hit_items = [n for n in rec_nums if n == tema]
         hit_notes = len(hit_items)
     else:
-        # Default 特码
-        hit_items = [n for n in rec_nums if n == tema]
+        # 正码 / 平码 / 号码单式 (matches any of the 7 drawn balls or 6 flat balls)
+        hit_items = [n for n in rec_nums if n in all_draw_nums]
         hit_notes = len(hit_items)
 
     new_status = "won" if hit_notes > 0 else "lost"
@@ -208,6 +325,46 @@ def evaluate_record_against_draw(
     return changed
 
 
+def settle_all_users_records(
+    lottery: str | None = None,
+    period: str | None = None,
+) -> int:
+    """Automatically settle all pending (or matching) betting records across all users when a draw is synced/judged."""
+    try:
+        with SessionLocal() as db:
+            stmt = select(UserBettingRecord)
+            if lottery:
+                stmt = stmt.where(UserBettingRecord.lottery == lottery)
+            if period:
+                stmt = stmt.where(UserBettingRecord.period == str(period))
+            else:
+                stmt = stmt.where(UserBettingRecord.status == "pending")
+            rows = list(db.scalars(stmt))
+            if not rows:
+                return 0
+            pairs = {(r.lottery, r.period) for r in rows}
+            draws_map = _fetch_draws_map(pairs)
+            if not draws_map:
+                return 0
+            settled_count = 0
+            for r in rows:
+                draw = draws_map.get((r.lottery, r.period))
+                if draw is not None and evaluate_record_against_draw(r, draw):
+                    settled_count += 1
+            if settled_count > 0:
+                db.commit()
+                logger.info(
+                    "Auto-settled %d user betting record(s) for lottery=%s period=%s",
+                    settled_count,
+                    lottery,
+                    period,
+                )
+            return settled_count
+    except Exception:
+        logger.warning("Auto-settle user betting records failed", exc_info=True)
+        return 0
+
+
 def _fetch_draws_map(pairs: set[tuple[str, str]]) -> dict[tuple[str, str], dict[str, Any]]:
     out: dict[tuple[str, str], dict[str, Any]] = {}
     for lottery, period in pairs:
@@ -229,26 +386,49 @@ def serialize_record(
 ) -> dict[str, Any]:
     created_iso = record.created_at.isoformat() if record.created_at else None
     time_label = (
-        record.created_at.strftime("%Y-%m-%d %H:%M")
+        record.created_at.strftime("%m-%d %H:%M")
         if record.created_at
-        else datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+        else datetime.now(timezone.utc).strftime("%m-%d %H:%M")
     )
     draw_summary = None
+    draw_balls: list[str] = []
+    draw_tema = ""
+    draw_time = ""
     if draw:
+        draw_balls = [_norm_num(b) for b in (draw.get("balls") or []) if b]
+        draw_tema = _norm_num(draw.get("tema") or "") if draw.get("tema") else ""
+        draw_time = str(draw.get("opened_at") or draw.get("draw_date") or "")
         draw_summary = {
             "lottery": draw.get("lottery"),
             "period": draw.get("period"),
             "draw_date": draw.get("draw_date"),
             "opened_at": draw.get("opened_at"),
-            "balls": draw.get("balls") or [],
-            "tema": draw.get("tema"),
+            "balls": draw_balls,
+            "tema": draw_tema,
         }
+
+    fushi_link = None
+    if record.mode == "连肖复试" or "连肖" in (record.play_type or "") or "连" in (record.play_type or ""):
+        fushi_link = _lianxiao_k(record.play_type or "", record.raw_input or "")
+
+    win_pill_label = None
+    if record.status == "won":
+        if "特码" in (record.play_type or ""):
+            win_pill_label = f"特码中 +¥{record.net_profit}"
+        elif "不中" in (record.play_type or "") or record.mode == "不中码":
+            win_pill_label = f"全不中 +¥{record.net_profit}"
+        elif fushi_link is not None:
+            win_pill_label = f"中 {record.hit_notes} 注 +¥{record.net_profit}"
+        else:
+            win_pill_label = f"中 {len(record.hit_numbers or [])} 码 +¥{record.net_profit}"
+
     return {
         "id": record.id,
         "lottery": record.lottery,
         "period": record.period,
         "mode": record.mode,
         "play_type": record.play_type,
+        "fushi_link": fushi_link,
         "time_label": time_label,
         "created_at": created_iso,
         "numbers": list(record.numbers or []),
@@ -263,9 +443,13 @@ def serialize_record(
         "hit_notes": record.hit_notes,
         "payout": record.payout,
         "net_profit": record.net_profit,
+        "win_pill_label": win_pill_label,
         "raw_input": record.raw_input or "",
         "note": record.note,
         "source_badge": record.source_badge,
+        "draw_numbers": draw_balls,
+        "special_number": draw_tema,
+        "draw_time": draw_time,
         "draw": draw_summary,
     }
 
@@ -324,7 +508,7 @@ def compute_stats(rows: list[UserBettingRecord]) -> dict[str, Any]:
         r.hit_notes if r.hit_notes > 0 else (1 if r.status == "won" else 0)
         for r in settled_rows
     )
-    win_rate = round((len(won_rows) / len(settled_rows)) * 100, 1) if settled_rows else 0.0
+    win_rate = round((hit_notes / total_notes) * 100, 1) if total_notes > 0 else 0.0
     roi_pct = round((net_profit / total_stake) * 100, 1) if total_stake > 0 else 0.0
 
     # Group by period for last 7 periods chart
@@ -337,10 +521,11 @@ def compute_stats(rows: list[UserBettingRecord]) -> dict[str, Any]:
         for p in sorted_periods
     ]
 
-    # Group by play_type
+    # Group by play_type (include all rows for investment share, settled for profit)
     by_play: dict[str, dict[str, Any]] = {}
-    for r in settled_rows:
-        pt = r.play_type or "特码"
+    all_stake = sum(r.total_amount for r in rows) or 1
+    for r in rows:
+        pt = r.play_type or "正码"
         entry = by_play.setdefault(
             pt,
             {"play_type": pt, "count": 0, "won_count": 0, "net_profit": 0, "stake": 0},
@@ -352,9 +537,10 @@ def compute_stats(rows: list[UserBettingRecord]) -> dict[str, Any]:
         entry["stake"] += r.total_amount
 
     play_breakdown = []
-    for pt, entry in sorted(by_play.items(), key=lambda kv: kv[1]["net_profit"], reverse=True):
+    for pt, entry in sorted(by_play.items(), key=lambda kv: kv[1]["stake"], reverse=True):
         cnt = entry["count"]
         wr = int(round((entry["won_count"] / cnt) * 100)) if cnt > 0 else 0
+        share = round((entry["stake"] / all_stake) * 100, 1)
         play_breakdown.append(
             {
                 "play_type": pt,
@@ -363,11 +549,37 @@ def compute_stats(rows: list[UserBettingRecord]) -> dict[str, Any]:
                 "win_rate": wr,
                 "net_profit": entry["net_profit"],
                 "stake": entry["stake"],
+                "share_pct": share,
             }
         )
 
+    # Frequent hit numbers across settled won records
+    hit_counts: dict[str, dict[str, int]] = {}
+    for r in won_rows:
+        per_hit_profit = int(round(r.payout / max(1, len(r.hit_numbers or [1]))))
+        for hn in (r.hit_numbers or []):
+            if hn in NUM_TO_XIAO_2026:
+                info = hit_counts.setdefault(hn, {"count": 0, "profit": 0})
+                info["count"] += 1
+                info["profit"] += per_hit_profit
+
+    frequent_hits = [
+        {
+            "number": num,
+            "bose": bose_for_number(num),
+            "count": info["count"],
+            "profit": info["profit"],
+        }
+        for num, info in sorted(
+            hit_counts.items(),
+            key=lambda kv: (kv[1]["count"], kv[1]["profit"]),
+            reverse=True,
+        )[:5]
+    ]
+
     return {
         "total_records": len(rows),
+        "settled_orders": len(settled_rows),
         "pending_count": len(pending_rows),
         "won_count": len(won_rows),
         "lost_count": len(lost_rows),
@@ -382,6 +594,7 @@ def compute_stats(rows: list[UserBettingRecord]) -> dict[str, Any]:
         "roi_pct": roi_pct,
         "period_bars": period_bars,
         "play_breakdown": play_breakdown,
+        "frequent_hits": frequent_hits,
     }
 
 
@@ -393,14 +606,42 @@ def create_user_record(
     lottery = str(payload.get("lottery") or "macau").strip()
     period = str(payload.get("period") or "").strip()
     mode = str(payload.get("mode") or "号码单式").strip()
-    play_type = str(payload.get("play_type") or "特码").strip()
-    numbers = [_norm_num(n) for n in (payload.get("numbers") or []) if str(n).strip()]
-    xiaos = [str(x).strip() for x in (payload.get("xiaos") or []) if str(x).strip()]
-    stake_per_note = max(1, int(payload.get("stake_per_note") or 10))
-    multiplier = max(1, int(payload.get("multiplier") or 1))
-    notes_count = int(payload.get("notes_count") or compute_notes_count(mode, play_type, numbers, xiaos))
+    play_type = str(payload.get("play_type") or "正码").strip()
+    raw_input = str(payload.get("raw_input") or "").strip()
+
+    parsed = parse_smart_bet_input(raw_input, mode=mode, play_type=play_type) if raw_input else {}
+
+    raw_numbers = payload.get("numbers")
+    if raw_numbers:
+        numbers = [_norm_num(n) for n in raw_numbers if str(n).strip()]
+    else:
+        numbers = list(parsed.get("numbers") or [])
+
+    raw_xiaos = payload.get("xiaos")
+    if raw_xiaos:
+        xiaos = [str(x).strip() for x in raw_xiaos if str(x).strip()]
+    else:
+        xiaos = list(parsed.get("xiaos") or [])
+
+    # If in 号码单式 mode (or 正码/特码) and xiaos were passed without numbers, expand xiaos to numbers!
+    if (mode == "号码单式" or play_type in ("正码", "特码")) and xiaos and not numbers:
+        for x in xiaos:
+            for num in XIAO_NUMBERS_2026.get(x, []):
+                if num not in numbers:
+                    numbers.append(num)
+        xiaos = []
+
+    stake_per_note = max(
+        1,
+        int(payload.get("stake_per_note") or parsed.get("stake_per_note") or 5),
+    )
+    multiplier = max(
+        1,
+        int(payload.get("multiplier") or parsed.get("multiplier") or 1),
+    )
+    notes_count = compute_notes_count(mode, play_type, numbers, xiaos, raw_input)
     notes_count = max(1, notes_count)
-    total_amount = int(payload.get("total_amount") or (notes_count * stake_per_note * multiplier))
+    total_amount = notes_count * stake_per_note * multiplier
     odds = float(payload.get("odds") or default_odds_for(play_type, mode))
 
     rec = UserBettingRecord(
@@ -421,7 +662,7 @@ def create_user_record(
         hit_notes=0,
         payout=0,
         net_profit=0,
-        raw_input=str(payload.get("raw_input") or ""),
+        raw_input=raw_input,
         note=(str(payload.get("note")).strip() if payload.get("note") else None),
         source_badge=(str(payload.get("source_badge")).strip() if payload.get("source_badge") else None),
     )
@@ -455,35 +696,64 @@ def update_user_record(
         rec.mode = str(payload["mode"]).strip()
     if "play_type" in payload and payload["play_type"]:
         rec.play_type = str(payload["play_type"]).strip()
+    if "raw_input" in payload and payload["raw_input"] is not None:
+        rec.raw_input = str(payload["raw_input"]).strip()
+
+    parsed = (
+        parse_smart_bet_input(rec.raw_input or "", mode=rec.mode, play_type=rec.play_type)
+        if rec.raw_input
+        else {}
+    )
+
     if "numbers" in payload and payload["numbers"] is not None:
         rec.numbers = [_norm_num(n) for n in payload["numbers"] if str(n).strip()]
+    elif parsed.get("numbers"):
+        rec.numbers = list(parsed["numbers"])
+
     if "xiaos" in payload and payload["xiaos"] is not None:
         rec.xiaos = [str(x).strip() for x in payload["xiaos"] if str(x).strip()]
+    elif "xiaos" in parsed:
+        rec.xiaos = list(parsed["xiaos"])
+
+    if (rec.mode == "号码单式" or rec.play_type in ("正码", "特码")) and rec.xiaos and not rec.numbers:
+        expanded: list[str] = []
+        for x in rec.xiaos:
+            for num in XIAO_NUMBERS_2026.get(x, []):
+                if num not in expanded:
+                    expanded.append(num)
+        rec.numbers = expanded
+        rec.xiaos = []
+
     if "stake_per_note" in payload and payload["stake_per_note"] is not None:
         rec.stake_per_note = max(1, int(payload["stake_per_note"]))
+    elif parsed.get("stake_per_note"):
+        rec.stake_per_note = max(1, int(parsed["stake_per_note"]))
+
     if "multiplier" in payload and payload["multiplier"] is not None:
         rec.multiplier = max(1, int(payload["multiplier"]))
+    elif parsed.get("multiplier"):
+        rec.multiplier = max(1, int(parsed["multiplier"]))
+
     if "odds" in payload and payload["odds"] is not None:
         rec.odds = float(payload["odds"])
     else:
         rec.odds = default_odds_for(rec.play_type, rec.mode)
 
-    rec.notes_count = int(
-        payload.get("notes_count")
-        or compute_notes_count(rec.mode, rec.play_type, list(rec.numbers or []), list(rec.xiaos or []))
+    rec.notes_count = compute_notes_count(
+        rec.mode,
+        rec.play_type,
+        list(rec.numbers or []),
+        list(rec.xiaos or []),
+        rec.raw_input or "",
     )
     rec.notes_count = max(1, rec.notes_count)
-    rec.total_amount = int(
-        payload.get("total_amount") or (rec.notes_count * rec.stake_per_note * rec.multiplier)
-    )
-    if "raw_input" in payload:
-        rec.raw_input = str(payload.get("raw_input") or "")
+    rec.total_amount = rec.notes_count * rec.stake_per_note * rec.multiplier
+
     if "note" in payload:
         rec.note = str(payload["note"]).strip() if payload.get("note") else None
     if "source_badge" in payload:
         rec.source_badge = str(payload["source_badge"]).strip() if payload.get("source_badge") else None
 
-    # Re-evaluate against draw or reset to pending
     draws_map = _fetch_draws_map({(rec.lottery, rec.period)})
     draw = draws_map.get((rec.lottery, rec.period))
     if draw is not None:
