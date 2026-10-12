@@ -380,9 +380,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                      Text(
-                                        'v2.1.0 · 检查 GitHub 与服务端新版本',
-                                        style: context.texts.labelSmall,
+                                      Builder(
+                                        builder: (context) {
+                                          final ver =
+                                              ref
+                                                  .watch(appVersionProvider)
+                                                  .value ??
+                                              '2.1.1';
+                                          return Text(
+                                            'v$ver · 检查 GitHub 与服务端新版本',
+                                            style: context.texts.labelSmall,
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),
@@ -497,7 +506,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (_) {
       if (context.mounted) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('当前版本 v2.1.0 已是最新')),
+          const SnackBar(content: Text('当前版本 v2.1.1 已是最新')),
         );
       }
     }
