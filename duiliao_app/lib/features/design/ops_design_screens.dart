@@ -555,22 +555,44 @@ class _MonitorScreenState extends ConsumerState<MonitorScreen> {
                 title: '服务监控',
                 subtitle: '缺期巡检样例 · 执行动作需连接后端',
                 actions: [
-                  SizedBox(
-                    height: 36,
-                    child: FilledButton.icon(
-                      onPressed: () {
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(11),
+                      onTap: () {
                         ref.invalidate(monitorProvider(lottery.code));
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('已发起上游全源巡检任务')),
                         );
                       },
-                      icon: const Icon(Icons.refresh_rounded, size: 15),
-                      label: const Text('立即巡检上游'),
-                      style: FilledButton.styleFrom(
+                      child: Ink(
+                        height: 36,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                        decoration: BoxDecoration(
+                          gradient: DuiliaoColors.auroraGradient,
+                          borderRadius: BorderRadius.circular(11),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.22),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.refresh_rounded,
+                              size: 15,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 5),
+                            Text(
+                              '立即巡检上游',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -990,11 +1012,14 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          GridView.count(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: 1.85,
+                          GridView(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 10,
+                                  crossAxisSpacing: 10,
+                                  mainAxisExtent: 86,
+                                ),
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             children: [
@@ -1005,7 +1030,10 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
                                     _modelController.text = p.$4;
                                   }),
                                   child: GlassSubtleBox(
-                                    padding: const EdgeInsets.all(12),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
                                     borderColor: _provider == p.$1
                                         ? DuiliaoColors.auroraViolet.withValues(
                                             alpha: 0.65,
@@ -1019,18 +1047,24 @@ class _SystemSettingsScreenState extends ConsumerState<SystemSettingsScreen> {
                                       children: [
                                         Text(
                                           p.$1,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             fontSize: 13.5,
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                        const SizedBox(height: 6),
+                                        const SizedBox(height: 3),
                                         Text(
                                           p.$2,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: context.texts.labelSmall,
                                         ),
                                         Text(
                                           p.$3,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: context.texts.labelSmall,
                                         ),
                                       ],
@@ -2406,9 +2440,13 @@ class _LogicMetaRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: context.texts.labelSmall),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );

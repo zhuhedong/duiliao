@@ -100,10 +100,15 @@ class DrawDetailScreen extends ConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                '开奖时间 · ${draw.openedAt ?? draw.drawDate ?? '2026-09-26 21:32:18'}',
-                                style: context.texts.labelSmall,
+                              Expanded(
+                                child: Text(
+                                  '开奖时间 · ${draw.openedAt ?? draw.drawDate ?? '2026-09-26 21:32:18'}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.texts.labelSmall,
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               const GlassStatusPill(
                                 label: '已对奖',
                                 color: DuiliaoColors.hit,

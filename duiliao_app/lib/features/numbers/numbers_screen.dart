@@ -326,14 +326,14 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                               crossAxisCount: 4,
                               mainAxisSpacing: 8,
                               crossAxisSpacing: 8,
-                              childAspectRatio: 1.25,
+                              mainAxisExtent: 58,
                             ),
                         itemBuilder: (context, idx) {
                           final item = _zodiacCounts[idx];
                           final highlight = item.$3;
                           return GlassSubtleBox(
                             padding: const EdgeInsets.symmetric(
-                              vertical: 8,
+                              vertical: 6,
                               horizontal: 4,
                             ),
                             borderColor: highlight
@@ -356,7 +356,7 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                                         : null,
                                   ),
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 3),
                                 Text(
                                   '${item.$2} 次',
                                   style: TextStyle(
@@ -422,12 +422,14 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
 
                     // Section 6: 五行分布
                     const DesignSectionHeader(title: '五行分布'),
-                    GlassCard(
+                    const GlassCard(
                       margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
+                      padding: EdgeInsets.all(16),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.spaceBetween,
+                        children: [
                           GlassChipTag(label: '金 9'),
                           GlassChipTag(label: '木 11'),
                           GlassChipTag(label: '水 8'),
@@ -477,7 +479,7 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                           crossAxisCount: 7,
                           mainAxisSpacing: 8,
                           crossAxisSpacing: 6,
-                          childAspectRatio: 0.75,
+                          mainAxisExtent: 54,
                         ),
                     itemBuilder: (_, idx) {
                       final n = idx + 1;

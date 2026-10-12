@@ -54,7 +54,7 @@ class NumberBall extends StatelessWidget {
     this.goldBorder = false,
     this.hitHighlight = false,
     this.size = 34,
-    this.showColorName = true,
+    this.showColorName = false,
     this.showCaption,
     this.caption,
     this.xiao,
@@ -215,12 +215,19 @@ class NumberBall extends StatelessWidget {
       ),
     );
 
-    final shouldShowCaption = showCaption ?? showColorName;
     final explicitCaption = caption ?? xiao;
-    final effectiveCaption = shouldShowCaption
-        ? (explicitCaption ??
-              (_bose != null && _bose!.isNotEmpty ? _boseShort : null))
-        : explicitCaption;
+    final String? effectiveCaption;
+    if (showCaption == false) {
+      effectiveCaption = null;
+    } else if (explicitCaption != null && explicitCaption.isNotEmpty) {
+      effectiveCaption = explicitCaption;
+    } else if ((showCaption ?? showColorName) &&
+        _bose != null &&
+        _bose!.isNotEmpty) {
+      effectiveCaption = _boseShort;
+    } else {
+      effectiveCaption = null;
+    }
 
     final content = Column(
       mainAxisSize: MainAxisSize.min,
@@ -290,7 +297,7 @@ class DrawBallRow extends StatelessWidget {
     super.key,
     required this.draw,
     this.ballSize = 34,
-    this.showColorNames = true,
+    this.showColorNames = false,
     this.showXiaoSubRow = true,
     this.goldSpecial = true,
     this.spaceBetween = true,

@@ -82,176 +82,191 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () async {
-            try {
-              await ref
-                  .read(collectorRepositoryProvider)
-                  .home(
-                    lottery: lottery.code,
-                    playType: playType,
-                    forceRefresh: true,
-                  );
-            } catch (_) {}
-            ref.invalidate(homeProvider(key));
-          },
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 96),
-            children: [
-              // Top App Header matching dashboard.html
-              DesignAppHeader(
-                leadingSubtitle: '下午好,${user?.displayName ?? '收藏家'}',
-                title: '工作台',
-                actions: [
-                  GlassStatusPill(
-                    label: isConnected ? '链路正常 · 实时' : '本地服务 · 样例状态',
-                    color: isConnected
-                        ? DuiliaoColors.hit
-                        : DuiliaoColors.warning,
-                    pulse: true,
-                  ),
-                  GlassIconButton(
-                    icon: Icons.refresh_rounded,
-                    tooltip: '刷新数据',
-                    onTap: () => ref.invalidate(homeProvider(key)),
-                  ),
-                  GestureDetector(
-                    onTap: () => _push(context, const ProfileScreen()),
-                    child: BrandLogoBox(
-                      label: user?.initial ?? '料',
-                      size: 38,
-                      borderRadius: 19,
-                      fontSize: 14,
+      body: GlassBackground(
+        child: SafeArea(
+          bottom: false,
+          child: RefreshIndicator(
+            onRefresh: () async {
+              try {
+                await ref
+                    .read(collectorRepositoryProvider)
+                    .home(
+                      lottery: lottery.code,
+                      playType: playType,
+                      forceRefresh: true,
+                    );
+              } catch (_) {}
+              ref.invalidate(homeProvider(key));
+            },
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 96),
+              children: [
+                // Top App Header matching dashboard.html
+                DesignAppHeader(
+                  leadingSubtitle: '下午好,${user?.displayName ?? '收藏家'}',
+                  title: '工作台',
+                  actions: [
+                    GlassStatusPill(
+                      label: isConnected ? '链路正常 · 实时' : '本地服务 · 样例状态',
+                      color: isConnected
+                          ? DuiliaoColors.hit
+                          : DuiliaoColors.warning,
+                      pulse: true,
                     ),
-                  ),
-                ],
-              ),
+                    GlassIconButton(
+                      icon: Icons.refresh_rounded,
+                      tooltip: '刷新数据',
+                      onTap: () => ref.invalidate(homeProvider(key)),
+                    ),
+                    GestureDetector(
+                      onTap: () => _push(context, const ProfileScreen()),
+                      child: BrandLogoBox(
+                        label: user?.initial ?? '料',
+                        size: 38,
+                        borderRadius: 19,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
 
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Section 1: 最新开奖
-                    DesignSectionHeader(
-                      title: '最新开奖',
-                      trailingText: '开奖管理 ›',
-                      onTrailingTap: () => _push(context, const DrawsScreen()),
-                    ),
-                    GlassCard(
-                      margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(16),
-                      onTap: () => _push(
-                        context,
-                        DrawDetailScreen(
-                          lottery: Lottery.parse(draw.lottery),
-                          period: draw.period,
-                          initialDraw: draw,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Section 1: 最新开奖
+                      DesignSectionHeader(
+                        title: '最新开奖',
+                        trailingText: '开奖管理 ›',
+                        onTrailingTap: () =>
+                            _push(context, const DrawsScreen()),
+                      ),
+                      GlassCard(
+                        margin: EdgeInsets.zero,
+                        padding: const EdgeInsets.all(16),
+                        onTap: () => _push(
+                          context,
+                          DrawDetailScreen(
+                            lottery: Lottery.parse(draw.lottery),
+                            period: draw.period,
+                            initialDraw: draw,
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${Lottery.labelFor(draw.lottery)}六合彩',
-                                    style: context.texts.labelSmall,
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '第 ${draw.period} 期 · ${draw.drawDate ?? '09-26 21:32'} 开奖',
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const GlassStatusPill(
-                                label: '已对奖',
-                                color: DuiliaoColors.hit,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          DrawBallRow(draw: draw),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              ZTag(
-                                label: '特码 ${draw.tema} · $temaBoseLabel',
-                                variant: ZTagVariant.primary,
-                              ),
-                              ZTag(label: '特肖 $temaXiao'),
-                              ZTag(label: '$temaOdd / $temaSize'),
-                              ZTag(label: temaJiaye),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Section 2: 本期共识摘要
-                    DesignSectionHeader(
-                      title: '本期共识摘要',
-                      trailingText: '共识排行榜 ›',
-                      onTrailingTap: () =>
-                          _push(context, const ConsensusBoardScreen()),
-                    ),
-                    GlassCard(
-                      margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(16),
-                      onTap: () =>
-                          _push(context, const ConsensusBoardScreen()),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '澳门 · 第 ${snapshot?.consensusPeriod ?? '2026277'} 期',
-                                    style: context.texts.labelSmall,
-                                  ),
-                                  const SizedBox(height: 3),
-                                  const Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        '实时预测榜',
-                                        style: TextStyle(
+                                        '${Lottery.labelFor(draw.lottery)}六合彩',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '第 ${draw.period} 期 · ${draw.drawDate ?? '09-26 21:32'} 开奖',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w800,
                                         ),
                                       ),
-                                      SizedBox(width: 8),
-                                      GlassStatusPill(
-                                        label: '待开奖',
-                                        color: DuiliaoColors.warning,
-                                        pulse: true,
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const GlassStatusPill(
+                                  label: '已对奖',
+                                  color: DuiliaoColors.hit,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            DrawBallRow(draw: draw),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                ZTag(
+                                  label: '特码 ${draw.tema} · $temaBoseLabel',
+                                  variant: ZTagVariant.primary,
+                                ),
+                                ZTag(label: '特肖 $temaXiao'),
+                                ZTag(label: '$temaOdd / $temaSize'),
+                                ZTag(label: temaJiaye),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Section 2: 本期共识摘要
+                      DesignSectionHeader(
+                        title: '本期共识摘要',
+                        trailingText: '共识排行榜 ›',
+                        onTrailingTap: () =>
+                            _push(context, const ConsensusBoardScreen()),
+                      ),
+                      GlassCard(
+                        margin: EdgeInsets.zero,
+                        padding: const EdgeInsets.all(16),
+                        onTap: () =>
+                            _push(context, const ConsensusBoardScreen()),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '澳门 · 第 ${snapshot?.consensusPeriod ?? '2026277'} 期',
+                                        style: context.texts.labelSmall,
+                                      ),
+                                      const SizedBox(height: 3),
+                                      const Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              '实时预测榜',
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(width: 8),
+                                          GlassStatusPill(
+                                            label: '待开奖',
+                                            color: DuiliaoColors.warning,
+                                            pulse: true,
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
-                              ),
-                              Text(
-                                '来源组 12',
-                                style: context.texts.labelSmall,
-                              ),
-                            ],
-                          ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '来源组 12',
+                                  style: context.texts.labelSmall,
+                                ),
+                              ],
+                            ),
                           const SizedBox(height: 12),
                           Row(
                             children: [
@@ -362,35 +377,42 @@ class HomeScreen extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '第 2026277 期 · 待开奖',
-                                    style: context.texts.labelSmall,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.baseline,
-                                    textBaseline: TextBaseline.alphabetic,
-                                    children: [
-                                      const Text(
-                                        '¥250',
-                                        style: TextStyle(
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w800,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '第 2026277 期 · 待开奖',
+                                      style: context.texts.labelSmall,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        const Text(
+                                          '¥250',
+                                          style: TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        '4 单 · 22 注',
-                                        style: context.texts.labelSmall,
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                        const SizedBox(width: 8),
+                                        Flexible(
+                                          child: Text(
+                                            '4 单 · 22 注',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: context.texts.labelSmall,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
@@ -417,41 +439,45 @@ class HomeScreen extends ConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Wrap(
-                                spacing: 5,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  const NumberBall(
-                                    number: '18',
-                                    bose: 'red',
-                                    size: 26,
-                                  ),
-                                  const NumberBall(
-                                    number: '42',
-                                    bose: 'blue',
-                                    size: 26,
-                                  ),
-                                  const NumberBall(
-                                    number: '39',
-                                    bose: 'green',
-                                    size: 26,
-                                  ),
-                                  const NumberBall(
-                                    number: '27',
-                                    bose: 'green',
-                                    size: 26,
-                                  ),
-                                  const NumberBall(
-                                    number: '28',
-                                    bose: 'green',
-                                    size: 26,
-                                  ),
-                                  Text(
-                                    '+17 码',
-                                    style: context.texts.labelSmall,
-                                  ),
-                                ],
+                              Expanded(
+                                child: Wrap(
+                                  spacing: 5,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    const NumberBall(
+                                      number: '18',
+                                      bose: 'red',
+                                      size: 26,
+                                    ),
+                                    const NumberBall(
+                                      number: '42',
+                                      bose: 'blue',
+                                      size: 26,
+                                    ),
+                                    const NumberBall(
+                                      number: '39',
+                                      bose: 'green',
+                                      size: 26,
+                                    ),
+                                    const NumberBall(
+                                      number: '27',
+                                      bose: 'green',
+                                      size: 26,
+                                    ),
+                                    const NumberBall(
+                                      number: '28',
+                                      bose: 'green',
+                                      size: 26,
+                                    ),
+                                    Text(
+                                      '+17 码',
+                                      style: context.texts.labelSmall,
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               const GlassStatusPill(
                                 label: '今晚 21:30 开奖',
                                 color: DuiliaoColors.warning,
@@ -569,7 +595,8 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

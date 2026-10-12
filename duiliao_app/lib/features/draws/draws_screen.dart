@@ -56,111 +56,113 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            DesignAppHeader(
-              leading: canPop
-                  ? GlassIconButton(
-                      icon: Icons.chevron_left_rounded,
-                      onTap: () => Navigator.of(context).maybePop(),
-                    )
-                  : null,
-              title: '开奖管理',
-              subtitle: '官方落球顺序 · 实时同步',
-              actions: [
-                GlassStatusPill(
-                  label: liveItems.isNotEmpty ? '实时同步' : '静态样例',
-                  color: liveItems.isNotEmpty
-                      ? DuiliaoColors.hit
-                      : DuiliaoColors.warning,
-                  pulse: true,
-                ),
-                GlassIconButton(
-                  icon: Icons.refresh_rounded,
-                  tooltip: '同步开奖',
-                  onTap: notifier.refresh,
-                ),
-                GlassIconButton(
-                  icon: Icons.filter_alt_outlined,
-                  tooltip: '期号筛选',
-                  onTap: () => _openFilter(context, lottery),
-                ),
-              ],
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: notifier.refresh,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
-                  children: [
-                    GlassSegmentedControl<Lottery>(
-                      items: Lottery.all,
-                      selected: lottery,
-                      labelBuilder: (l) => l.label,
-                      onChanged: (next) =>
-                          ref.read(selectedLotteryProvider.notifier).set(next),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Next Draw Countdown Box
-                    GlassSubtleBox(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 11,
+      body: GlassBackground(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              DesignAppHeader(
+                leading: canPop
+                    ? GlassIconButton(
+                        icon: Icons.chevron_left_rounded,
+                        onTap: () => Navigator.of(context).maybePop(),
+                      )
+                    : null,
+                title: '开奖管理',
+                subtitle: '官方落球顺序 · 实时同步',
+                actions: [
+                  GlassStatusPill(
+                    label: liveItems.isNotEmpty ? '实时同步' : '静态样例',
+                    color: liveItems.isNotEmpty
+                        ? DuiliaoColors.hit
+                        : DuiliaoColors.warning,
+                    pulse: true,
+                  ),
+                  GlassIconButton(
+                    icon: Icons.refresh_rounded,
+                    tooltip: '同步开奖',
+                    onTap: notifier.refresh,
+                  ),
+                  GlassIconButton(
+                    icon: Icons.filter_alt_outlined,
+                    tooltip: '期号筛选',
+                    onTap: () => _openFilter(context, lottery),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: notifier.refresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+                    children: [
+                      GlassSegmentedControl<Lottery>(
+                        items: Lottery.all,
+                        selected: lottery,
+                        labelBuilder: (l) => l.label,
+                        onChanged: (next) =>
+                            ref.read(selectedLotteryProvider.notifier).set(next),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.schedule_rounded,
-                            size: 16,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Text(
-                              '第 2026277 期 · 今晚 21:30 开奖',
-                              style: TextStyle(
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
+                      const SizedBox(height: 12),
+
+                      // Next Draw Countdown Box
+                      GlassSubtleBox(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 11,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 16,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            const Expanded(
+                              child: Text(
+                                '第 2026277 期 · 今晚 21:30 开奖',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
-                          ),
-                          GlassStatusPill(
-                            label: '倒计时 03:12:48',
-                            color: Theme.of(context).colorScheme.primary,
-                            showDot: false,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    for (var i = 0; i < items.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _DrawCard(
-                          draw: items[i],
-                          lottery: lottery,
-                          storedCount: switch (i % 3) {
-                            0 => 128,
-                            1 => 134,
-                            _ => 119,
-                          },
-                          hitSourcesLabel: switch (i % 3) {
-                            0 => '9 / 24',
-                            1 => '11 / 24',
-                            _ => '7 / 23',
-                          },
+                            GlassStatusPill(
+                              label: '倒计时 03:12:48',
+                              color: Theme.of(context).colorScheme.primary,
+                              showDot: false,
+                            ),
+                          ],
                         ),
                       ),
-                  ],
+                      const SizedBox(height: 12),
+
+                      for (var i = 0; i < items.length; i++)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _DrawCard(
+                            draw: items[i],
+                            lottery: lottery,
+                            storedCount: switch (i % 3) {
+                              0 => 128,
+                              1 => 134,
+                              _ => 119,
+                            },
+                            hitSourcesLabel: switch (i % 3) {
+                              0 => '9 / 24',
+                              1 => '11 / 24',
+                              _ => '7 / 23',
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

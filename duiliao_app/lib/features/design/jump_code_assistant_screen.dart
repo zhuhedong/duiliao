@@ -446,7 +446,7 @@ class _JumpCodeAssistantScreenState extends State<JumpCodeAssistantScreen> {
                                   crossAxisCount: 7,
                                   mainAxisSpacing: 6,
                                   crossAxisSpacing: 6,
-                                  childAspectRatio: 0.78,
+                                  mainAxisExtent: 52,
                                 ),
                             itemBuilder: (context, idx) {
                               final numVal = idx + 1;
@@ -485,16 +485,19 @@ class _JumpCodeAssistantScreenState extends State<JumpCodeAssistantScreen> {
                     GlassCard(
                       margin: EdgeInsets.zero,
                       padding: const EdgeInsets.all(14),
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 9,
-                        crossAxisSpacing: 9,
-                        childAspectRatio: 2.0,
+                      child: GridView(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              mainAxisSpacing: 9,
+                              crossAxisSpacing: 9,
+                              mainAxisExtent: 68,
+                            ),
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         children: [
                           GlassSubtleBox(
-                            padding: const EdgeInsets.all(11),
+                            padding: const EdgeInsets.all(10),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -516,7 +519,7 @@ class _JumpCodeAssistantScreenState extends State<JumpCodeAssistantScreen> {
                             ),
                           ),
                           GlassSubtleBox(
-                            padding: const EdgeInsets.all(11),
+                            padding: const EdgeInsets.all(10),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -525,6 +528,8 @@ class _JumpCodeAssistantScreenState extends State<JumpCodeAssistantScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   '红$redCount · 蓝$blueCount · 绿$greenCount',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w800,
@@ -534,7 +539,7 @@ class _JumpCodeAssistantScreenState extends State<JumpCodeAssistantScreen> {
                             ),
                           ),
                           GlassSubtleBox(
-                            padding: const EdgeInsets.all(11),
+                            padding: const EdgeInsets.all(10),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -546,6 +551,8 @@ class _JumpCodeAssistantScreenState extends State<JumpCodeAssistantScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   '单$oddCount 双$evenCount / 大$bigCount 小$smallCount',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,
@@ -555,7 +562,7 @@ class _JumpCodeAssistantScreenState extends State<JumpCodeAssistantScreen> {
                             ),
                           ),
                           GlassSubtleBox(
-                            padding: const EdgeInsets.all(11),
+                            padding: const EdgeInsets.all(10),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -564,6 +571,8 @@ class _JumpCodeAssistantScreenState extends State<JumpCodeAssistantScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   '${_selected.length} 项 (${_mode == 'exclude' ? '反选' : '正选'})',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w800,
@@ -750,23 +759,26 @@ class PlayCatalogScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '项目支持目录',
-                                    style: context.texts.labelSmall,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    '4 个彩种 · 21 个玩法',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '项目支持目录',
+                                      style: context.texts.labelSmall,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      '4 个彩种 · 21 个玩法',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               const GlassStatusPill(
                                 label: '已同步',
                                 color: DuiliaoColors.hit,
@@ -949,7 +961,7 @@ class _PlayGrid extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
-        childAspectRatio: 1.95,
+        mainAxisExtent: 74,
       ),
       itemBuilder: (context, idx) {
         final item = items[idx];

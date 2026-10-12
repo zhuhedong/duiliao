@@ -287,10 +287,25 @@ class GlassContainer extends StatelessWidget {
 
     final effectiveBorderColor = borderColor ?? defaultBorderColor;
 
-    Widget content = Container(
+    Widget inner = padding != null
+        ? Padding(padding: padding!, child: child)
+        : child;
+
+    if (onTap != null) {
+      inner = InkWell(
+        borderRadius: radius,
+        onTap: onTap,
+        splashColor: Theme.of(context).colorScheme.primary
+            .withValues(alpha: 0.12),
+        highlightColor: Theme.of(context).colorScheme.primary
+            .withValues(alpha: 0.06),
+        child: inner,
+      );
+    }
+
+    final Widget content = Container(
       width: width,
       height: height,
-      padding: padding,
       decoration: BoxDecoration(
         color: effectiveBg,
         borderRadius: radius,
@@ -324,23 +339,11 @@ class GlassContainer extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      child: Material(
+        type: MaterialType.transparency,
+        child: inner,
+      ),
     );
-
-    if (onTap != null) {
-      content = Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: radius,
-          onTap: onTap,
-          splashColor: Theme.of(context).colorScheme.primary
-              .withValues(alpha: 0.12),
-          highlightColor: Theme.of(context).colorScheme.primary
-              .withValues(alpha: 0.06),
-          child: content,
-        ),
-      );
-    }
 
     final frosted = ClipRRect(
       borderRadius: radius,
@@ -826,12 +829,16 @@ class GlassStatusPill extends StatelessWidget {
                   ),
           if (icon != null) Icon(icon, size: 12, color: effectiveColor),
           if (effectiveDot || icon != null) const SizedBox(width: 5),
-          Text(
-            label,
-            style: context.texts.labelSmall?.copyWith(
-              color: effectiveColor,
-              fontSize: compact ? 10.0 : 10.5,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.texts.labelSmall?.copyWith(
+                color: effectiveColor,
+                fontSize: compact ? 10.0 : 10.5,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -1556,7 +1563,7 @@ class DesignSectionHeader extends StatelessWidget {
     this.onActionTap,
     this.onTrailingTap,
     this.trailing,
-    this.padding = const EdgeInsets.fromLTRB(16, 18, 16, 10),
+    this.padding = const EdgeInsets.fromLTRB(2, 18, 2, 10),
   });
 
   final String title;
@@ -1592,12 +1599,19 @@ class DesignSectionHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Theme.of(context).colorScheme.onSurface,
+          Flexible(
+            fit: (subtitle != null && subtitle!.isNotEmpty)
+                ? FlexFit.loose
+                : FlexFit.tight,
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
             ),
           ),
           if (subtitle != null && subtitle!.isNotEmpty) ...[
@@ -1614,8 +1628,8 @@ class DesignSectionHeader extends StatelessWidget {
                 ),
               ),
             ),
-          ] else
-            const Spacer(),
+          ],
+          const SizedBox(width: 8),
           if (trailing != null)
             trailing!
           else if (effectiveLabel != null)

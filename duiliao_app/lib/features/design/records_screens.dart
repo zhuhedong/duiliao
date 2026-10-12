@@ -25,12 +25,17 @@ class BettingRecordItem {
     required this.notesCount,
     required this.totalAmount,
     required this.status, // 'pending', 'won', 'lost'
+    this.fushiLink,
     this.hitNumbers = const <String>[],
     this.payout = 0,
     this.netProfit = 0,
+    this.winPillLabel,
     this.rawInput = '',
     this.note,
     this.sourceBadge,
+    this.drawNumbers = const <String>['03', '11', '19', '27', '34', '42'],
+    this.specialNumber = '26',
+    this.drawTime = '09-26 21:32',
   });
 
   final String id;
@@ -45,12 +50,17 @@ class BettingRecordItem {
   final int notesCount;
   final int totalAmount;
   final String status;
+  final int? fushiLink;
   final List<String> hitNumbers;
   final int payout;
   final int netProfit;
+  final String? winPillLabel;
   final String rawInput;
   final String? note;
   final String? sourceBadge;
+  final List<String> drawNumbers;
+  final String specialNumber;
+  final String drawTime;
 }
 
 class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
@@ -77,69 +87,70 @@ const List<BettingRecordItem> _defaultRecords = [
     lottery: Lottery.macau,
     period: '2026277',
     playType: '正码',
-    timeLabel: '20:42',
-    numbers: ['18', '42', '39', '27', '28', '37', '49', '38', '02', '01'],
+    timeLabel: '20:14',
+    numbers: ['18', '42', '39', '27', '28', '14', '32', '11', '26', '16'],
     xiaos: [],
-    stakePerNote: 10,
+    stakePerNote: 5,
     multiplier: 1,
     notesCount: 10,
-    totalAmount: 100,
+    totalAmount: 50,
     status: 'pending',
-    rawInput: '18-42-39-27-28-37-49-38-02-01各10',
+    sourceBadge: '来自 AI 研判',
+    rawInput: '18.42.39.27.28.14.32.11.26.16个数5',
   ),
   BettingRecordItem(
     id: 'rec-277-2',
     lottery: Lottery.macau,
     period: '2026277',
     playType: '正码',
-    timeLabel: '20:15',
-    numbers: ['05', '17', '29', '41'],
+    timeLabel: '20:14',
+    numbers: ['07', '15', '23', '35'],
     xiaos: [],
-    stakePerNote: 15,
+    stakePerNote: 10,
     multiplier: 1,
     notesCount: 4,
-    totalAmount: 60,
+    totalAmount: 40,
     status: 'pending',
-    rawInput: '05 17 29 41 各 15',
+    rawInput: '07.15.23.35个数10',
   ),
   BettingRecordItem(
     id: 'rec-277-3',
     lottery: Lottery.macau,
     period: '2026277',
     playType: '特码',
-    timeLabel: '19:50',
-    numbers: ['26', '14', '03'],
+    timeLabel: '19:48',
+    numbers: ['08', '18', '28'],
     xiaos: [],
     stakePerNote: 20,
     multiplier: 1,
     notesCount: 3,
     totalAmount: 60,
     status: 'pending',
-    sourceBadge: '来自 AI 研判',
-    rawInput: '特码 26 14 03 各 20',
+    rawInput: '特码 08.18.28个数20',
   ),
   BettingRecordItem(
     id: 'rec-277-4',
     lottery: Lottery.macau,
     period: '2026277',
-    playType: '4连肖·复试',
-    timeLabel: '19:18',
+    playType: '连肖',
+    timeLabel: '21:10',
     numbers: [],
-    xiaos: ['兔', '龙', '蛇', '马', '羊'],
-    stakePerNote: 6,
-    multiplier: 1,
+    xiaos: ['龙', '牛', '猴', '鸡', '兔'],
+    fushiLink: 4,
+    stakePerNote: 10,
+    multiplier: 2,
     notesCount: 5,
-    totalAmount: 30,
+    totalAmount: 100,
     status: 'pending',
-    rawInput: '四连肖复试 兔 龙 蛇 马 羊 各 6',
+    rawInput: '龙牛猴鸡兔复试4连个数10',
   ),
   BettingRecordItem(
     id: 'rec-276-1',
     lottery: Lottery.macau,
     period: '2026276',
     playType: '正码',
-    timeLabel: '09-25 20:30',
-    numbers: ['08', '11', '14', '26', '33', '42'],
+    timeLabel: '09-26 19:52',
+    numbers: ['06', '11', '17', '26', '30', '42'],
     xiaos: [],
     stakePerNote: 5,
     multiplier: 1,
@@ -149,62 +160,77 @@ const List<BettingRecordItem> _defaultRecords = [
     hitNumbers: ['11', '26', '42'],
     payout: 105,
     netProfit: 75,
-    rawInput: '08-11-14-26-33-42各5',
+    winPillLabel: '中 3 码 +¥75',
+    rawInput: '06.11.17.26.30.42个数5',
     note: '参考海哥+顶尖大师交集',
+    drawNumbers: ['03', '11', '19', '27', '34', '42'],
+    specialNumber: '26',
+    drawTime: '09-26 21:32',
   ),
   BettingRecordItem(
     id: 'rec-276-2',
     lottery: Lottery.macau,
     period: '2026276',
-    playType: '正码',
-    timeLabel: '09-25 19:12',
-    numbers: ['03', '09', '19', '27', '38'],
+    playType: '特码',
+    timeLabel: '09-26 20:05',
+    numbers: ['09', '19', '26', '33'],
     xiaos: [],
-    stakePerNote: 10,
+    stakePerNote: 5,
     multiplier: 1,
-    notesCount: 5,
-    totalAmount: 50,
+    notesCount: 4,
+    totalAmount: 20,
     status: 'won',
-    hitNumbers: ['03', '19', '27'],
-    payout: 70,
+    hitNumbers: ['26'],
+    payout: 40,
     netProfit: 20,
-    rawInput: '03 09 19 27 38 各 10',
+    winPillLabel: '特码中 +¥20',
+    rawInput: '09.19.26.33个数5',
+    drawNumbers: ['03', '11', '19', '27', '34', '42'],
+    specialNumber: '26',
+    drawTime: '09-26 21:32',
   ),
   BettingRecordItem(
     id: 'rec-275-1',
     lottery: Lottery.macau,
     period: '2026275',
     playType: '正码',
-    timeLabel: '09-24 20:55',
-    numbers: ['05', '12', '21', '30', '44', '49'],
+    timeLabel: '09-25 19:40',
+    numbers: ['03', '07', '14', '22', '38', '45'],
     xiaos: [],
-    stakePerNote: 10,
+    stakePerNote: 5,
     multiplier: 1,
     notesCount: 6,
-    totalAmount: 60,
-    status: 'lost',
-    hitNumbers: [],
-    payout: 0,
-    netProfit: -60,
-    rawInput: '05 12 21 30 44 49 各 10',
+    totalAmount: 30,
+    status: 'won',
+    hitNumbers: ['07', '22'],
+    payout: 70,
+    netProfit: 40,
+    winPillLabel: '中 2 码 +¥40',
+    rawInput: '03.07.14.22.38.45个数5',
+    drawNumbers: ['07', '12', '22', '29', '36', '48'],
+    specialNumber: '15',
+    drawTime: '09-25 21:32',
   ),
   BettingRecordItem(
     id: 'rec-275-2',
     lottery: Lottery.macau,
     period: '2026275',
-    playType: '特码',
-    timeLabel: '09-24 20:10',
-    numbers: ['07', '19'],
+    playType: '正码',
+    timeLabel: '09-25 20:12',
+    numbers: ['02', '16', '25', '31', '40', '49'],
     xiaos: [],
-    stakePerNote: 15,
+    stakePerNote: 5,
     multiplier: 1,
-    notesCount: 2,
+    notesCount: 6,
     totalAmount: 30,
-    status: 'won',
-    hitNumbers: ['07'],
-    payout: 100,
-    netProfit: 70,
-    rawInput: '特码 07 19 各 15',
+    status: 'lost',
+    hitNumbers: [],
+    payout: 0,
+    netProfit: -30,
+    rawInput: '02.16.25.31.40.49个数5',
+    drawNumbers: ['07', '12', '22', '29', '36', '48'],
+    specialNumber: '15',
+    drawTime: '09-25 21:32',
   ),
 ];
 
@@ -221,13 +247,23 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
     final all = ref.watch(bettingRecordsProvider);
-    final pendingCount = all.where((r) => r.status == 'pending').length;
+    final pendingRecords = all.where((r) => r.status == 'pending').toList();
     final wonCount = all.where((r) => r.status == 'won').length;
     final lostCount = all.where((r) => r.status == 'lost').length;
 
+    final currentPeriodStake = pendingRecords.fold<int>(
+      0,
+      (acc, r) => acc + r.totalAmount,
+    );
+    final currentPeriodNotes = pendingRecords.fold<int>(
+      0,
+      (acc, r) => acc + r.notesCount,
+    );
+
     final filtered = switch (_filter) {
-      'pending' => all.where((r) => r.status == 'pending').toList(),
+      'pending' => pendingRecords,
       'won' => all.where((r) => r.status == 'won').toList(),
       'lost' => all.where((r) => r.status == 'lost').toList(),
       _ => all,
@@ -238,200 +274,245 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
       if (!periods.contains(item.period)) periods.add(item.period);
     }
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            DesignAppHeader(
-              title: '我的记录',
-              subtitle: '澳门 · 近 30 期 · 共 47 单',
-              actions: [
-                GlassIconButton(
-                  icon: Icons.bar_chart_rounded,
-                  tooltip: '盈亏统计',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const RecordStatsScreen(),
-                    ),
-                  ),
+    final content = SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          DesignAppHeader(
+            leading: canPop
+                ? GlassIconButton(
+                    icon: Icons.chevron_left_rounded,
+                    tooltip: '返回',
+                    onTap: () => Navigator.of(context).maybePop(),
+                  )
+                : null,
+            title: '记录',
+            subtitle: '智能识别 · 自动对奖',
+            actions: [
+              GlassIconButton(
+                icon: Icons.bar_chart_rounded,
+                tooltip: '统计',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RecordStatsScreen()),
                 ),
-                GlassGhostButton(
-                  label: '跳码助手',
-                  icon: Icons.auto_awesome_motion,
-                  compact: true,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const JumpCodeAssistantScreen(),
-                    ),
-                  ),
+              ),
+              _HeaderGlowButton(
+                label: '新增',
+                icon: Icons.add_rounded,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RecordAddScreen()),
                 ),
-                SizedBox(
-                  height: 34,
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const RecordAddScreen(),
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+              children: [
+                // 本期汇总卡片 (records.html lines 41-63)
+                GlassCard(
+                  margin: EdgeInsets.zero,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '本期汇总',
+                            style: context.texts.labelSmall?.copyWith(
+                              fontSize: 11,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '第 2026277 期 · 今晚 21:30 开奖',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: context.texts.labelSmall?.copyWith(
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    icon: const Icon(Icons.add_rounded, size: 16),
-                    label: const Text('新增'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      textStyle: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _SummaryCol(
+                              label: '本期投入',
+                              value: '¥$currentPeriodStake',
+                              sub:
+                                  '${pendingRecords.length} 单 · $currentPeriodNotes 注',
+                              valueColor:
+                                  Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          const Expanded(
+                            child: _SummaryCol(
+                              label: '累计盈亏',
+                              value: '+¥175',
+                              sub: '近 30 天',
+                              valueColor: DuiliaoColors.hit,
+                            ),
+                          ),
+                          Expanded(
+                            child: _SummaryCol(
+                              label: '中单率',
+                              value: '31.9%',
+                              sub: '23/72 注',
+                              valueColor:
+                                  Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                    ],
                   ),
                 ),
+
+                const SizedBox(height: 12),
+
+                // 状态过滤 (records.html lines 67-74)
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      GlassChipTag(
+                        label: '全部',
+                        active: _filter == 'all',
+                        onTap: () => setState(() => _filter = 'all'),
+                      ),
+                      const SizedBox(width: 8),
+                      GlassChipTag(
+                        label: '待开奖',
+                        trailingText: '${pendingRecords.length}',
+                        trailingColor: DuiliaoColors.warning,
+                        active: _filter == 'pending',
+                        onTap: () => setState(() => _filter = 'pending'),
+                      ),
+                      const SizedBox(width: 8),
+                      GlassChipTag(
+                        label: '已中奖',
+                        trailingText: '$wonCount',
+                        trailingColor: DuiliaoColors.hit,
+                        active: _filter == 'won',
+                        onTap: () => setState(() => _filter = 'won'),
+                      ),
+                      const SizedBox(width: 8),
+                      GlassChipTag(
+                        label: '未中',
+                        trailingText: '$lostCount',
+                        active: _filter == 'lost',
+                        onTap: () => setState(() => _filter = 'lost'),
+                      ),
+                    ],
+                  ),
+                ),
+
+                for (final period in periods) ...[
+                  DesignSectionHeader(
+                    title: '第 $period 期',
+                    trailing: _buildPeriodTrailing(
+                      period,
+                      filtered.where((r) => r.period == period).toList(),
+                    ),
+                  ),
+                  for (final item in filtered.where(
+                    (r) => r.period == period,
+                  ))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _RecordCard(item: item),
+                    ),
+                ],
               ],
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
-                children: [
-                  // Summary Hero Card
-                  GlassCard(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '本期汇总 · 第 2026277 期',
-                              style: context.texts.labelSmall,
-                            ),
-                            const GlassStatusPill(
-                              label: '今晚 21:30 开奖',
-                              color: DuiliaoColors.warning,
-                              pulse: true,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _SummaryCol(
-                                label: '本期投入',
-                                value: '¥250',
-                                sub: '4 单 · 22 注',
-                                valueColor:
-                                    Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                            Container(
-                              width: 1,
-                              height: 44,
-                              color: Colors.white.withValues(alpha: 0.10),
-                            ),
-                            const Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.only(left: 12),
-                                child: _SummaryCol(
-                                  label: '累计盈亏',
-                                  value: '+¥175',
-                                  sub: '近 30 期',
-                                  valueColor: DuiliaoColors.hit,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 1,
-                              height: 44,
-                              color: Colors.white.withValues(alpha: 0.10),
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(left: 12),
-                                child: _SummaryCol(
-                                  label: '中单率',
-                                  value: '31.9%',
-                                  sub: '15 / 47 单',
-                                  valueColor:
-                                      Theme.of(context).colorScheme.primary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Filter Chips
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        GlassChipTag(
-                          label: '全部',
-                          active: _filter == 'all',
-                          onTap: () => setState(() => _filter = 'all'),
-                        ),
-                        const SizedBox(width: 8),
-                        GlassChipTag(
-                          label: '待开奖 $pendingCount',
-                          active: _filter == 'pending',
-                          onTap: () => setState(() => _filter = 'pending'),
-                        ),
-                        const SizedBox(width: 8),
-                        GlassChipTag(
-                          label: '已中奖 $wonCount',
-                          active: _filter == 'won',
-                          onTap: () => setState(() => _filter = 'won'),
-                        ),
-                        const SizedBox(width: 8),
-                        GlassChipTag(
-                          label: '未中 $lostCount',
-                          active: _filter == 'lost',
-                          onTap: () => setState(() => _filter = 'lost'),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  for (final period in periods) ...[
-                    DesignSectionHeader(
-                      title: _periodHeaderTitle(period),
-                      trailingText: _periodHeaderRight(
-                        period,
-                        filtered.where((r) => r.period == period).toList(),
-                      ),
-                    ),
-                    for (final item in filtered.where(
-                      (r) => r.period == period,
-                    ))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _RecordCard(item: item),
-                      ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: canPop ? GlassBackground(child: content) : content,
     );
   }
 
-  String _periodHeaderTitle(String period) {
-    if (period == '2026277') return '第 2026277 期 · 待开奖';
-    return '第 $period 期 · 已结算';
-  }
-
-  String _periodHeaderRight(String period, List<BettingRecordItem> items) {
-    if (period == '2026277') {
-      final sum = items.fold<int>(0, (acc, r) => acc + r.totalAmount);
-      return '小计 ¥$sum';
+  Widget _buildPeriodTrailing(String period, List<BettingRecordItem> items) {
+    final hasPending = items.any((r) => r.status == 'pending');
+    if (hasPending || period == '2026277') {
+      return const GlassStatusPill(
+        label: '待开奖 · 今晚 21:30',
+        tone: GlassPillTone.warning,
+        pulse: true,
+      );
     }
     final net = items.fold<int>(0, (acc, r) => acc + r.netProfit);
-    return net >= 0 ? '+¥$net' : '-¥${net.abs()}';
+    final sign = net >= 0 ? '+' : '−';
+    return GlassStatusPill(
+      label: '盈亏 $sign¥${net.abs()}',
+      tone: net >= 0 ? GlassPillTone.success : GlassPillTone.danger,
+      showDot: false,
+    );
+  }
+}
+
+class _HeaderGlowButton extends StatelessWidget {
+  const _HeaderGlowButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: DuiliaoColors.auroraGradient,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.35),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 15, color: Colors.white),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -451,16 +532,18 @@ class _SummaryCol extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(label, style: context.texts.labelSmall?.copyWith(fontSize: 11)),
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: valueColor,
+          style: tabularStyle(
+            TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: valueColor,
+            ),
           ),
         ),
         const SizedBox(height: 2),
@@ -482,10 +565,7 @@ class _RecordCard extends StatelessWidget {
 
     return GlassCard(
       margin: EdgeInsets.zero,
-      padding: const EdgeInsets.all(14),
-      borderColor: isWon
-          ? DuiliaoColors.hit.withValues(alpha: 0.40)
-          : null,
+      padding: const EdgeInsets.all(16),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => RecordDetailScreen(record: item)),
       ),
@@ -494,46 +574,7 @@ class _RecordCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Wrap(
-                  spacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    ZTag(
-                      label: item.playType,
-                      variant: item.playType.contains('特') ||
-                              item.playType.contains('复试')
-                          ? ZTagVariant.primary
-                          : ZTagVariant.neutral,
-                    ),
-                    Text(
-                      '${item.timeLabel} 录入',
-                      style: context.texts.labelSmall,
-                    ),
-                  ],
-                ),
-                if (isPending)
-                  const GlassStatusPill(
-                    label: '待开奖',
-                    color: DuiliaoColors.warning,
-                  )
-                else if (isWon)
-                  GlassStatusPill(
-                    label:
-                        '中 ${item.hitNumbers.length} 码 · +¥${item.netProfit}',
-                    color: DuiliaoColors.hit,
-                  )
-                else
-                  const GlassStatusPill(
-                    label: '未中 · 0 码',
-                    color: DuiliaoColors.pending,
-                    showDot: false,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
+            // Top: balls or zodiac tags (records.html lines 84-95, 138-145)
             if (item.xiaos.isNotEmpty)
               Wrap(
                 spacing: 6,
@@ -551,74 +592,114 @@ class _RecordCard extends StatelessWidget {
                   for (final numStr in item.numbers)
                     NumberBall(
                       number: numStr,
-                      bose: Lottery2026Lookup.boseForNumber(
-                        int.tryParse(numStr) ?? 1,
-                      ),
+                      bose: Lottery2026Lookup.boseForNumber(numStr),
                       size: 28,
+                      showColorName: false,
                       hitHighlight: item.hitNumbers.contains(numStr),
-                      dimmed: isLost ||
-                          (isWon && !item.hitNumbers.contains(numStr)),
                     ),
                 ],
               ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
+            // Bottom: formula + tags on left, status pill on right (records.html lines 96-105)
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Flexible(
-                  child: Row(
+                Expanded(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 5,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Flexible(
-                        child: Text(
-                          item.xiaos.isNotEmpty
-                              ? '${item.xiaos.length} 肖复试 · 共 ${item.notesCount} 注 × ¥${item.stakePerNote}'
-                              : '单注 ¥${item.stakePerNote} × ${item.notesCount} 注',
-                          style: context.texts.labelSmall,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (item.sourceBadge != null) ...[
-                        const SizedBox(width: 6),
-                        GlassStatusPill(
+                      _buildFormulaText(context),
+                      ZTag(label: item.playType),
+                      if (item.xiaos.isNotEmpty && item.multiplier > 1)
+                        ZTag(label: '倍 ×${item.multiplier}'),
+                      if (item.sourceBadge != null)
+                        GlassChipTag(
                           label: item.sourceBadge!,
-                          color: Theme.of(context).colorScheme.primary,
-                          showDot: false,
+                          icon: Icons.auto_awesome_rounded,
+                          compact: true,
                         ),
-                      ],
+                      if (isPending && item.timeLabel.isNotEmpty)
+                        Text(
+                          '录入 ${item.timeLabel}',
+                          style: context.texts.labelSmall?.copyWith(
+                            fontSize: 11,
+                          ),
+                        ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 if (isPending)
-                  Text(
-                    '合计 ¥${item.totalAmount}',
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  const GlassStatusPill(
+                    label: '待开奖',
+                    tone: GlassPillTone.neutral,
+                    showDot: false,
                   )
                 else if (isWon)
-                  Text(
-                    '投入 ¥${item.totalAmount} · 派彩 ¥${item.payout}',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: DuiliaoColors.hit,
-                    ),
+                  GlassStatusPill(
+                    label:
+                        item.winPillLabel ??
+                        '中 ${item.hitNumbers.length} 码 +¥${item.netProfit}',
+                    tone: GlassPillTone.success,
+                    showDot: false,
                   )
                 else
-                  Text(
-                    '-¥${item.totalAmount}',
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: DuiliaoColors.miss,
-                    ),
+                  GlassStatusPill(
+                    label: '未中 −¥${item.netProfit.abs()}',
+                    tone: GlassPillTone.danger,
+                    showDot: false,
                   ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFormulaText(BuildContext context) {
+    final baseStyle = context.texts.labelSmall?.copyWith(fontSize: 11);
+    final strongStyle = baseStyle?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: Theme.of(context).colorScheme.onSurface,
+    );
+
+    if (item.xiaos.isNotEmpty) {
+      final link = item.fushiLink ?? 4;
+      final multPart = item.multiplier > 1 ? ' × ${item.multiplier} 倍' : '';
+      return Text.rich(
+        TextSpan(
+          style: baseStyle,
+          children: [
+            TextSpan(
+              text:
+                  '复试 $link 连 · C(${item.xiaos.length},$link) ${item.notesCount} 注 × ¥${item.stakePerNote}$multPart = ',
+            ),
+            TextSpan(text: '¥${item.totalAmount}', style: strongStyle),
+          ],
+        ),
+      );
+    }
+
+    if (item.status == 'pending') {
+      return Text.rich(
+        TextSpan(
+          style: baseStyle,
+          children: [
+            TextSpan(
+              text: '单注 ¥${item.stakePerNote} × ${item.notesCount} 注 = ',
+            ),
+            TextSpan(text: '¥${item.totalAmount}', style: strongStyle),
+          ],
+        ),
+      );
+    }
+
+    return Text(
+      '${item.notesCount} 注 × ¥${item.stakePerNote} = ¥${item.totalAmount}',
+      style: baseStyle,
     );
   }
 }
@@ -648,56 +729,65 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   late final TextEditingController _noteController;
   int _multiplier = 1;
 
-  static const _singlePlays = [
-    '特码',
-    '正码',
-    '特肖',
-    '平特肖',
-    '平特一肖',
-    '一肖中特',
-    '连肖',
-    '杀肖',
-    '特码波色',
-    '特码单双',
-    '特码大小',
-    '特码头数',
-    '特码尾数',
-    '平特尾数',
-    '特码合数',
-    '家禽野兽',
-    '天地肖',
-    '男女肖',
-    '五行',
-    '特码两面',
-    'N不中',
+  static const _singlePlays = <({String label, String code})>[
+    (label: '正码', code: 'zhengma_n'),
+    (label: '特码', code: 'tema_n'),
+    (label: '特肖', code: 'texiao'),
+    (label: '特尾', code: 'tewei'),
+    (label: '特头', code: 'tetou'),
+    (label: '特波', code: 'tebo'),
+    (label: '两面', code: 'liangmian'),
+    (label: '半波', code: 'banbo'),
+    (label: '合肖', code: 'hexiao'),
+    (label: '平特肖', code: 'pingtexiao'),
+    (label: '平特尾', code: 'pingtewei'),
+    (label: '正肖', code: 'zhengxiao'),
+    (label: '连肖', code: 'lianxiao'),
+    (label: '连尾', code: 'lianwei'),
+    (label: '二中二', code: 'erzhonger'),
+    (label: '三中三', code: 'sanzhongsan'),
+    (label: '三中二', code: 'sanzhonger'),
+    (label: '二中特', code: 'erzhongte'),
+    (label: '不中码', code: 'nbuzhong'),
+    (label: '杀肖', code: 'shaxiao'),
+    (label: '杀尾', code: 'shawei'),
   ];
 
-  static const _fushiPlays = ['3连肖 (中3)', '4连肖 (中4)', '5连肖 (中5)'];
-  static const _nbuzhongPlays = ['5不中', '6不中', '7不中', '8不中'];
+  static const _fushiPlays = ['3 连', '4 连', '5 连'];
+  static const _nbuzhongPlays = ['5 不中', '6 不中', '7 不中', '8 不中'];
 
   @override
   void initState() {
     super.initState();
     _mode = widget.mode;
     _selectedPlay = switch (_mode) {
-      '连肖复试' => '4连肖 (中4)',
-      '不中码' => '5不中',
+      '连肖复试' => '4 连',
+      '不中码' => '6 不中',
       _ => '正码',
     };
+    _multiplier = _mode == '连肖复试' ? 2 : 1;
     _inputController = TextEditingController(
       text: widget.initialText ?? _defaultTextForMode(_mode),
     );
     _stakeController = TextEditingController(
-      text: _mode == '连肖复试' ? '6' : '10',
+      text: _mode == '号码单式' ? '5' : '10',
     );
     _noteController = TextEditingController();
+    if (widget.initialText != null) {
+      final stakeMatch = RegExp(
+        r'(?:个数|各|每码|×|\*)\s*(\d+)',
+      ).firstMatch(widget.initialText!);
+      if (stakeMatch != null) {
+        _stakeController.text = stakeMatch.group(1)!;
+      }
+    }
   }
 
   String _defaultTextForMode(String mode) {
     return switch (mode) {
-      '连肖复试' => '四连肖复试 兔 龙 蛇 马 羊 各 6',
-      '不中码' => '五不中 04 12 19 28 33 41 47 各 10',
-      _ => '18-42-39-27-28-37-49-38-2-1各10',
+      '连肖复试' => '龙牛猴鸡兔复试4连个数10',
+      '不中码' => '02.04.06.08.10.12·6不中个数10',
+      _ => '18.42.39.27.28.14.32.11.26.16个数5',
     };
   }
 
@@ -711,12 +801,13 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     setState(() {
       _mode = nextMode;
       _selectedPlay = switch (nextMode) {
-        '连肖复试' => '4连肖 (中4)',
-        '不中码' => '5不中',
+        '连肖复试' => '4 连',
+        '不中码' => '6 不中',
         _ => '正码',
       };
+      _multiplier = nextMode == '连肖复试' ? 2 : 1;
       _inputController.text = _defaultTextForMode(nextMode);
-      _stakeController.text = nextMode == '连肖复试' ? '6' : '10';
+      _stakeController.text = nextMode == '号码单式' ? '5' : '10';
     });
   }
 
@@ -729,8 +820,10 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   }
 
   List<String> _parseNumbers(String text) {
-    final withoutStake = text.replaceAll(RegExp(r'各\s*\d+.*$'), '');
-    final matches = RegExp(r'\b([0-4]?\d)\b').allMatches(withoutStake);
+    var cleaned = text.replaceAll(RegExp(r'(?:个数|各|每码)\s*\d+.*$'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'[·\s]*\d+\s*不中.*$'), '');
+    cleaned = cleaned.replaceAll(RegExp(r'复试\s*\d+\s*连.*$'), '');
+    final matches = RegExp(r'\b([0-4]?\d)\b').allMatches(cleaned);
     final result = <String>[];
     for (final m in matches) {
       final n = int.tryParse(m.group(1) ?? '');
@@ -771,14 +864,29 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     return out;
   }
 
+  String get _headerTitle => switch (_mode) {
+    '连肖复试' => '新增记录 · 连肖',
+    '不中码' => '新增记录 · 不中码',
+    _ => '新增记录',
+  };
+
+  String get _selectedPlayCode {
+    for (final p in _singlePlays) {
+      if (p.label == _selectedPlay) return p.code;
+    }
+    return 'zhengma_n';
+  }
+
   @override
   Widget build(BuildContext context) {
     final text = _inputController.text;
-    final parsedStakeMatch = RegExp(r'各\s*(\d+)').firstMatch(text);
+    final parsedStakeMatch = RegExp(
+      r'(?:个数|各|每码|×|\*)\s*(\d+)',
+    ).firstMatch(text);
     final stake =
         int.tryParse(_stakeController.text.trim()) ??
         int.tryParse(parsedStakeMatch?.group(1) ?? '') ??
-        10;
+        5;
 
     final numbers = _parseNumbers(text);
     final xiaos = _parseXiaos(text);
@@ -787,6 +895,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
         : _selectedPlay.startsWith('5')
         ? 5
         : 4;
+    final nbuzhongN = int.tryParse(_selectedPlay.split(' ').first) ?? 6;
     final fushiCombos = _mode == '连肖复试'
         ? _combinations(xiaos, fushiK)
         : const <List<String>>[];
@@ -809,125 +918,169 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                 center: true,
                 leading: GlassIconButton(
                   icon: Icons.chevron_left_rounded,
+                  tooltip: '返回',
                   onTap: () => Navigator.of(context).maybePop(),
                 ),
-                title: '新增记录',
+                title: _headerTitle,
                 actions: [
-                  TextButton(
-                    onPressed: () {
-                      _inputController.clear();
-                      setState(() {});
+                  GlassIconButton(
+                    icon: Icons.help_outline_rounded,
+                    tooltip: '帮助',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PlayCatalogScreen(),
+                        ),
+                      );
                     },
-                    child: const Text('清空'),
                   ),
                 ],
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   children: [
-                    // 4-mode switcher
+                    // 录入模式切换 (record-add.html lines 39-44)
                     GlassSegmentedControl<String>(
                       items: const ['号码单式', '连肖复试', '不中码', '全部玩法'],
                       selected: _mode,
                       labelBuilder: (m) => m,
                       onChanged: _switchMode,
                     ),
-                    const SizedBox(height: 10),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+
+                    // 彩种 (record-add.html lines 48-61)
+                    const DesignSectionHeader(title: '彩种'),
+                    GlassCard(
+                      margin: EdgeInsets.zero,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (final item in Lottery.all) ...[
-                            GlassChipTag(
-                              label: item.label,
-                              active: item == _lottery,
-                              onTap: () => setState(() => _lottery = item),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                          GlassChipTag(
-                            label: '支持 21 种玩法 ›',
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final item in Lottery.all)
+                                GlassChipTag(
+                                  label: item.label,
+                                  active: item == _lottery,
+                                  onTap: () => setState(() => _lottery = item),
+                                ),
+                              for (final extra in const ['台湾', '新彩'])
+                                GlassChipTag(
+                                  label: extra,
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('$extra 彩种目录可在玩法目录查看'),
+                                      ),
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          InkWell(
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => const PlayCatalogScreen(),
                               ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '查看彩种与玩法目录',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 14,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
 
-                    // Smart input section
-                    DesignSectionHeader(
-                      title: '智能录入',
-                      trailingText: switch (_mode) {
-                        '连肖复试' => '自动拆解复试组合',
-                        '不中码' => '所选号码全部不中才算赢',
-                        _ => '支持自由格式粘贴',
-                      },
-                    ),
+                    // 智能录入 (record-add.html lines 64-78)
+                    const DesignSectionHeader(title: '智能录入'),
                     GlassCard(
                       margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(
+                            switch (_mode) {
+                              '连肖复试' => '粘贴或输入连肖复试文本',
+                              '不中码' => '粘贴或输入不中码文本',
+                              _ => '粘贴或输入号码文本',
+                            },
+                            style: context.texts.labelSmall,
+                          ),
+                          const SizedBox(height: 6),
                           TextField(
                             controller: _inputController,
-                            maxLines: 3,
+                            maxLines: 2,
                             onChanged: (v) {
-                              final m = RegExp(r'各\s*(\d+)').firstMatch(v);
+                              final m = RegExp(
+                                r'(?:个数|各|每码|×|\*)\s*(\d+)',
+                              ).firstMatch(v);
                               if (m != null) {
                                 _stakeController.text = m.group(1)!;
+                              }
+                              final multMatch = RegExp(
+                                r'(?:倍\s*(\d+)|(\d+)\s*倍)',
+                              ).firstMatch(v);
+                              if (multMatch != null) {
+                                final parsedMult = int.tryParse(
+                                  multMatch.group(1) ??
+                                      multMatch.group(2) ??
+                                      '',
+                                );
+                                if (parsedMult != null && parsedMult >= 1) {
+                                  _multiplier = parsedMult;
+                                }
                               }
                               setState(() {});
                             },
                             style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 13.5,
+                              fontSize: 14.5,
                               height: 1.5,
                             ),
                             decoration: const InputDecoration(
                               hintText: '粘贴或输入号码/生肖及单注金额…',
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Row(
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              GlassGhostButton(
-                                label: '粘贴剪贴板',
-                                icon: Icons.content_paste_rounded,
-                                compact: true,
-                                onTap: () async {
-                                  final data = await Clipboard.getData(
-                                    'text/plain',
-                                  );
-                                  if (data?.text != null &&
-                                      data!.text!.trim().isNotEmpty) {
-                                    _inputController.text = data.text!.trim();
-                                    setState(() {});
-                                  }
+                              GlassStatusPill(
+                                label: switch (_mode) {
+                                  '连肖复试' =>
+                                    '已识别 ${xiaos.length} 个生肖 · 复试 $fushiK 连 · 单注 ¥$stake',
+                                  '不中码' =>
+                                    '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
+                                  _ =>
+                                    '已识别 ${numbers.length} 个号码 · 单注 ¥$stake',
                                 },
+                                tone: GlassPillTone.success,
                               ),
-                              const SizedBox(width: 8),
-                              GlassGhostButton(
-                                label: '跳码助手',
-                                icon: Icons.auto_awesome_motion,
-                                compact: true,
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const JumpCodeAssistantScreen(),
-                                  ),
-                                ),
-                              ),
-                              const Spacer(),
-                              Text(
-                                _mode == '连肖复试'
-                                    ? '例: 兔龙蛇马羊各6'
-                                    : '例: 18-42-39各10',
-                                style: context.texts.labelSmall,
+                              const GlassStatusPill(
+                                label: '格式有效',
+                                tone: GlassPillTone.primary,
+                                showDot: false,
                               ),
                             ],
                           ),
@@ -935,16 +1088,15 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                       ),
                     ),
 
-                    // Recognition Preview
+                    // 识别预览 (record-add.html lines 81-101)
                     DesignSectionHeader(
-                      title: '识别预览',
-                      trailingText: _mode == '连肖复试'
-                          ? '已选 ${xiaos.length} 肖 · $_selectedPlay · 共 $notesCount 注'
-                          : '共 ${numbers.length} 个号码 · 单注 ¥$stake',
+                      title: _mode == '连肖复试'
+                          ? '识别预览 · 已选 ${xiaos.length} 肖'
+                          : '识别预览',
                     ),
                     GlassCard(
                       margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -954,10 +1106,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               runSpacing: 8,
                               children: [
                                 for (final x in xiaos)
-                                  ZTag(
-                                    label: '$x肖',
-                                    variant: ZTagVariant.primary,
-                                  ),
+                                  ZTag(label: x, variant: ZTagVariant.primary),
                                 if (xiaos.isEmpty)
                                   Text(
                                     '请输入至少 $fushiK 个生肖',
@@ -967,72 +1116,110 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             )
                           else
                             Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
+                              spacing: 6,
+                              runSpacing: 6,
                               children: [
                                 for (final nStr in numbers)
                                   NumberBall(
                                     number: nStr,
-                                    bose: Lottery2026Lookup.boseForNumber(
-                                      int.tryParse(nStr) ?? 1,
-                                    ),
-                                    caption: _mode == '不中码' ? '不中' : '¥$stake',
-                                    captionBold: _mode == '不中码',
-                                    captionColor: _mode == '不中码'
-                                        ? DuiliaoColors.warning
-                                        : null,
+                                    bose: Lottery2026Lookup.boseForNumber(nStr),
+                                    size: 28,
+                                    showColorName: false,
                                   ),
                               ],
                             ),
                           if (_mode == '不中码') ...[
                             const SizedBox(height: 12),
                             GlassSubtleBox(
-                              padding: const EdgeInsets.all(11),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      '中奖条件：以上 ${numbers.length} 个号码全部不出现在开奖 7 码（6正+1特）中',
-                                      style: context.texts.labelSmall,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              child: Text.rich(
+                                TextSpan(
+                                  style: context.texts.labelSmall?.copyWith(
+                                    fontSize: 11,
+                                    height: 1.7,
+                                  ),
+                                  children: [
+                                    const TextSpan(
+                                      text: '中奖条件：',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const GlassStatusPill(
-                                    label: '全不中即赢',
-                                    color: DuiliaoColors.hit,
-                                    showDot: false,
-                                  ),
-                                ],
+                                    const TextSpan(text: '以上 '),
+                                    TextSpan(
+                                      text: '${numbers.length}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text:
+                                          ' 个号码在第 $_period 期开奖号码(6 正码 + 特码)中',
+                                    ),
+                                    const TextSpan(
+                                      text: '全部不开出',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const TextSpan(text: '即中奖。'),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                           const SizedBox(height: 12),
-                          const Divider(height: 1),
-                          const SizedBox(height: 10),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const GlassStatusPill(
-                                label: '解析成功',
-                                color: DuiliaoColors.hit,
-                              ),
-                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  _mode == '连肖复试'
-                                      ? 'C(${xiaos.length},$fushiK) = $notesCount 组 · 每组 ¥$stake'
-                                      : '自动补零 · 已去重',
-                                  style: context.texts.labelSmall,
+                                  switch (_mode) {
+                                    '连肖复试' =>
+                                      '复试 $fushiK 连 · C(${xiaos.length},$fushiK) = $notesCount 注',
+                                    '不中码' =>
+                                      '整组 1 注 × ¥$stake × $_multiplier 倍',
+                                    _ =>
+                                      '共 $notesCount 注 × ¥$stake × $_multiplier 倍',
+                                  },
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.texts.labelSmall?.copyWith(
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
-                              Text(
-                                '合计 ¥$totalAmount',
-                                style: TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                              const SizedBox(width: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    '合计 ',
+                                    style: context.texts.labelSmall?.copyWith(
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  Text(
+                                    '¥$totalAmount',
+                                    style: tabularStyle(
+                                      TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -1040,11 +1227,10 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                       ),
                     ),
 
-                    // Combination Expansion for 连肖复试
+                    // 组合展开 (record-add-fushi.html lines 92-123)
                     if (_mode == '连肖复试' && fushiCombos.isNotEmpty) ...[
                       DesignSectionHeader(
-                        title: '组合展开',
-                        trailingText: '共 ${fushiCombos.length} 注 · 全部中出即赢',
+                        title: '组合展开 · ${fushiCombos.length} 注',
                       ),
                       GlassGroup(
                         margin: EdgeInsets.zero,
@@ -1057,16 +1243,16 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  SizedBox(
-                                    width: 48,
-                                    child: Text(
-                                      '第 ${i + 1} 注',
-                                      style: context.texts.labelSmall,
-                                    ),
+                                  GlassStatusPill(
+                                    label: '注 ${i + 1}',
+                                    tone: GlassPillTone.neutral,
+                                    showDot: false,
                                   ),
+                                  const SizedBox(width: 10),
                                   Expanded(
                                     child: Wrap(
                                       spacing: 6,
+                                      runSpacing: 4,
                                       children: [
                                         for (final x in fushiCombos[i])
                                           ZTag(label: x),
@@ -1074,10 +1260,11 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '¥$stake',
-                                    style: const TextStyle(
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w700,
+                                    '¥$stake × $_multiplier倍',
+                                    style: tabularStyle(
+                                      context.texts.labelSmall?.copyWith(
+                                        fontSize: 11,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -1087,44 +1274,44 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                       ),
                     ],
 
-                    // Recognition Rules
+                    // 识别规则 (record-add.html lines 104-113)
                     const DesignSectionHeader(title: '识别规则'),
-                    GlassCard(
-                      margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(14),
+                    GlassSubtleBox(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 13,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: switch (_mode) {
                           '连肖复试' => const [
-                            _RuleBullet('生肖支持空格、连字符、顿号或直接连写：「兔龙蛇马羊」'),
-                            SizedBox(height: 6),
-                            _RuleBullet('支持「三连/四连/五连复试」关键字自动匹配连肖阶数'),
-                            SizedBox(height: 6),
-                            _RuleBullet('自动按组合公式 C(M,N) 拆解注数并计算总投入'),
+                            _RuleBullet('① 生肖连续书写自动拆分：龙牛猴鸡兔 → 龙/牛/猴/鸡/兔'),
+                            _RuleBullet('② 「复试N连」按组合展开：选 M 肖复试 N 连 → C(M,N) 注'),
+                            _RuleBullet('③ 「个数10」识别为每注单额；「倍2」「×2倍」识别为倍数'),
+                            _RuleBullet('④ 本例：5 肖复试 4 连 → C(5,4)=5 注 × ¥10 × 2 倍 = ¥100'),
                           ],
                           '不中码' => const [
-                            _RuleBullet('支持「五不中 ~ 十二不中」关键字自动切换玩法阶数'),
-                            SizedBox(height: 6),
-                            _RuleBullet('号码范围 01–49，自动去重并校验最少号码数量'),
-                            SizedBox(height: 6),
-                            _RuleBullet('对奖口径：所选号码与当期 6 正码 + 特码均不重合即判定中奖'),
+                            _RuleBullet('① 「不中码」为整组玩法：N 个号码合成 1 注，不逐码拆分'),
+                            _RuleBullet('② 号码个数与 N 自动核对，不一致时标红提示'),
+                            _RuleBullet('③ 「个数10」为该整组单额；「倍2」「×2倍」识别为倍数'),
+                            _RuleBullet('④ 本例：6 码 6 不中 → 1 注 × ¥10 = ¥10'),
                           ],
                           _ => const [
-                            _RuleBullet('号码可用 - 、 空格 , / 任意分隔，单数自动补 0（2 → 02）'),
-                            SizedBox(height: 6),
-                            _RuleBullet('金额支持「各10」「各 10 元」「*10」「@10」多种写法'),
-                            SizedBox(height: 6),
-                            _RuleBullet('支持多行混合录入，每行独立识别金额并自动汇总'),
+                            _RuleBullet('① 号码以「.」「,」「空格」「、」分隔，范围 01–49，自动去重、标注波色'),
+                            _RuleBullet('② 「个数5」「各5」「×5」「每码5」识别为单注金额；「倍2」「×2倍」识别为倍数'),
+                            _RuleBullet('③ 连肖复试：龙牛猴鸡兔复试4连个数10 → C(5,4)=5 注组合 × ¥10'),
+                            _RuleBullet('④ 不中码：02.04.06.08.10.12·6不中个数10 → 整组 1 注，全不开出即中'),
+                            _RuleBullet('⑤ 示例：18.42.39个数5 → 3 注 × ¥5 = ¥15'),
                           ],
                         },
                       ),
                     ),
 
-                    // Record Info Card
+                    // 记录信息 (record-add.html lines 116-170)
                     const DesignSectionHeader(title: '记录信息'),
                     GlassCard(
                       margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1135,13 +1322,13 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             runSpacing: 8,
                             children: [
                               GlassChipTag(
-                                label: '第 2026277 期 · 今晚开奖',
+                                label: '第 2026277 期',
                                 active: _period == '2026277',
                                 onTap: () =>
                                     setState(() => _period = '2026277'),
                               ),
                               GlassChipTag(
-                                label: '第 2026276 期 (补录)',
+                                label: '第 2026276 期',
                                 active: _period == '2026276',
                                 onTap: () =>
                                     setState(() => _period = '2026276'),
@@ -1149,32 +1336,90 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             ],
                           ),
                           const SizedBox(height: 14),
-                          Text(
-                            _mode == '连肖复试'
-                                ? '连肖阶数'
-                                : _mode == '不中码'
-                                ? '不中阶数'
-                                : '玩法类型 (全部 21 种)',
-                            style: context.texts.labelSmall,
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: [
-                              for (final p in switch (_mode) {
-                                '连肖复试' => _fushiPlays,
-                                '不中码' => _nbuzhongPlays,
-                                _ => _singlePlays,
-                              })
-                                GlassChipTag(
-                                  label: p,
-                                  active: _selectedPlay == p,
-                                  onTap: () =>
-                                      setState(() => _selectedPlay = p),
+                          if (_mode == '连肖复试') ...[
+                            Text(
+                              '玩法 · 连肖复试连数',
+                              style: context.texts.labelSmall,
+                            ),
+                            const SizedBox(height: 8),
+                            GlassSegmentedControl<String>(
+                              items: _fushiPlays,
+                              selected: _selectedPlay,
+                              labelBuilder: (p) => p,
+                              onChanged: (p) =>
+                                  setState(() => _selectedPlay = p),
+                            ),
+                          ] else if (_mode == '不中码') ...[
+                            Text(
+                              '玩法 · 不中码个数(N)',
+                              style: context.texts.labelSmall,
+                            ),
+                            const SizedBox(height: 8),
+                            GlassSegmentedControl<String>(
+                              items: _nbuzhongPlays,
+                              selected: _selectedPlay,
+                              labelBuilder: (p) => p,
+                              onChanged: (p) =>
+                                  setState(() => _selectedPlay = p),
+                            ),
+                          ] else ...[
+                            Text(
+                              '玩法（项目完整支持）',
+                              style: context.texts.labelSmall,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '当前选择：$_selectedPlay · $_selectedPlayCode',
+                              style: context.texts.labelSmall?.copyWith(
+                                fontSize: 11,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                for (final p in _singlePlays)
+                                  GlassChipTag(
+                                    label: p.label,
+                                    active: _selectedPlay == p.label,
+                                    onTap: () => setState(
+                                      () => _selectedPlay = p.label,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 9),
+                            InkWell(
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const PlayCatalogScreen(),
                                 ),
-                            ],
-                          ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '查看玩法编码与规则',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 14,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 14),
                           Row(
                             children: [
@@ -1183,9 +1428,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      _mode == '连肖复试'
-                                          ? '每注金额 (元)'
-                                          : '单注金额 (元)',
+                                      '单注金额',
                                       style: context.texts.labelSmall,
                                     ),
                                     const SizedBox(height: 6),
@@ -1193,6 +1436,9 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                       controller: _stakeController,
                                       keyboardType: TextInputType.number,
                                       onChanged: (_) => setState(() {}),
+                                      decoration: const InputDecoration(
+                                        prefixText: '¥ ',
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1210,15 +1456,16 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                     GlassSubtleBox(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 8,
-                                        vertical: 6,
+                                        vertical: 7,
                                       ),
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          GlassGhostButton(
-                                            label: '−',
-                                            compact: true,
+                                          GlassIconButton(
+                                            icon: Icons.remove_rounded,
+                                            size: 28,
+                                            iconSize: 14,
                                             onTap: () => setState(() {
                                               if (_multiplier > 1) {
                                                 _multiplier--;
@@ -1226,15 +1473,18 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                             }),
                                           ),
                                           Text(
-                                            '$_multiplier 倍',
-                                            style: const TextStyle(
-                                              fontSize: 13.5,
-                                              fontWeight: FontWeight.w800,
+                                            '$_multiplier',
+                                            style: tabularStyle(
+                                              const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                             ),
                                           ),
-                                          GlassGhostButton(
-                                            label: '+',
-                                            compact: true,
+                                          GlassIconButton(
+                                            icon: Icons.add_rounded,
+                                            size: 28,
+                                            iconSize: 14,
                                             onTap: () => setState(() {
                                               _multiplier++;
                                             }),
@@ -1248,12 +1498,16 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             ],
                           ),
                           const SizedBox(height: 14),
-                          Text('备注 (可选)', style: context.texts.labelSmall),
+                          Text('备注', style: context.texts.labelSmall),
                           const SizedBox(height: 6),
                           TextField(
                             controller: _noteController,
-                            decoration: const InputDecoration(
-                              hintText: '例如：参考海哥 + 顶尖大师共识',
+                            decoration: InputDecoration(
+                              hintText: switch (_mode) {
+                                '连肖复试' => '可选，如：四肖防冷，复试求全',
+                                '不中码' => '可选，如：冷号组合，博全不开',
+                                _ => '可选，如：跟海哥本期主推',
+                              },
                             ),
                           ),
                         ],
@@ -1262,74 +1516,79 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                   ],
                 ),
               ),
-              // Bottom action dock
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xE6141122)
-                      : Colors.white.withValues(alpha: 0.90),
-                  border: Border(
-                    top: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.10),
-                    ),
+              // 底部操作条 (record-add.html lines 173-176)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                child: GlassCard(
+                  margin: EdgeInsets.zero,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$notesCount 注 · 合计',
-                            style: context.texts.labelSmall,
+                  child: Row(
+                    children: [
+                      Text.rich(
+                        TextSpan(
+                          style: context.texts.labelSmall?.copyWith(
+                            fontSize: 11,
                           ),
-                          Text(
-                            '¥$totalAmount',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: Theme.of(context).colorScheme.primary,
+                          children: [
+                            TextSpan(text: '$notesCount 注 · 合计 '),
+                            TextSpan(
+                              text: '¥$totalAmount',
+                              style: tabularStyle(
+                                TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    Expanded(
-                      child: GlassButton(
-                        onPressed: () {
-                          final item = BettingRecordItem(
-                            id: 'rec-${DateTime.now().millisecondsSinceEpoch}',
-                            lottery: _lottery,
-                            period: _period,
-                            playType: _selectedPlay,
-                            timeLabel: '刚刚',
-                            numbers: numbers,
-                            xiaos: xiaos,
-                            stakePerNote: stake,
-                            multiplier: _multiplier,
-                            notesCount: notesCount,
-                            totalAmount: totalAmount,
-                            status: 'pending',
-                            rawInput: _inputController.text.trim(),
-                            note: _noteController.text.trim().isEmpty
-                                ? null
-                                : _noteController.text.trim(),
-                          );
-                          ref
-                              .read(bettingRecordsProvider.notifier)
-                              .addRecord(item);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('记录已保存')),
-                          );
-                          Navigator.of(context).maybePop();
-                        },
-                        child: const Text('保存记录'),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GlassButton(
+                          height: 42,
+                          onPressed: () {
+                            final now = TimeOfDay.now();
+                            final hh = now.hour.toString().padLeft(2, '0');
+                            final mm = now.minute.toString().padLeft(2, '0');
+                            final item = BettingRecordItem(
+                              id: 'rec-${DateTime.now().millisecondsSinceEpoch}',
+                              lottery: _lottery,
+                              period: _period,
+                              playType: _mode == '连肖复试' ? '连肖' : _selectedPlay,
+                              timeLabel: '$hh:$mm',
+                              numbers: numbers,
+                              xiaos: _mode == '连肖复试' ? xiaos : const [],
+                              fushiLink: _mode == '连肖复试' ? fushiK : null,
+                              stakePerNote: stake,
+                              multiplier: _multiplier,
+                              notesCount: notesCount,
+                              totalAmount: totalAmount,
+                              status: 'pending',
+                              rawInput: _inputController.text.trim(),
+                              note: _noteController.text.trim().isEmpty
+                                  ? null
+                                  : _noteController.text.trim(),
+                            );
+                            ref
+                                .read(bettingRecordsProvider.notifier)
+                                .addRecord(item);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('记录已保存')),
+                            );
+                            Navigator.of(context).maybePop();
+                          },
+                          child: const Text('保存记录'),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -1346,23 +1605,12 @@ class _RuleBullet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '• ',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        Expanded(
-          child: Text(
-            text,
-            style: context.texts.labelSmall?.copyWith(height: 1.45),
-          ),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: context.texts.labelSmall?.copyWith(fontSize: 11, height: 1.7),
+      ),
     );
   }
 }
@@ -1383,6 +1631,9 @@ class RecordDetailScreen extends ConsumerWidget {
         );
     final isWon = item.status == 'won';
     final isPending = item.status == 'pending';
+    final hitRate = item.numbers.isEmpty
+        ? 0
+        : (item.hitNumbers.length / item.numbers.length * 100).round();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1395,21 +1646,31 @@ class RecordDetailScreen extends ConsumerWidget {
                 center: true,
                 leading: GlassIconButton(
                   icon: Icons.chevron_left_rounded,
+                  tooltip: '返回',
                   onTap: () => Navigator.of(context).maybePop(),
                 ),
                 title: '记录详情',
+                actions: [
+                  GlassIconButton(
+                    icon: Icons.more_vert_rounded,
+                    tooltip: '更多',
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: item.rawInput));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('已复制记录内容到剪贴板')),
+                      );
+                    },
+                  ),
+                ],
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   children: [
-                    // Hero Settlement Card
+                    // 结算状态 hero (record-detail.html lines 38-42)
                     GlassCard(
                       margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(20),
-                      borderColor: isWon
-                          ? DuiliaoColors.hit.withValues(alpha: 0.45)
-                          : null,
+                      padding: const EdgeInsets.all(18),
                       child: Column(
                         children: [
                           GlassStatusPill(
@@ -1418,11 +1679,11 @@ class RecordDetailScreen extends ConsumerWidget {
                                 : isWon
                                 ? '已中奖'
                                 : '未中奖',
-                            color: isPending
-                                ? DuiliaoColors.warning
+                            tone: isPending
+                                ? GlassPillTone.warning
                                 : isWon
-                                ? DuiliaoColors.hit
-                                : DuiliaoColors.miss,
+                                ? GlassPillTone.success
+                                : GlassPillTone.danger,
                             pulse: isPending,
                           ),
                           const SizedBox(height: 10),
@@ -1431,32 +1692,36 @@ class RecordDetailScreen extends ConsumerWidget {
                                 ? '¥${item.totalAmount}'
                                 : isWon
                                 ? '+¥${item.netProfit}'
-                                : '-¥${item.totalAmount}',
-                            style: TextStyle(
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                              color: isPending
-                                  ? Theme.of(context).colorScheme.onSurface
-                                  : isWon
-                                  ? DuiliaoColors.hit
-                                  : DuiliaoColors.miss,
+                                : '−¥${item.netProfit.abs()}',
+                            style: tabularStyle(
+                              TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.w700,
+                                height: 1.15,
+                                color: isPending
+                                    ? Theme.of(context).colorScheme.onSurface
+                                    : isWon
+                                    ? DuiliaoColors.hit
+                                    : DuiliaoColors.miss,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
                           Text(
-                            '第 ${item.period} 期 · ${item.playType} · ${isPending ? '等待开奖' : '已对奖'}',
-                            style: context.texts.labelSmall,
+                            '第 ${item.period} 期 · ${item.playType} · ${isPending ? '待开奖' : '已对奖'}',
+                            style: context.texts.labelSmall?.copyWith(
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
                     ),
 
-                    // My Numbers
+                    // 我的号码 (record-detail.html lines 45-75)
                     DesignSectionHeader(
-                      title: '我的号码',
-                      trailingText: isPending
-                          ? '共 ${item.numbers.length} 码'
-                          : '中 ${item.hitNumbers.length} / ${item.numbers.length} 码',
+                      title: isPending
+                          ? '我的号码 · 共 ${item.numbers.isNotEmpty ? item.numbers.length : item.xiaos.length} 项'
+                          : '我的号码 · 中 ${item.hitNumbers.length} 码',
                     ),
                     GlassCard(
                       margin: EdgeInsets.zero,
@@ -1467,31 +1732,31 @@ class RecordDetailScreen extends ConsumerWidget {
                               runSpacing: 8,
                               children: [
                                 for (final x in item.xiaos)
-                                  ZTag(label: '$x肖', variant: ZTagVariant.primary),
+                                  ZTag(label: x, variant: ZTagVariant.primary),
                               ],
                             )
                           : Wrap(
                               spacing: 12,
                               runSpacing: 12,
-                              alignment: WrapAlignment.spaceAround,
+                              alignment: WrapAlignment.spaceBetween,
                               children: [
                                 for (final nStr in item.numbers)
                                   NumberBall(
                                     number: nStr,
-                                    bose: Lottery2026Lookup.boseForNumber(
-                                      int.tryParse(nStr) ?? 1,
-                                    ),
-                                    size: 40,
+                                    bose: Lottery2026Lookup.boseForNumber(nStr),
+                                    size: 38,
+                                    showColorName: false,
                                     hitHighlight: item.hitNumbers.contains(
                                       nStr,
                                     ),
-                                    dimmed: !isPending &&
+                                    dimmed:
+                                        !isPending &&
                                         !item.hitNumbers.contains(nStr),
                                     caption: isPending
-                                        ? '¥${item.stakePerNote}'
+                                        ? '·'
                                         : item.hitNumbers.contains(nStr)
                                         ? '中'
-                                        : '未中',
+                                        : '·',
                                     captionBold: item.hitNumbers.contains(nStr),
                                     captionColor: item.hitNumbers.contains(nStr)
                                         ? DuiliaoColors.hit
@@ -1501,125 +1766,134 @@ class RecordDetailScreen extends ConsumerWidget {
                             ),
                     ),
 
-                    // Draw Comparison
+                    // 开奖对照 (record-detail.html lines 78-96)
                     const DesignSectionHeader(title: '开奖对照'),
                     GlassCard(
                       margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(15),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '第 ${item.period} 期开奖号码',
-                                style: context.texts.labelSmall,
-                              ),
-                              Text(
-                                '09-25 21:32',
-                                style: context.texts.labelSmall,
-                              ),
-                            ],
+                          Text(
+                            '第 ${item.period} 期 · ${isPending ? '今晚 21:30 开奖' : item.drawTime}',
+                            style: context.texts.labelSmall?.copyWith(
+                              fontSize: 11,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              for (final n in [
-                                '03',
-                                '11',
-                                '19',
-                                '27',
-                                '34',
-                                '42',
-                              ])
+                              for (final n in item.drawNumbers)
                                 NumberBall(
                                   number: n,
-                                  bose: Lottery2026Lookup.boseForNumber(
-                                    int.parse(n),
-                                  ),
+                                  bose: Lottery2026Lookup.boseForNumber(n),
                                   size: 28,
+                                  showColorName: false,
                                 ),
-                              const Text(
+                              Text(
                                 '+',
-                                style: TextStyle(fontWeight: FontWeight.w800),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                              const NumberBall(
-                                number: '26',
-                                bose: 'blue',
+                              NumberBall(
+                                number: item.specialNumber,
+                                bose: Lottery2026Lookup.boseForNumber(
+                                  item.specialNumber,
+                                ),
                                 isGold: true,
+                                isSpecial: true,
                                 size: 28,
+                                showColorName: false,
                               ),
                             ],
                           ),
                           const SizedBox(height: 12),
-                          GlassStatusPill(
-                            label:
-                                '号码命中 ${item.hitNumbers.length} 个 · 命中率 ${item.numbers.isEmpty ? 0 : (item.hitNumbers.length / item.numbers.length * 100).round()}%',
-                            color: DuiliaoColors.hit,
+                          Center(
+                            child: GlassChipTag(
+                              label: isPending ? '等待今晚 21:30 官方开奖' : '号码命中',
+                              trailingText: isPending
+                                  ? null
+                                  : '${item.hitNumbers.length} 个 · 命中率 $hitRate%',
+                              trailingColor: DuiliaoColors.hit,
+                            ),
                           ),
                         ],
                       ),
                     ),
 
-                    // Settlement Details
+                    // 结算明细 (record-detail.html lines 99-133)
                     const DesignSectionHeader(title: '结算明细'),
                     GlassGroup(
                       margin: EdgeInsets.zero,
                       children: [
                         _DetailRow(
-                          label: '投入金额',
-                          sub: '¥${item.stakePerNote} × ${item.notesCount} 注 × ${item.multiplier} 倍',
+                          label: '投入',
+                          sub: '${item.notesCount} 注 × 单注 ¥${item.stakePerNote}',
                           value: '¥${item.totalAmount}',
                         ),
                         _DetailRow(
-                          label: '中单注数',
+                          label: '中单',
                           sub: item.hitNumbers.isEmpty
-                              ? '无命中号码'
-                              : '命中号码 ${item.hitNumbers.join(' / ')}',
+                              ? (isPending ? '等待开奖对奖' : '未命中号码')
+                              : '${item.hitNumbers.join(' · ')} × 赔率 1:7',
                           value: '${item.hitNumbers.length} 注',
-                          valueColor: DuiliaoColors.hit,
                         ),
                         _DetailRow(
-                          label: '派彩金额',
-                          sub: '按个人记录赔率计算',
+                          label: '派彩',
+                          sub: isPending
+                              ? '待开奖后结算'
+                              : '${item.hitNumbers.length} 注 × ¥${item.stakePerNote} × 7 倍',
                           value: '¥${item.payout}',
-                          valueColor: DuiliaoColors.hit,
                         ),
                         _DetailRow(
-                          label: '本期盈亏',
-                          sub: '派彩 − 投入',
-                          value: item.netProfit >= 0
+                          label: '盈亏',
+                          sub: '派彩 ¥${item.payout} − 投入 ¥${item.totalAmount}',
+                          value: isPending
+                              ? '待结算'
+                              : item.netProfit >= 0
                               ? '+¥${item.netProfit}'
-                              : '-¥${item.netProfit.abs()}',
-                          valueColor: item.netProfit >= 0
+                              : '−¥${item.netProfit.abs()}',
+                          valueColor: isPending
+                              ? null
+                              : item.netProfit >= 0
                               ? DuiliaoColors.hit
                               : DuiliaoColors.miss,
                         ),
                       ],
                     ),
 
-                    // Raw Input
+                    // 原始录入 (record-detail.html lines 136-142)
                     const DesignSectionHeader(title: '原始录入'),
-                    GlassCard(
-                      margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(14),
+                    GlassSubtleBox(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             item.rawInput.isEmpty ? '—' : item.rawInput,
-                            style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
+                            style: tabularStyle(
+                              const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           Text(
-                            '录入时间 ${item.timeLabel}${item.note == null ? '' : ' · 备注：${item.note}'}',
-                            style: context.texts.labelSmall,
+                            '录入时间 ${item.timeLabel} · 智能识别 ${item.numbers.isNotEmpty ? '${item.numbers.length} 码' : '${item.xiaos.length} 肖'} · 单注 ¥${item.stakePerNote}',
+                            style: context.texts.labelSmall?.copyWith(
+                              fontSize: 11,
+                            ),
                           ),
                         ],
                       ),
@@ -1627,47 +1901,67 @@ class RecordDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              // Bottom action bar
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-                child: Row(
-                  children: [
-                    GlassGhostButton(
-                      label: '复制格式',
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: item.rawInput));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('已复制原始录入格式')),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    GlassGhostButton(
-                      label: '删除',
-                      isDanger: true,
-                      onTap: () {
-                        ref
-                            .read(bettingRecordsProvider.notifier)
-                            .removeRecord(item.id);
-                        Navigator.of(context).maybePop();
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GlassButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => RecordAddScreen(
-                                initialText: item.rawInput,
-                              ),
-                            ),
+              // 底部操作 (record-detail.html lines 145-158)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                child: GlassCard(
+                  margin: EdgeInsets.zero,
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    children: [
+                      GlassGhostButton(
+                        label: '复制格式',
+                        icon: Icons.copy_rounded,
+                        onTap: () {
+                          Clipboard.setData(ClipboardData(text: item.rawInput));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('已复制原始录入格式')),
                           );
                         },
-                        child: const Text('再来一单'),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      GlassGhostButton(
+                        label: '删除',
+                        icon: Icons.delete_outline_rounded,
+                        isDanger: true,
+                        onTap: () {
+                          ref
+                              .read(bettingRecordsProvider.notifier)
+                              .removeRecord(item.id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('已删除该条记录')),
+                          );
+                          Navigator.of(context).maybePop();
+                        },
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GlassButton(
+                          height: 40,
+                          onPressed: () {
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(
+                                builder: (_) => RecordAddScreen(
+                                  mode: item.xiaos.isNotEmpty
+                                      ? '连肖复试'
+                                      : '号码单式',
+                                  initialText: item.rawInput,
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_rounded, size: 16),
+                              SizedBox(width: 4),
+                              Text('再来一单', style: TextStyle(fontSize: 13.5)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -1715,10 +2009,12 @@ class _DetailRow extends StatelessWidget {
           ),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: valueColor,
+            style: tabularStyle(
+              TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: valueColor,
+              ),
             ),
           ),
         ],
@@ -1738,18 +2034,59 @@ class RecordStatsScreen extends StatefulWidget {
 class _RecordStatsScreenState extends State<RecordStatsScreen> {
   String _window = '30';
 
-  static const _dailyPnl = [
-    ('09-20', 40),
-    ('09-21', -30),
-    ('09-22', 65),
-    ('09-23', -20),
-    ('09-24', 10),
-    ('09-25', 95),
-    ('09-26', 15),
+  // Exact bar heights and directions from record-stats.html lines 86-126
+  static const _dailyBars = <({String date, double factor, bool isPos, bool isHot})>[
+    (date: '09-20', factor: 0.37, isPos: true, isHot: false),
+    (date: '09-21', factor: 0.21, isPos: false, isHot: false),
+    (date: '09-22', factor: 0.53, isPos: true, isHot: false),
+    (date: '09-23', factor: 0.16, isPos: false, isHot: false),
+    (date: '09-24', factor: 0.11, isPos: true, isHot: false),
+    (date: '09-25', factor: 0.42, isPos: true, isHot: false),
+    (date: '09-26', factor: 1.00, isPos: true, isHot: true),
+  ];
+
+  static const _frequentHits = <({String numStr, String boseLabel, int count, int profit})>[
+    (numStr: '26', boseLabel: '蓝波', count: 3, profit: 210),
+    (numStr: '11', boseLabel: '绿波', count: 2, profit: 140),
+    (numStr: '07', boseLabel: '红波', count: 2, profit: 70),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final (invest, payout, net, winRate, ordersSub, payoutSub, netSub, rateSub) =
+        switch (_window) {
+          '7' => (
+            '¥390',
+            '¥585',
+            '+¥195',
+            '35.0%',
+            '8 单 · 20 注',
+            '中 7 注',
+            '环比 +24%',
+            '7/20 注',
+          ),
+          '90' => (
+            '¥3,420',
+            '¥3,690',
+            '+¥270',
+            '29.8%',
+            '74 单 · 198 注',
+            '中 59 注',
+            '环比 +11%',
+            '59/198 注',
+          ),
+          _ => (
+            '¥1,290',
+            '¥1,465',
+            '+¥175',
+            '31.9%',
+            '27 单 · 72 注',
+            '中 23 注',
+            '环比 +18%',
+            '23/72 注',
+          ),
+        };
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlassBackground(
@@ -1761,14 +2098,16 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                 center: true,
                 leading: GlassIconButton(
                   icon: Icons.chevron_left_rounded,
+                  tooltip: '返回',
                   onTap: () => Navigator.of(context).maybePop(),
                 ),
-                title: '盈亏统计',
+                title: '记录统计',
               ),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 36),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 36),
                   children: [
+                    // 时间范围 (record-stats.html lines 36-40)
                     GlassSegmentedControl<String>(
                       items: const ['7', '30', '90'],
                       selected: _window,
@@ -1777,47 +2116,75 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // 2x2 KPI Grid
-                    GridView.count(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 1.55,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+                    // KPI 总览 2x2 (record-stats.html lines 43-76)
+                    Row(
                       children: [
-                        _StatKpiCard(
-                          label: '总投入',
-                          value: '¥1,290',
-                          delta: '47 单 · 268 注',
+                        Expanded(
+                          child: _StatKpiCard(
+                            icon: Icons.account_balance_wallet_outlined,
+                            label: '总投入',
+                            value: invest,
+                            delta: ordersSub,
+                          ),
                         ),
-                        const _StatKpiCard(
-                          label: '总派彩',
-                          value: '¥1,465',
-                          valueColor: DuiliaoColors.hit,
-                          delta: '中 15 单 · 39 码',
-                          deltaColor: DuiliaoColors.hit,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _StatKpiCard(
+                            icon: Icons.payments_outlined,
+                            label: '总派彩',
+                            value: payout,
+                            delta: payoutSub,
+                          ),
                         ),
-                        const _StatKpiCard(
-                          label: '净盈亏',
-                          value: '+¥175',
-                          valueColor: DuiliaoColors.hit,
-                          delta: '回报率 +13.6%',
-                          deltaColor: DuiliaoColors.hit,
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _StatKpiCard(
+                            icon: Icons.trending_up_rounded,
+                            label: '净盈亏',
+                            value: net,
+                            valueColor: DuiliaoColors.hit,
+                            delta: netSub,
+                          ),
                         ),
-                        _StatKpiCard(
-                          label: '中单率',
-                          value: '31.9%',
-                          valueColor: Theme.of(context).colorScheme.primary,
-                          delta: '最高连中 4 期',
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _StatKpiCard(
+                            icon: Icons.track_changes_rounded,
+                            label: '中单率',
+                            value: winRate,
+                            valueColor: Theme.of(context).colorScheme.primary,
+                            delta: rateSub,
+                          ),
                         ),
                       ],
                     ),
 
-                    // Bidirectional Daily PnL Chart
-                    const DesignSectionHeader(
+                    // 每日盈亏 (双向柱状图) (record-stats.html lines 79-132)
+                    DesignSectionHeader(
                       title: '每日盈亏',
-                      trailingText: '近 7 期',
+                      trailing: Text.rich(
+                        TextSpan(
+                          style: context.texts.labelSmall?.copyWith(
+                            fontSize: 11,
+                          ),
+                          children: [
+                            const TextSpan(text: '近 7 天净 '),
+                            TextSpan(
+                              text: '+¥195',
+                              style: tabularStyle(
+                                const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: DuiliaoColors.hit,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     GlassCard(
                       margin: EdgeInsets.zero,
@@ -1829,40 +2196,198 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                Container(
-                                  height: 1,
-                                  color: Colors.white.withValues(alpha: 0.14),
-                                ),
                                 Row(
                                   children: [
-                                    for (final bar in _dailyPnl)
+                                    for (final bar in _dailyBars)
                                       Expanded(
-                                        child: _BiBarColumn(
-                                          date: bar.$1,
-                                          value: bar.$2,
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 4,
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Expanded(
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.bottomCenter,
+                                                  child: bar.isPos
+                                                      ? FractionallySizedBox(
+                                                          heightFactor:
+                                                              bar.factor,
+                                                          widthFactor: 1.0,
+                                                          child: DecoratedBox(
+                                                            decoration: BoxDecoration(
+                                                              gradient: bar.isHot
+                                                                  ? DuiliaoColors
+                                                                        .auroraGradient
+                                                                  : LinearGradient(
+                                                                      begin: Alignment
+                                                                          .topCenter,
+                                                                      end: Alignment
+                                                                          .bottomCenter,
+                                                                      colors: [
+                                                                        Theme.of(
+                                                                              context,
+                                                                            )
+                                                                            .colorScheme
+                                                                            .primary
+                                                                            .withValues(
+                                                                              alpha: 0.85,
+                                                                            ),
+                                                                        Theme.of(
+                                                                              context,
+                                                                            )
+                                                                            .colorScheme
+                                                                            .primary
+                                                                            .withValues(
+                                                                              alpha: 0.35,
+                                                                            ),
+                                                                      ],
+                                                                    ),
+                                                              borderRadius:
+                                                                  const BorderRadius.vertical(
+                                                                    top: Radius.circular(
+                                                                      7,
+                                                                    ),
+                                                                    bottom:
+                                                                        Radius.circular(
+                                                                          3,
+                                                                        ),
+                                                                  ),
+                                                            ),
+                                                          ),
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                child: Align(
+                                                  alignment:
+                                                      Alignment.topCenter,
+                                                  child: !bar.isPos
+                                                      ? FractionallySizedBox(
+                                                          heightFactor:
+                                                              bar.factor,
+                                                          widthFactor: 1.0,
+                                                          child: DecoratedBox(
+                                                            decoration: BoxDecoration(
+                                                              gradient:
+                                                                  LinearGradient(
+                                                                    begin: Alignment
+                                                                        .topCenter,
+                                                                    end: Alignment
+                                                                        .bottomCenter,
+                                                                    colors: [
+                                                                      DuiliaoColors
+                                                                          .miss
+                                                                          .withValues(
+                                                                            alpha:
+                                                                                0.70,
+                                                                          ),
+                                                                      DuiliaoColors
+                                                                          .miss
+                                                                          .withValues(
+                                                                            alpha:
+                                                                                0.40,
+                                                                          ),
+                                                                    ],
+                                                                  ),
+                                                              borderRadius:
+                                                                  const BorderRadius.vertical(
+                                                                    top: Radius.circular(
+                                                                      3,
+                                                                    ),
+                                                                    bottom:
+                                                                        Radius.circular(
+                                                                          7,
+                                                                        ),
+                                                                  ),
+                                                            ),
+                                                          ),
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                   ],
                                 ),
+                                Container(
+                                  height: 1,
+                                  color: Colors.white.withValues(alpha: 0.16),
+                                ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          const Divider(height: 1),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              for (final bar in _dailyBars)
+                                Expanded(
+                                  child: Text(
+                                    bar.date,
+                                    textAlign: TextAlign.center,
+                                    style: tabularStyle(
+                                      TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: bar.isHot
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: bar.isHot
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.primary
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                '盈利 5 期 · 亏损 2 期',
-                                style: context.texts.labelSmall,
+                              Text.rich(
+                                TextSpan(
+                                  style: context.texts.labelSmall?.copyWith(
+                                    fontSize: 11,
+                                  ),
+                                  children: [
+                                    const TextSpan(text: '最大单日盈利 '),
+                                    TextSpan(
+                                      text: '+¥95',
+                                      style: tabularStyle(
+                                        const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: DuiliaoColors.hit,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const Text(
-                                '7 期合计 +¥175',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: DuiliaoColors.hit,
+                              Text.rich(
+                                TextSpan(
+                                  style: context.texts.labelSmall?.copyWith(
+                                    fontSize: 11,
+                                  ),
+                                  children: [
+                                    const TextSpan(text: '最大单日亏损 '),
+                                    TextSpan(
+                                      text: '−¥20',
+                                      style: tabularStyle(
+                                        const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: DuiliaoColors.miss,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -1871,7 +2396,7 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                       ),
                     ),
 
-                    // Play Distribution
+                    // 玩法分布 (record-stats.html lines 135-149)
                     const DesignSectionHeader(title: '玩法分布'),
                     GlassCard(
                       margin: EdgeInsets.zero,
@@ -1885,29 +2410,35 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                                 '正码',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              Text(
-                                '36 单 · 投入 ¥980',
-                                style: context.texts.labelSmall,
-                              ),
-                              const Text(
-                                '+¥145',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: DuiliaoColors.hit,
+                              Text.rich(
+                                TextSpan(
+                                  style: context.texts.labelSmall?.copyWith(
+                                    fontSize: 12,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: '¥980',
+                                      style: tabularStyle(
+                                        TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' · 76%'),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          const GlassLinearProgress(
-                            value: 0.76,
-                            color: DuiliaoColors.hit,
-                          ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 8),
+                          const GlassLinearProgress(value: 0.76),
+                          const SizedBox(height: 16),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1915,93 +2446,161 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
                                 '特码',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              Text(
-                                '11 单 · 投入 ¥310',
-                                style: context.texts.labelSmall,
-                              ),
-                              Text(
-                                '+¥30',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: Theme.of(context).colorScheme.primary,
+                              Text.rich(
+                                TextSpan(
+                                  style: context.texts.labelSmall?.copyWith(
+                                    fontSize: 12,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: '¥310',
+                                      style: tabularStyle(
+                                        TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                        ),
+                                      ),
+                                    ),
+                                    const TextSpan(text: ' · 24%'),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 6),
-                          const GlassLinearProgress(value: 0.24),
-                        ],
-                      ),
-                    ),
-
-                    // Frequent Hit Numbers
-                    const DesignSectionHeader(
-                      title: '常中号码',
-                      trailingText: '个人命中 Top',
-                    ),
-                    GlassCard(
-                      margin: EdgeInsets.zero,
-                      padding: const EdgeInsets.all(16),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          NumberBall(
-                            number: '26',
-                            bose: 'blue',
-                            caption: '中 4 次',
-                            captionBold: true,
-                            captionColor: DuiliaoColors.hit,
-                          ),
-                          NumberBall(
-                            number: '11',
-                            bose: 'green',
-                            caption: '中 3 次',
-                            captionBold: true,
-                            captionColor: DuiliaoColors.hit,
-                          ),
-                          NumberBall(
-                            number: '07',
-                            bose: 'red',
-                            caption: '中 3 次',
-                            captionBold: true,
-                            captionColor: DuiliaoColors.hit,
-                          ),
-                          NumberBall(
-                            number: '42',
-                            bose: 'blue',
-                            caption: '中 2 次',
-                          ),
-                          NumberBall(
-                            number: '19',
-                            bose: 'red',
-                            caption: '中 2 次',
+                          const SizedBox(height: 8),
+                          const GlassLinearProgress(
+                            value: 0.24,
+                            color: DuiliaoColors.hit,
                           ),
                         ],
                       ),
                     ),
 
-                    // Monthly Summary
-                    const DesignSectionHeader(title: '月度小结'),
+                    // 常中号码 (record-stats.html lines 152-182)
+                    const DesignSectionHeader(title: '常中号码'),
                     GlassGroup(
                       margin: EdgeInsets.zero,
-                      children: const [
-                        _DetailRow(
-                          label: '2026 年 9 月',
-                          sub: '47 单 · 中单率 31.9%',
-                          value: '+¥175',
-                          valueColor: DuiliaoColors.hit,
-                        ),
-                        _DetailRow(
-                          label: '2026 年 8 月',
-                          sub: '62 单 · 中单率 27.4%',
-                          value: '-¥85',
-                          valueColor: DuiliaoColors.miss,
-                        ),
+                      children: [
+                        for (final item in _frequentHits)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 11,
+                            ),
+                            child: Row(
+                              children: [
+                                NumberBall(
+                                  number: item.numStr,
+                                  bose: Lottery2026Lookup.boseForNumber(
+                                    item.numStr,
+                                  ),
+                                  size: 28,
+                                  showColorName: false,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${item.numStr} 码 · ${item.boseLabel}',
+                                        style: const TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text.rich(
+                                        TextSpan(
+                                          style: context.texts.labelSmall
+                                              ?.copyWith(fontSize: 11.5),
+                                          children: [
+                                            TextSpan(
+                                              text:
+                                                  '近 30 天中 ${item.count} 次 · 贡献 ',
+                                            ),
+                                            TextSpan(
+                                              text: '+¥${item.profit}',
+                                              style: tabularStyle(
+                                                const TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: DuiliaoColors.hit,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  width: 22,
+                                  height: 22,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: DuiliaoColors.hit.withValues(
+                                      alpha: 0.16,
+                                    ),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: DuiliaoColors.hit.withValues(
+                                        alpha: 0.38,
+                                      ),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_rounded,
+                                    size: 13,
+                                    color: DuiliaoColors.hit,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
+                    ),
+
+                    // 月度小结 (record-stats.html lines 185-190)
+                    const DesignSectionHeader(title: '月度小结'),
+                    GlassSubtleBox(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Text.rich(
+                        TextSpan(
+                          style: context.texts.labelSmall?.copyWith(
+                            fontSize: 12,
+                            height: 1.8,
+                          ),
+                          children: const [
+                            TextSpan(text: '9 月共 27 单、72 注；投入 ¥1,290，派彩 ¥1,465，净盈亏 '),
+                            TextSpan(
+                              text: '+¥175',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: DuiliaoColors.hit,
+                              ),
+                            ),
+                            TextSpan(text: '。最大单日盈利 '),
+                            TextSpan(
+                              text: '+¥95',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: DuiliaoColors.hit,
+                              ),
+                            ),
+                            TextSpan(text: '(09-26)，最大连挂 3 单。理性记录，量力而行。'),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -2016,18 +2615,18 @@ class _RecordStatsScreenState extends State<RecordStatsScreen> {
 
 class _StatKpiCard extends StatelessWidget {
   const _StatKpiCard({
+    required this.icon,
     required this.label,
     required this.value,
     required this.delta,
     this.valueColor,
-    this.deltaColor,
   });
 
+  final IconData icon;
   final String label;
   final String value;
   final String delta;
   final Color? valueColor;
-  final Color? deltaColor;
 
   @override
   Widget build(BuildContext context) {
@@ -2036,116 +2635,33 @@ class _StatKpiCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: context.texts.labelSmall),
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 13,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 5),
+              Text(label, style: context.texts.labelSmall),
+            ],
+          ),
+          const SizedBox(height: 6),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: valueColor,
+            style: tabularStyle(
+              TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: valueColor,
+              ),
             ),
           ),
-          Text(
-            delta,
-            style: context.texts.labelSmall?.copyWith(
-              color: deltaColor,
-              fontWeight: deltaColor != null ? FontWeight.w600 : null,
-            ),
-          ),
+          const SizedBox(height: 4),
+          Text(delta, style: context.texts.labelSmall),
         ],
       ),
-    );
-  }
-}
-
-class _BiBarColumn extends StatelessWidget {
-  const _BiBarColumn({required this.date, required this.value});
-
-  final String date;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPos = value >= 0;
-    final barHeight = (value.abs() / 100.0 * 44.0).clamp(6.0, 44.0);
-    return Column(
-      children: [
-        Expanded(
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: isPos
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '+$value',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: DuiliaoColors.hit,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Container(
-                        width: 14,
-                        height: barHeight,
-                        decoration: const BoxDecoration(
-                          color: DuiliaoColors.hit,
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(4),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ),
-        Expanded(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: !isPos
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 14,
-                        height: barHeight,
-                        decoration: const BoxDecoration(
-                          color: DuiliaoColors.miss,
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(4),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '$value',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: DuiliaoColors.miss,
-                        ),
-                      ),
-                    ],
-                  )
-                : Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      date,
-                      style: context.texts.labelSmall?.copyWith(fontSize: 9.5),
-                    ),
-                  ),
-          ),
-        ),
-        if (!isPos)
-          Text(
-            date,
-            style: context.texts.labelSmall?.copyWith(fontSize: 9.5),
-          ),
-      ],
     );
   }
 }

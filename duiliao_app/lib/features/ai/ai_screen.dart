@@ -257,21 +257,31 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  '第 $activePeriod 期',
-                                  style: tabularStyle(
-                                    const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
+                                Flexible(
+                                  child: Text(
+                                    '第 $activePeriod 期',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: tabularStyle(
+                                      const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                Text(
-                                  '上期 $prevNum 已开奖',
-                                  style: tabularStyle(
-                                    TextStyle(
-                                      fontSize: 11,
-                                      color: context.colors.onSurfaceVariant,
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    '上期 $prevNum 已开奖',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.right,
+                                    style: tabularStyle(
+                                      TextStyle(
+                                        fontSize: 11,
+                                        color: context.colors.onSurfaceVariant,
+                                      ),
                                     ),
                                   ),
                                 ),
