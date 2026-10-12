@@ -418,3 +418,56 @@ def test_betting_record_auto_settlement_when_draw_published(user_client):
     deleted = user_client.delete(f"/app/records/{rec_id}")
     assert deleted["ok"] is True
     assert deleted["deleted"] is True
+
+
+def test_betting_record_multi_link_fushi_3_4_and_settlement(user_client):
+    from app import collector_bridge as cb
+
+    # "鼠虎马猴鸡 给我打复试3，4连一组5块" -> 5肖复试 3,4连: C(5,3)=10 + C(5,4)=5 = 15组 × ¥5 = ¥75
+    created = user_client.post(
+        "/app/records",
+        {
+            "lottery": "macau",
+            "period": "2026889",
+            "raw_input": "鼠虎马猴鸡 给我打复试3，4连一组5块",
+        },
+    )
+    assert created["ok"] is True
+    rec = created["record"]
+    assert rec["mode"] == "连肖复试"
+    assert rec["xiaos"] == ["鼠", "虎", "马", "猴", "鸡"]
+    assert rec["numbers"] == []
+    assert rec["fushi_links"] == [3, 4]
+    assert rec["stake_per_note"] == 5
+    assert rec["notes_count"] == 15
+    assert rec["total_amount"] == 75
+    assert rec["status"] == "pending"
+
+    # Simulate draw where 鼠(07), 虎(05), 马(01), 猴(11) all appear (4 of the 5 zodiacs hit):
+    # - 3连 hits C(4,3) = 4 groups
+    # - 4连 hits C(4,4) = 1 group
+    # Total hit_notes = 5
+    sync_res = cb.sync_draws(
+        "macau",
+        draws=[
+            {
+                "lottery": "macau",
+                "period": "2026889",
+                "period_raw": "889",
+                "draw_date": "2026-10-12",
+                "openCode": "07,05,01,11,03,04,16",
+                "source": "fixture:official",
+            }
+        ],
+    )
+    assert sync_res.get("betting_records_settled", 0) >= 1
+
+    listed = user_client.get("/app/records", params={"lottery": "macau"})
+    settled_rec = next(r for r in listed["items"] if r["id"] == rec["id"])
+    assert settled_rec["status"] == "won"
+    assert settled_rec["hit_numbers"] == ["鼠", "虎", "马", "猴"]
+    assert settled_rec["hit_notes"] == 5
+    assert settled_rec["payout"] > 75
+    assert settled_rec["net_profit"] == settled_rec["payout"] - 75
+    assert settled_rec["win_pill_label"] == f"中 5 注 +¥{settled_rec['net_profit']}"
+

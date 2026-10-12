@@ -29,6 +29,7 @@ class BettingRecordItem {
     required this.totalAmount,
     required this.status, // 'pending', 'won', 'lost'
     this.fushiLink,
+    this.fushiLinks = const <int>[],
     this.hitNumbers = const <String>[],
     this.payout = 0,
     this.netProfit = 0,
@@ -54,6 +55,7 @@ class BettingRecordItem {
   final int totalAmount;
   final String status;
   final int? fushiLink;
+  final List<int> fushiLinks;
   final List<String> hitNumbers;
   final int payout;
   final int netProfit;
@@ -79,6 +81,7 @@ class BettingRecordItem {
     'total_amount': totalAmount,
     'status': status,
     'fushi_link': fushiLink,
+    'fushi_links': fushiLinks,
     'hit_numbers': hitNumbers,
     'payout': payout,
     'net_profit': netProfit,
@@ -140,6 +143,10 @@ class BettingRecordItem {
       totalAmount: (json['total_amount'] as num?)?.toInt() ?? 10,
       status: status,
       fushiLink: (json['fushi_link'] as num?)?.toInt(),
+      fushiLinks: ((json['fushi_links'] as List?) ?? const <Object?>[])
+          .map((e) => (e as num?)?.toInt() ?? int.tryParse(e.toString()) ?? 0)
+          .where((v) => v >= 2 && v <= 5)
+          .toList(),
       hitNumbers: hitNums,
       payout: (json['payout'] as num?)?.toInt() ?? 0,
       netProfit: netProfit,
@@ -908,7 +915,13 @@ class _RecordCard extends StatelessWidget {
     );
 
     if (item.xiaos.isNotEmpty) {
-      final link = item.fushiLink ?? 4;
+      final ks = item.fushiLinks.isNotEmpty
+          ? item.fushiLinks
+          : <int>[item.fushiLink ?? 4];
+      final linkLabel = ks.join(',');
+      final combLabel = ks
+          .map((k) => 'C(${item.xiaos.length},$k)')
+          .join('+');
       final multPart = item.multiplier > 1 ? ' × ${item.multiplier} 倍' : '';
       return Text.rich(
         TextSpan(
@@ -916,7 +929,7 @@ class _RecordCard extends StatelessWidget {
           children: [
             TextSpan(
               text:
-                  '复试 $link 连 · C(${item.xiaos.length},$link) ${item.notesCount} 注 × ¥${item.stakePerNote}$multPart = ',
+                  '复试 $linkLabel 连 · $combLabel ${item.notesCount} 注 × ¥${item.stakePerNote}$multPart = ',
             ),
             TextSpan(text: '¥${item.totalAmount}', style: strongStyle),
           ],
@@ -997,6 +1010,70 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   static const _fushiPlays = ['3 连', '4 连', '5 连'];
   static const _nbuzhongPlays = ['5 不中', '6 不中', '7 不中', '8 不中'];
 
+  static final RegExp _stakePrefixRe = RegExp(
+    r'(?:各数|个数|各号|各码|每码|每注|每组|各组|每个|一组|1组|一注|1注|一个|1个|各|×|\*)\s*(\d+)\s*(?:块|元|米|蚊)?',
+  );
+  static final RegExp _stakeSuffixRe = RegExp(
+    r'(\d+)\s*(?:块|元|米|蚊)?\s*(?:/|每|一|1)\s*(?:组|注|个|码)',
+  );
+  static final RegExp _lianxiaoExprRe = RegExp(
+    r'(?:复[试式]\s*)?[2-5二三四五](?:\s*[,，、./\-~～\s连]*\s*[2-5二三四五])*\s*连(?:复[试式])?',
+  );
+
+  static int? _extractStake(String text) {
+    final m =
+        _stakePrefixRe.firstMatch(text) ?? _stakeSuffixRe.firstMatch(text);
+    return m != null ? int.tryParse(m.group(1) ?? '') : null;
+  }
+
+  static String _normalizeCnLinkNums(String text) {
+    return text
+        .replaceAll('二', '2')
+        .replaceAll('三', '3')
+        .replaceAll('四', '4')
+        .replaceAll('五', '5');
+  }
+
+  List<int> _parseFushiLinks(String text) {
+    final norm = _normalizeCnLinkNums(text);
+    final ks = <int>[];
+    final linkMatches = RegExp(
+      r'(?:复[试式]\s*)?([2-5](?:\s*[,，、./\-~～\s连]+\s*[2-5])*|[2-5]{2,4})\s*连',
+    ).allMatches(norm);
+    for (final m in linkMatches) {
+      final grp = m.group(1) ?? '';
+      for (final ch in grp.characters) {
+        final v = int.tryParse(ch);
+        if (v != null && v >= 2 && v <= 5 && !ks.contains(v)) {
+          ks.add(v);
+        }
+      }
+    }
+    if (ks.isNotEmpty) return ks;
+
+    final fushiOnlyMatches = RegExp(
+      r'复[试式]\s*([2-5](?:\s*[,，、./\-~～\s]+\s*[2-5])*|[2-5]{2,4})',
+    ).allMatches(norm);
+    for (final m in fushiOnlyMatches) {
+      final grp = m.group(1) ?? '';
+      for (final ch in grp.characters) {
+        final v = int.tryParse(ch);
+        if (v != null && v >= 2 && v <= 5 && !ks.contains(v)) {
+          ks.add(v);
+        }
+      }
+    }
+    if (ks.isNotEmpty) return ks;
+
+    for (final ch in _selectedPlay.characters) {
+      final v = int.tryParse(ch);
+      if (v != null && v >= 2 && v <= 5 && !ks.contains(v)) {
+        ks.add(v);
+      }
+    }
+    return ks.isNotEmpty ? ks : const [4];
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1015,11 +1092,18 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     );
     _noteController = TextEditingController();
     if (widget.initialText != null) {
-      final stakeMatch = RegExp(
-        r'(?:各数|个数|各号|每码|每注|各|×|\*)\s*(\d+)',
-      ).firstMatch(widget.initialText!);
-      if (stakeMatch != null) {
-        _stakeController.text = stakeMatch.group(1)!;
+      final parsedStake = _extractStake(widget.initialText!);
+      if (parsedStake != null) {
+        _stakeController.text = '$parsedStake';
+      }
+      if (RegExp(r'复[试式]').hasMatch(widget.initialText!) ||
+          _lianxiaoExprRe.hasMatch(widget.initialText!)) {
+        _mode = '连肖复试';
+        final ks = _parseFushiLinks(widget.initialText!);
+        _selectedPlay = '${ks.join(",")} 连';
+        if (!RegExp(r'(?:倍\s*\d+|\d+\s*倍)').hasMatch(widget.initialText!)) {
+          _multiplier = 1;
+        }
       }
     }
   }
@@ -1061,12 +1145,14 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   }
 
   List<String> _parseNumbers(String text) {
-    var cleaned = text.replaceAll(
-      RegExp(r'(?:各数|个数|各号|每码|每注|各|×|\*)\s*\d+.*$'),
+    var cleaned = text.replaceAll(_stakePrefixRe, '');
+    cleaned = cleaned.replaceAll(_stakeSuffixRe, '');
+    cleaned = cleaned.replaceAll(RegExp(r'[·\s]*\d+\s*不中.*$'), '');
+    cleaned = cleaned.replaceAll(_lianxiaoExprRe, '');
+    cleaned = cleaned.replaceAll(
+      RegExp(r'复[试式]\s*[2-5二三四五,，、./\-~～\s]*'),
       '',
     );
-    cleaned = cleaned.replaceAll(RegExp(r'[·\s]*\d+\s*不中.*$'), '');
-    cleaned = cleaned.replaceAll(RegExp(r'复试\s*\d+\s*连.*$'), '');
     cleaned = cleaned.replaceAll(RegExp(r'(?:倍\s*\d+|\d+\s*倍)'), '');
     final result = <String>[];
     // Support zodiac-to-number expansion (e.g. "龙兔各数5" -> 龙: 03,15,27,39 + 兔: 04,16,28,40)
@@ -1137,25 +1223,23 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   @override
   Widget build(BuildContext context) {
     final text = _inputController.text;
-    final parsedStakeMatch = RegExp(
-      r'(?:各数|个数|各号|每码|每注|各|×|\*)\s*(\d+)',
-    ).firstMatch(text);
+    final parsedStake = _extractStake(text);
     final stake =
-        int.tryParse(_stakeController.text.trim()) ??
-        int.tryParse(parsedStakeMatch?.group(1) ?? '') ??
-        5;
+        int.tryParse(_stakeController.text.trim()) ?? parsedStake ?? 5;
 
     final numbers = _parseNumbers(text);
     final xiaos = _parseXiaos(text);
-    final fushiK = _selectedPlay.startsWith('3')
-        ? 3
-        : _selectedPlay.startsWith('5')
-        ? 5
-        : 4;
+    final fushiKs = _mode == '连肖复试' ? _parseFushiLinks(text) : const [4];
+    final fushiKLabel = fushiKs.join(',');
     final nbuzhongN = int.tryParse(_selectedPlay.split(' ').first) ?? 6;
     final fushiCombos = _mode == '连肖复试'
-        ? _combinations(xiaos, fushiK)
+        ? <List<String>>[
+            for (final k in fushiKs) ..._combinations(xiaos, k),
+          ]
         : const <List<String>>[];
+    final fushiFormulaLabel = fushiKs
+        .map((k) => 'C(${xiaos.length},$k)')
+        .join('+');
 
     final notesCount = switch (_mode) {
       '连肖复试' => fushiCombos.isEmpty ? 1 : fushiCombos.length,
@@ -1163,6 +1247,15 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
       _ => numbers.isEmpty ? 1 : numbers.length,
     };
     final totalAmount = notesCount * stake * _multiplier;
+
+    final fushiPlayOptions = fushiKs.length > 1
+        ? <String>[..._fushiPlays, '$fushiKLabel 连']
+        : _fushiPlays;
+    final selectedFushiOption = fushiKs.length > 1
+        ? '$fushiKLabel 连'
+        : (_fushiPlays.contains(_selectedPlay)
+              ? _selectedPlay
+              : '${fushiKs.first} 连');
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1288,11 +1381,17 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             controller: _inputController,
                             maxLines: 2,
                             onChanged: (v) {
-                              final m = RegExp(
-                                r'(?:各数|个数|各号|每码|每注|各|×|\*)\s*(\d+)',
-                              ).firstMatch(v);
-                              if (m != null) {
-                                _stakeController.text = m.group(1)!;
+                              final parsedS = _extractStake(v);
+                              if (parsedS != null) {
+                                _stakeController.text = '$parsedS';
+                              }
+                              // Auto-switch to 连肖复试 when user enters fushi expression with zodiacs
+                              if ((RegExp(r'复[试式]').hasMatch(v) ||
+                                      _lianxiaoExprRe.hasMatch(v)) &&
+                                  _parseXiaos(v).isNotEmpty) {
+                                _mode = '连肖复试';
+                                final ks = _parseFushiLinks(v);
+                                _selectedPlay = '${ks.join(",")} 连';
                               }
                               final multMatch = RegExp(
                                 r'(?:倍\s*(\d+)|(\d+)\s*倍)',
@@ -1306,6 +1405,8 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 if (parsedMult != null && parsedMult >= 1) {
                                   _multiplier = parsedMult;
                                 }
+                              } else if (v != _defaultTextForMode('连肖复试')) {
+                                _multiplier = 1;
                               }
                               setState(() {});
                             },
@@ -1326,7 +1427,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               GlassStatusPill(
                                 label: switch (_mode) {
                                   '连肖复试' =>
-                                    '已识别 ${xiaos.length} 个生肖 · 复试 $fushiK 连 · 单注 ¥$stake',
+                                    '已识别 ${xiaos.length} 个生肖 · 复试 $fushiKLabel 连 · 单注 ¥$stake',
                                   '不中码' =>
                                     '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
                                   _ =>
@@ -1368,7 +1469,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                   ZTag(label: x, variant: ZTagVariant.primary),
                                 if (xiaos.isEmpty)
                                   Text(
-                                    '请输入至少 $fushiK 个生肖',
+                                    '请输入至少 ${fushiKs.first} 个生肖',
                                     style: context.texts.bodySmall,
                                   ),
                               ],
@@ -1457,7 +1558,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 child: Text(
                                   switch (_mode) {
                                     '连肖复试' =>
-                                      '复试 $fushiK 连 · C(${xiaos.length},$fushiK) = $notesCount 注',
+                                      '复试 $fushiKLabel 连 · $fushiFormulaLabel = $notesCount 注',
                                     '不中码' =>
                                       '整组 1 注 × ¥$stake × $_multiplier 倍',
                                     _ =>
@@ -1561,9 +1662,9 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                         children: switch (_mode) {
                           '连肖复试' => const [
                             _RuleBullet('① 生肖连续书写自动拆分：龙牛猴鸡兔 → 龙/牛/猴/鸡/兔'),
-                            _RuleBullet('② 「复试N连」按组合展开：选 M 肖复试 N 连 → C(M,N) 注'),
-                            _RuleBullet('③ 「各数10」「个数10」识别为每注单额；「倍2」「×2倍」识别为倍数'),
-                            _RuleBullet('④ 本例：5 肖复试 4 连 → C(5,4)=5 注 × ¥10 × 2 倍 = ¥100'),
+                            _RuleBullet('② 支持单连与多连复试：复试4连 → C(M,4) 注；复试3，4连 → C(M,3)+C(M,4) 注'),
+                            _RuleBullet('③ 「一组5块」「各数10」「个数10」识别为每注单额；「倍2」「×2倍」识别为倍数'),
+                            _RuleBullet('④ 示例：鼠虎马猴鸡 给我打复试3，4连一组5块 → C(5,3)+C(5,4)=15 注 × ¥5 = ¥75'),
                           ],
                           '不中码' => const [
                             _RuleBullet('① 「不中码」为整组玩法：N 个号码合成 1 注，不逐码拆分'),
@@ -1573,9 +1674,9 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                           ],
                           _ => const [
                             _RuleBullet('① 号码以「.」「,」「空格」「、」分隔，范围 01–49，自动去重、标注波色'),
-                            _RuleBullet('② 「各数5」「个数5」「各5」「×5」「每码5」识别为单注金额；「倍2」「×2倍」识别为倍数'),
+                            _RuleBullet('② 「各数5」「个数5」「一组5块」「各5」「×5」「每码5」识别为单注金额'),
                             _RuleBullet('③ 生肖包码：龙兔各数5 → 龙(03·15·27·39)+兔(04·16·28·40)共 8 码 × ¥5 = ¥40'),
-                            _RuleBullet('④ 连肖复试：龙牛猴鸡兔复试4连个数10 → C(5,4)=5 注组合 × ¥10'),
+                            _RuleBullet('④ 连肖复试：鼠虎马猴鸡 给我打复试3，4连一组5块 → C(5,3)+C(5,4)=15 注 × ¥5 = ¥75'),
                             _RuleBullet('⑤ 不中码：02.04.06.08.10.12·6不中个数10 → 整组 1 注，全不开出即中'),
                             _RuleBullet('⑥ 示例：18.42.39个数5 → 3 注 × ¥5 = ¥15'),
                           ],
@@ -1619,11 +1720,19 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             ),
                             const SizedBox(height: 8),
                             GlassSegmentedControl<String>(
-                              items: _fushiPlays,
-                              selected: _selectedPlay,
+                              items: fushiPlayOptions,
+                              selected: selectedFushiOption,
                               labelBuilder: (p) => p,
-                              onChanged: (p) =>
-                                  setState(() => _selectedPlay = p),
+                              onChanged: (p) => setState(() {
+                                _selectedPlay = p;
+                                final k = p.split(' ').first;
+                                if (_lianxiaoExprRe.hasMatch(
+                                  _inputController.text,
+                                )) {
+                                  _inputController.text = _inputController.text
+                                      .replaceFirst(_lianxiaoExprRe, '复试$k连');
+                                }
+                              }),
                             ),
                           ] else if (_mode == '不中码') ...[
                             Text(
@@ -1837,11 +1946,16 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               id: 'rec-${DateTime.now().millisecondsSinceEpoch}',
                               lottery: _lottery,
                               period: _period,
-                              playType: _mode == '连肖复试' ? '连肖' : _selectedPlay,
+                              playType: _mode == '连肖复试'
+                                  ? (fushiKs.length > 1
+                                        ? '连肖 $fushiKLabel连'
+                                        : '连肖')
+                                  : _selectedPlay,
                               timeLabel: '$hh:$mm',
-                              numbers: numbers,
+                              numbers: _mode == '连肖复试' ? const [] : numbers,
                               xiaos: _mode == '连肖复试' ? xiaos : const [],
-                              fushiLink: _mode == '连肖复试' ? fushiK : null,
+                              fushiLink: _mode == '连肖复试' ? fushiKs.first : null,
+                              fushiLinks: _mode == '连肖复试' ? fushiKs : const [],
                               stakePerNote: stake,
                               multiplier: _multiplier,
                               notesCount: notesCount,

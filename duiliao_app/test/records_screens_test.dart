@@ -77,6 +77,16 @@ void main() {
     expect(find.text('龙 (03·15·27·39)'), findsOneWidget);
     expect(find.text('兔 (04·16·28·40)'), findsOneWidget);
     expect(find.text('¥40'), findsWidgets);
+
+    // Test "鼠虎马猴鸡 给我打复试3，4连一组5块" -> auto-switches to 连肖复试, C(5,3)+C(5,4)=15注 × ¥5 = ¥75
+    await tester.enterText(
+      find.byType(TextField).first,
+      '鼠虎马猴鸡 给我打复试3，4连一组5块',
+    );
+    await tester.pump();
+    expect(find.text('已识别 5 个生肖 · 复试 3,4 连 · 单注 ¥5'), findsOneWidget);
+    expect(find.text('组合展开 · 15 注'), findsOneWidget);
+    expect(find.text('¥75'), findsWidgets);
   });
 
   testWidgets('RecordDetailScreen and RecordStatsScreen render cleanly',

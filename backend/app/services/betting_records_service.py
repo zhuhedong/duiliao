@@ -126,18 +126,60 @@ def _norm_num(val: str) -> str:
     return f"{n:02d}"
 
 
+_CN_LINK_NUMS = {"二": "2", "三": "3", "四": "4", "五": "5"}
+
+
+def _normalize_cn_link_nums(text: str) -> str:
+    out = text
+    for cn, digit in _CN_LINK_NUMS.items():
+        out = out.replace(cn, digit)
+    return out
+
+
+def _lianxiao_ks(play_type: str, raw_input: str = "") -> list[int]:
+    """Extract one or more 连肖 link sizes (e.g. '复试3，4连' -> [3, 4], '复试4连' -> [4])."""
+    norm_raw = _normalize_cn_link_nums(raw_input or "")
+    norm_play = _normalize_cn_link_nums(play_type or "")
+    ks: list[int] = []
+
+    # 1) Prefer explicit link patterns in raw_input first, then play_type
+    for source_text in (norm_raw, norm_play):
+        if not source_text:
+            continue
+        for m in re.finditer(
+            r"(?:复[试式]\s*)?([2-5](?:\s*[,，、./\-~～\s连]+\s*[2-5])*|[2-5]{2,4})\s*连",
+            source_text,
+        ):
+            for ch in m.group(1):
+                if ch in ("2", "3", "4", "5"):
+                    val = int(ch)
+                    if val not in ks:
+                        ks.append(val)
+        if ks:
+            return ks
+        for m in re.finditer(
+            r"复[试式]\s*([2-5](?:\s*[,，、./\-~～\s]+\s*[2-5])*|[2-5]{2,4})",
+            source_text,
+        ):
+            for ch in m.group(1):
+                if ch in ("2", "3", "4", "5"):
+                    val = int(ch)
+                    if val not in ks:
+                        ks.append(val)
+        if ks:
+            return ks
+
+    for ch in norm_play:
+        if ch in ("2", "3", "4", "5"):
+            val = int(ch)
+            if val not in ks:
+                ks.append(val)
+    return ks if ks else [4]
+
+
 def _lianxiao_k(play_type: str, raw_input: str = "") -> int:
-    combined = f"{play_type} {raw_input}"
-    m = re.search(r"([2345])\s*连", combined)
-    if m:
-        return int(m.group(1))
-    for digit in ("2", "3", "4", "5"):
-        if digit in play_type:
-            return int(digit)
-    for cn, k in (("二", 2), ("三", 3), ("四", 4), ("五", 5)):
-        if cn in play_type:
-            return k
-    return 4
+    ks = _lianxiao_ks(play_type, raw_input)
+    return ks[0] if ks else 4
 
 
 def _nbuzhong_k(play_type: str, raw_input: str = "") -> int:
@@ -148,6 +190,17 @@ def _nbuzhong_k(play_type: str, raw_input: str = "") -> int:
     if m:
         return max(5, min(10, int(m.group(1))))
     return 6
+
+
+_STAKE_PREFIX_RE = re.compile(
+    r"(?:各数|个数|各号|各码|每码|每注|每组|各组|每个|一组|1组|一注|1注|一个|1个|各|×|\*)\s*(\d+)\s*(?:块|元|米|蚊)?"
+)
+_STAKE_SUFFIX_RE = re.compile(
+    r"(\d+)\s*(?:块|元|米|蚊)?\s*(?:/|每|一|1)\s*(?:组|注|个|码)"
+)
+_LIANXIAO_EXPR_RE = re.compile(
+    r"(?:复[试式]\s*)?[2-5二三四五](?:\s*[,，、./\-~～\s连]*\s*[2-5二三四五])*\s*连(?:复[试式])?"
+)
 
 
 def parse_smart_bet_input(
@@ -161,20 +214,24 @@ def parse_smart_bet_input(
     - ``18.42.39个数5`` -> numbers=['18','42','39'], stake=5
     - ``龙兔各数5`` / ``龙兔个数5`` / ``龙兔各5`` -> in 号码单式 mode, expands 龙(03,15,27,39)
       and 兔(04,16,28,40) into 8 numbers, each ¥5 (8 notes, total ¥40).
-    - ``龙牛猴鸡兔复试4连个数10`` -> xiaos=['龙','牛','猴','鸡','兔'], mode='连肖复试', k=4, stake=10
+    - ``龙牛猴鸡兔复试4连个数10`` -> xiaos=['龙','牛','猴','鸡','兔'], mode='连肖复试', ks=[4], stake=10
+    - ``鼠虎马猴鸡 给我打复试3，4连一组5块`` -> xiaos=['鼠','虎','马','猴','鸡'], mode='连肖复试',
+      ks=[3, 4], notes=C(5,3)+C(5,4)=15, stake=5, total=75
     - ``02.04.06.08.10.12·6不中个数10`` -> numbers=['02',...,'12'], mode='不中码', k=6, stake=10
     """
     text = (raw_input or "").strip()
-    stake_match = re.search(r"(?:各数|个数|各号|每码|每注|各|×|\*)\s*(\d+)", text)
+    stake_match = _STAKE_PREFIX_RE.search(text) or _STAKE_SUFFIX_RE.search(text)
     parsed_stake = int(stake_match.group(1)) if stake_match else None
 
     mult_match = re.search(r"(?:倍\s*(\d+)|(\d+)\s*倍)", text)
     parsed_mult = int(mult_match.group(1) or mult_match.group(2)) if mult_match else None
 
-    # Strip trailing stake/multiplier/play descriptors so their digits aren't parsed as lottery numbers
-    cleaned = re.sub(r"(?:各数|个数|各号|每码|每注|各|×|\*)\s*\d+.*$", "", text)
+    # Strip stake/multiplier/play descriptors so their digits aren't parsed as lottery numbers
+    cleaned = _STAKE_PREFIX_RE.sub("", text)
+    cleaned = _STAKE_SUFFIX_RE.sub("", cleaned)
     cleaned = re.sub(r"[·\s]*\d+\s*不中.*$", "", cleaned)
-    cleaned = re.sub(r"复试\s*\d+\s*连.*$", "", cleaned)
+    cleaned = _LIANXIAO_EXPR_RE.sub("", cleaned)
+    cleaned = re.sub(r"复[试式]\s*[2-5二三四五,，、./\-~～\s]*", "", cleaned)
     cleaned = re.sub(r"(?:倍\s*\d+|\d+\s*倍)", "", cleaned)
 
     explicit_numbers: list[str] = []
@@ -193,16 +250,15 @@ def parse_smart_bet_input(
     is_fushi = (
         mode == "连肖复试"
         or "连肖" in play_type
-        or "复试" in text
-        or bool(re.search(r"\d+\s*连", text))
+        or bool(re.search(r"复[试式]", text))
+        or bool(_LIANXIAO_EXPR_RE.search(text))
     )
     is_nbuzhong = (
         mode == "不中码"
         or "不中" in play_type
         or "不中" in text
     )
-    # Check if play_type is a pure zodiac play (like 特肖 / 平特肖 / 合肖 / 正肖 / 杀肖) WITHOUT 各数/个数/每码
-    has_per_number_keyword = bool(re.search(r"(?:各数|个数|各号|每码)", text))
+    has_per_number_keyword = bool(re.search(r"(?:各数|个数|各号|各码|每码)", text))
     is_pure_xiao_play = (
         play_type in ("特肖", "平特肖", "平特一肖", "合肖", "正肖", "杀肖")
         and not has_per_number_keyword
@@ -210,12 +266,16 @@ def parse_smart_bet_input(
 
     numbers = list(explicit_numbers)
     xiaos: list[str] = []
+    detected_mode = mode
+    fushi_links: list[int] = []
 
     if is_fushi:
+        detected_mode = "连肖复试"
         xiaos = extracted_xiaos
         numbers = []
+        fushi_links = _lianxiao_ks(play_type, text)
     elif is_nbuzhong:
-        # Even in 不中码, if user typed zodiacs, expand them into numbers
+        detected_mode = "不中码"
         for x in extracted_xiaos:
             for num in XIAO_NUMBERS_2026.get(x, []):
                 if num not in numbers:
@@ -232,6 +292,8 @@ def parse_smart_bet_input(
         xiaos = []
 
     return {
+        "detected_mode": detected_mode,
+        "fushi_links": fushi_links,
         "numbers": numbers,
         "xiaos": xiaos,
         "extracted_xiaos": extracted_xiaos,
@@ -241,11 +303,19 @@ def parse_smart_bet_input(
 
 
 def compute_notes_count(mode: str, play_type: str, numbers: list[str], xiaos: list[str], raw_input: str = "") -> int:
-    if mode == "连肖复试" or "连肖" in play_type or "连" in play_type:
-        k = _lianxiao_k(play_type, raw_input)
-        if len(xiaos) >= k:
-            return len(list(itertools.combinations(xiaos, k)))
-        return 1
+    if (
+        mode == "连肖复试"
+        or "连肖" in play_type
+        or "连" in play_type
+        or bool(re.search(r"复[试式]", raw_input or ""))
+        or bool(_LIANXIAO_EXPR_RE.search(raw_input or ""))
+    ):
+        ks = _lianxiao_ks(play_type, raw_input)
+        total_combos = 0
+        for k in ks:
+            if len(xiaos) >= k:
+                total_combos += len(list(itertools.combinations(xiaos, k)))
+        return max(1, total_combos)
     if mode == "不中码" or "不中" in play_type:
         return 1
     if xiaos and not numbers:
@@ -275,16 +345,34 @@ def evaluate_record_against_draw(
 
     hit_items: list[str] = []
     hit_notes = 0
+    custom_payout: int | None = None
 
-    if mode == "连肖复试" or "连肖" in play_type or ("连" in play_type and rec_xiaos):
-        k = _lianxiao_k(play_type, record.raw_input or "")
+    if (
+        mode == "连肖复试"
+        or "连肖" in play_type
+        or ("连" in play_type and rec_xiaos)
+        or (rec_xiaos and bool(_LIANXIAO_EXPR_RE.search(record.raw_input or "")))
+    ):
+        ks = _lianxiao_ks(play_type, record.raw_input or "")
         hit_items = [x for x in rec_xiaos if x in draw_xiaos]
-        if len(rec_xiaos) >= k:
-            for combo in itertools.combinations(rec_xiaos, k):
-                if all(x in draw_xiaos for x in combo):
-                    hit_notes += 1
-        elif rec_xiaos and all(x in draw_xiaos for x in rec_xiaos):
-            hit_notes = 1
+        payout_accum = 0.0
+        for k in ks:
+            k_hits = 0
+            if len(rec_xiaos) >= k:
+                for combo in itertools.combinations(rec_xiaos, k):
+                    if all(x in draw_xiaos for x in combo):
+                        k_hits += 1
+            elif rec_xiaos and all(x in draw_xiaos for x in rec_xiaos):
+                k_hits = 1
+            if k_hits > 0:
+                hit_notes += k_hits
+                k_odds = (
+                    record.odds
+                    if (record.odds and record.odds > 0 and len(ks) == 1)
+                    else default_odds_for(f"{k}连", "连肖复试")
+                )
+                payout_accum += k_hits * record.stake_per_note * record.multiplier * k_odds
+        custom_payout = int(round(payout_accum)) if hit_notes > 0 else 0
     elif mode == "不中码" or "不中" in play_type:
         # In N不中, if NONE of the selected numbers appeared in the 7 drawn numbers, the whole group wins
         hit_items = [n for n in rec_nums if n in all_draw_nums]
@@ -305,7 +393,10 @@ def evaluate_record_against_draw(
         hit_notes = len(hit_items)
 
     new_status = "won" if hit_notes > 0 else "lost"
-    payout = int(round(hit_notes * record.stake_per_note * record.multiplier * odds)) if hit_notes > 0 else 0
+    if custom_payout is not None:
+        payout = custom_payout
+    else:
+        payout = int(round(hit_notes * record.stake_per_note * record.multiplier * odds)) if hit_notes > 0 else 0
     net_profit = payout - record.total_amount
 
     changed = (
@@ -408,8 +499,15 @@ def serialize_record(
         }
 
     fushi_link = None
-    if record.mode == "连肖复试" or "连肖" in (record.play_type or "") or "连" in (record.play_type or ""):
-        fushi_link = _lianxiao_k(record.play_type or "", record.raw_input or "")
+    fushi_links: list[int] = []
+    if (
+        record.mode == "连肖复试"
+        or "连肖" in (record.play_type or "")
+        or "连" in (record.play_type or "")
+        or (record.xiaos and bool(_LIANXIAO_EXPR_RE.search(record.raw_input or "")))
+    ):
+        fushi_links = _lianxiao_ks(record.play_type or "", record.raw_input or "")
+        fushi_link = fushi_links[0] if fushi_links else 4
 
     win_pill_label = None
     if record.status == "won":
@@ -429,6 +527,7 @@ def serialize_record(
         "mode": record.mode,
         "play_type": record.play_type,
         "fushi_link": fushi_link,
+        "fushi_links": fushi_links,
         "time_label": time_label,
         "created_at": created_iso,
         "numbers": list(record.numbers or []),
@@ -610,6 +709,13 @@ def create_user_record(
     raw_input = str(payload.get("raw_input") or "").strip()
 
     parsed = parse_smart_bet_input(raw_input, mode=mode, play_type=play_type) if raw_input else {}
+    if parsed.get("detected_mode") in ("连肖复试", "不中码"):
+        mode = str(parsed["detected_mode"])
+        if mode == "连肖复试" and play_type in ("正码", "特码", "连肖"):
+            ks = parsed.get("fushi_links") or _lianxiao_ks(play_type, raw_input)
+            play_type = f"连肖 {','.join(str(k) for k in ks)}连" if len(ks) > 1 else "连肖"
+        elif mode == "不中码" and play_type in ("正码", "特码"):
+            play_type = f"{_nbuzhong_k(play_type, raw_input)} 不中"
 
     raw_numbers = payload.get("numbers")
     if raw_numbers:
@@ -624,7 +730,7 @@ def create_user_record(
         xiaos = list(parsed.get("xiaos") or [])
 
     # If in 号码单式 mode (or 正码/特码) and xiaos were passed without numbers, expand xiaos to numbers!
-    if (mode == "号码单式" or play_type in ("正码", "特码")) and xiaos and not numbers:
+    if mode != "连肖复试" and (mode == "号码单式" or play_type in ("正码", "特码")) and xiaos and not numbers:
         for x in xiaos:
             for num in XIAO_NUMBERS_2026.get(x, []):
                 if num not in numbers:
@@ -704,6 +810,8 @@ def update_user_record(
         if rec.raw_input
         else {}
     )
+    if parsed.get("detected_mode") in ("连肖复试", "不中码") and "mode" not in payload:
+        rec.mode = str(parsed["detected_mode"])
 
     if "numbers" in payload and payload["numbers"] is not None:
         rec.numbers = [_norm_num(n) for n in payload["numbers"] if str(n).strip()]
@@ -715,7 +823,7 @@ def update_user_record(
     elif "xiaos" in parsed:
         rec.xiaos = list(parsed["xiaos"])
 
-    if (rec.mode == "号码单式" or rec.play_type in ("正码", "特码")) and rec.xiaos and not rec.numbers:
+    if rec.mode != "连肖复试" and (rec.mode == "号码单式" or rec.play_type in ("正码", "特码")) and rec.xiaos and not rec.numbers:
         expanded: list[str] = []
         for x in rec.xiaos:
             for num in XIAO_NUMBERS_2026.get(x, []):
