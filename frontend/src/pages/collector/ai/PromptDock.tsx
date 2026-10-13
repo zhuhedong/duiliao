@@ -1,4 +1,5 @@
 import { SparklesIcon, CheckIcon, EditIcon } from "../../../components/icons";
+import { getPeriodForDate } from "../../../lib/collector";
 import type { PromptInfo } from "./types";
 
 export const DEFAULT_ANALYST_PROMPT =
@@ -25,7 +26,7 @@ export function PromptDock({
   const templates = prompts.filter((p) => p.id !== "zodiac_streak_analysis");
 
   const fillDefault = () => {
-    onCustomPromptChange(DEFAULT_ANALYST_PROMPT.replace(/{period}/g, period.trim() || "262"));
+    onCustomPromptChange(DEFAULT_ANALYST_PROMPT.replace(/{period}/g, period.trim() || getPeriodForDate()));
   };
 
   return (

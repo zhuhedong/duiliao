@@ -16,6 +16,37 @@ export const LOTTERY_LABEL: Record<string, string> = {
   new: "新彩",
 };
 
+/**
+ * Return current Date converted to Beijing Time (UTC+8).
+ */
+export function getBeijingDate(date: Date = new Date()): Date {
+  const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+  return new Date(utc + 8 * 3600000);
+}
+
+/**
+ * Calculate the day of the year for a given date in Beijing Time (1..366).
+ * e.g. 2026-10-13 -> 286
+ */
+export function getDayOfYear(date: Date = new Date()): number {
+  const bj = getBeijingDate(date);
+  const year = bj.getFullYear();
+  const startOfYear = new Date(Date.UTC(year, 0, 1));
+  const currentDate = new Date(Date.UTC(year, bj.getMonth(), bj.getDate()));
+  return Math.floor((currentDate.getTime() - startOfYear.getTime()) / 86400000) + 1;
+}
+
+/**
+ * Get canonical period string for a date (year + 3-digit day of year).
+ * e.g. 2026-10-13 is the 286th day -> "2026286".
+ */
+export function getPeriodForDate(date: Date = new Date()): string {
+  const bj = getBeijingDate(date);
+  const year = bj.getFullYear();
+  const doy = getDayOfYear(date);
+  return `${year}${String(doy).padStart(3, "0")}`;
+}
+
 export interface PredAtom {
   kind: string;
   value: string;
@@ -799,6 +830,7 @@ export const collectorApi = {
       lottery: Lottery;
       official_draw_period: string | null;
       latest_prediction_period: string | null;
+      today_period?: string;
       current_period: string | null;
     }>(`/collector/consensus/latest?lottery=${encodeURIComponent(lottery)}`);
   },

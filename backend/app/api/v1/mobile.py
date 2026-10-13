@@ -97,11 +97,12 @@ async def home(
     if isinstance(draws, dict) and draws.get("items"):
         latest = draws["items"][0]
     draw_period = (latest or {}).get("period")
+    today_period = cb.period_for_date()
     consensus_period = (
         (latest_period_info or {}).get("current_period")
         if isinstance(latest_period_info, dict)
         else None
-    ) or draw_period
+    ) or today_period
 
     consensus_task = (
         _safe("consensus", cb.consensus_compare, lottery, consensus_period, play_type)
@@ -161,6 +162,8 @@ async def home(
         "lottery": lottery,
         "play_type": play_type,
         "server_time": datetime.now(timezone.utc).isoformat(),
+        "today_period": today_period,
+        "current_period": consensus_period,
         "latest_draw": latest,
         "consensus": consensus_summary,
         "comparison_summary": (comparison or {}).get("summary") if isinstance(comparison, dict) else None,

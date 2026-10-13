@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
+  getPeriodForDate,
   LOTTERY_LABEL,
   type CollectResult,
   type CollectJob,
@@ -690,7 +691,7 @@ export function CollectorSourcesPage() {
                 <TextInput
                   value={period}
                   onChange={setPeriod}
-                  placeholder="期号（留空则自动抓取网站当前最新数据）"
+                  placeholder={`期号（如 ${getPeriodForDate()}，留空则自动抓取网站当前最新数据）`}
                   className="flex-1 min-w-[240px]"
                 />
                 <TextInput
@@ -1126,8 +1127,8 @@ export function CollectorSourcesPage() {
                 <TextInput
                   value={testModal.period}
                   onChange={(v) => setTestModal({ ...testModal, period: v })}
-                  placeholder="期号 (留空默认最新)"
-                  className="w-36"
+                  placeholder={`期号 (留空默认 ${getPeriodForDate()})`}
+                  className="w-44"
                 />
               </div>
               <label className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 cursor-pointer select-none">

@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
+  getPeriodForDate,
   LOTTERY_LABEL,
   type ComparisonItem,
   type ConsensusGroup,
@@ -395,7 +396,7 @@ export function CollectorConsensusPage() {
   const canWrite = useCanWrite();
   const [activeTab, setActiveTab] = useState<"frequency" | "comparison" | "consensus">("frequency");
   const [lottery, setLottery] = useState<Lottery>("macau");
-  const [period, setPeriod] = useState("");
+  const [period, setPeriod] = useState<string>(() => getPeriodForDate());
   const [loading, setLoading] = useState(false);
   const [rejudging, setRejudging] = useState(false);
   const [snapshotBusy, setSnapshotBusy] = useState<"freeze" | "rebuild" | null>(null);
@@ -462,20 +463,24 @@ export function CollectorConsensusPage() {
     [playFilter]
   );
 
-  // Initial mount & lottery switch: prefer the latest prediction period, which
-  // may still be awaiting the official draw. Once a draw exists, the same
-  // period transparently switches from live rankings to its frozen snapshot.
+  // Initial mount & lottery switch: prefer the latest prediction period or today's period,
+  // which may still be awaiting the official draw.
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         const latest = await collectorApi.consensusLatest(lottery);
-        if (active && latest.current_period) {
-          setPeriod(latest.current_period);
-          void executeQuery(lottery, latest.current_period);
+        const resolved = latest.current_period || latest.today_period || getPeriodForDate();
+        if (active && resolved) {
+          setPeriod(resolved);
+          void executeQuery(lottery, resolved);
         }
       } catch {
-        // Ignore fallback
+        const fallback = getPeriodForDate();
+        if (active) {
+          setPeriod(fallback);
+          void executeQuery(lottery, fallback);
+        }
       }
     })();
     return () => {
@@ -509,13 +514,13 @@ export function CollectorConsensusPage() {
   const handleLatestPeriod = async () => {
     try {
       const latest = await collectorApi.consensusLatest(lottery);
-      if (latest.current_period) {
-        const latestPeriod = latest.current_period;
-        setPeriod(latestPeriod);
-        void executeQuery(lottery, latestPeriod);
-      }
+      const target = latest.current_period || latest.today_period || getPeriodForDate();
+      setPeriod(target);
+      void executeQuery(lottery, target);
     } catch {
-      // ignore
+      const fallback = getPeriodForDate();
+      setPeriod(fallback);
+      void executeQuery(lottery, fallback);
     }
   };
 
@@ -930,7 +935,7 @@ export function CollectorConsensusPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") executeQuery(lottery, period);
                 }}
-                placeholder="期号，如 2026262 或 262"
+                placeholder={`期号，如 ${getPeriodForDate()}`}
                 style={{ width: 170 }}
                 className="font-mono text-sm"
               />

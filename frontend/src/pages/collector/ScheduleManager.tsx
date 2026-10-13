@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
+  getPeriodForDate,
   type CollectionSchedule,
   type CollectionScheduleCreate,
   type CollectorSource,
@@ -721,7 +722,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                   <TextInput
                     value={formPeriod}
                     onChange={setFormPeriod}
-                    placeholder="如：2026263，留空为最新期"
+                    placeholder={`如：${getPeriodForDate()}，留空为最新期`}
                     className="w-full"
                   />
                 </div>

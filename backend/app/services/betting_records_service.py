@@ -715,6 +715,12 @@ def create_user_record(
     _ensure_table(db)
     lottery = str(payload.get("lottery") or "macau").strip()
     period = str(payload.get("period") or "").strip()
+    if not period:
+        from common.period import period_for_date
+        period = period_for_date()
+    elif len(period) <= 3 and period.isdigit():
+        from common.period import normalize
+        period = normalize(lottery, period)
     mode = str(payload.get("mode") or "号码单式").strip()
     play_type = str(payload.get("play_type") or "正码").strip()
     raw_input = str(payload.get("raw_input") or "").strip()

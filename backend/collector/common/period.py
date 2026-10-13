@@ -1,16 +1,68 @@
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 LOTTERIES = ("hk", "macau", "taiwan", "new")
 
+TZ8 = timezone(timedelta(hours=8))
 _SLASH = re.compile(r"^(\d{2,4})[/_\-](\d{1,3})$")
+_DATE_ISO = re.compile(r"^\d{4}[-/]\d{1,2}[-/]\d{1,2}$")
 _DIGITS = re.compile(r"^\d{1,7}$")
 
 
-def current_year(d: date | None = None) -> int:
-    return (d or date.today()).year
+def beijing_now() -> datetime:
+    """Current datetime in China Standard Time (UTC+8)."""
+    return datetime.now(timezone.utc).astimezone(TZ8)
+
+
+def current_year(d: date | datetime | None = None) -> int:
+    if d is None:
+        return beijing_now().year
+    return d.year
+
+
+def day_of_year(d: date | datetime | None = None) -> int:
+    """1-based day of year (1..366) in Beijing Time."""
+    if d is None:
+        target_date = beijing_now().date()
+    elif isinstance(d, datetime):
+        if d.tzinfo is not None:
+            target_date = d.astimezone(TZ8).date()
+        else:
+            target_date = d.date()
+    elif isinstance(d, date):
+        target_date = d
+    else:
+        raise TypeError(f"expected date or datetime, got {type(d)}")
+    return target_date.timetuple().tm_yday
+
+
+def period_for_date(d: date | datetime | None = None) -> str:
+    """Canonical day-of-year period format: YYYYDDD (e.g. 2026-10-13 -> '2026286')."""
+    if d is None:
+        target_date = beijing_now().date()
+    elif isinstance(d, datetime):
+        if d.tzinfo is not None:
+            target_date = d.astimezone(TZ8).date()
+        else:
+            target_date = d.date()
+    elif isinstance(d, date):
+        target_date = d
+    else:
+        raise TypeError(f"expected date or datetime, got {type(d)}")
+    doy = target_date.timetuple().tm_yday
+    return f"{target_date.year}{doy:03d}"
+
+
+def date_for_period(period: str) -> date:
+    """Parse canonical period YYYYDDD back to date."""
+    p = str(period).strip()
+    if len(p) >= 7 and p[:4].isdigit():
+        year = int(p[:4])
+        doy = int(p[4:])
+        return datetime.strptime(f"{year}-{doy:03d}", "%Y-%j").date()
+    raise ValueError(f"cannot parse period into date: {period!r}")
 
 
 def normalize(lottery: str, period_raw: str, year: int | None = None) -> str:
@@ -29,6 +81,15 @@ def normalize(lottery: str, period_raw: str, year: int | None = None) -> str:
         if yy < 100:
             yy += 2000
         return f"{yy}{int(seq):0{seq_width}d}"
+
+    if _DATE_ISO.match(raw):
+        clean = raw.replace("/", "-")
+        parts = clean.split("-")
+        try:
+            d = date(int(parts[0]), int(parts[1]), int(parts[2]))
+            return period_for_date(d)
+        except Exception:
+            pass
 
     if not _DIGITS.match(raw):
         raise ValueError(f"bad period_raw: {period_raw!r}")

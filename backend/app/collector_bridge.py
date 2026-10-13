@@ -562,27 +562,36 @@ def consensus_compare(lottery: str, period: str, play_type: str | None = None) -
 
 
 def consensus_latest_period(lottery: str) -> dict[str, Any]:
-    """Return both latest official and latest prediction periods.
+    """Return latest official, latest prediction, and today's day-of-year period.
 
-    A not-yet-opened period can be newer than the latest Draw, so the workbench
-    defaults to the prediction period while still exposing the official cursor.
+    The active workbench period defaults to today's day-of-year period
+    (e.g. 2026-10-13 is day 286 -> 2026286), or newer prediction/draw period if present.
     """
     bootstrap()
     from db import session_scope
     from schema import Draw, Prediction
     from sqlalchemy import func, select
+    from common.period import period_for_date
 
+    today_p = period_for_date()
     with session_scope(guard=False) as s:
         official = s.scalar(select(func.max(Draw.period)).where(Draw.lottery == lottery))
         predicted = s.scalar(select(func.max(Prediction.period)).where(Prediction.lottery == lottery))
-    current = max([p for p in (official, predicted) if p], default=None)
+    current = max([p for p in (today_p, official, predicted) if p], default=today_p)
     return {
         "ok": True,
         "lottery": lottery,
         "official_draw_period": official,
         "latest_prediction_period": predicted,
+        "today_period": today_p,
         "current_period": current,
     }
+
+
+def period_for_date(d=None) -> str:
+    bootstrap()
+    from common.period import period_for_date as _pfd
+    return _pfd(d)
 
 
 def freeze_consensus_snapshot(

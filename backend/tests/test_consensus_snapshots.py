@@ -171,8 +171,8 @@ def test_consensus_latest_exposes_prediction_and_official_cursors(user_client, s
     body = user_client.get("/collector/consensus/latest", params={"lottery": "macau"})
     assert body["ok"] is True
     assert body["official_draw_period"] == "2026248"
-    assert body["latest_prediction_period"] >= body["official_draw_period"]
-    assert body["current_period"] == max(body["official_draw_period"], body["latest_prediction_period"])
+    assert body["today_period"]
+    assert body["current_period"] == max(body["today_period"], body["official_draw_period"], body["latest_prediction_period"])
 
 
 def test_consensus_read_includes_snapshot_metadata(user_client, seeded_draws):

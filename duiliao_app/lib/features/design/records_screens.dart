@@ -378,24 +378,21 @@ String recentChinaDateIso([int daysAgo = 0, DateTime? now]) {
   return '${cn.year}-${cn.month.toString().padLeft(2, '0')}-${cn.day.toString().padLeft(2, '0')}';
 }
 
-String _dateBasedPeriod([DateTime? now]) {
+int dayOfYearInChina([DateTime? now]) {
   final cn = nowInChina(now);
-  final doy = cn.difference(DateTime.utc(cn.year, 1, 1)).inDays + 1;
+  final dateOnly = DateTime.utc(cn.year, cn.month, cn.day);
+  final startOfYear = DateTime.utc(cn.year, 1, 1);
+  return dateOnly.difference(startOfYear).inDays + 1;
+}
+
+String currentPeriodForLottery([Lottery? lottery, DateTime? now]) {
+  final cn = nowInChina(now);
+  final doy = dayOfYearInChina(now);
   return '${cn.year}${doy.toString().padLeft(3, '0')}';
 }
 
-String currentPeriodForLottery(Lottery lottery, [DateTime? now]) {
-  final cn = nowInChina(now);
-  final doy = cn.difference(DateTime.utc(cn.year, 1, 1)).inDays + 1;
-  if (lottery == Lottery.hk) {
-    // HK Mark Six draws 3 times per week (anchored to 2026-10-10 = 2026108, 2026-10-13 = 2026109).
-    final anchor = DateTime.utc(2026, 10, 10);
-    final cnDate = DateTime.utc(cn.year, cn.month, cn.day);
-    final daysDiff = cnDate.difference(anchor).inDays;
-    final approxSeq = (108 + ((daysDiff * 3 + 4) ~/ 7)).clamp(1, 160);
-    return '${cn.year}${approxSeq.toString().padLeft(3, '0')}';
-  }
-  return '${cn.year}${doy.toString().padLeft(3, '0')}';
+String _dateBasedPeriod([DateTime? now]) {
+  return currentPeriodForLottery(null, now);
 }
 
 String previousPeriodOf(String period, [int offset = 1]) {
@@ -1462,7 +1459,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
           keyboardType: TextInputType.number,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: '例如：$_period（支持填3位如 285 自动补全年份）',
+            hintText: '例如：$_period（支持填3位如 ${dayOfYearInChina()} 自动补全年份）',
           ),
         ),
         actions: [

@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
+  getPeriodForDate,
   LOTTERY_LABEL,
   type DrawRow,
   type DrawSchedulerStatus,
@@ -500,7 +501,7 @@ export function CollectorDrawsPage() {
             <TextInput
               value={period}
               onChange={setPeriod}
-              placeholder="期号（如 248，留空则拉取最新）"
+              placeholder={`期号（如 ${getPeriodForDate()}，留空则拉取最新）`}
               className="flex-1 min-w-[200px]"
             />
             <button

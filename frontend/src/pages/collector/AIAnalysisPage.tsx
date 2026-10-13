@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, settingsApi, type AISettings } from "../../lib/api";
 import { PageWorkspace, SegmentedTabs } from "./shared";
+import { getPeriodForDate } from "../../lib/collector";
 import {
   SparklesIcon,
   DatabaseIcon,
@@ -49,7 +50,14 @@ export function CollectorAIAnalysisPage() {
     // 连肖模板只吃按期开奖数据，放在帖文研判里会对空。
     return saved === "zodiac_streak_analysis" ? "macau_analyst_expert" : saved;
   });
-  const [period, setPeriod] = useState<string>(() => localStorage.getItem("duiliao_period") || "262");
+  const [period, setPeriod] = useState<string>(() => {
+    const saved = localStorage.getItem("duiliao_period") || "";
+    const todayP = getPeriodForDate();
+    if (!saved || saved.length < 7 || saved < todayP) {
+      return todayP;
+    }
+    return saved;
+  });
   const [customPrompt, setCustomPrompt] = useState<string>(() => localStorage.getItem("duiliao_custom_prompt") || "");
   const [provider, setProvider] = useState<"openai" | "gemini" | "anthropic">(() => {
     return (localStorage.getItem("duiliao_provider") as any) || "openai";
@@ -119,13 +127,9 @@ export function CollectorAIAnalysisPage() {
       .get<{ items?: { period?: string }[] }>("/collector/draws?lottery=macau&limit=1")
       .then((res) => {
         const full = res.items?.[0]?.period || "";
-        const short = full.length >= 3 ? full.slice(-3) : "";
-        const latest = Number(short);
-        const saved = Number(localStorage.getItem("duiliao_period") || "");
-        if (!short || !Number.isFinite(latest)) return;
-        if (!Number.isFinite(saved) || latest - saved >= 2) {
-          setPeriod(short);
-        }
+        const todayP = getPeriodForDate();
+        const target = (full && full >= todayP) ? full : todayP;
+        setPeriod(target);
       })
       .catch(() => {});
 
@@ -164,8 +168,14 @@ export function CollectorAIAnalysisPage() {
 
       // 从抓取内容中自动识别期号
       const allText = (res.modules || []).map((m: any) => m.content || "").join(" ");
-      const match = allText.match(/(?:第\s*)?(\d{3})\s*期/);
-      if (match && match[1]) setPeriod(match[1]);
+      const match = allText.match(/(?:第\s*)?(\d{3,7})\s*期/);
+      if (match && match[1]) {
+        const raw = match[1];
+        const normalized = raw.length <= 3
+          ? `${getPeriodForDate().slice(0, 4)}${raw.padStart(3, "0")}`
+          : raw;
+        setPeriod(normalized);
+      }
     } catch (err: any) {
       setScrapeError(err?.message || "抓取数据失败，请检查网络连接");
     } finally {
@@ -440,8 +450,8 @@ export function CollectorAIAnalysisPage() {
               type="text"
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
-              placeholder="262"
-              className="w-12 bg-transparent text-center text-sm font-bold text-primary outline-none"
+              placeholder={getPeriodForDate()}
+              className="w-20 bg-transparent text-center text-sm font-bold font-mono text-primary outline-none"
             />
             <span className="text-2xs font-medium text-slate-400">期</span>
           </div>

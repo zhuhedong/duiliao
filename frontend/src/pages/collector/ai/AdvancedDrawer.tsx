@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AISettings } from "../../../lib/api";
 import { CheckBadgeIcon, CloseIcon, SettingsIcon } from "../../../components/icons";
+import { getPeriodForDate } from "../../../lib/collector";
 
 interface AdvancedDrawerProps {
   open: boolean;
@@ -218,7 +219,7 @@ export function AdvancedDrawer({
               <div>
                 <div className="mb-1 flex items-center justify-between text-2xs font-semibold text-slate-600 dark:text-slate-400">
                   <span>1. 提示词指令</span>
-                  <span className="text-slate-400">第 {period || "262"} 期</span>
+                  <span className="text-slate-400">第 {period || getPeriodForDate()} 期</span>
                 </div>
                 <div className="max-h-32 overflow-y-auto whitespace-pre-wrap rounded-xl glass-subtle p-2.5 font-mono text-2xs text-slate-700 dark:text-slate-300">
                   {promptPreview}
