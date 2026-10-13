@@ -416,6 +416,14 @@ def evaluate_record_against_draw(
     return changed
 
 
+def _ensure_table(db: Session) -> None:
+    try:
+        bind = db.get_bind()
+        UserBettingRecord.__table__.create(bind=bind, checkfirst=True)
+    except Exception:
+        pass
+
+
 def settle_all_users_records(
     lottery: str | None = None,
     period: str | None = None,
@@ -423,6 +431,7 @@ def settle_all_users_records(
     """Automatically settle all pending (or matching) betting records across all users when a draw is synced/judged."""
     try:
         with SessionLocal() as db:
+            _ensure_table(db)
             stmt = select(UserBettingRecord)
             if lottery:
                 stmt = stmt.where(UserBettingRecord.lottery == lottery)
@@ -560,6 +569,7 @@ def list_user_records(
     status_filter: str | None = None,
     auto_settle: bool = True,
 ) -> dict[str, Any]:
+    _ensure_table(db)
     stmt = select(UserBettingRecord).where(UserBettingRecord.user_id == user_id)
     if lottery:
         stmt = stmt.where(UserBettingRecord.lottery == lottery)
@@ -702,6 +712,7 @@ def create_user_record(
     user_id: str,
     payload: dict[str, Any],
 ) -> dict[str, Any]:
+    _ensure_table(db)
     lottery = str(payload.get("lottery") or "macau").strip()
     period = str(payload.get("period") or "").strip()
     mode = str(payload.get("mode") or "号码单式").strip()
@@ -790,6 +801,7 @@ def update_user_record(
     record_id: str,
     payload: dict[str, Any],
 ) -> dict[str, Any] | None:
+    _ensure_table(db)
     rec = db.get(UserBettingRecord, record_id)
     if rec is None or rec.user_id != user_id:
         return None
@@ -880,6 +892,7 @@ def update_user_record(
 
 
 def delete_user_record(db: Session, user_id: str, record_id: str) -> bool:
+    _ensure_table(db)
     rec = db.get(UserBettingRecord, record_id)
     if rec is None or rec.user_id != user_id:
         return False
@@ -894,6 +907,7 @@ def clear_user_records(
     lottery: str | None = None,
     status_filter: str | None = None,
 ) -> int:
+    _ensure_table(db)
     stmt = select(UserBettingRecord).where(UserBettingRecord.user_id == user_id)
     if lottery:
         stmt = stmt.where(UserBettingRecord.lottery == lottery)

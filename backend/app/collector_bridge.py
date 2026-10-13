@@ -379,6 +379,35 @@ def sync_draws(
                 raise ValueError(f"no draw url configured for {lottery}")
             if adapter == "getLastLottery" or "getLastLottery" in url:
                 rows = draw_sync.fetch_get_last_lottery(url, headers, lottery)
+                if not canonical_period and rows and "/api/v1/index/getLastLottery" in url:
+                    try:
+                        from db import session_scope
+                        from schema import Draw
+                        from sqlalchemy import func, select
+
+                        with session_scope(guard=False) as s:
+                            latest_db_period = s.scalar(
+                                select(func.max(Draw.period)).where(Draw.lottery == lottery)
+                            )
+                        top_period = str(rows[0].get("period") or "")
+                        need_backfill = not latest_db_period or (
+                            top_period.isdigit()
+                            and str(latest_db_period).isdigit()
+                            and int(top_period) - int(str(latest_db_period)) > 1
+                        )
+                        if need_backfill:
+                            trend_url = url.replace(
+                                "/api/v1/index/getLastLottery",
+                                "/api/v1/trend/getTrend",
+                            )
+                            trend_rows = draw_sync.fetch_get_trend(trend_url, headers, lottery)
+                            existing_periods = {r["period"] for r in rows}
+                            for tr in trend_rows:
+                                if tr["period"] not in existing_periods:
+                                    rows.append(tr)
+                                    existing_periods.add(tr["period"])
+                    except Exception:
+                        pass
             else:
                 rows = draw_sync.fetch_get_trend(url, headers, lottery)
         elif adapter == "hkjc":

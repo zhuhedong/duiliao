@@ -122,14 +122,31 @@ class AtomTallyItem {
   final List<String> sources;
   final bool? hit;
 
-  factory AtomTallyItem.fromJson(Map<String, dynamic> json) => AtomTallyItem(
-        value: asString(json['value']),
-        kind: asString(json['kind']),
-        votes: asInt(json['votes']),
-        percentage: asDouble(json['percentage']),
-        sources: asStringList(json['sources']),
-        hit: asBoolOrNull(json['hit']),
-      );
+  factory AtomTallyItem.fromJson(Map<String, dynamic> json) {
+    final rawSources = asList(json['sources']);
+    final parsedSources = <String>[];
+    for (final s in rawSources) {
+      if (s is String && s.trim().isNotEmpty) {
+        parsedSources.add(s.trim());
+      } else if (s is Map) {
+        final name = (s['name'] ?? s['id'] ?? '').toString().trim();
+        final gk = (s['group_key'] ?? '').toString().trim();
+        if (name.isNotEmpty) {
+          parsedSources.add(
+            (gk.isNotEmpty && gk != 'default') ? '$name／$gk' : name,
+          );
+        }
+      }
+    }
+    return AtomTallyItem(
+      value: asString(json['value']),
+      kind: asString(json['kind']),
+      votes: asInt(json['votes']),
+      percentage: asDouble(json['percentage']),
+      sources: parsedSources,
+      hit: asBoolOrNull(json['hit']),
+    );
+  }
 
   /// Bar width in `0..1`, clamped so a malformed percentage cannot overflow.
   double get barFraction => (percentage / 100).clamp(0.0, 1.0);
@@ -163,7 +180,8 @@ class ConsensusResult {
   final List<AtomTallyItem> texiaoTallies;
 
   factory ConsensusResult.fromJson(Map<String, dynamic> json) {
-    final tallies = asMapOrNull(json['atom_tallies']);
+    final tallies =
+        asMapOrNull(json['atom_tallies']) ?? asMapOrNull(json['frequency']);
     return ConsensusResult(
       ok: asBool(json['ok'], fallback: true),
       lottery: asString(json['lottery']),

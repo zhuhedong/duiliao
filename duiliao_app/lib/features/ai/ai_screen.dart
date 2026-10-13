@@ -21,6 +21,7 @@ import '../../ui/theme.dart';
 import '../../ui/widgets/number_ball.dart';
 import '../auth/auth_providers.dart';
 import '../comparison/comparison_screen.dart';
+import '../design/records_screens.dart';
 
 final aiPromptsProvider = FutureProvider<List<AiPrompt>>(
   (ref) => ref.read(collectorRepositoryProvider).aiPrompts(),
@@ -36,14 +37,19 @@ class SelectedPrompt extends Notifier<String> {
   void set(String id) => state = id;
 }
 
-final aiReportProvider = FutureProvider.family<AiReport?,
-    ({Lottery lottery, String period, String promptId})>((ref, key) async {
-  return ref.read(collectorRepositoryProvider).aiReport(
-        lottery: key.lottery.code,
-        period: key.period,
-        promptId: key.promptId,
-      );
-});
+final aiReportProvider =
+    FutureProvider.family<
+      AiReport?,
+      ({Lottery lottery, String period, String promptId})
+    >((ref, key) async {
+      return ref
+          .read(collectorRepositoryProvider)
+          .aiReport(
+            lottery: key.lottery.code,
+            period: key.period,
+            promptId: key.promptId,
+          );
+    });
 
 final streamClientProvider = Provider<StreamClient>((ref) {
   final client = StreamClient(config: ref.watch(appConfigProvider));
@@ -62,8 +68,7 @@ class AiScreen extends ConsumerStatefulWidget {
 
 class _AiScreenState extends ConsumerState<AiScreen> {
   int _modeIndex = 0; // 0 = 帖文研判, 1 = 连肖研判
-  String _selectedLotteryChip = '澳门';
-  String _period = '2026277';
+  String? _customPeriod;
   final Set<String> _selectedSources = {
     '海哥平特一肖',
     '顶尖大师',
@@ -77,7 +82,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   void initState() {
     super.initState();
     if (widget.initialPeriod != null && widget.initialPeriod!.isNotEmpty) {
-      _period = widget.initialPeriod!;
+      _customPeriod = widget.initialPeriod!;
     }
   }
 
@@ -109,25 +114,28 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('已抓取并去噪 ${_selectedSources.length} 个数据源（共 $_injectedCount 条上下文）'),
+        content: Text(
+          '已抓取并去噪 ${_selectedSources.length} 个数据源（共 $_injectedCount 条上下文）',
+        ),
       ),
     );
   }
 
-  void _openReport() {
+  void _openReport(String activePeriod) {
+    final lottery = ref.read(selectedLotteryProvider);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => AiReportScreen(
-          period: _period,
-          lotteryLabel: '$_selectedLotteryChip六合彩',
+          period: activePeriod,
+          lotteryLabel: '${lottery.label}六合彩',
           customInstruction: _promptCtrl.text.trim(),
         ),
       ),
     );
   }
 
-  Future<void> _pickPeriod() async {
-    final controller = TextEditingController(text: _period);
+  Future<void> _pickPeriod(String currentActive) async {
+    final controller = TextEditingController(text: currentActive);
     final value = await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
@@ -136,7 +144,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           controller: controller,
           keyboardType: TextInputType.number,
           autofocus: true,
-          decoration: const InputDecoration(helperText: '可填 277 或 2026277'),
+          decoration: InputDecoration(
+            helperText: '例如 $currentActive',
+          ),
         ),
         actions: [
           TextButton(
@@ -152,18 +162,35 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     );
     controller.dispose();
     if (value == null || value.isEmpty || !mounted) return;
-    setState(() => _period = value.length == 3 ? '2026$value' : value);
+    final normalized = (value.length <= 3 && int.tryParse(value) != null)
+        ? '${nowInChina().year}${value.padLeft(3, '0')}'
+        : value;
+    setState(() => _customPeriod = normalized);
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<Lottery>(selectedLotteryProvider, (prev, next) {
+      if (prev != next && _customPeriod != null) {
+        setState(() => _customPeriod = null);
+      }
+    });
     final lottery = ref.watch(selectedLotteryProvider);
     final latestAsync = ref.watch(latestPeriodProvider(lottery));
-    final activePeriod = latestAsync.maybeWhen(
-      data: (p) => (p != null && p.isNotEmpty) ? p : _period,
-      orElse: () => _period,
+    final fallbackPeriod = currentPeriodForLottery(lottery);
+    final serverPeriod = latestAsync.maybeWhen(
+      data: (p) => (p != null && p.isNotEmpty) ? p : fallbackPeriod,
+      orElse: () => fallbackPeriod,
     );
-    final prevNum = (int.tryParse(activePeriod) ?? 2026277) - 1;
+    final activePeriod = _customPeriod ?? serverPeriod;
+    final prevNum = previousPeriodOf(activePeriod, 1);
+    final shortEnd = activePeriod.length >= 3
+        ? activePeriod.substring(activePeriod.length - 3)
+        : activePeriod;
+    final prev4 = previousPeriodOf(activePeriod, 4);
+    final shortStart = prev4.length >= 3
+        ? prev4.substring(prev4.length - 3)
+        : prev4;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -185,7 +212,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                 trailing: GlassIconButton(
                   icon: Icons.history_rounded,
                   tooltip: '历史记录',
-                  onTap: _openReport,
+                  onTap: () => _openReport(activePeriod),
                 ),
               ),
               Expanded(
@@ -223,21 +250,17 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              for (final label in const ['澳门', '香港', '台湾', '新彩'])
+                              for (final l in Lottery.all)
                                 GlassChipTag(
-                                  label: label,
-                                  selected: _selectedLotteryChip == label,
+                                  label: l.label,
+                                  selected: lottery == l,
                                   onTap: () {
-                                    setState(() => _selectedLotteryChip = label);
-                                    if (label == '澳门') {
-                                      ref
-                                          .read(selectedLotteryProvider.notifier)
-                                          .set(Lottery.macau);
-                                    } else if (label == '香港') {
-                                      ref
-                                          .read(selectedLotteryProvider.notifier)
-                                          .set(Lottery.hk);
-                                    }
+                                    setState(() => _customPeriod = null);
+                                    ref
+                                        .read(
+                                          selectedLotteryProvider.notifier,
+                                        )
+                                        .set(l);
                                   },
                                 ),
                             ],
@@ -253,7 +276,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                           ),
                           const SizedBox(height: 7),
                           InkWell(
-                            onTap: _pickPeriod,
+                            onTap: () => _pickPeriod(activePeriod),
                             borderRadius: BorderRadius.circular(8),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -418,7 +441,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                 ],
                               ),
                               Text(
-                                '近 5 期 · 273–277',
+                                '近 5 期 · $shortStart–$shortEnd',
                                 style: tabularStyle(
                                   TextStyle(
                                     fontSize: 11,
@@ -498,7 +521,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                     isDense: true,
                                     contentPadding: EdgeInsets.zero,
                                   ),
-                                  onSubmitted: (_) => _openReport(),
+                                  onSubmitted: (_) => _openReport(activePeriod),
                                 ),
                               ),
                             ],
@@ -511,7 +534,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         child: GlassButton(
                           height: 44,
                           borderRadius: BorderRadius.circular(12),
-                          onPressed: _openReport,
+                          onPressed: () => _openReport(activePeriod),
                           child: const Text(
                             '开始研判',
                             style: TextStyle(fontSize: 13.5),

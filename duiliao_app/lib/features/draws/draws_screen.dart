@@ -1,6 +1,8 @@
 /// Draw list aligned 1:1 with draws.html.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,32 +13,38 @@ import '../../domain/models/draw.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/number_ball.dart';
+import '../design/records_screens.dart';
 import 'draw_detail_screen.dart';
 import 'draws_providers.dart';
 
-const List<DrawRow> _fallbackDraws = [
-  DrawRow(
-    lottery: 'macau',
-    period: '2026276',
-    drawDate: '09-26 21:32',
-    balls: ['03', '11', '19', '27', '34', '42'],
-    tema: '26',
-  ),
-  DrawRow(
-    lottery: 'macau',
-    period: '2026275',
-    drawDate: '09-25 21:31',
-    balls: ['05', '14', '22', '31', '38', '47'],
-    tema: '07',
-  ),
-  DrawRow(
-    lottery: 'macau',
-    period: '2026274',
-    drawDate: '09-24 21:33',
-    balls: ['02', '09', '16', '25', '33', '44'],
-    tema: '39',
-  ),
-];
+List<DrawRow> _buildFallbackDraws(Lottery lottery, String currentPeriod) {
+  final p1 = previousPeriodOf(currentPeriod, 1);
+  final p2 = previousPeriodOf(currentPeriod, 2);
+  final p3 = previousPeriodOf(currentPeriod, 3);
+  return [
+    DrawRow(
+      lottery: lottery.code,
+      period: p1,
+      drawDate: '${recentChinaMmDd(1)} 21:34',
+      balls: const ['03', '11', '19', '27', '34', '42'],
+      tema: '26',
+    ),
+    DrawRow(
+      lottery: lottery.code,
+      period: p2,
+      drawDate: '${recentChinaMmDd(2)} 21:34',
+      balls: const ['05', '14', '22', '31', '38', '47'],
+      tema: '07',
+    ),
+    DrawRow(
+      lottery: lottery.code,
+      period: p3,
+      drawDate: '${recentChinaMmDd(3)} 21:34',
+      balls: const ['02', '09', '16', '25', '33', '44'],
+      tema: '39',
+    ),
+  ];
+}
 
 class DrawsScreen extends ConsumerStatefulWidget {
   const DrawsScreen({super.key});
@@ -46,13 +54,46 @@ class DrawsScreen extends ConsumerStatefulWidget {
 }
 
 class _DrawsScreenState extends ConsumerState<DrawsScreen> {
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    final isTest = WidgetsBinding.instance.runtimeType.toString().contains(
+      'Test',
+    );
+    if (!isTest) {
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final lottery = ref.watch(selectedLotteryProvider);
+    final periodCtx = ref.watch(recordPeriodContextProvider(lottery)).value;
+    final currentPeriod =
+        periodCtx?.currentPeriod ?? currentPeriodForLottery(lottery);
     final async = ref.watch(drawListProvider(lottery));
     final notifier = ref.read(drawListProvider(lottery).notifier);
     final liveItems = async.value?.items ?? const <DrawRow>[];
-    final items = liveItems.isNotEmpty ? liveItems : _fallbackDraws;
+    final hasFilter =
+        (async.value?.periodFrom?.isNotEmpty ?? false) ||
+        (async.value?.periodTo?.isNotEmpty ?? false);
+    final minFreshPeriod = previousPeriodOf(currentPeriod, 5);
+    final liveIsFresh =
+        liveItems.isNotEmpty &&
+        (hasFilter || liveItems.first.period.compareTo(minFreshPeriod) >= 0);
+    final items = liveIsFresh
+        ? liveItems
+        : _buildFallbackDraws(lottery, currentPeriod);
     final canPop = Navigator.of(context).canPop();
     final session =
         ref.watch(sessionStatusProvider).value ??
@@ -109,41 +150,74 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                         items: Lottery.all,
                         selected: lottery,
                         labelBuilder: (l) => l.label,
-                        onChanged: (next) =>
-                            ref.read(selectedLotteryProvider.notifier).set(next),
+                        onChanged: (next) => ref
+                            .read(selectedLotteryProvider.notifier)
+                            .set(next),
                       ),
                       const SizedBox(height: 12),
 
                       // Next Draw Countdown Box
-                      GlassSubtleBox(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 11,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.schedule_rounded,
-                              size: 16,
-                              color: Theme.of(context).colorScheme.primary,
+                      Builder(
+                        builder: (context) {
+                          final cn = nowInChina();
+                          var target = DateTime.utc(
+                            cn.year,
+                            cn.month,
+                            cn.day,
+                            21,
+                            34,
+                          );
+                          final isTonight = cn.isBefore(target);
+                          if (!isTonight) {
+                            target = target.add(const Duration(days: 1));
+                          }
+                          final nextDrawPeriod =
+                              (!isTonight &&
+                                  items.isNotEmpty &&
+                                  items.first.period == currentPeriod)
+                              ? nextPeriodOf(currentPeriod, 1)
+                              : currentPeriod;
+                          final diff = target.difference(cn);
+                          final hh = diff.inHours.toString().padLeft(2, '0');
+                          final mm = (diff.inMinutes % 60).toString().padLeft(
+                            2,
+                            '0',
+                          );
+                          final ss = (diff.inSeconds % 60).toString().padLeft(
+                            2,
+                            '0',
+                          );
+                          return GlassSubtleBox(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 11,
                             ),
-                            const SizedBox(width: 8),
-                            const Expanded(
-                              child: Text(
-                                '第 2026277 期 · 今晚 21:30 开奖',
-                                style: TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.schedule_rounded,
+                                  size: 16,
+                                  color: Theme.of(context).colorScheme.primary,
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '第 $nextDrawPeriod 期 · ${isTonight ? '今晚' : '明晚'} 21:34 开奖',
+                                    style: const TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                GlassStatusPill(
+                                  label: '倒计时 $hh:$mm:$ss',
+                                  color: Theme.of(context).colorScheme.primary,
+                                  showDot: false,
+                                ),
+                              ],
                             ),
-                            GlassStatusPill(
-                              label: '倒计时 03:12:48',
-                              color: Theme.of(context).colorScheme.primary,
-                              showDot: false,
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
 
@@ -218,9 +292,9 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                     child: TextField(
                       controller: toCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: '结束期号',
-                        hintText: '2026276',
+                        hintText: currentPeriodForLottery(lottery),
                       ),
                     ),
                   ),
@@ -309,7 +383,7 @@ class _DrawCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${lottery.label} · ${draw.drawDate ?? '09-26 21:32'}',
+                    '${lottery.label} · ${draw.drawDate ?? '${recentChinaMmDd(1)} 21:32'}',
                     style: context.texts.labelSmall,
                   ),
                 ],

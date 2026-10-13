@@ -38,6 +38,9 @@ EXTRACTORS = {
     "zhanggong_2xiao": ("xiao", 2, r""),
     "hengcai_defense": ("all", 4, r""),
     "dashi_xinshui": ("xiao", 2, r""),
+    "jinpai_1x3m": ("all", 5, r""),
+    "wangzhe_duijue": ("xiao", 2, r""),
+    "zhongbang_2x4m": ("all", 6, r""),
 }
 
 
@@ -385,6 +388,61 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             rows.append(ParsedRow(
                 period_raw=period,
                 preds=[{"kind": "xiao", "value": x, "text": selected} for x in xiaos],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "jinpai_1x3m":
+            m_xiao = re.search(r"(?m)^\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})\s*$", block)
+            m_def = re.search(r"防\s*[:：]\s*(\d{2})\s*[-－.\s]+\s*(\d{2})\s*[-－.\s]+\s*(\d{2})", block)
+            if not m_xiao or not m_def:
+                continue
+            xiao = m_xiao.group(1)
+            all_nums = list(dict.fromkeys([m_xiao.group(2), m_def.group(1), m_def.group(2), m_def.group(3)]))
+            if len(all_nums) != 4 or any(not 1 <= int(n) <= 49 for n in all_nums):
+                continue
+            selected = f"{xiao}-{m_xiao.group(2)} 防:{m_def.group(1)}-{m_def.group(2)}-{m_def.group(3)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in all_nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "wangzhe_duijue":
+            m = re.search(r"【\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*】\s*VS\s*【\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*】", block, re.IGNORECASE)
+            if not m:
+                continue
+            xiaos = list(dict.fromkeys([m.group(1), m.group(2)]))
+            if len(xiaos) != 2:
+                continue
+            selected = f"【{xiaos[0]}】VS【{xiaos[1]}】"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "xiao", "value": x, "text": selected} for x in xiaos],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "zhongbang_2x4m":
+            m_xiao = re.search(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[‧·.\-－\s]+\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[（(]", block)
+            m_num = re.search(r"((?:\d{2}[.\s·\-－]*){4})\s*[（(]", block)
+            if not m_xiao or not m_num:
+                continue
+            xiaos = list(dict.fromkeys([m_xiao.group(1), m_xiao.group(2)]))
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m_num.group(1))))
+            if len(xiaos) != 2 or len(nums) != 4 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"{xiaos[0]}‧{xiaos[1]} {'.'.join(nums)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    *({"kind": "xiao", "value": x, "text": selected} for x in xiaos),
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
                 claimed=claimed_from_block(block),
                 raw_text=block,
             ))

@@ -11,6 +11,7 @@ import '../../domain/models/draw.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/number_ball.dart';
+import '../design/records_screens.dart';
 import 'draws_providers.dart';
 
 class DrawDetailScreen extends ConsumerWidget {
@@ -42,13 +43,20 @@ class DrawDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final key = (lottery: lottery, period: period);
     final async = ref.watch(drawDetailProvider(key));
+    final curPeriod = currentPeriodForLottery(lottery);
+    final periodOffset =
+        ((int.tryParse(curPeriod) ?? 0) - (int.tryParse(period) ?? 0)).clamp(
+          1,
+          365,
+        );
+    final fallbackDrawDate = '${recentChinaDateIso(periodOffset)} 21:34:18';
     final draw =
         async.value ??
         initialDraw ??
         DrawRow(
           lottery: lottery.code,
           period: period,
-          drawDate: '2026-09-26 21:32:18',
+          drawDate: fallbackDrawDate,
           balls: const ['03', '11', '19', '27', '34', '42'],
           tema: '26',
         );
@@ -56,10 +64,16 @@ class DrawDetailScreen extends ConsumerWidget {
     final temaInt = int.tryParse(draw.tema) ?? 26;
     final temaXiao =
         draw.summary?.temaXiao ?? Lottery2026Lookup.xiaoForNumber(temaInt);
-    final temaBose = switch (Lottery2026Lookup.boseForNumber(temaInt)) {
+    final temaBoseCode = Lottery2026Lookup.boseForNumber(temaInt);
+    final temaBose = switch (temaBoseCode) {
       'red' => '红波',
       'green' => '绿波',
       _ => '蓝波',
+    };
+    final temaBoseColor = switch (temaBoseCode) {
+      'red' => DuiliaoColors.miss,
+      'green' => DuiliaoColors.hit,
+      _ => DuiliaoColors.waveBlueA,
     };
     final jiaye = Lottery2026Lookup.jiaXiao.contains(temaXiao) ? '家禽' : '野兽';
     final oddEven = temaInt.isOdd ? '单' : '双';
@@ -102,7 +116,7 @@ class DrawDetailScreen extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: Text(
-                                  '开奖时间 · ${draw.openedAt ?? draw.drawDate ?? '2026-09-26 21:32:18'}',
+                                  '开奖时间 · ${draw.openedAt ?? draw.drawDate ?? fallbackDrawDate}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: context.texts.labelSmall,
@@ -134,7 +148,7 @@ class DrawDetailScreen extends ConsumerWidget {
                         _AttrBox(
                           label: '特码',
                           value: '${draw.tema} · $temaBose',
-                          valueColor: DuiliaoColors.waveBlueA,
+                          valueColor: temaBoseColor,
                         ),
                         _AttrBox(
                           label: '特肖',

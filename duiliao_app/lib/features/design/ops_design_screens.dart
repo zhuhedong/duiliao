@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/net/api_client.dart';
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
+import '../../domain/models/consensus.dart';
 import '../../domain/models/ratings.dart';
 import '../../domain/models/source.dart';
 import '../../domain/play_type.dart';
@@ -16,7 +17,10 @@ import '../../ui/widgets/number_ball.dart';
 import '../auth/auth_providers.dart';
 import '../collect/collect_screen.dart';
 import '../comparison/comparison_screen.dart';
+import '../consensus/consensus_screen.dart';
+import '../ratings/source_detail_screen.dart';
 import 'jump_code_assistant_screen.dart';
+import 'records_screens.dart';
 
 final sourceCatalogProvider = FutureProvider<List<CollectorSource>>(
   (ref) async => (await ref.read(collectorRepositoryProvider).sources()).value,
@@ -54,59 +58,63 @@ class _SourceSample {
   final String? warningBadge;
 }
 
-const _fallbackSources = [
-  _SourceSample(
-    name: '海哥平特一肖',
-    id: 'haige_pingte',
-    playLabel: '平特一肖',
-    status: 'enabled',
-    lastTime: '最近采集 09-26 21:05',
-    hitRateLabel: '62%',
-    hitColor: DuiliaoColors.hit,
-    scheduleLabel: '调度 每日 12:00 / 21:00',
-  ),
-  _SourceSample(
-    name: '顶尖大师',
-    id: 'dj_dashi_xinshui',
-    playLabel: '特肖',
-    status: 'enabled',
-    lastTime: '最近采集 09-26 20:58',
-    hitRateLabel: '55%',
-    hitColor: DuiliaoColors.primaryDark,
-    scheduleLabel: '调度 每日 12:00 / 21:00',
-  ),
-  _SourceSample(
-    name: '顶级论坛金牌六肖',
-    id: 'dj_jp_6xiao',
-    playLabel: '特肖',
-    status: 'enabled',
-    lastTime: '最近采集 09-26 21:02',
-    hitRateLabel: '48%',
-    hitColor: DuiliaoColors.warning,
-    scheduleLabel: '调度 每日 12:00',
-  ),
-  _SourceSample(
-    name: '神算平特一肖',
-    id: 'ss_pingte',
-    playLabel: '平特肖',
-    status: 'paused',
-    lastTime: '最近采集 09-24 12:00',
-    hitRateLabel: '41%',
-    hitColor: DuiliaoColors.miss,
-    scheduleLabel: '调度已暂停',
-  ),
-  _SourceSample(
-    name: '大师一肖',
-    id: 'dingjian_dashi_1xiao',
-    playLabel: '特肖',
-    status: 'broken',
-    lastTime: '连续 3 期未采集',
-    hitRateLabel: null,
-    hitColor: DuiliaoColors.miss,
-    scheduleLabel: '',
-    warningBadge: '疑似栏目变更',
-  ),
-];
+List<_SourceSample> _buildFallbackSources() {
+  final today = recentChinaMmDd(0);
+  final twoDaysAgo = recentChinaMmDd(2);
+  return [
+    _SourceSample(
+      name: '海哥平特一肖',
+      id: 'haige_pingte',
+      playLabel: '平特一肖',
+      status: 'enabled',
+      lastTime: '最近采集 $today 21:05',
+      hitRateLabel: '62%',
+      hitColor: DuiliaoColors.hit,
+      scheduleLabel: '调度 每日 12:00 / 21:00',
+    ),
+    _SourceSample(
+      name: '顶尖大师',
+      id: 'dj_dashi_xinshui',
+      playLabel: '特肖',
+      status: 'enabled',
+      lastTime: '最近采集 $today 20:58',
+      hitRateLabel: '55%',
+      hitColor: DuiliaoColors.primaryDark,
+      scheduleLabel: '调度 每日 12:00 / 21:00',
+    ),
+    _SourceSample(
+      name: '顶级论坛金牌六肖',
+      id: 'dj_jp_6xiao',
+      playLabel: '特肖',
+      status: 'enabled',
+      lastTime: '最近采集 $today 21:02',
+      hitRateLabel: '48%',
+      hitColor: DuiliaoColors.warning,
+      scheduleLabel: '调度 每日 12:00',
+    ),
+    _SourceSample(
+      name: '神算平特一肖',
+      id: 'ss_pingte',
+      playLabel: '平特肖',
+      status: 'paused',
+      lastTime: '最近采集 $twoDaysAgo 12:00',
+      hitRateLabel: '41%',
+      hitColor: DuiliaoColors.miss,
+      scheduleLabel: '调度已暂停',
+    ),
+    const _SourceSample(
+      name: '大师一肖',
+      id: 'dingjian_dashi_1xiao',
+      playLabel: '特肖',
+      status: 'broken',
+      lastTime: '连续 3 期未采集',
+      hitRateLabel: null,
+      hitColor: DuiliaoColors.miss,
+      scheduleLabel: '',
+      warningBadge: '疑似栏目变更',
+    ),
+  ];
+}
 
 /// Data Source Catalog Screen (sources.html).
 class SourceCatalogScreen extends ConsumerStatefulWidget {
@@ -122,7 +130,7 @@ class _SourceCatalogScreenState extends ConsumerState<SourceCatalogScreen> {
   String _filter = 'all'; // 'all', 'enabled', 'paused', 'broken'
 
   List<_SourceSample> _buildSamples(List<CollectorSource>? liveItems) {
-    if (liveItems == null || liveItems.isEmpty) return _fallbackSources;
+    if (liveItems == null || liveItems.isEmpty) return _buildFallbackSources();
     return [
       for (final s in liveItems)
         _SourceSample(
@@ -300,6 +308,15 @@ class _SourceCatalogScreenState extends ConsumerState<SourceCatalogScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _SourceSampleCard(
                           item: item,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => SourceDetailScreen(
+                                sourceId: item.id,
+                                sourceName: item.name,
+                                lottery: ref.read(selectedLotteryProvider),
+                              ),
+                            ),
+                          ),
                           onTestRun: () => _testRunSource(context, item),
                         ),
                       ),
@@ -317,11 +334,12 @@ class _SourceCatalogScreenState extends ConsumerState<SourceCatalogScreen> {
     BuildContext context,
     _SourceSample item,
   ) async {
+    final lottery = ref.read(selectedLotteryProvider);
     if (ref.read(canOperateProvider)) {
       try {
         final result = await ref
             .read(collectorRepositoryProvider)
-            .testSource(sourceId: item.id, lottery: 'macau');
+            .testSource(sourceId: item.id, lottery: lottery.code);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -392,10 +410,12 @@ class _KpiMiniCard extends StatelessWidget {
 class _SourceSampleCard extends StatelessWidget {
   const _SourceSampleCard({
     required this.item,
+    required this.onTap,
     required this.onTestRun,
   });
 
   final _SourceSample item;
+  final VoidCallback onTap;
   final VoidCallback onTestRun;
 
   @override
@@ -409,67 +429,72 @@ class _SourceSampleCard extends StatelessWidget {
     return GlassGroup(
       margin: EdgeInsets.zero,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+        InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        ZTag(label: item.playLabel),
-                        GlassStatusPill(
-                          label: statusLabel,
-                          color: statusColor,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'ID ${item.id} · ${item.lastTime}',
-                      style: context.texts.labelSmall,
-                    ),
-                  ],
-                ),
-              ),
-              if (item.hitRateLabel != null) ...[
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      item.hitRateLabel!,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: item.hitColor,
+                          ZTag(label: item.playLabel),
+                          GlassStatusPill(
+                            label: statusLabel,
+                            color: statusColor,
+                          ),
+                        ],
                       ),
-                    ),
-                    Text(
-                      '命中率',
-                      style: context.texts.labelSmall?.copyWith(fontSize: 10.5),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'ID ${item.id} · ${item.lastTime}',
+                        style: context.texts.labelSmall,
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 8),
+                if (item.hitRateLabel != null) ...[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        item.hitRateLabel!,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: item.hitColor,
+                        ),
+                      ),
+                      Text(
+                        '命中率',
+                        style: context.texts.labelSmall?.copyWith(
+                          fontSize: 10.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ],
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ],
+            ),
           ),
         ),
         Padding(
@@ -644,59 +669,100 @@ class _MonitorScreenState extends ConsumerState<MonitorScreen> {
                     ),
 
                     // Missing Period Monitor
-                    const DesignSectionHeader(
-                      title: '缺期监控',
-                      trailingText: '待确认 2 项',
-                    ),
-                    GlassGroup(
-                      margin: EdgeInsets.zero,
-                      children: [
-                        _MissingMonitorRow(
-                          title: '肖中特-老钱',
-                          subtitle: '缺 3 期 · 第 2026274~2026276 期',
-                          statusLabel: _confirmedMissing.contains('xzt')
-                              ? '已确认'
-                              : '异常',
-                          statusColor: _confirmedMissing.contains('xzt')
-                              ? DuiliaoColors.pending
-                              : DuiliaoColors.miss,
-                          showConfirmButton:
-                              !_confirmedMissing.contains('xzt'),
-                          onConfirm: () => setState(() {
-                            _confirmedMissing.add('xzt');
-                          }),
-                        ),
-                        const _MissingMonitorRow(
-                          title: '白小组',
-                          subtitle: '缺 2 期 · 第 2026275~2026276 期',
-                          statusLabel: '待确认',
-                          statusColor: DuiliaoColors.warning,
-                        ),
-                        const _MissingMonitorRow(
-                          title: '管家婆传真',
-                          subtitle: '缺 1 期 · 第 2026276 期',
-                          statusLabel: '待确认',
-                          statusColor: DuiliaoColors.warning,
-                        ),
-                      ],
+                    Builder(
+                      builder: (context) {
+                        final cur = currentPeriodForLottery(lottery);
+                        final p1 = previousPeriodOf(cur, 1);
+                        final p2 = previousPeriodOf(cur, 2);
+                        final p3 = previousPeriodOf(cur, 3);
+                        final pendingCount =
+                            (2 - _confirmedMissing.length).clamp(0, 3);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            DesignSectionHeader(
+                              title: '缺期监控',
+                              trailingText: pendingCount > 0
+                                  ? '待确认 $pendingCount 项'
+                                  : '已全部确认',
+                            ),
+                            GlassGroup(
+                              margin: EdgeInsets.zero,
+                              children: [
+                                _MissingMonitorRow(
+                                  title: '肖中特-老钱',
+                                  subtitle: '缺 3 期 · 第 $p3~$p1 期',
+                                  statusLabel:
+                                      _confirmedMissing.contains('xzt')
+                                      ? '已确认'
+                                      : '异常',
+                                  statusColor:
+                                      _confirmedMissing.contains('xzt')
+                                      ? DuiliaoColors.pending
+                                      : DuiliaoColors.miss,
+                                  showConfirmButton:
+                                      !_confirmedMissing.contains('xzt'),
+                                  onConfirm: () => setState(() {
+                                    _confirmedMissing.add('xzt');
+                                  }),
+                                ),
+                                _MissingMonitorRow(
+                                  title: '白小组',
+                                  subtitle: '缺 2 期 · 第 $p2~$p1 期',
+                                  statusLabel:
+                                      _confirmedMissing.contains('bxz')
+                                      ? '已确认'
+                                      : '待确认',
+                                  statusColor:
+                                      _confirmedMissing.contains('bxz')
+                                      ? DuiliaoColors.pending
+                                      : DuiliaoColors.warning,
+                                  showConfirmButton:
+                                      !_confirmedMissing.contains('bxz'),
+                                  onConfirm: () => setState(() {
+                                    _confirmedMissing.add('bxz');
+                                  }),
+                                ),
+                                _MissingMonitorRow(
+                                  title: '管家婆传真',
+                                  subtitle: '缺 1 期 · 第 $p1 期',
+                                  statusLabel:
+                                      _confirmedMissing.contains('gjp')
+                                      ? '已确认'
+                                      : '待确认',
+                                  statusColor:
+                                      _confirmedMissing.contains('gjp')
+                                      ? DuiliaoColors.pending
+                                      : DuiliaoColors.warning,
+                                  showConfirmButton:
+                                      !_confirmedMissing.contains('gjp'),
+                                  onConfirm: () => setState(() {
+                                    _confirmedMissing.add('gjp');
+                                  }),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
                     ),
 
                     // Inspection Records
                     const DesignSectionHeader(title: '巡检记录'),
                     GlassGroup(
                       margin: EdgeInsets.zero,
-                      children: const [
+                      children: [
                         _InspectionRow(
                           title: '巡检完成 · 发现 2 异常',
-                          subtitle: '09-26 21:40 · 覆盖 28 源',
+                          subtitle: '${recentChinaMmDd(0)} 21:40 · 覆盖 28 源',
                         ),
                         _InspectionRow(
                           title: '巡检完成 · 发现 1 异常',
-                          subtitle: '09-26 12:05 · 覆盖 28 源',
+                          subtitle: '${recentChinaMmDd(0)} 12:05 · 覆盖 28 源',
                         ),
                         _InspectionRow(
                           title: '巡检完成 · 全部正常',
-                          subtitle: '09-25 21:38 · 覆盖 27 源',
+                          subtitle: '${recentChinaMmDd(1)} 21:38 · 覆盖 27 源',
                         ),
                       ],
                     ),
@@ -1485,7 +1551,14 @@ class _DbTableRow extends StatelessWidget {
 
 /// Consensus Leaderboard Screen (consensus-board.html).
 class ConsensusBoardScreen extends ConsumerStatefulWidget {
-  const ConsensusBoardScreen({super.key});
+  const ConsensusBoardScreen({
+    super.key,
+    this.initialLottery,
+    this.initialPeriod,
+  });
+
+  final Lottery? initialLottery;
+  final String? initialPeriod;
 
   @override
   ConsumerState<ConsensusBoardScreen> createState() =>
@@ -1493,13 +1566,225 @@ class ConsensusBoardScreen extends ConsumerStatefulWidget {
 }
 
 class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
-  Lottery _lottery = Lottery.macau;
-  String _period = '2026277';
+  Lottery? _lotteryOverride;
+  String? _selectedPeriod;
   int _tabIndex = 0; // 0: 候选排行榜, 1: 玩法组共识, 2: 入库与核验
 
   @override
+  void initState() {
+    super.initState();
+    _lotteryOverride = widget.initialLottery;
+    _selectedPeriod = widget.initialPeriod;
+  }
+
+  Future<void> _showPeriodPickerSheet(
+    BuildContext context, {
+    required String currentPeriod,
+    required String prevPeriod,
+    required String activePeriod,
+    required List<String> selectablePeriods,
+  }) async {
+    final periods = <String>{
+      currentPeriod,
+      prevPeriod,
+      ...selectablePeriods,
+      for (var i = 2; i <= 15; i++) previousPeriodOf(currentPeriod, i),
+    }.toList();
+
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).brightness == Brightness.dark
+              ? const Color(0xFF141826)
+              : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '选择共识统计期号',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                TextButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await _showCustomPeriodDialog(context, activePeriod);
+                  },
+                  icon: const Icon(Icons.edit_rounded, size: 15),
+                  label: const Text('自定义期号'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: periods.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (ctx, i) {
+                  final p = periods[i];
+                  final isCurrent = p == currentPeriod;
+                  final isPrev = p == prevPeriod;
+                  final isSelected = p == activePeriod;
+                  return ListTile(
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+                    title: Row(
+                      children: [
+                        Text(
+                          '第 $p 期',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: isSelected
+                                ? Theme.of(ctx).colorScheme.primary
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (isCurrent)
+                          const ZTag(
+                            label: '当前期 · 实时',
+                            variant: ZTagVariant.primary,
+                          )
+                        else if (isPrev)
+                          const ZTag(label: '上期 · 已开奖'),
+                      ],
+                    ),
+                    trailing: isSelected
+                        ? Icon(
+                            Icons.check_circle_rounded,
+                            size: 18,
+                            color: Theme.of(ctx).colorScheme.primary,
+                          )
+                        : null,
+                    onTap: () => Navigator.pop(ctx, p),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && picked.isNotEmpty && mounted) {
+      setState(() => _selectedPeriod = picked);
+    }
+  }
+
+  Future<void> _showCustomPeriodDialog(
+    BuildContext context,
+    String activePeriod,
+  ) async {
+    final ctrl = TextEditingController(text: activePeriod);
+    final res = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('输入自定义期号'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '例如 $activePeriod',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (res != null && res.isNotEmpty && mounted) {
+      final normalized =
+          (res.length <= 3 && int.tryParse(res) != null)
+          ? '${nowInChina().year}${res.padLeft(3, '0')}'
+          : res;
+      setState(() => _selectedPeriod = normalized);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final isLive = _period == '2026277';
+    ref.listen<Lottery>(selectedLotteryProvider, (prev, next) {
+      if (prev != next && widget.initialLottery == null && mounted) {
+        setState(() {
+          _lotteryOverride = null;
+          _selectedPeriod = null;
+        });
+      }
+    });
+    final globalLottery = ref.watch(selectedLotteryProvider);
+    final lottery = _lotteryOverride ?? globalLottery;
+    final periodCtx = ref.watch(recordPeriodContextProvider(lottery)).value;
+    final currentPeriod =
+        periodCtx?.currentPeriod ?? currentPeriodForLottery(lottery);
+    final prevPeriod = previousPeriodOf(currentPeriod, 1);
+    final activePeriod = _selectedPeriod ?? currentPeriod;
+    final selectablePeriods = periodCtx?.selectablePeriods ?? <String>[];
+
+    final consensusAsync = ref.watch(
+      consensusProvider((
+        lottery: lottery,
+        period: activePeriod,
+        playType: '',
+      )),
+    );
+    final consensusResult = consensusAsync.value?.result;
+    final hasOfficialDraw = consensusResult?.draw != null;
+    final isLive = activePeriod == currentPeriod && !hasOfficialDraw;
+
+    final leadTema =
+        (consensusResult != null && consensusResult.temaTallies.isNotEmpty)
+        ? consensusResult.temaTallies.first
+        : null;
+    final leadTemaNum = (leadTema?.value ?? '26').padLeft(2, '0');
+    final leadTemaBose = Lottery2026Lookup.boseForNumber(
+      int.tryParse(leadTemaNum) ?? 26,
+    );
+    final leadTemaMeta = leadTema != null
+        ? '${leadTema.votes} 票 · ${leadTema.percentage.toStringAsFixed(1)}% · ${leadTema.sources.isNotEmpty ? leadTema.sources.length : leadTema.votes} 个来源组'
+        : '8 票 · 66.7% · 8 个来源组';
+
+    final leadTexiao =
+        (consensusResult != null && consensusResult.texiaoTallies.isNotEmpty)
+        ? consensusResult.texiaoTallies.first
+        : null;
+    final leadTexiaoVal = leadTexiao?.value ?? '蛇';
+    final leadTexiaoMeta = leadTexiao != null
+        ? '${leadTexiao.votes} 票 · ${leadTexiao.percentage.toStringAsFixed(1)}% · ${leadTexiao.sources.isNotEmpty ? leadTexiao.sources.length : leadTexiao.votes} 个来源组'
+        : '7 票 · 58.3% · 7 个来源组';
+
+    final rawDrawDate = consensusResult?.draw?.drawDate ?? '';
+    final periodOffset =
+        ((int.tryParse(currentPeriod) ?? 0) -
+                (int.tryParse(activePeriod) ?? 0))
+            .clamp(0, 365);
+    final cutoffDate = rawDrawDate.length >= 10
+        ? rawDrawDate.substring(5, 10)
+        : recentChinaMmDd(isLive ? 0 : (periodOffset > 0 ? periodOffset : 1));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -1528,7 +1813,10 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                     tooltip: '多源对照明细',
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const ComparisonScreen(),
+                        builder: (_) => ComparisonScreen(
+                          lottery: lottery,
+                          initialPeriod: activePeriod,
+                        ),
                       ),
                     ),
                   ),
@@ -1555,8 +1843,16 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                               for (final l in Lottery.all)
                                 GlassChipTag(
                                   label: l.label,
-                                  active: l == _lottery,
-                                  onTap: () => setState(() => _lottery = l),
+                                  active: l == lottery,
+                                  onTap: () {
+                                    ref
+                                        .read(selectedLotteryProvider.notifier)
+                                        .set(l);
+                                    setState(() {
+                                      _lotteryOverride = l;
+                                      _selectedPeriod = null;
+                                    });
+                                  },
                                 ),
                             ],
                           ),
@@ -1568,16 +1864,36 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                             runSpacing: 6,
                             children: [
                               GlassChipTag(
-                                label: '第 2026277 期',
-                                active: _period == '2026277',
-                                onTap: () =>
-                                    setState(() => _period = '2026277'),
+                                label: '第 $currentPeriod 期',
+                                active: activePeriod == currentPeriod,
+                                onTap: () => setState(
+                                  () => _selectedPeriod = currentPeriod,
+                                ),
                               ),
                               GlassChipTag(
-                                label: '第 2026276 期',
-                                active: _period == '2026276',
-                                onTap: () =>
-                                    setState(() => _period = '2026276'),
+                                label: '第 $prevPeriod 期',
+                                active: activePeriod == prevPeriod,
+                                onTap: () => setState(
+                                  () => _selectedPeriod = prevPeriod,
+                                ),
+                              ),
+                              if (activePeriod != currentPeriod &&
+                                  activePeriod != prevPeriod)
+                                GlassChipTag(
+                                  label: '第 $activePeriod 期',
+                                  active: true,
+                                  onTap: () {},
+                                ),
+                              GlassChipTag(
+                                label: '选期 ▾',
+                                active: false,
+                                onTap: () => _showPeriodPickerSheet(
+                                  context,
+                                  currentPeriod: currentPeriod,
+                                  prevPeriod: prevPeriod,
+                                  activePeriod: activePeriod,
+                                  selectablePeriods: selectablePeriods,
+                                ),
                               ),
                             ],
                           ),
@@ -1588,8 +1904,8 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                               Expanded(
                                 child: Text(
                                   isLive
-                                      ? '统计截止 09-26 21:10 · 实时预测版本'
-                                      : '统计截止 09-26 21:32 · 已冻结不可变快照',
+                                      ? '统计截止 $cutoffDate 21:10 · 实时预测版本'
+                                      : '统计截止 $cutoffDate 21:32 · 已冻结不可变快照',
                                   style: context.texts.labelSmall,
                                 ),
                               ),
@@ -1656,17 +1972,17 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                                         style: context.texts.labelSmall,
                                       ),
                                       const SizedBox(height: 7),
-                                      const Row(
+                                      Row(
                                         children: [
                                           NumberBall(
-                                            number: '26',
-                                            bose: 'blue',
+                                            number: leadTemaNum,
+                                            bose: leadTemaBose,
                                             size: 28,
                                           ),
-                                          SizedBox(width: 8),
+                                          const SizedBox(width: 8),
                                           Text(
-                                            '26 号',
-                                            style: TextStyle(
+                                            '$leadTemaNum 号',
+                                            style: const TextStyle(
                                               fontSize: 17,
                                               fontWeight: FontWeight.w800,
                                             ),
@@ -1675,7 +1991,7 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        '8 票 · 66.7% · 8 个来源组',
+                                        leadTemaMeta,
                                         style: context.texts.labelSmall
                                             ?.copyWith(fontSize: 10.5),
                                       ),
@@ -1696,18 +2012,18 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                                         style: context.texts.labelSmall,
                                       ),
                                       const SizedBox(height: 7),
-                                      const Row(
+                                      Row(
                                         children: [
                                           BrandLogoBox(
-                                            label: '蛇',
+                                            label: leadTexiaoVal,
                                             size: 30,
                                             borderRadius: 9,
                                             fontSize: 14,
                                           ),
-                                          SizedBox(width: 8),
+                                          const SizedBox(width: 8),
                                           Text(
-                                            '蛇肖',
-                                            style: TextStyle(
+                                            '$leadTexiaoVal肖',
+                                            style: const TextStyle(
                                               fontSize: 17,
                                               fontWeight: FontWeight.w800,
                                             ),
@@ -1716,7 +2032,7 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        '7 票 · 58.3% · 7 个来源组',
+                                        leadTexiaoMeta,
                                         style: context.texts.labelSmall
                                             ?.copyWith(fontSize: 10.5),
                                       ),
@@ -1743,9 +2059,17 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                       onChanged: (v) => setState(() => _tabIndex = v),
                     ),
 
-                    if (_tabIndex == 0) _buildCandidateTab(context, isLive),
-                    if (_tabIndex == 1) _buildPlayGroupTab(context, isLive),
-                    if (_tabIndex == 2) _buildAuditTab(context, isLive),
+                    if (_tabIndex == 0)
+                      _buildCandidateTab(context, isLive, consensusResult),
+                    if (_tabIndex == 1)
+                      _buildPlayGroupTab(context, isLive, consensusResult),
+                    if (_tabIndex == 2)
+                      _buildAuditTab(
+                        context,
+                        isLive,
+                        activePeriod,
+                        consensusResult,
+                      ),
                   ],
                 ),
               ),
@@ -1756,90 +2080,146 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
     );
   }
 
-  Widget _buildCandidateTab(BuildContext context, bool isLive) {
-    final temaItems = [
-      (
-        rank: 1,
-        val: '26',
-        votes: 8,
-        pct: 0.667,
-        pctLabel: '66.7%',
-        hit: !isLive,
-        sources: const [
-          '海哥平特一肖／第1组',
-          '顶尖大师',
-          '管家婆传真',
-          '白小组',
-          '澳门资料王',
-          '龙门客栈',
-          '四海资料',
-          '红波大师',
-        ],
-      ),
-      (
-        rank: 2,
-        val: '14',
-        votes: 6,
-        pct: 0.50,
-        pctLabel: '50.0%',
-        hit: false,
-        sources: const [
-          '顶尖大师',
-          '管家婆传真',
-          '白小组',
-          '澳门资料王',
-          '资料研究院',
-          '龙门客栈',
-        ],
-      ),
-      (
-        rank: 3,
-        val: '03',
-        votes: 5,
-        pct: 0.417,
-        pctLabel: '41.7%',
-        hit: false,
-        sources: const ['海哥平特一肖／第2组', '顶尖大师', '四海资料', '资料研究院', '新澳资料'],
-      ),
-    ];
+  Widget _buildCandidateTab(
+    BuildContext context,
+    bool isLive,
+    ConsensusResult? consensusResult,
+  ) {
+    final hasLiveTema =
+        consensusResult != null && consensusResult.temaTallies.isNotEmpty;
+    final temaItems = hasLiveTema
+        ? [
+            for (
+              var i = 0;
+              i < consensusResult.temaTallies.take(10).length;
+              i++
+            )
+              (
+                rank: i + 1,
+                val: consensusResult.temaTallies[i].value.padLeft(2, '0'),
+                votes: consensusResult.temaTallies[i].votes,
+                pct: consensusResult.temaTallies[i].barFraction,
+                pctLabel:
+                    '${consensusResult.temaTallies[i].percentage.toStringAsFixed(1)}%',
+                hit: consensusResult.temaTallies[i].hit ?? false,
+                sources: consensusResult.temaTallies[i].sources,
+              ),
+          ]
+        : [
+            (
+              rank: 1,
+              val: '26',
+              votes: 8,
+              pct: 0.667,
+              pctLabel: '66.7%',
+              hit: !isLive,
+              sources: const [
+                '海哥平特一肖／第1组',
+                '顶尖大师',
+                '管家婆传真',
+                '白小组',
+                '澳门资料王',
+                '龙门客栈',
+                '四海资料',
+                '红波大师',
+              ],
+            ),
+            (
+              rank: 2,
+              val: '14',
+              votes: 6,
+              pct: 0.50,
+              pctLabel: '50.0%',
+              hit: false,
+              sources: const [
+                '顶尖大师',
+                '管家婆传真',
+                '白小组',
+                '澳门资料王',
+                '资料研究院',
+                '龙门客栈',
+              ],
+            ),
+            (
+              rank: 3,
+              val: '03',
+              votes: 5,
+              pct: 0.417,
+              pctLabel: '41.7%',
+              hit: false,
+              sources: const [
+                '海哥平特一肖／第2组',
+                '顶尖大师',
+                '四海资料',
+                '资料研究院',
+                '新澳资料',
+              ],
+            ),
+          ];
 
-    final xiaoItems = [
-      (
-        rank: 1,
-        val: '蛇',
-        votes: 7,
-        pct: 0.583,
-        pctLabel: '58.3%',
-        hit: !isLive,
-        sources: const [
-          '海哥平特一肖／第1组',
-          '顶尖大师',
-          '管家婆传真',
-          '白小组',
-          '澳门资料王',
-          '四海资料',
-          '红波大师',
-        ],
-      ),
-      (
-        rank: 2,
-        val: '龙',
-        votes: 5,
-        pct: 0.417,
-        pctLabel: '41.7%',
-        hit: false,
-        sources: const ['海哥平特一肖／第2组', '顶尖大师', '资料研究院', '龙门客栈', '新澳资料'],
-      ),
-      (
-        rank: 3,
-        val: '鸡',
-        votes: 4,
-        pct: 0.333,
-        pctLabel: '33.3%',
-        hit: false,
-        sources: const ['管家婆传真', '白小组', '澳门资料王', '红波大师'],
-      ),
-    ];
+    final hasLiveXiao =
+        consensusResult != null && consensusResult.texiaoTallies.isNotEmpty;
+    final xiaoItems = hasLiveXiao
+        ? [
+            for (
+              var i = 0;
+              i < consensusResult.texiaoTallies.take(8).length;
+              i++
+            )
+              (
+                rank: i + 1,
+                val: consensusResult.texiaoTallies[i].value,
+                votes: consensusResult.texiaoTallies[i].votes,
+                pct: consensusResult.texiaoTallies[i].barFraction,
+                pctLabel:
+                    '${consensusResult.texiaoTallies[i].percentage.toStringAsFixed(1)}%',
+                hit: consensusResult.texiaoTallies[i].hit ?? false,
+                sources: consensusResult.texiaoTallies[i].sources,
+              ),
+          ]
+        : [
+            (
+              rank: 1,
+              val: '蛇',
+              votes: 7,
+              pct: 0.583,
+              pctLabel: '58.3%',
+              hit: !isLive,
+              sources: const [
+                '海哥平特一肖／第1组',
+                '顶尖大师',
+                '管家婆传真',
+                '白小组',
+                '澳门资料王',
+                '四海资料',
+                '红波大师',
+              ],
+            ),
+            (
+              rank: 2,
+              val: '龙',
+              votes: 5,
+              pct: 0.417,
+              pctLabel: '41.7%',
+              hit: false,
+              sources: const [
+                '海哥平特一肖／第2组',
+                '顶尖大师',
+                '资料研究院',
+                '龙门客栈',
+                '新澳资料',
+              ],
+            ),
+            (
+              rank: 3,
+              val: '鸡',
+              votes: 4,
+              pct: 0.333,
+              pctLabel: '33.3%',
+              hit: false,
+              sources: const ['管家婆传真', '白小组', '澳门资料王', '红波大师'],
+            ),
+          ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1910,36 +2290,60 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
     );
   }
 
-  Widget _buildPlayGroupTab(BuildContext context, bool isLive) {
-    final groups = [
-      (
-        name: '特码',
-        code: 'tema_n',
-        leader: '26',
-        votes: 8,
-        total: 19,
-        sourceGroups: 8,
-        tally: const [('26', 8), ('14', 6), ('03', 5)],
-      ),
-      (
-        name: '特肖',
-        code: 'texiao',
-        leader: '蛇',
-        votes: 7,
-        total: 16,
-        sourceGroups: 7,
-        tally: const [('蛇', 7), ('龙', 5), ('鸡', 4)],
-      ),
-      (
-        name: '平特肖',
-        code: 'pingte_xiao',
-        leader: '蛇',
-        votes: 5,
-        total: 8,
-        sourceGroups: 5,
-        tally: const [('蛇', 5), ('龙', 3)],
-      ),
-    ];
+  Widget _buildPlayGroupTab(
+    BuildContext context,
+    bool isLive,
+    ConsensusResult? consensusResult,
+  ) {
+    final hasLiveGroups =
+        consensusResult != null && consensusResult.groups.isNotEmpty;
+    final groups = hasLiveGroups
+        ? [
+            for (final g in consensusResult.sortedGroups)
+              (
+                name: PlayTypes.labelFor(g.playType),
+                code: g.playType,
+                leader: (g.leader != null && g.leader!.isNotEmpty)
+                    ? g.leader!.map((a) => a.value).join(' ')
+                    : '—',
+                votes: g.leaderVotes,
+                total: g.nVotes > 0 ? g.nVotes : 1,
+                sourceGroups: g.nSources,
+                tally: [
+                  for (final t in g.sortedTally.take(5))
+                    (t.preds.map((a) => a.value).join(' '), t.votes),
+                ],
+              ),
+          ]
+        : [
+            (
+              name: '特码',
+              code: 'tema_n',
+              leader: '26',
+              votes: 8,
+              total: 19,
+              sourceGroups: 8,
+              tally: const [('26', 8), ('14', 6), ('03', 5)],
+            ),
+            (
+              name: '特肖',
+              code: 'texiao',
+              leader: '蛇',
+              votes: 7,
+              total: 16,
+              sourceGroups: 7,
+              tally: const [('蛇', 7), ('龙', 5), ('鸡', 4)],
+            ),
+            (
+              name: '平特肖',
+              code: 'pingte_xiao',
+              leader: '蛇',
+              votes: 5,
+              total: 8,
+              sourceGroups: 5,
+              tally: const [('蛇', 5), ('龙', 3)],
+            ),
+          ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2072,7 +2476,22 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
     );
   }
 
-  Widget _buildAuditTab(BuildContext context, bool isLive) {
+  Widget _buildAuditTab(
+    BuildContext context,
+    bool isLive,
+    String activePeriod,
+    ConsensusResult? consensusResult,
+  ) {
+    final draw = consensusResult?.draw;
+    final drawBalls = (draw != null && draw.balls.length >= 6)
+        ? draw.balls
+        : const ['03', '11', '19', '27', '34', '42'];
+    final drawTema = draw?.tema.padLeft(2, '0') ?? '26';
+    final drawTemaInt = int.tryParse(drawTema) ?? 26;
+    final drawTemaBose = Lottery2026Lookup.boseForNumber(drawTemaInt);
+    final drawTemaXiao =
+        draw?.summary?.temaXiao ?? Lottery2026Lookup.xiaoForNumber(drawTemaInt);
+
     final audits = isLive
         ? const [
             ('海哥平特一肖', '特肖 · 2 组已入库', '已入库', DuiliaoColors.primaryDark),
@@ -2080,10 +2499,20 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
             ('管家婆传真', '平特肖 · 1 组已入库', '已入库', DuiliaoColors.primaryDark),
             ('肖中特-老钱', '本期未采集', '缺期', DuiliaoColors.pending),
           ]
-        : const [
-            ('海哥平特一肖', '平特肖 · 领跑项命中蛇', '官方命中', DuiliaoColors.hit),
-            ('顶尖大师', '特码 · 领跑项命中 26', '官方命中', DuiliaoColors.hit),
-            ('管家婆传真', '平特肖 · 领跑项命中蛇', '官方命中', DuiliaoColors.hit),
+        : [
+            (
+              '海哥平特一肖',
+              '平特肖 · 领跑项命中$drawTemaXiao',
+              '官方命中',
+              DuiliaoColors.hit,
+            ),
+            ('顶尖大师', '特码 · 领跑项命中 $drawTema', '官方命中', DuiliaoColors.hit),
+            (
+              '管家婆传真',
+              '平特肖 · 领跑项命中$drawTemaXiao',
+              '官方命中',
+              DuiliaoColors.hit,
+            ),
             ('肖中特-老钱', '本期未采集', '缺期', DuiliaoColors.pending),
           ];
 
@@ -2177,7 +2606,7 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '第 2026276 期官方号码',
+                          '第 $activePeriod 期官方号码',
                           style: context.texts.labelSmall,
                         ),
                         const GlassStatusPill(
@@ -2191,26 +2620,21 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        for (final n in [
-                          '03',
-                          '11',
-                          '19',
-                          '27',
-                          '34',
-                          '42',
-                        ])
+                        for (final n in drawBalls.take(6))
                           NumberBall(
-                            number: n,
-                            bose: Lottery2026Lookup.boseForNumber(int.parse(n)),
+                            number: n.padLeft(2, '0'),
+                            bose: Lottery2026Lookup.boseForNumber(
+                              int.tryParse(n) ?? 1,
+                            ),
                             size: 28,
                           ),
                         const Text(
                           '+',
                           style: TextStyle(fontWeight: FontWeight.w800),
                         ),
-                        const NumberBall(
-                          number: '26',
-                          bose: 'blue',
+                        NumberBall(
+                          number: drawTema,
+                          bose: drawTemaBose,
                           isGold: true,
                           size: 28,
                         ),
@@ -2218,7 +2642,7 @@ class _ConsensusBoardScreenState extends ConsumerState<ConsensusBoardScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '特码 26 · 特肖 蛇 · 领跑项已完成官方核验',
+                      '特码 $drawTema · 特肖 $drawTemaXiao · 领跑项已完成官方核验',
                       style: context.texts.labelSmall?.copyWith(
                         color: DuiliaoColors.hit,
                         fontWeight: FontWeight.w700,

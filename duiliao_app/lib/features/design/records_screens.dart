@@ -364,21 +364,61 @@ final bettingRecordsProvider =
       BettingRecordsNotifier.new,
     );
 
+DateTime nowInChina([DateTime? now]) {
+  return (now ?? DateTime.now()).toUtc().add(const Duration(hours: 8));
+}
+
+String recentChinaMmDd([int daysAgo = 0, DateTime? now]) {
+  final cn = nowInChina(now).subtract(Duration(days: daysAgo));
+  return '${cn.month.toString().padLeft(2, '0')}-${cn.day.toString().padLeft(2, '0')}';
+}
+
+String recentChinaDateIso([int daysAgo = 0, DateTime? now]) {
+  final cn = nowInChina(now).subtract(Duration(days: daysAgo));
+  return '${cn.year}-${cn.month.toString().padLeft(2, '0')}-${cn.day.toString().padLeft(2, '0')}';
+}
+
 String _dateBasedPeriod([DateTime? now]) {
-  final cn = (now ?? DateTime.now()).toUtc().add(const Duration(hours: 8));
+  final cn = nowInChina(now);
   final doy = cn.difference(DateTime.utc(cn.year, 1, 1)).inDays + 1;
   return '${cn.year}${doy.toString().padLeft(3, '0')}';
+}
+
+String currentPeriodForLottery(Lottery lottery, [DateTime? now]) {
+  final cn = nowInChina(now);
+  final doy = cn.difference(DateTime.utc(cn.year, 1, 1)).inDays + 1;
+  if (lottery == Lottery.hk) {
+    // HK Mark Six draws 3 times per week (anchored to 2026-10-10 = 2026108, 2026-10-13 = 2026109).
+    final anchor = DateTime.utc(2026, 10, 10);
+    final cnDate = DateTime.utc(cn.year, cn.month, cn.day);
+    final daysDiff = cnDate.difference(anchor).inDays;
+    final approxSeq = (108 + ((daysDiff * 3 + 4) ~/ 7)).clamp(1, 160);
+    return '${cn.year}${approxSeq.toString().padLeft(3, '0')}';
+  }
+  return '${cn.year}${doy.toString().padLeft(3, '0')}';
+}
+
+String previousPeriodOf(String period, [int offset = 1]) {
+  final parsed = int.tryParse(period);
+  if (parsed != null) {
+    return '${parsed - offset}';
+  }
+  return period;
+}
+
+String nextPeriodOf(String period, [int offset = 1]) {
+  final parsed = int.tryParse(period);
+  if (parsed != null) {
+    return '${parsed + offset}';
+  }
+  return period;
 }
 
 String _nextPeriodFrom(String? latestDrawPeriod) {
   if (latestDrawPeriod == null || latestDrawPeriod.isEmpty) {
     return _dateBasedPeriod();
   }
-  final parsed = int.tryParse(latestDrawPeriod);
-  if (parsed != null) {
-    return '${parsed + 1}';
-  }
-  return latestDrawPeriod;
+  return nextPeriodOf(latestDrawPeriod, 1);
 }
 
 typedef RecordPeriodContext = ({
@@ -422,23 +462,20 @@ final recordPeriodContextProvider =
         }
       } catch (_) {}
 
-      final nowCn = DateTime.now().toUtc().add(const Duration(hours: 8));
-      final todayIso =
-          '${nowCn.year}-${nowCn.month.toString().padLeft(2, '0')}-${nowCn.day.toString().padLeft(2, '0')}';
-      final todayShort =
-          '${nowCn.month.toString().padLeft(2, '0')}-${nowCn.day.toString().padLeft(2, '0')}';
+      final todayIso = recentChinaDateIso(0);
+      final todayShort = recentChinaMmDd(0);
       final drawIsToday =
           latestDrawDate != null &&
           (latestDrawDate.contains(todayIso) ||
               latestDrawDate.startsWith(todayShort));
+
+      final dateFallback = currentPeriodForLottery(lottery);
 
       String resolvedCurrent;
       if (predictionPeriod != null &&
           predictionPeriod.isNotEmpty &&
           (officialPeriod == null ||
               predictionPeriod.compareTo(officialPeriod) >= 0)) {
-        // If prediction period is already ahead of official draw, it is the current period.
-        // If equal to official draw, check whether today's draw has already opened.
         if (predictionPeriod == officialPeriod && !drawIsToday) {
           resolvedCurrent = _nextPeriodFrom(officialPeriod);
         } else {
@@ -451,13 +488,18 @@ final recordPeriodContextProvider =
       } else if (serverCurrent != null && serverCurrent.isNotEmpty) {
         resolvedCurrent = serverCurrent;
       } else {
-        resolvedCurrent = _dateBasedPeriod(nowCn);
+        resolvedCurrent = dateFallback;
       }
 
-      final options = <String>[];
+      // Ensure stale database cursors from earlier days never make currentPeriod lag behind today.
+      if (resolvedCurrent.compareTo(dateFallback) < 0) {
+        resolvedCurrent = dateFallback;
+      }
+
+      final optionsSet = <String>{};
       void addPeriod(String? p) {
-        if (p != null && p.isNotEmpty && !options.contains(p)) {
-          options.add(p);
+        if (p != null && p.trim().isNotEmpty) {
+          optionsSet.add(p.trim());
         }
       }
 
@@ -473,10 +515,15 @@ final recordPeriodContextProvider =
       }
       final baseInt = int.tryParse(resolvedCurrent);
       if (baseInt != null) {
-        for (var i = 1; i <= 8; i++) {
+        for (var i = 1; i <= 15; i++) {
           addPeriod('${baseInt - i}');
         }
       }
+
+      final sorted = optionsSet.toList()..sort((a, b) => b.compareTo(a));
+      // Keep resolvedCurrent at index 0 so the default active chip is always currentPeriod.
+      sorted.remove(resolvedCurrent);
+      final options = <String>[resolvedCurrent, ...sorted];
 
       return (
         currentPeriod: resolvedCurrent,
@@ -544,13 +591,9 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
     final canPop = Navigator.of(context).canPop();
     final all = ref.watch(bettingRecordsProvider);
     final lottery = ref.watch(selectedLotteryProvider);
-    final homeSnap = ref
-        .watch(
-          homeProvider((lottery: lottery, playType: 'pingte_xiao')),
-        )
-        .value;
-    final latestOfficialPeriod = homeSnap?.snapshot.latestDraw?.period;
-    final defaultUpcomingPeriod = _nextPeriodFrom(latestOfficialPeriod);
+    final periodCtx = ref.watch(recordPeriodContextProvider(lottery)).value;
+    final defaultUpcomingPeriod =
+        periodCtx?.currentPeriod ?? currentPeriodForLottery(lottery);
 
     final pendingRecords = all.where((r) => r.status == 'pending').toList();
     final settledRecords = all.where((r) => r.status != 'pending').toList();
@@ -609,7 +652,7 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
         ? '第 ${pendingRecords.first.period} 期 · 待开奖'
         : (all.isNotEmpty
               ? '最新第 ${all.first.period} 期 · 自动对奖'
-              : '第 $defaultUpcomingPeriod 期 · 今晚 21:30 开奖');
+              : '第 $defaultUpcomingPeriod 期 · 今晚 21:34 开奖');
 
     final content = SafeArea(
       bottom: false,
@@ -646,6 +689,15 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                   tooltip: '清空记录',
                   onTap: () => _confirmClearRecords(context, filtered.length),
                 ),
+              GlassIconButton(
+                icon: Icons.filter_center_focus_rounded,
+                tooltip: '挑码助手',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const JumpCodeAssistantScreen(),
+                  ),
+                ),
+              ),
               GlassIconButton(
                 icon: Icons.bar_chart_rounded,
                 tooltip: '统计',
@@ -926,7 +978,7 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
     final hasPending = items.any((r) => r.status == 'pending');
     if (hasPending) {
       return const GlassStatusPill(
-        label: '待开奖 · 今晚 21:30',
+        label: '待开奖 · 今晚 21:34',
         tone: GlassPillTone.warning,
         pulse: true,
       );
@@ -1593,6 +1645,35 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   }
 
   List<String> _parseNumbers(String text) {
+    if (_mode != '连肖复试') {
+      final parsed = JumpCodeMatcher.parseExpression(text);
+      final hasNonXiaoAttr = parsed.includedConditions.any(
+        (c) => !Lottery2026Lookup.xiaoList.contains(c),
+      );
+      if (parsed.hasKillClause ||
+          parsed.excludedConditions.isNotEmpty ||
+          parsed.excludedNumbers.isNotEmpty ||
+          hasNonXiaoAttr) {
+        final onlyHeadTailOrXiao = parsed.includedConditions.every(
+          (c) =>
+              c.endsWith('头') ||
+              c.endsWith('尾') ||
+              Lottery2026Lookup.xiaoList.contains(c),
+        );
+        final evaluated = JumpCodeMatcher.evaluate(
+          includedConditions: parsed.includedConditions,
+          excludedConditions: parsed.excludedConditions,
+          includedNumbers: parsed.includedNumbers,
+          excludedNumbers: parsed.excludedNumbers,
+          defaultEmptyKeepAll: false,
+          crossGroupIntersectionForIncluded: !onlyHeadTailOrXiao,
+        );
+        return [
+          for (final n in evaluated) n.toString().padLeft(2, '0'),
+        ];
+      }
+    }
+
     var cleaned = text.replaceAll(_stakePrefixRe, '');
     cleaned = cleaned.replaceAll(_stakeSuffixRe, '');
     cleaned = cleaned.replaceAll(RegExp(r'[·\s]*\d+\s*不中.*$'), '');
@@ -1627,6 +1708,22 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   }
 
   List<String> _parseXiaos(String text) {
+    final parsed = JumpCodeMatcher.parseExpression(text);
+    if (parsed.hasKillClause || parsed.excludedConditions.isNotEmpty) {
+      final killedXiaos = parsed.excludedConditions
+          .where(Lottery2026Lookup.xiaoList.contains)
+          .toSet();
+      final pickedXiaos = parsed.includedConditions
+          .where(Lottery2026Lookup.xiaoList.contains)
+          .toList();
+      if (_mode == '连肖复试') {
+        final base = pickedXiaos.isNotEmpty
+            ? pickedXiaos
+            : Lottery2026Lookup.xiaoList;
+        return base.where((x) => !killedXiaos.contains(x)).toList();
+      }
+      return pickedXiaos.where((x) => !killedXiaos.contains(x)).toList();
+    }
     final result = <String>[];
     for (final ch in text.characters) {
       if (Lottery2026Lookup.xiaoList.contains(ch) && !result.contains(ch)) {
@@ -1756,6 +1853,17 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                 title: _headerTitle,
                 actions: [
                   GlassIconButton(
+                    icon: Icons.filter_center_focus_rounded,
+                    tooltip: '挑码助手',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const JumpCodeAssistantScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  GlassIconButton(
                     icon: Icons.help_outline_rounded,
                     tooltip: '帮助',
                     onTap: () {
@@ -1804,18 +1912,6 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                     _lottery = item;
                                     _periodManuallySet = false;
                                   }),
-                                ),
-                              for (final extra in const ['台湾', '新彩'])
-                                GlassChipTag(
-                                  label: extra,
-                                  compact: true,
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('$extra 彩种目录可在玩法目录查看'),
-                                      ),
-                                    );
-                                  },
                                 ),
                             ],
                           ),
@@ -1965,6 +2061,11 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 onTap: () => _applyQuickText('龙兔各数5'),
                               ),
                               GlassChipTag(
+                                label: '示例：杀1头，2尾各5',
+                                compact: true,
+                                onTap: () => _applyQuickText('杀1头，2尾各5'),
+                              ),
+                              GlassChipTag(
                                 label: '示例：复试3,4连一组5块',
                                 compact: true,
                                 onTap: () => _applyQuickText(
@@ -1981,30 +2082,42 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 6,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              GlassStatusPill(
-                                label: switch (_mode) {
-                                  '连肖复试' =>
-                                    '已识别 ${xiaos.length} 个生肖 · 复试 $fushiKLabel 连 · 单注 ¥$stake',
-                                  '不中码' =>
-                                    '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
-                                  _ =>
-                                    xiaos.isNotEmpty
-                                        ? '已识别 ${xiaos.join('')}转 ${numbers.length} 个号码 · 单注 ¥$stake'
-                                        : '已识别 ${numbers.length} 个号码 · 单注 ¥$stake',
-                                },
-                                tone: GlassPillTone.success,
-                              ),
-                              const GlassStatusPill(
-                                label: '格式有效',
-                                tone: GlassPillTone.primary,
-                                showDot: false,
-                              ),
-                            ],
+                          Builder(
+                            builder: (context) {
+                              final pk = JumpCodeMatcher.parseExpression(text);
+                              final killLabels = [
+                                ...pk.excludedConditions,
+                                for (final n in pk.excludedNumbers)
+                                  n.toString().padLeft(2, '0'),
+                              ];
+                              return Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  GlassStatusPill(
+                                    label: switch (_mode) {
+                                      '连肖复试' =>
+                                        '已识别 ${xiaos.length} 个生肖 · 复试 $fushiKLabel 连 · 单注 ¥$stake',
+                                      '不中码' =>
+                                        '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
+                                      _ =>
+                                        killLabels.isNotEmpty
+                                            ? '已杀 [${killLabels.join('、')}] · 保留 ${numbers.length} 码 · 单注 ¥$stake'
+                                            : (xiaos.isNotEmpty
+                                                  ? '已识别 ${xiaos.join('')}转 ${numbers.length} 个号码 · 单注 ¥$stake'
+                                                  : '已识别 ${numbers.length} 个号码 · 单注 ¥$stake'),
+                                    },
+                                    tone: GlassPillTone.success,
+                                  ),
+                                  const GlassStatusPill(
+                                    label: '格式有效',
+                                    tone: GlassPillTone.primary,
+                                    showDot: false,
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -2037,21 +2150,41 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               ],
                             )
                           else ...[
-                            if (xiaos.isNotEmpty) ...[
-                              Wrap(
-                                spacing: 6,
-                                runSpacing: 6,
-                                children: [
-                                  for (final x in xiaos)
-                                    ZTag(
-                                      label:
-                                          '$x (${Lottery2026Lookup.numbersForXiao(x).join("·")})',
-                                      variant: ZTagVariant.primary,
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                            ],
+                            Builder(
+                              builder: (context) {
+                                final pk = JumpCodeMatcher.parseExpression(
+                                  text,
+                                );
+                                final killLabels = [
+                                  ...pk.excludedConditions,
+                                  for (final n in pk.excludedNumbers)
+                                    n.toString().padLeft(2, '0'),
+                                ];
+                                if (killLabels.isEmpty && xiaos.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: [
+                                      for (final k in killLabels)
+                                        ZTag(
+                                          label: '已杀: $k',
+                                          variant: ZTagVariant.primary,
+                                        ),
+                                      for (final x in xiaos)
+                                        ZTag(
+                                          label:
+                                              '$x (${Lottery2026Lookup.numbersForXiao(x).join("·")})',
+                                          variant: ZTagVariant.hit,
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                             Wrap(
                               spacing: 6,
                               runSpacing: 6,
@@ -2607,14 +2740,14 @@ class RecordDetailScreen extends ConsumerWidget {
         ? (all.where((r) => r.id == record!.id).firstOrNull ?? record!)
         : (all.isNotEmpty
               ? all.first
-              : const BettingRecordItem(
+              : BettingRecordItem(
                   id: 'empty',
                   lottery: Lottery.macau,
-                  period: '2026277',
+                  period: currentPeriodForLottery(Lottery.macau),
                   playType: '正码',
                   timeLabel: '',
-                  numbers: [],
-                  xiaos: [],
+                  numbers: const [],
+                  xiaos: const [],
                   stakePerNote: 5,
                   multiplier: 1,
                   notesCount: 0,
@@ -2781,7 +2914,7 @@ class RecordDetailScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '第 ${item.period} 期 · ${hasDraw && item.drawTime.isNotEmpty ? item.drawTime : '等待今晚 21:30 开奖'}',
+                            '第 ${item.period} 期 · ${hasDraw && item.drawTime.isNotEmpty ? item.drawTime : '等待今晚 21:34 开奖'}',
                             style: context.texts.labelSmall?.copyWith(
                               fontSize: 11,
                             ),
@@ -2833,7 +2966,7 @@ class RecordDetailScreen extends ConsumerWidget {
                           const SizedBox(height: 12),
                           Center(
                             child: GlassChipTag(
-                              label: isPending ? '等待今晚 21:30 官方开奖' : '号码命中',
+                              label: isPending ? '等待今晚 21:34 官方开奖' : '号码命中',
                               trailingText: isPending
                                   ? null
                                   : '${item.hitNumbers.length} 个 · 命中率 $hitRate%',

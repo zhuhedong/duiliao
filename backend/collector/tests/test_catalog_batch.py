@@ -194,6 +194,26 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(len(rows13), 1)
         self.assertEqual([a["value"] for a in rows13[0].preds], ["龙", "虎"])
 
+        # 14. jinpai_1x3m
+        raw_jp3 = "第282期\n猴-23\n防:05-17-29\n开奖: 猴23 中\n第285期\n金牌秘报\n开奖: 發88 中"
+        rows14 = extract_dingjian_column(raw_jp3, "jinpai_1x3m")
+        self.assertEqual(len(rows14), 1)
+        self.assertEqual(rows14[0].preds[0]["value"], "猴")
+        self.assertEqual([a["value"] for a in rows14[0].preds[1:]], ["23", "05", "17", "29"])
+
+        # 15. wangzhe_duijue
+        raw_wzdj = "第282期开奖：猴23准\n王者对决\n【鸡】\nVS\n【牛】\n第285期开奖：鼠19准\n王者对决\n【發】\nVS\n【财】"
+        rows15 = extract_dingjian_column(raw_wzdj, "wangzhe_duijue")
+        self.assertEqual(len(rows15), 1)
+        self.assertEqual([a["value"] for a in rows15[0].preds], ["鸡", "牛"])
+
+        # 16. zhongbang_2x4m
+        raw_zb = "282期🔥重磅提炼🔥 开:猴23准\n👉猴‧虎（重中之重）\n👉01.49.21.33（精简绝杀）\n286期🔥重磅提炼🔥 开:發00准\n👉發‧财（重中之重）\n👉88.88.88.88（精简绝杀）"
+        rows16 = extract_dingjian_column(raw_zb, "zhongbang_2x4m")
+        self.assertEqual(len(rows16), 1)
+        self.assertEqual([a["value"] for a in rows16[0].preds[:2]], ["猴", "虎"])
+        self.assertEqual([a["value"] for a in rows16[0].preds[2:]], ["01", "49", "21", "33"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

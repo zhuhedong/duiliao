@@ -35,6 +35,9 @@ class ConsensusScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ConsensusBoardScreen();
+    return ConsensusBoardScreen(
+      initialLottery: lottery,
+      initialPeriod: initialPeriod,
+    );
   }
 }

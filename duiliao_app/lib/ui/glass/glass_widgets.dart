@@ -1462,14 +1462,18 @@ class GlassGhostButton extends StatelessWidget {
               children: [
                 if (icon != null) ...[
                   Icon(icon, size: compact ? 12 : 14, color: fg),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 5),
                 ],
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: effectiveFontSize,
-                    fontWeight: FontWeight.w500,
-                    color: fg,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: effectiveFontSize,
+                      fontWeight: FontWeight.w500,
+                      color: fg,
+                    ),
                   ),
                 ),
               ],
@@ -1714,7 +1718,7 @@ class DesignAppHeader extends StatelessWidget {
       return Padding(
         padding: padding,
         child: SizedBox(
-          height: subtitle != null ? 42 : 36,
+          height: subtitle != null ? 46 : 36,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -1730,26 +1734,33 @@ class DesignAppHeader extends StatelessWidget {
                     onTap: onBack ?? () => Navigator.of(context).maybePop(),
                   ),
                 ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  if (subtitle != null && subtitle!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 48),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     Text(
-                      subtitle!,
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 11.5,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
-                ],
+                    if (subtitle != null && subtitle!.isNotEmpty)
+                      Text(
+                        subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
               ),
               if (allActions.isNotEmpty)
                 Align(

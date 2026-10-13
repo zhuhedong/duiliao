@@ -12,6 +12,7 @@ import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/async_view.dart';
 import '../comparison/comparison_screen.dart';
+import '../design/records_screens.dart';
 import 'collect_providers.dart';
 import 'schedules_tab.dart';
 import 'source_picker.dart';
@@ -127,14 +128,22 @@ class _CollectForm extends ConsumerWidget {
               ),
               if (!draft.autoDetectPeriod) ...[
                 const SizedBox(height: 8),
-                TextFormField(
-                  initialValue: draft.period,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: '期号',
-                    helperText: '可填 248 或 2026248',
-                  ),
-                  onChanged: controller.setPeriod,
+                Builder(
+                  builder: (context) {
+                    final cur = currentPeriodForLottery(draft.lottery);
+                    final shortCur = cur.length >= 3
+                        ? cur.substring(cur.length - 3)
+                        : cur;
+                    return TextFormField(
+                      initialValue: draft.period,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: '期号',
+                        helperText: '可填 $shortCur 或 $cur',
+                      ),
+                      onChanged: controller.setPeriod,
+                    );
+                  },
                 ),
               ],
             ],

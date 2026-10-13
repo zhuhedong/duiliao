@@ -290,7 +290,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '最近登录 09-25 22:08',
+                                      '最近登录 ${recentChinaMmDd(0)} 22:08',
                                       style: context.texts.labelSmall,
                                     ),
                                   ],
@@ -386,7 +386,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                               ref
                                                   .watch(appVersionProvider)
                                                   .value ??
-                                              '2.1.2';
+                                              '2.1.3';
                                           return Text(
                                             'v$ver · 检查 GitHub 与服务端新版本',
                                             style: context.texts.labelSmall,
@@ -506,7 +506,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (_) {
       if (context.mounted) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('当前版本 v2.1.2 已是最新')),
+          const SnackBar(content: Text('当前版本 v2.1.3 已是最新')),
         );
       }
     }
@@ -524,6 +524,12 @@ class _QuickEntryStrip extends StatelessWidget {
       Color color,
       Widget page,
     })>[
+      (
+        icon: Icons.filter_center_focus_rounded,
+        label: '挑码助手',
+        color: DuiliaoColors.primaryDark,
+        page: const JumpCodeAssistantScreen(),
+      ),
       (
         icon: Icons.storage_rounded,
         label: '数据源采集',

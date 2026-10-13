@@ -115,6 +115,23 @@ class DrawScheduler:
         self.last_result = cycle_results
         return cycle_results
 
+    def _needs_catchup(self) -> bool:
+        """Return True if any monitored lottery has no draw from yesterday or today."""
+        try:
+            cb.bootstrap()
+            from db import session_scope
+            from schema import Draw
+            from sqlalchemy import func, select
+
+            cutoff_date = (_now_cn() - timedelta(days=1)).strftime("%Y-%m-%d")
+            with session_scope(guard=False) as s:
+                max_macau_date = s.scalar(
+                    select(func.max(Draw.draw_date)).where(Draw.lottery == "macau")
+                )
+            return not max_macau_date or str(max_macau_date) < cutoff_date
+        except Exception:
+            return False
+
     async def run_loop(self) -> None:
         """Main periodic loop running during the FastAPI lifespan."""
         self.running = True
@@ -126,6 +143,13 @@ class DrawScheduler:
             self.lotteries,
         )
         try:
+            if self.enabled and await asyncio.to_thread(self._needs_catchup):
+                logger.info("DrawScheduler detected stale draw table on startup; running catch-up sync...")
+                try:
+                    await self.run_single_cycle(manual=False)
+                except Exception as e:
+                    logger.warning("Startup catch-up draw sync failed: %s", e)
+
             while self.running:
                 # Check for manual trigger first
                 if self._trigger_event.is_set():

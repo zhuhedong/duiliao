@@ -5,7 +5,7 @@ publish_to: 'none'
 
 # Bumped by CI. `flutter build --build-name/--build-number` overrides these.
 # The version reported to GET /app/version for the force-update check.
-version: 2.1.2+3
+version: 2.1.3+4
 
 environment:
   sdk: ^3.13.4

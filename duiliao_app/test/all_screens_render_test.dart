@@ -224,15 +224,62 @@ void main() {
 
   testWidgets('12. JumpCodeAssistantScreen (jump-code-assistant.html)',
       (tester) async {
+    // Verify reverse kill ("杀1头，2尾") parsing and evaluation
+    final parsedKill = JumpCodeMatcher.parseExpression('杀1头，2尾');
+    expect(parsedKill.hasKillClause, isTrue);
+    expect(parsedKill.excludedConditions, containsAll(['1头', '2尾']));
+    final keptKill = JumpCodeMatcher.evaluate(
+      includedConditions: parsedKill.includedConditions,
+      excludedConditions: parsedKill.excludedConditions,
+      includedNumbers: parsedKill.includedNumbers,
+      excludedNumbers: parsedKill.excludedNumbers,
+    );
+    // 49 total - 10 (10..19) - 4 (02,22,32,42; 12 overlaps) = 35 numbers
+    expect(keptKill.length, 35);
+    expect(keptKill.any((n) => n ~/ 10 == 1), isFalse);
+    expect(keptKill.any((n) => n % 10 == 2), isFalse);
+
+    // Verify mixed pick + kill ("红波 杀1头，2尾")
+    final parsedMix = JumpCodeMatcher.parseExpression('红波 杀1头，2尾');
+    expect(parsedMix.includedConditions, contains('红波'));
+    expect(parsedMix.excludedConditions, containsAll(['1头', '2尾']));
+    final keptMix = JumpCodeMatcher.evaluate(
+      includedConditions: parsedMix.includedConditions,
+      excludedConditions: parsedMix.excludedConditions,
+    );
+    // 红波 (17) minus {02, 12, 13, 18, 19} (5) = 12 numbers
+    expect(keptMix.length, 12);
+
     await pumpAndScroll(
       tester,
       const JumpCodeAssistantScreen(),
       logicalSize: const Size(360, 780),
     );
-    final includeMode = find.text('正选号码');
-    if (includeMode.evaluate().isNotEmpty) {
-      await tester.tap(includeMode.first);
+    final presetChip = find.text('杀1头，2尾');
+    if (presetChip.evaluate().isNotEmpty) {
+      await tester.tap(presetChip.first, warnIfMissed: false);
       await tester.pump(const Duration(milliseconds: 50));
+      expect(find.text('共 35 码'), findsOneWidget);
+    }
+    for (final cond in ['红波', '马']) {
+      final chip = find.text(cond);
+      if (chip.evaluate().isNotEmpty) {
+        await tester.tap(chip.first, warnIfMissed: false);
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+    }
+    final excludeMode = find.text('反选号码');
+    if (excludeMode.evaluate().isNotEmpty) {
+      await tester.tap(excludeMode.first, warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    for (final tab in ['波色', '生肖', '五行', '家禽', '挑码']) {
+      final tabBtn = find.text(tab);
+      if (tabBtn.evaluate().isNotEmpty) {
+        await tester.tap(tabBtn.first, warnIfMissed: false);
+        await tester.pump(const Duration(milliseconds: 80));
+        expect(tester.takeException(), isNull);
+      }
     }
   });
 

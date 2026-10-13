@@ -390,7 +390,7 @@ class _RestoringView extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'v2.1.2',
+                    'v2.1.3',
                     style: TextStyle(
                       fontSize: 11,
                       color: context.colors.onSurfaceVariant,

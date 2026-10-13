@@ -2480,8 +2480,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_hengcai_1x1m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师天降横财一肖一码及防码
+  enabled: false
+  remark: 上游栏目 1791632597194 已下线
   extra:
     upstream_id: '1791632597194'
     parser: hengcai_defense
@@ -2495,8 +2495,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_shuju_5ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师数据观察员五码中特
+  enabled: false
+  remark: 上游栏目 1785324091013 已下线
   extra:
     upstream_id: '1785324091013'
     parser: five_bracket_numbers
@@ -2510,13 +2510,58 @@ sources:
   hit_mode: any
   script_path: sources/dj_dashi_xinshui.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师心水主防二肖
+  enabled: false
+  remark: 上游栏目 1788956207286 已下线
   extra:
     upstream_id: '1788956207286'
     parser: dashi_xinshui
     kind: xiao
     path: /api/v1/index/config/byid/1788956207286
+- source_id: dj_jinpai_1x3m
+  source_name: 顶尖金牌秘报一肖防三码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_jinpai_1x3m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师金牌秘报一肖防三码
+  extra:
+    upstream_id: '1791806110111'
+    parser: jinpai_1x3m
+    kind: mixed
+    path: /api/v1/index/config/byid/1791806110111
+- source_id: dj_wangzhe_duijue
+  source_name: 顶尖王者对决二肖
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_wangzhe_duijue.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师王者对决二肖
+  extra:
+    upstream_id: '1785498680644'
+    parser: wangzhe_duijue
+    kind: xiao
+    path: /api/v1/index/config/byid/1785498680644
+- source_id: dj_zhongbang_2x4m
+  source_name: 顶尖大师重磅提炼二肖四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_zhongbang_2x4m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师重磅提炼二肖四码
+  extra:
+    upstream_id: '1788784717081'
+    parser: zhongbang_2x4m
+    kind: mixed
+    path: /api/v1/index/config/byid/1788784717081
 draw:
   macau:
     adapter: getLastLottery

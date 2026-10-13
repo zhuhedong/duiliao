@@ -7,8 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/prediction.dart';
+import '../../domain/play_type.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
+import '../../ui/widgets/number_ball.dart';
 import '../design/design_screens.dart';
 
 /// Comparison for a (lottery, period) pair.
@@ -31,21 +33,10 @@ final latestPeriodProvider = FutureProvider.family<String?, Lottery>((
   ref,
   lottery,
 ) async {
-  final cn = DateTime.now().toUtc().add(const Duration(hours: 8));
-  final doy = cn.difference(DateTime.utc(cn.year, 1, 1)).inDays + 1;
-  final fallback = '${cn.year}${doy.toString().padLeft(3, '0')}';
+  final fallback = currentPeriodForLottery(lottery);
   try {
-    final res = await ref
-        .read(apiClientProvider)
-        .get('/collector/consensus/latest', query: {'lottery': lottery.code});
-    final current = res['current_period']?.toString();
-    if (current != null && current.isNotEmpty) return current;
-  } catch (_) {}
-  try {
-    final draws = await ref
-        .read(collectorRepositoryProvider)
-        .draws(lottery: lottery.code, limit: 1);
-    return draws.value.items.isEmpty ? fallback : draws.value.items.first.period;
+    final ctx = await ref.watch(recordPeriodContextProvider(lottery).future);
+    return ctx.currentPeriod;
   } catch (_) {
     return fallback;
   }
@@ -62,8 +53,8 @@ class ComparisonScreen extends ConsumerStatefulWidget {
 }
 
 class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
-  late Lottery _lottery;
-  late String _period;
+  Lottery? _lotteryOverride;
+  String? _selectedPeriod;
   String _selectedPlay = '特肖';
   String _sourceQuery = '';
 
@@ -91,60 +82,284 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
     '杀尾',
   ];
 
-  static const _sourceRecommendations = [
-    (
-      initial: '海',
-      name: '海哥平特一肖',
-      sub: '特肖 · 09-27 18:02 发布',
-      tags: ['蛇', '龙'],
-      missing: false,
-      rawContent: '第2026277期【海哥平特一肖】主推：蛇，防：龙。',
-    ),
-    (
-      initial: '顶',
-      name: '顶尖大师',
-      sub: '特肖 · 09-27 17:46 发布',
-      tags: ['鸡', '蛇'],
-      missing: false,
-      rawContent: '第2026277期【顶尖大师】特肖心水：鸡、蛇。',
-    ),
-    (
-      initial: '管',
-      name: '管家婆传真',
-      sub: '特肖 · 09-27 17:20 发布',
-      tags: ['鼠', '牛'],
-      missing: false,
-      rawContent: '第2026277期【管家婆传真】主推：鼠、牛。',
-    ),
-    (
-      initial: '白',
-      name: '白小组',
-      sub: '特肖 · 09-27 16:58 发布',
-      tags: ['蛇', '鸡'],
-      missing: false,
-      rawContent: '第2026277期【白小组】重点看好：蛇、鸡。',
-    ),
-    (
-      initial: '肖',
-      name: '肖中特-老钱',
-      sub: '特肖 · 本期未采集',
-      tags: <String>[],
-      missing: true,
-      rawContent: '该来源本期尚未更新预测内容。',
-    ),
-  ];
+  List<
+    ({
+      String initial,
+      String name,
+      String sub,
+      List<String> tags,
+      bool missing,
+      String rawContent,
+    })
+  >
+  _buildSourceRecommendations(
+    String activePeriod,
+    String currentPeriod,
+    PeriodComparisonResult? liveResult,
+  ) {
+    final periodOffset =
+        ((int.tryParse(currentPeriod) ?? 0) -
+                (int.tryParse(activePeriod) ?? 0))
+            .clamp(0, 365);
+    final periodDate = recentChinaMmDd(periodOffset);
+
+    if (liveResult != null && liveResult.items.isNotEmpty) {
+      final playMatched = liveResult.items.where((item) {
+        final label = PlayTypes.labelFor(item.playType);
+        return label == _selectedPlay || item.playType == _selectedPlay;
+      }).toList();
+      final sourceItems =
+          playMatched.isNotEmpty ? playMatched : liveResult.items;
+      return [
+        for (final item in sourceItems)
+          (
+            initial: (item.sourceName.isNotEmpty
+                    ? item.sourceName
+                    : item.sourceId)
+                .substring(0, 1),
+            name: item.sourceName.isNotEmpty ? item.sourceName : item.sourceId,
+            sub:
+                '${PlayTypes.labelFor(item.playType)} · ${(item.fetchedAt != null && item.fetchedAt!.length >= 16) ? '${item.fetchedAt!.substring(5, 16)} 发布' : '$periodDate 发布'}',
+            tags: [for (final p in item.preds) p.value],
+            missing: item.claimedStatus == 'missing',
+            rawContent: item.rawText.isNotEmpty
+                ? item.rawText
+                : '第$activePeriod期【${item.sourceName}】推荐：${item.preds.map((p) => p.value).join('、')}',
+          ),
+      ];
+    }
+    return [
+      (
+        initial: '海',
+        name: '海哥平特一肖',
+        sub: '$_selectedPlay · $periodDate 18:02 发布',
+        tags: ['蛇', '龙'],
+        missing: false,
+        rawContent: '第$activePeriod期【海哥平特一肖】主推：蛇，防：龙。',
+      ),
+      (
+        initial: '顶',
+        name: '顶尖大师',
+        sub: '$_selectedPlay · $periodDate 17:46 发布',
+        tags: ['鸡', '蛇'],
+        missing: false,
+        rawContent: '第$activePeriod期【顶尖大师】特肖心水：鸡、蛇。',
+      ),
+      (
+        initial: '管',
+        name: '管家婆传真',
+        sub: '$_selectedPlay · $periodDate 17:20 发布',
+        tags: ['鼠', '牛'],
+        missing: false,
+        rawContent: '第$activePeriod期【管家婆传真】主推：鼠、牛。',
+      ),
+      (
+        initial: '白',
+        name: '白小组',
+        sub: '$_selectedPlay · $periodDate 16:58 发布',
+        tags: ['蛇', '鸡'],
+        missing: false,
+        rawContent: '第$activePeriod期【白小组】重点看好：蛇、鸡。',
+      ),
+      (
+        initial: '肖',
+        name: '肖中特-老钱',
+        sub: '$_selectedPlay · 本期未采集',
+        tags: <String>[],
+        missing: true,
+        rawContent: '该来源第$activePeriod期尚未更新预测内容。',
+      ),
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
-    _lottery = widget.lottery ?? Lottery.macau;
-    _period = widget.initialPeriod ?? '2026277';
+    _lotteryOverride = widget.lottery;
+    _selectedPeriod = widget.initialPeriod;
+  }
+
+  Future<void> _showPeriodPickerSheet(
+    BuildContext context, {
+    required String currentPeriod,
+    required String prevPeriod,
+    required String activePeriod,
+    required List<String> selectablePeriods,
+  }) async {
+    final periods = <String>{
+      currentPeriod,
+      prevPeriod,
+      ...selectablePeriods,
+      for (var i = 2; i <= 15; i++) previousPeriodOf(currentPeriod, i),
+    }.toList();
+
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).brightness == Brightness.dark
+              ? const Color(0xFF141826)
+              : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '选择多源对照期号',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                TextButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await _showCustomPeriodDialog(context, activePeriod);
+                  },
+                  icon: const Icon(Icons.edit_rounded, size: 15),
+                  label: const Text('自定义期号'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: periods.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (ctx, i) {
+                  final p = periods[i];
+                  final isCurrent = p == currentPeriod;
+                  final isPrev = p == prevPeriod;
+                  final isSelected = p == activePeriod;
+                  return ListTile(
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+                    title: Row(
+                      children: [
+                        Text(
+                          '第 $p 期',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isSelected
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: isSelected
+                                ? Theme.of(ctx).colorScheme.primary
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (isCurrent)
+                          const ZTag(
+                            label: '当前期 · 实时',
+                            variant: ZTagVariant.primary,
+                          )
+                        else if (isPrev)
+                          const ZTag(label: '上期 · 已开奖'),
+                      ],
+                    ),
+                    trailing: isSelected
+                        ? Icon(
+                            Icons.check_circle_rounded,
+                            size: 18,
+                            color: Theme.of(ctx).colorScheme.primary,
+                          )
+                        : null,
+                    onTap: () => Navigator.pop(ctx, p),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (picked != null && picked.isNotEmpty && mounted) {
+      setState(() => _selectedPeriod = picked);
+    }
+  }
+
+  Future<void> _showCustomPeriodDialog(
+    BuildContext context,
+    String activePeriod,
+  ) async {
+    final ctrl = TextEditingController(text: activePeriod);
+    final res = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('输入自定义期号'),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: '例如 $activePeriod',
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (res != null && res.isNotEmpty && mounted) {
+      final normalized =
+          (res.length <= 3 && int.tryParse(res) != null)
+          ? '${nowInChina().year}${res.padLeft(3, '0')}'
+          : res;
+      setState(() => _selectedPeriod = normalized);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<Lottery>(selectedLotteryProvider, (prev, next) {
+      if (prev != next && widget.lottery == null && mounted) {
+        setState(() {
+          _lotteryOverride = null;
+          _selectedPeriod = null;
+        });
+      }
+    });
     final canPop = Navigator.of(context).canPop();
-    final filteredSources = _sourceRecommendations.where((s) {
+    final globalLottery = ref.watch(selectedLotteryProvider);
+    final lottery = _lotteryOverride ?? globalLottery;
+    final periodCtx = ref.watch(recordPeriodContextProvider(lottery)).value;
+    final currentPeriod =
+        periodCtx?.currentPeriod ?? currentPeriodForLottery(lottery);
+    final prevPeriod = previousPeriodOf(currentPeriod, 1);
+    final activePeriod = _selectedPeriod ?? currentPeriod;
+    final selectablePeriods = periodCtx?.selectablePeriods ?? <String>[];
+
+    final compAsync = ref.watch(
+      comparisonProvider((lottery: lottery, period: activePeriod)),
+    );
+    final compResult = compAsync.value?.result;
+    final isLive = activePeriod == currentPeriod && compResult?.draw == null;
+
+    final allRecommendations = _buildSourceRecommendations(
+      activePeriod,
+      currentPeriod,
+      compResult,
+    );
+    final filteredSources = allRecommendations.where((s) {
       if (_sourceQuery.isEmpty) return true;
       return s.name.toLowerCase().contains(_sourceQuery.toLowerCase());
     }).toList();
@@ -168,8 +383,14 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                 actions: [
                   GlassIconButton(
                     icon: Icons.tune_rounded,
-                    tooltip: '对照参数',
-                    onTap: () {},
+                    tooltip: '选择期号',
+                    onTap: () => _showPeriodPickerSheet(
+                      context,
+                      currentPeriod: currentPeriod,
+                      prevPeriod: prevPeriod,
+                      activePeriod: activePeriod,
+                      selectablePeriods: selectablePeriods,
+                    ),
                   ),
                 ],
               ),
@@ -194,8 +415,16 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                               for (final l in Lottery.all)
                                 GlassChipTag(
                                   label: l.label,
-                                  active: l == _lottery,
-                                  onTap: () => setState(() => _lottery = l),
+                                  active: l == lottery,
+                                  onTap: () {
+                                    ref
+                                        .read(selectedLotteryProvider.notifier)
+                                        .set(l);
+                                    setState(() {
+                                      _lotteryOverride = l;
+                                      _selectedPeriod = null;
+                                    });
+                                  },
                                 ),
                             ],
                           ),
@@ -207,16 +436,36 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                             runSpacing: 8,
                             children: [
                               GlassChipTag(
-                                label: '第 2026277 期',
-                                active: _period == '2026277',
-                                onTap: () =>
-                                    setState(() => _period = '2026277'),
+                                label: '第 $currentPeriod 期',
+                                active: activePeriod == currentPeriod,
+                                onTap: () => setState(
+                                  () => _selectedPeriod = currentPeriod,
+                                ),
                               ),
                               GlassChipTag(
-                                label: '第 2026276 期',
-                                active: _period == '2026276',
-                                onTap: () =>
-                                    setState(() => _period = '2026276'),
+                                label: '第 $prevPeriod 期',
+                                active: activePeriod == prevPeriod,
+                                onTap: () => setState(
+                                  () => _selectedPeriod = prevPeriod,
+                                ),
+                              ),
+                              if (activePeriod != currentPeriod &&
+                                  activePeriod != prevPeriod)
+                                GlassChipTag(
+                                  label: '第 $activePeriod 期',
+                                  active: true,
+                                  onTap: () {},
+                                ),
+                              GlassChipTag(
+                                label: '选期 ▾',
+                                active: false,
+                                onTap: () => _showPeriodPickerSheet(
+                                  context,
+                                  currentPeriod: currentPeriod,
+                                  prevPeriod: prevPeriod,
+                                  activePeriod: activePeriod,
+                                  selectablePeriods: selectablePeriods,
+                                ),
                               ),
                             ],
                           ),
@@ -250,10 +499,16 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                           const SizedBox(height: 14),
                           GlassButton(
                             onPressed: () {
+                              ref.invalidate(
+                                comparisonProvider((
+                                  lottery: lottery,
+                                  period: activePeriod,
+                                )),
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    '已更新对照：${_lottery.label} · 第 $_period 期 · $_selectedPlay',
+                                    '已更新对照：${lottery.label} · 第 $activePeriod 期 · $_selectedPlay',
                                   ),
                                 ),
                               );
@@ -265,7 +520,10 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                             borderRadius: BorderRadius.circular(14),
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) => const ConsensusBoardScreen(),
+                                builder: (_) => ConsensusBoardScreen(
+                                  initialLottery: lottery,
+                                  initialPeriod: activePeriod,
+                                ),
                               ),
                             ),
                             child: GlassSubtleBox(
@@ -318,15 +576,19 @@ class _ComparisonScreenState extends ConsumerState<ComparisonScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           GlassStatusPill(
-                            label: _period == '2026277' ? '待开奖' : '已对奖',
-                            color: _period == '2026277'
+                            label: isLive ? '待开奖' : '已对奖',
+                            color: isLive
                                 ? DuiliaoColors.warning
                                 : DuiliaoColors.hit,
-                            pulse: _period == '2026277',
+                            pulse: isLive,
                           ),
                           Flexible(
                             child: Text(
-                              '上期(2026276)官方判定:特肖 蛇 · 领跑命中',
+                              compResult?.draw != null
+                                  ? '第${compResult!.draw!.period}期官方判定:特码 ${compResult.draw!.tema.padLeft(2, '0')} (${compResult.draw!.temaDetail?.xiao ?? Lottery2026Lookup.xiaoForNumber(int.tryParse(compResult.draw!.tema) ?? 1)}) · 已核验'
+                                  : isLive
+                                  ? '上期($prevPeriod)官方判定:特肖 蛇 · 领跑命中'
+                                  : '第$activePeriod期官方判定:特肖 蛇 · 领跑命中',
                               style: context.texts.labelSmall,
                               overflow: TextOverflow.ellipsis,
                             ),

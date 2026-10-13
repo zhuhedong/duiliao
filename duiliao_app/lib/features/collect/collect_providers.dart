@@ -12,6 +12,7 @@ import '../../core/providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/collect_job.dart';
 import '../../domain/models/source.dart';
+import '../design/records_screens.dart';
 
 /// How often a running job is polled. Fast enough to feel live, slow enough not
 /// to hammer an encrypted endpoint.
@@ -94,8 +95,12 @@ class CollectDraftController extends Notifier<CollectRequestDraft> {
       state = state.copyWith(lottery: lottery, sourceIds: const {});
 
   void setPeriod(String period) => state = state.copyWith(period: period);
-  void setAutoDetect(bool value) =>
-      state = state.copyWith(autoDetectPeriod: value);
+  void setAutoDetect(bool value) => state = state.copyWith(
+    autoDetectPeriod: value,
+    period: (!value && state.period.isEmpty)
+        ? currentPeriodForLottery(state.lottery)
+        : state.period,
+  );
   void setConcurrency(int value) =>
       state = state.copyWith(concurrency: value.clamp(1, 32));
   void setIngest(bool value) => state = state.copyWith(ingest: value);

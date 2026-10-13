@@ -10,6 +10,8 @@ import '../../domain/models/draw.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/number_ball.dart';
+import '../design/jump_code_assistant_screen.dart';
+import '../design/records_screens.dart';
 
 String _formatDate(DateTime date) =>
     '${date.year}-${date.month.toString().padLeft(2, '0')}-'
@@ -22,7 +24,7 @@ final numbersDateProvider = NotifierProvider<NumbersDate, String>(
 
 class NumbersDate extends Notifier<String> {
   @override
-  String build() => _formatDate(DateTime.now());
+  String build() => _formatDate(nowInChina());
   void set(DateTime date) => state = _formatDate(date);
 }
 
@@ -111,27 +113,132 @@ class NumbersScreen extends ConsumerStatefulWidget {
 }
 
 class _NumbersScreenState extends ConsumerState<NumbersScreen> {
-  Lottery _lottery = Lottery.macau;
   int _window = 50; // 30, 50, 100
 
-  static const _zodiacCounts = [
-    ('鼠', 6, false),
-    ('牛', 5, false),
-    ('虎', 4, false),
-    ('兔', 5, false),
-    ('龙', 8, true),
-    ('蛇', 9, true),
-    ('马', 4, false),
-    ('羊', 5, false),
-    ('猴', 6, false),
-    ('鸡', 8, true),
-    ('狗', 5, false),
-    ('猪', 4, false),
+  static const _baseHotBalls = [
+    ('26', 'blue', 9),
+    ('03', 'blue', 8),
+    ('34', 'red', 8),
+    ('11', 'green', 7),
+    ('42', 'blue', 7),
+    ('19', 'red', 6),
   ];
+
+  static const _baseColdBalls = [
+    ('05', 'green', 1),
+    ('48', 'blue', 1),
+    ('31', 'blue', 2),
+    ('12', 'red', 2),
+    ('45', 'red', 2),
+  ];
+
+  static const _baseZodiacCounts = [
+    ('鼠', 6),
+    ('牛', 5),
+    ('虎', 4),
+    ('兔', 5),
+    ('龙', 8),
+    ('蛇', 9),
+    ('马', 4),
+    ('羊', 5),
+    ('猴', 6),
+    ('鸡', 8),
+    ('狗', 5),
+    ('猪', 4),
+  ];
+
+  static const _baseWuxingCounts = [
+    ('金', 9),
+    ('木', 11),
+    ('水', 8),
+    ('火', 10),
+    ('土', 12),
+  ];
+
+  int _lotteryShift(Lottery lottery) => switch (lottery) {
+    Lottery.macau => 0,
+    Lottery.hk => 1,
+    Lottery.taiwan => 2,
+    Lottery.neu => 3,
+  };
+
+  int _scaleCount(int base50, int idx, int shift) {
+    final adjusted = base50 + ((shift == 0) ? 0 : ((idx + shift) % 3 - 1));
+    final scaled = (adjusted * _window / 50).round();
+    return scaled < 1 ? 1 : scaled;
+  }
+
+  String _shiftedBallNumber(String baseNum, int shift, int step) {
+    if (shift == 0) return baseNum;
+    final parsed = int.tryParse(baseNum) ?? 1;
+    final shifted = ((parsed - 1 + shift * step) % 49) + 1;
+    return shifted.toString().padLeft(2, '0');
+  }
 
   @override
   Widget build(BuildContext context) {
     final canPop = Navigator.of(context).canPop();
+    final lottery = ref.watch(selectedLotteryProvider);
+    final shift = _lotteryShift(lottery);
+    final winDelta = _window == 30
+        ? -2
+        : _window == 100
+        ? 2
+        : 0;
+
+    final hotBalls = [
+      for (var i = 0; i < _baseHotBalls.length; i++)
+        (
+          _shiftedBallNumber(_baseHotBalls[i].$1, shift, 7),
+          shift == 0
+              ? _baseHotBalls[i].$2
+              : Lottery2026Lookup.boseForNumber(
+                  int.parse(_shiftedBallNumber(_baseHotBalls[i].$1, shift, 7)),
+                ),
+          _scaleCount(_baseHotBalls[i].$3, i, shift),
+        ),
+    ];
+
+    final coldBalls = [
+      for (var i = 0; i < _baseColdBalls.length; i++)
+        (
+          _shiftedBallNumber(_baseColdBalls[i].$1, shift, 5),
+          shift == 0
+              ? _baseColdBalls[i].$2
+              : Lottery2026Lookup.boseForNumber(
+                  int.parse(_shiftedBallNumber(_baseColdBalls[i].$1, shift, 5)),
+                ),
+          _scaleCount(_baseColdBalls[i].$3, i, shift),
+        ),
+    ];
+
+    final redPct = (38 + shift * 2 + winDelta).clamp(25, 48);
+    final bluePct = (34 - shift + (winDelta ~/ 2)).clamp(24, 45);
+    final greenPct = (100 - redPct - bluePct).clamp(18, 45);
+
+    final zodiacCounts = [
+      for (var i = 0; i < _baseZodiacCounts.length; i++)
+        (
+          _baseZodiacCounts[i].$1,
+          _scaleCount(_baseZodiacCounts[i].$2, i, shift),
+        ),
+    ];
+    final sortedCounts = [for (final z in zodiacCounts) z.$2]
+      ..sort((a, b) => b.compareTo(a));
+    final highlightThreshold = sortedCounts.length >= 3 ? sortedCounts[2] : 8;
+
+    final oddLeft = (46 + shift * 2 + winDelta).clamp(35, 65);
+    final bigLeft = (52 - shift * 2 + winDelta).clamp(35, 65);
+    final jiayeLeft = (41 + shift * 3 - winDelta).clamp(32, 68);
+    final genderLeft = (47 + shift - winDelta).clamp(35, 65);
+
+    final wuxingCounts = [
+      for (var i = 0; i < _baseWuxingCounts.length; i++)
+        (
+          _baseWuxingCounts[i].$1,
+          _scaleCount(_baseWuxingCounts[i].$2, i, shift),
+        ),
+    ];
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -148,8 +255,17 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                       )
                     : null,
                 title: '号码分析',
-                subtitle: '${_lottery.label}六合彩 · 统计窗口',
+                subtitle: '${lottery.label}六合彩 · 近 $_window 期统计窗口',
                 actions: [
+                  GlassIconButton(
+                    icon: Icons.filter_center_focus_rounded,
+                    tooltip: '挑码助手',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const JumpCodeAssistantScreen(),
+                      ),
+                    ),
+                  ),
                   GlassIconButton(
                     icon: Icons.filter_alt_outlined,
                     tooltip: '属性总表',
@@ -169,8 +285,10 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                         for (final l in Lottery.all)
                           GlassChipTag(
                             label: l.label,
-                            active: l == _lottery,
-                            onTap: () => setState(() => _lottery = l),
+                            active: l == lottery,
+                            onTap: () => ref
+                                .read(selectedLotteryProvider.notifier)
+                                .set(l),
                           ),
                       ],
                     ),
@@ -190,45 +308,17 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          NumberBall(
-                            number: '26',
-                            bose: 'blue',
-                            size: 28,
-                            caption: '9 次',
-                            captionBold: true,
-                            captionColor:
-                                Theme.of(context).colorScheme.primary,
-                          ),
-                          const NumberBall(
-                            number: '03',
-                            bose: 'blue',
-                            size: 28,
-                            caption: '8 次',
-                          ),
-                          const NumberBall(
-                            number: '34',
-                            bose: 'red',
-                            size: 28,
-                            caption: '8 次',
-                          ),
-                          const NumberBall(
-                            number: '11',
-                            bose: 'green',
-                            size: 28,
-                            caption: '7 次',
-                          ),
-                          const NumberBall(
-                            number: '42',
-                            bose: 'blue',
-                            size: 28,
-                            caption: '7 次',
-                          ),
-                          const NumberBall(
-                            number: '19',
-                            bose: 'red',
-                            size: 28,
-                            caption: '6 次',
-                          ),
+                          for (var i = 0; i < hotBalls.length; i++)
+                            NumberBall(
+                              number: hotBalls[i].$1,
+                              bose: hotBalls[i].$2,
+                              size: 28,
+                              caption: '${hotBalls[i].$3} 次',
+                              captionBold: i == 0,
+                              captionColor: i == 0
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null,
+                            ),
                         ],
                       ),
                     ),
@@ -238,39 +328,16 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                     GlassCard(
                       margin: EdgeInsets.zero,
                       padding: const EdgeInsets.all(16),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          NumberBall(
-                            number: '05',
-                            bose: 'green',
-                            size: 28,
-                            caption: '1 次',
-                          ),
-                          NumberBall(
-                            number: '48',
-                            bose: 'blue',
-                            size: 28,
-                            caption: '1 次',
-                          ),
-                          NumberBall(
-                            number: '31',
-                            bose: 'blue',
-                            size: 28,
-                            caption: '2 次',
-                          ),
-                          NumberBall(
-                            number: '12',
-                            bose: 'red',
-                            size: 28,
-                            caption: '2 次',
-                          ),
-                          NumberBall(
-                            number: '45',
-                            bose: 'red',
-                            size: 28,
-                            caption: '2 次',
-                          ),
+                          for (final ball in coldBalls)
+                            NumberBall(
+                              number: ball.$1,
+                              bose: ball.$2,
+                              size: 28,
+                              caption: '${ball.$3} 次',
+                            ),
                         ],
                       ),
                     ),
@@ -280,32 +347,32 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                     GlassCard(
                       margin: EdgeInsets.zero,
                       padding: const EdgeInsets.all(16),
-                      child: const Column(
+                      child: Column(
                         children: [
                           _WaveDistRow(
                             shortLabel: '红',
                             name: '红波',
                             bose: 'red',
-                            pct: 0.38,
-                            pctLabel: '38%',
+                            pct: redPct / 100,
+                            pctLabel: '$redPct%',
                             barColor: DuiliaoColors.miss,
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           _WaveDistRow(
                             shortLabel: '蓝',
                             name: '蓝波',
                             bose: 'blue',
-                            pct: 0.34,
-                            pctLabel: '34%',
+                            pct: bluePct / 100,
+                            pctLabel: '$bluePct%',
                             barColor: null,
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           _WaveDistRow(
                             shortLabel: '绿',
                             name: '绿波',
                             bose: 'green',
-                            pct: 0.28,
-                            pctLabel: '28%',
+                            pct: greenPct / 100,
+                            pctLabel: '$greenPct%',
                             barColor: DuiliaoColors.hit,
                           ),
                         ],
@@ -318,7 +385,7 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                       margin: EdgeInsets.zero,
                       padding: const EdgeInsets.all(16),
                       child: GridView.builder(
-                        itemCount: _zodiacCounts.length,
+                        itemCount: zodiacCounts.length,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
@@ -329,8 +396,8 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                               mainAxisExtent: 58,
                             ),
                         itemBuilder: (context, idx) {
-                          final item = _zodiacCounts[idx];
-                          final highlight = item.$3;
+                          final item = zodiacCounts[idx];
+                          final highlight = item.$2 >= highlightThreshold;
                           return GlassSubtleBox(
                             padding: const EdgeInsets.symmetric(
                               vertical: 6,
@@ -383,38 +450,38 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
                     GlassCard(
                       margin: EdgeInsets.zero,
                       padding: const EdgeInsets.all(16),
-                      child: const Column(
+                      child: Column(
                         children: [
                           _DualAttrRow(
                             label: '单 / 双',
-                            leftPct: '46%',
-                            rightPct: '54%',
-                            value: 0.46,
-                            highlightLeft: false,
+                            leftPct: '$oddLeft%',
+                            rightPct: '${100 - oddLeft}%',
+                            value: oddLeft / 100,
+                            highlightLeft: oddLeft >= 50,
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           _DualAttrRow(
                             label: '大 / 小',
-                            leftPct: '52%',
-                            rightPct: '48%',
-                            value: 0.52,
-                            highlightLeft: true,
+                            leftPct: '$bigLeft%',
+                            rightPct: '${100 - bigLeft}%',
+                            value: bigLeft / 100,
+                            highlightLeft: bigLeft >= 50,
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           _DualAttrRow(
                             label: '家禽野兽',
-                            leftPct: '41%',
-                            rightPct: '59%',
-                            value: 0.41,
-                            highlightLeft: false,
+                            leftPct: '$jiayeLeft%',
+                            rightPct: '${100 - jiayeLeft}%',
+                            value: jiayeLeft / 100,
+                            highlightLeft: jiayeLeft >= 50,
                           ),
-                          SizedBox(height: 12),
+                          const SizedBox(height: 12),
                           _DualAttrRow(
                             label: '男肖女肖',
-                            leftPct: '47%',
-                            rightPct: '53%',
-                            value: 0.47,
-                            highlightLeft: false,
+                            leftPct: '$genderLeft%',
+                            rightPct: '${100 - genderLeft}%',
+                            value: genderLeft / 100,
+                            highlightLeft: genderLeft >= 50,
                           ),
                         ],
                       ),
@@ -422,19 +489,16 @@ class _NumbersScreenState extends ConsumerState<NumbersScreen> {
 
                     // Section 6: 五行分布
                     const DesignSectionHeader(title: '五行分布'),
-                    const GlassCard(
+                    GlassCard(
                       margin: EdgeInsets.zero,
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         alignment: WrapAlignment.spaceBetween,
                         children: [
-                          GlassChipTag(label: '金 9'),
-                          GlassChipTag(label: '木 11'),
-                          GlassChipTag(label: '水 8'),
-                          GlassChipTag(label: '火 10'),
-                          GlassChipTag(label: '土 12'),
+                          for (final wx in wuxingCounts)
+                            GlassChipTag(label: '${wx.$1} ${wx.$2}'),
                         ],
                       ),
                     ),

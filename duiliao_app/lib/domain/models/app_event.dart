@@ -3,6 +3,7 @@ library;
 
 import '../json.dart';
 import 'collect_job.dart';
+import 'consensus.dart';
 import 'draw.dart';
 import 'prediction.dart';
 import 'ratings.dart';
@@ -172,6 +173,37 @@ class HomeConsensusGroup {
       );
 }
 
+/// One day in the 7-day trend returned by `/app/home` (`trend_7d`).
+class HomeTrendDay {
+  const HomeTrendDay({
+    required this.date,
+    required this.judged,
+    required this.hits,
+    this.hitRate,
+  });
+
+  final String date;
+  final int judged;
+  final int hits;
+  final double? hitRate;
+
+  factory HomeTrendDay.fromJson(Map<String, dynamic> json) => HomeTrendDay(
+        date: asString(json['date']),
+        judged: asInt(json['judged']),
+        hits: asInt(json['hits']),
+        hitRate: asDoubleOrNull(json['hit_rate']),
+      );
+
+  /// `MM-DD` label for the bar chart.
+  String get shortDate {
+    final s = date.trim();
+    if (s.length >= 10 && s[4] == '-') {
+      return s.substring(5, 10);
+    }
+    return s;
+  }
+}
+
 /// The aggregated home payload.
 ///
 /// Every block is nullable: `/app/home` degrades each dataset independently so a
@@ -185,9 +217,15 @@ class HomeSnapshot {
     this.latestDraw,
     this.consensusPeriod,
     this.consensusGroups = const [],
+    this.temaTallies = const [],
+    this.texiaoTallies = const [],
     this.comparisonSummary,
     this.ratingsTop = const [],
     this.ratingsWindows = const [30, 50, 100],
+    this.trend7d = const [],
+    this.totalPredictions,
+    this.totalHits,
+    this.totalJudged,
     this.recentJobs = const [],
     this.worker,
     this.ruleVersion,
@@ -199,9 +237,15 @@ class HomeSnapshot {
   final DrawRow? latestDraw;
   final String? consensusPeriod;
   final List<HomeConsensusGroup> consensusGroups;
+  final List<AtomTallyItem> temaTallies;
+  final List<AtomTallyItem> texiaoTallies;
   final ComparisonSummary? comparisonSummary;
   final List<RatingRow> ratingsTop;
   final List<int> ratingsWindows;
+  final List<HomeTrendDay> trend7d;
+  final int? totalPredictions;
+  final int? totalHits;
+  final int? totalJudged;
   final List<CollectJob> recentJobs;
   final CollectWorkerStatus? worker;
 
@@ -211,7 +255,10 @@ class HomeSnapshot {
 
   factory HomeSnapshot.fromJson(Map<String, dynamic> json) {
     final consensus = asMapOrNull(json['consensus']);
+    final tallies = asMapOrNull(consensus?['atom_tallies']);
     final ratings = asMapOrNull(json['ratings_top']);
+    final ovTotals = asMapOrNull(json['overview_totals']);
+    final ovJudge = asMapOrNull(json['overview_judge']);
     return HomeSnapshot(
       lottery: asString(json['lottery']),
       playType: asString(json['play_type']),
@@ -219,6 +266,8 @@ class HomeSnapshot {
       latestDraw: asModelOrNull(json['latest_draw'], DrawRow.fromJson),
       consensusPeriod: asStringOrNull(consensus?['period']),
       consensusGroups: asModelList(consensus?['groups'], HomeConsensusGroup.fromJson),
+      temaTallies: asModelList(tallies?['tema_n'], AtomTallyItem.fromJson),
+      texiaoTallies: asModelList(tallies?['texiao'], AtomTallyItem.fromJson),
       comparisonSummary:
           asModelOrNull(json['comparison_summary'], ComparisonSummary.fromJson),
       ratingsTop: asModelList(ratings?['sources'], RatingRow.fromJson),
@@ -228,6 +277,10 @@ class HomeSnapshot {
               .map(asIntOrNull)
               .whereType<int>()
               .toList(growable: false),
+      trend7d: asModelList(json['trend_7d'], HomeTrendDay.fromJson),
+      totalPredictions: asIntOrNull(ovTotals?['predictions']),
+      totalHits: asIntOrNull(ovJudge?['hits']),
+      totalJudged: asIntOrNull(ovJudge?['judged']),
       recentJobs: asModelList(json['recent_jobs'], CollectJob.fromJson),
       worker: asModelOrNull(json['collect_worker'], CollectWorkerStatus.fromJson),
       ruleVersion: asStringOrNull(json['rule_version']),

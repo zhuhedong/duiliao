@@ -88,17 +88,30 @@ async def home(
     """Everything the home screen needs, in one encrypted round-trip."""
     _validate_lottery(lottery)
 
-    draws = await _safe("draws", cb.list_draws, lottery=lottery, limit=1, offset=0)
+    draws, latest_period_info, overview = await asyncio.gather(
+        _safe("draws", cb.list_draws, lottery=lottery, limit=1, offset=0),
+        _safe("consensus_latest", cb.consensus_latest_period, lottery),
+        _safe("overview", cb.overview),
+    )
     latest = None
     if isinstance(draws, dict) and draws.get("items"):
         latest = draws["items"][0]
-    period = (latest or {}).get("period")
+    draw_period = (latest or {}).get("period")
+    consensus_period = (
+        (latest_period_info or {}).get("current_period")
+        if isinstance(latest_period_info, dict)
+        else None
+    ) or draw_period
 
     consensus_task = (
-        _safe("consensus", cb.consensus_compare, lottery, period, play_type) if period else _safe("noop", lambda: None)
+        _safe("consensus", cb.consensus_compare, lottery, consensus_period, play_type)
+        if consensus_period
+        else _safe("noop", lambda: None)
     )
     comparison_task = (
-        _safe("comparison", cb.get_period_comparison, lottery, period) if period else _safe("noop", lambda: None)
+        _safe("comparison", cb.get_period_comparison, lottery, consensus_period)
+        if consensus_period
+        else _safe("noop", lambda: None)
     )
     ratings_task = _safe("ratings", cb.ratings, lottery=lottery, play_type=play_type, windows=[30, 50, 100])
     jobs_task = _safe("jobs", cb.list_collect_jobs, limit=3, lottery=lottery)
@@ -112,10 +125,15 @@ async def home(
     consensus_summary = None
     if isinstance(consensus, dict):
         groups = consensus.get("groups") or []
+        tallies = consensus.get("atom_tallies") or {}
         consensus_summary = {
             "lottery": consensus.get("lottery"),
-            "period": consensus.get("period"),
+            "period": consensus.get("period") or consensus_period,
             "group_count": len(groups),
+            "atom_tallies": {
+                "tema_n": (tallies.get("tema_n") or [])[:5],
+                "texiao": (tallies.get("texiao") or [])[:5],
+            },
             "groups": [
                 {
                     "play_type": g.get("play_type"),
@@ -147,6 +165,9 @@ async def home(
         "consensus": consensus_summary,
         "comparison_summary": (comparison or {}).get("summary") if isinstance(comparison, dict) else None,
         "ratings_top": ratings_top,
+        "trend_7d": (overview or {}).get("trend_7d") if isinstance(overview, dict) else None,
+        "overview_totals": (overview or {}).get("totals") if isinstance(overview, dict) else None,
+        "overview_judge": (overview or {}).get("judge") if isinstance(overview, dict) else None,
         "recent_jobs": (jobs or {}).get("items") if isinstance(jobs, dict) else None,
         "collect_worker": collect_job_worker.get_status(),
         "rule_version": await _safe("rule_version", _rule_version),
