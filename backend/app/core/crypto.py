@@ -51,12 +51,36 @@ def b64d(data: str) -> bytes:
     return base64.b64decode(data)
 
 
+def normalize_pem(raw: str) -> str:
+    """Accept PEM pasted into env UIs that mangle newlines.
+
+    Handles: real newlines, literal "\\n", surrounding quotes, everything
+    collapsed onto one line with spaces, or the whole PEM base64-encoded.
+    """
+    import base64
+    import re
+
+    s = raw.strip().strip('"').strip("'").strip()
+    s = s.replace("\\r\\n", "\n").replace("\\n", "\n").replace("\r\n", "\n")
+    if "-----BEGIN" not in s:
+        try:
+            s = base64.b64decode(re.sub(r"\s+", "", s)).decode().strip()
+        except Exception:
+            return raw
+    m = re.match(r"^(-----BEGIN [A-Z ]+-----)(.*?)(-----END [A-Z ]+-----)$", s, re.S)
+    if not m:
+        return s
+    body = re.sub(r"\s+", "", m.group(2))
+    lines = [body[i:i + 64] for i in range(0, len(body), 64)]
+    return "\n".join([m.group(1), *lines, m.group(3)]) + "\n"
+
+
 class RSAKeyManager:
     """Holds the server RSA keypair used for AES key exchange."""
 
     def __init__(self) -> None:
         if settings.RSA_PRIVATE_KEY_PEM.strip():
-            self._key = RSA.import_key(settings.RSA_PRIVATE_KEY_PEM)
+            self._key = RSA.import_key(normalize_pem(settings.RSA_PRIVATE_KEY_PEM))
         else:
             self._key = RSA.generate(settings.RSA_KEY_SIZE)
             if not settings.is_production:
