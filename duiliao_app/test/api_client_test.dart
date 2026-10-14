@@ -363,7 +363,7 @@ void main() {
       client.dispose();
     });
 
-    test('never tries to refresh while calling /auth/*', () async {
+    test('never tries to refresh while calling login/register/refresh/bootstrap', () async {
       final tokens = _RecordingTokenProvider();
       final backend = FakeBackend(signingSecret: _secret);
       backend.handlers['/auth/login'] = (_) => throw const FakeHandlerError(
@@ -386,6 +386,32 @@ void main() {
         )),
       );
       expect(tokens.refreshCalls, 0, reason: 'refreshing during login would recurse');
+      client.dispose();
+    });
+
+    test('refreshes on /auth/logout when the access token expired', () async {
+      final tokens = _RecordingTokenProvider();
+      final backend = FakeBackend(signingSecret: _secret);
+      var calls = 0;
+      backend.handlers['/auth/logout'] = (req) {
+        calls++;
+        if (req.bearerToken != 'refreshed-token') {
+          throw const FakeHandlerError(401, 'Access token expired', code: 'expired');
+        }
+        return <String, dynamic>{};
+      };
+      final client = ApiClient(
+        config: _config(),
+        httpClient: backend.client,
+        tokenProvider: tokens,
+      );
+
+      await client.post<Map<String, dynamic>>(
+        '/auth/logout',
+        body: {'all_devices': false},
+      );
+      expect(tokens.refreshCalls, 1);
+      expect(calls, 2);
       client.dispose();
     });
 

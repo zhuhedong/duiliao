@@ -674,12 +674,30 @@ class SiteDumpRequest(BaseModel):
     include_modules: bool = False
 
 
+def _normalize_site_dump_host(host: str | None) -> str | None:
+    """Reject private/loopback hosts so site-dump cannot be used as an SSRF pivot."""
+    if host is None:
+        return None
+    raw = host.strip()
+    if not raw:
+        return None
+    from urllib.parse import urlsplit, urlunsplit
+
+    from app.services.settings_service import validate_external_url
+
+    candidate = raw if "://" in raw else f"https://{raw}"
+    validated = validate_external_url(candidate, resolve_dns=True)
+    parts = urlsplit(validated)
+    # fetch_588080 expects a scheme://host[:port] base, not a provider path.
+    return urlunsplit((parts.scheme, parts.netloc, "", "", ""))
+
+
 @router.post("/site-dump/588080")
 def dump_588080(
     req: SiteDumpRequest = Body(default_factory=SiteDumpRequest),
-    _: User = _user,
+    _: User = _staff,
 ) -> dict[str, Any]:
-    """Fetch complete data and assembled HTML for 588080.com."""
+    """Fetch complete data and assembled HTML for 588080.com (staff/admin only)."""
     import sys
     from pathlib import Path
 
@@ -688,8 +706,13 @@ def dump_588080(
         sys.path.insert(0, str(collector_dir))
     from collector.fetch_588080 import fetch_588080_full_page
 
+    try:
+        safe_host = _normalize_site_dump_host(req.host)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     result = fetch_588080_full_page(
-        host=req.host,
+        host=safe_host,
         timeout=req.timeout,
     )
     if not result.ok:

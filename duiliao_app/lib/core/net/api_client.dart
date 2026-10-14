@@ -65,6 +65,16 @@ class NullTokenProvider implements TokenProvider {
   void onAuthenticationLost() {}
 }
 
+bool _isAuthBootstrapPath(String path) {
+  const skip = {
+    '/auth/login',
+    '/auth/register',
+    '/auth/refresh',
+    '/auth/bootstrap',
+  };
+  return skip.contains(path);
+}
+
 class ApiClient {
   ApiClient({
     required this.config,
@@ -189,12 +199,14 @@ class ApiClient {
         );
       }
 
-      // Expired access token: refresh once, then retry. Skipped for /auth/*
-      // so a failing refresh cannot recurse.
+      // Expired access token: refresh once, then retry. Only skip endpoints
+      // that authenticate without a bearer (login/register/refresh/bootstrap)
+      // so a failing refresh cannot recurse. Paths like /auth/logout still
+      // need a refresh retry when the access token has expired.
       if (response.statusCode == 401 &&
           authenticated &&
           !isRetry &&
-          !path.startsWith('/auth/')) {
+          !_isAuthBootstrapPath(path)) {
         if (await _tokens.refreshAccessToken()) {
           return request<T>(
             method,

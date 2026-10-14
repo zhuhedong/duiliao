@@ -147,8 +147,12 @@ class Settings(BaseSettings):
         if self.is_production:
             if self.JWT_SECRET.startswith("CHANGE_ME"):
                 raise ValueError("JWT_SECRET must be changed in production")
+            if len(self.JWT_SECRET.encode("utf-8")) < 32:
+                raise ValueError("JWT_SECRET must be at least 32 bytes in production")
             if self.APP_SIGNING_SECRET.startswith("CHANGE_ME"):
                 raise ValueError("APP_SIGNING_SECRET must be changed in production")
+            if not self.RSA_PRIVATE_KEY_PEM.strip():
+                raise ValueError("RSA_PRIVATE_KEY_PEM must be set in production")
         return self
 
 

@@ -198,7 +198,13 @@ class ApiClient {
     }
 
     // Access token expired -> try to refresh once, then retry.
-    if (res.status === 401 && auth && this.refreshToken && !retry && !path.startsWith("/auth/")) {
+    // Skip only credential bootstrap endpoints so /auth/logout still refreshes.
+    const authBootstrap =
+      path === "/auth/login" ||
+      path === "/auth/register" ||
+      path === "/auth/refresh" ||
+      path === "/auth/bootstrap";
+    if (res.status === 401 && auth && this.refreshToken && !retry && !authBootstrap) {
       const refreshed = await this.tryRefresh();
       if (refreshed) return this.request<T>(method, path, body, { ...opts, retry: true });
     }

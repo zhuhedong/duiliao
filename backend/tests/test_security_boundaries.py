@@ -32,3 +32,26 @@ def test_pg_probe_rejects_private_target_before_connecting() -> None:
     result = probe_pg_connection("postgresql://user:pass@127.0.0.1:5432/app")
     assert result["ok"] is False
     assert "内网" in result["error"]
+
+
+def test_site_dump_host_rejects_private_targets() -> None:
+    from app.api.v1.collector import _normalize_site_dump_host
+
+    assert _normalize_site_dump_host(None) is None
+    assert _normalize_site_dump_host("   ") is None
+    with pytest.raises(ValueError, match="内网|本机|本地"):
+        _normalize_site_dump_host("http://127.0.0.1")
+    with pytest.raises(ValueError, match="内网|本机|本地"):
+        _normalize_site_dump_host("169.254.169.254")
+
+
+def test_fixture_dir_must_stay_under_collector() -> None:
+    from app.collector_bridge import COLLECTOR_ROOT, _resolve_fixture_dir
+
+    ok = _resolve_fixture_dir("fixtures/dingjian")
+    assert ok is not None
+    assert ok.is_relative_to(COLLECTOR_ROOT.resolve())
+    with pytest.raises(ValueError, match="collector"):
+        _resolve_fixture_dir("/etc")
+    with pytest.raises(ValueError, match="collector"):
+        _resolve_fixture_dir("../../../../etc")
