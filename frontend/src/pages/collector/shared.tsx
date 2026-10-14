@@ -257,7 +257,7 @@ export function PageWorkspace({
         <div className="pointer-events-none absolute right-16 -bottom-12 w-32 h-32 rounded-full bg-fuchsia-500/15 blur-3xl" />
         <div className="relative flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-300">上下文</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-600 dark:text-violet-200">上下文</div>
             <p className="mt-1.5 text-sm text-slate-200/90 leading-relaxed max-w-3xl">{summary}</p>
           </div>
           {actions ? <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div> : null}
