@@ -5,6 +5,7 @@ deleted. Usage (from backend/):
 
     python scripts/report_future_periods.py            # report only
     python scripts/report_future_periods.py --today 2026287 --samples 20
+    python scripts/report_future_periods.py --delete --yes   # delete them (back up DB first!)
 """
 from __future__ import annotations
 
@@ -20,6 +21,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--today", help="override today's period (YYYYDDD)")
     ap.add_argument("--samples", type=int, default=10)
+    ap.add_argument("--delete", action="store_true", help="delete the future rows")
+    ap.add_argument("--yes", action="store_true", help="required together with --delete")
     args = ap.parse_args()
 
     from app import collector_bridge as cb
@@ -32,7 +35,11 @@ def main() -> int:
     from schema import Base
 
     today = args.today or max_allowed_period()
-    print(f"today's max allowed period: {today}  (read-only, nothing deleted)")
+    if args.delete and not args.yes:
+        print("--delete requires --yes (back up the database first)")
+        return 2
+    mode = "DELETE" if args.delete else "read-only, nothing deleted"
+    print(f"today's max allowed period: {today}  ({mode})")
     total = 0
     with session_scope(guard=False) as s:
         for table in Base.metadata.sorted_tables:
@@ -50,6 +57,9 @@ def main() -> int:
             q = q.group_by(*[table.c[c] for c in group_cols], col).order_by(col.desc()).limit(args.samples)
             for row in s.execute(q):
                 print("   ", tuple(row))
+            if args.delete:
+                s.execute(table.delete().where(cond))
+                print(f"    deleted {n} rows from {table.name}")
     print(f"\nTOTAL future rows: {total}")
     return 0
 
