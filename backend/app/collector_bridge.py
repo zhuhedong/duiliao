@@ -187,6 +187,8 @@ def collect(
 
     cfg = load_yaml()
     canonical_period = normalize(lottery, period) if period and period.strip() else None
+    from common.period import ensure_not_future
+    ensure_not_future(canonical_period)
     only = set(source_ids) if source_ids else None
     sources = runner.load_sources(cfg, lottery, only)
     now = datetime.now(runner.TZ8)

@@ -166,17 +166,17 @@ def test_dump_cache_ttl(tmp_path, monkeypatch):
 def test_backfill_preview_empty_when_no_sources(user_client):
     body = user_client.get(
         "/collector/backfill-jobs/preview",
-        params={"lottery": "macau", "period": "2099999"},
+        params={"lottery": "macau", "period": "2020001"},
     )
     assert body["ok"] is True
-    assert body["period"] == "2099999"
+    assert body["period"] == "2020001"
     assert "missing_sources" in body
 
 
 def test_backfill_submit_dry_run(staff_client):
     body = staff_client.post(
         "/collector/backfill-jobs",
-        body={"lottery": "macau", "period": "2099999", "dry_run": True},
+        body={"lottery": "macau", "period": "2020001", "dry_run": True},
     )
     assert body["ok"] is True
     assert body["dry_run"] is True

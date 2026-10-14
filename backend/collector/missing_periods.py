@@ -21,7 +21,10 @@ def fill_missing(s, source_id: str, lottery: str, play_type: str, now: datetime,
     rows = s.scalars(select(Prediction).where(
         Prediction.source_id == source_id, Prediction.lottery == lottery, Prediction.play_type == play_type
     )).all()
-    real = [r for r in rows if r.claimed_status != "missing" and len(r.period) == 7 and r.period.isdigit()]
+    from common.period import is_future_period
+    # Never treat (or invent) periods beyond today's period.
+    real = [r for r in rows if r.claimed_status != "missing" and len(r.period) == 7 and r.period.isdigit()
+            and not is_future_period(r.period)]
     if len(real) < 2:
         return 0
     existing = {r.period for r in rows}
@@ -38,7 +41,7 @@ def fill_missing(s, source_id: str, lottery: str, play_type: str, now: datetime,
     )).all())
     template = max(real, key=lambda r: r.period)
     added = 0
-    missing_periods = sorted(expected - existing)
+    missing_periods = sorted(p for p in expected - existing if not is_future_period(p))
     if not missing_periods:
         return 0
 

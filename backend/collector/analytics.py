@@ -97,6 +97,9 @@ def confirm_missing(source_id, periods):
             Draw.period >= first_real,
             Draw.period.in_(set(periods)),
         )))
+        from common.period import ensure_not_future
+        for period in periods:
+            ensure_not_future(period)
         if set(periods) - available:
             raise ValueError("只能确认覆盖起点以后且已有开奖的期号")
         added = 0

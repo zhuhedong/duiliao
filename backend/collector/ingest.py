@@ -17,6 +17,9 @@ from schema import CrawlRun, CrawlRunSource, Draw, JudgeResult, Prediction, crea
 from missing_periods import fill_missing
 from audit import record, ensure_baseline, now_local
 from common.period import _naive
+import logging
+
+logger = logging.getLogger("collector.ingest")
 
 
 def _split_items(envelope: PredV1, item: PredItem) -> list[tuple[str, PredItem]]:
@@ -193,7 +196,7 @@ def upsert_prediction(s, envelope: PredV1, item: PredItem, play_type: str, run_i
 
 def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
     run = run_loads(payload)
-    counts = {"inserted": 0, "updated": 0, "unchanged": 0, "source_ok": 0, "source_fail": 0, "items": 0, "missing_added": 0}
+    counts = {"skipped_future": 0, "inserted": 0, "updated": 0, "unchanged": 0, "source_ok": 0, "source_fail": 0, "items": 0, "missing_added": 0}
     draw_cache: dict[tuple[str, str], Any] = {}
     observed_periods: set[tuple[str, str]] = set()
     with session_scope() as s:
@@ -253,7 +256,13 @@ def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
                 continue
             counts["source_ok"] += 1
             plays = set()
+            from common.period import is_future_period, max_allowed_period
             for item in envelope.items:
+                if is_future_period(item.period):
+                    logger.warning("skip future period %s (today=%s) source=%s lottery=%s",
+                                   item.period, max_allowed_period(), envelope.source_id, envelope.lottery)
+                    counts["skipped_future"] += 1
+                    continue
                 observed_periods.add((envelope.lottery, item.period))
                 for play_type, split in _split_items(envelope, item):
                     plays.add(play_type)
@@ -264,7 +273,8 @@ def ingest_run(payload: dict[str, Any]) -> dict[str, Any]:
                 counts["missing_added"] += fill_missing(s, envelope.source_id, envelope.lottery,
                                                        play_type, _naive(envelope.fetched_at), run.run_id)
             from issues import resolve_crawl
-            resolve_crawl(s, envelope.source_id, envelope.lottery, {item.period for item in envelope.items})
+            resolve_crawl(s, envelope.source_id, envelope.lottery,
+                          {item.period for item in envelope.items if not is_future_period(item.period)})
     # A late source response can arrive after the draw sync. Freeze once the
     # complete ingest transaction has committed; existing rows make this a
     # no-op for already sealed periods.

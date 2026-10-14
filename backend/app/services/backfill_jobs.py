@@ -26,8 +26,11 @@ def preview_missing(
 
     lottery = (lottery or "macau").strip()
     with session_scope(guard=False) as session:
-        if period:
-            target_period = str(period).strip()
+        if period and str(period).strip():
+            from common.period import ensure_not_future, normalize
+
+            target_period = normalize(lottery, str(period).strip())
+            ensure_not_future(target_period)
         else:
             draw = session.scalars(
                 select(Draw).where(Draw.lottery == lottery).order_by(Draw.period.desc()).limit(1)
