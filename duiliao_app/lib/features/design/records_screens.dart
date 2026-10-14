@@ -1854,8 +1854,8 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   int _multiplier = 1;
 
   static const _singlePlays = <({String label, String code})>[
-    (label: '正码', code: 'zhengma_n'),
     (label: '特码', code: 'tema_n'),
+    (label: '正码', code: 'zhengma_n'),
     (label: '特肖', code: 'texiao'),
     (label: '特尾', code: 'tewei'),
     (label: '特头', code: 'tetou'),
@@ -1953,7 +1953,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     _selectedPlay = switch (_mode) {
       '连肖复试' => '4 连',
       '不中码' => '6 不中',
-      _ => '正码',
+      _ => '特码',
     };
     _multiplier = _mode == '连肖复试' ? 2 : 1;
     _inputController = TextEditingController(
@@ -2006,7 +2006,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
       _multiplier = 1;
     } else {
       _mode = '号码单式';
-      _selectedPlay = '正码';
+      _selectedPlay = text.contains('正码') ? '正码' : '特码';
       _multiplier = 1;
     }
     setState(() {});
@@ -2189,7 +2189,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
       _selectedPlay = switch (nextMode) {
         '连肖复试' => '4 连',
         '不中码' => '6 不中',
-        _ => '正码',
+        _ => '特码',
       };
       _multiplier = nextMode == '连肖复试' ? 2 : 1;
       _inputController.text = _defaultTextForMode(nextMode);
@@ -2323,7 +2323,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     for (final p in _singlePlays) {
       if (p.label == _selectedPlay) return p.code;
     }
-    return 'zhengma_n';
+    return 'tema_n';
   }
 
   @override
