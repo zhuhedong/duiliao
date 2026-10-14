@@ -623,8 +623,8 @@ sources:
   hit_mode: any
   script_path: sources/dingjian_baoliao.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖爆料一肖二码及开奖验证，动态巡检重新上线
+  enabled: false
+  remark: 上游栏目 1789907465205 已下线
   extra:
     title: 顶尖爆料·一肖二码
     upstream_id: '1789907465205'
@@ -2435,8 +2435,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_boshi_jingxuan.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师博士精选一肖五码重点资料
+  enabled: false
+  remark: 上游栏目 1788869300544 已下线
   extra:
     upstream_id: '1788869300544'
     parser: boshi_jingxuan
@@ -2562,6 +2562,36 @@ sources:
     parser: zhongbang_2x4m
     kind: mixed
     path: /api/v1/index/config/byid/1788784717081
+- source_id: dj_caishen_6ma
+  source_name: 顶尖财神送特六码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_caishen_6ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师财神送特六码
+  extra:
+    upstream_id: '1785391179670'
+    parser: caishen_6ma
+    kind: num
+    path: /api/v1/index/config/byid/1785391179670
+- source_id: dj_qima_zhongte
+  source_name: 顶尖七码中特
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_qima_zhongte.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师七码中特
+  extra:
+    upstream_id: '1791893034357'
+    parser: seven_number_lines
+    kind: num
+    path: /api/v1/index/config/byid/1791893034357
 draw:
   macau:
     adapter: getLastLottery

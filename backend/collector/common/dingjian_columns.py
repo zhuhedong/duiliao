@@ -41,6 +41,8 @@ EXTRACTORS = {
     "jinpai_1x3m": ("all", 5, r""),
     "wangzhe_duijue": ("xiao", 2, r""),
     "zhongbang_2x4m": ("all", 6, r""),
+    "caishen_6ma": ("num", 6, r""),
+    "seven_number_lines": ("num", 7, r""),
 }
 
 
@@ -443,6 +445,42 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
                     *({"kind": "xiao", "value": x, "text": selected} for x in xiaos),
                     *({"kind": "num", "value": n, "text": selected} for n in nums),
                 ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "caishen_6ma":
+            m_main = re.search(r"主打[②2]码\s*[:：]\s*(\d{2}[.\s·\-－]+\d{2})", block)
+            m_def = re.search(r"协防\s*[:：]\s*((?:\d{2}[.\s·\-－]*){4})", block)
+            if not m_main or not m_def:
+                continue
+            main_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_main.group(1))
+            def_nums = re.findall(r"(?<!\d)\d{2}(?!\d)", m_def.group(1))
+            all_nums = list(dict.fromkeys([*main_nums, *def_nums]))
+            if len(all_nums) != 6 or any(not 1 <= int(n) <= 49 for n in all_nums):
+                continue
+            selected = f"主打2码:{'.'.join(main_nums)} 协防:{'.'.join(def_nums)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in all_nums],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "seven_number_lines":
+            m1 = re.search(r"(?m)^\s*(\d{2}(?:\s*[-－]\s*\d{2}){3})\s*$", block)
+            m2 = re.search(r"(?m)^\s*(\d{2}(?:\s*[-－]\s*\d{2}){2})\s*$", block)
+            if not m1 or not m2:
+                continue
+            nums1 = re.findall(r"(?<!\d)\d{2}(?!\d)", m1.group(1))
+            nums2 = re.findall(r"(?<!\d)\d{2}(?!\d)", m2.group(1))
+            all_nums = list(dict.fromkeys([*nums1, *nums2]))
+            if len(all_nums) != 7 or any(not 1 <= int(n) <= 49 for n in all_nums):
+                continue
+            selected = f"{'-'.join(nums1)} {'-'.join(nums2)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in all_nums],
                 claimed=claimed_from_block(block),
                 raw_text=block,
             ))

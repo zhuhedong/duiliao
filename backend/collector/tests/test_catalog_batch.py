@@ -214,6 +214,18 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual([a["value"] for a in rows16[0].preds[:2]], ["猴", "虎"])
         self.assertEqual([a["value"] for a in rows16[0].preds[2:]], ["01", "49", "21", "33"])
 
+        # 17. caishen_6ma
+        raw_cs = "283期 精选猛料 开：牛18 中\n主打②码：17.29\n协防:20.32.18.30\n287期 精选猛料 开：發88 中\n主打②码：精准来料"
+        rows17 = extract_dingjian_column(raw_cs, "caishen_6ma")
+        self.assertEqual(len(rows17), 1)
+        self.assertEqual([a["value"] for a in rows17[0].preds], ["17", "29", "20", "32", "18", "30"])
+
+        # 18. seven_number_lines
+        raw_qm = "第283期\n18-30-17-29\n11-23-35\n开奖: 牛18 中\n第287期\n七码连中\n开奖: 發88 中"
+        rows18 = extract_dingjian_column(raw_qm, "seven_number_lines")
+        self.assertEqual(len(rows18), 1)
+        self.assertEqual([a["value"] for a in rows18[0].preds], ["18", "30", "17", "29", "11", "23", "35"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)
