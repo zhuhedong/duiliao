@@ -217,7 +217,7 @@ export function ReportCanvas({
           {viewing && (
             <button
               onClick={() => onViewHistory(null)}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 glass-subtle transition-colors hover:text-slate-800 dark:hover:text-slate-200"
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 glass-subtle transition-colors hover:text-slate-800 dark:hover:text-slate-200 dark:text-slate-100"
             >
               <CloseIcon size={13} />
               返回最新

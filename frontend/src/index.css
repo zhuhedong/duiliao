@@ -5,6 +5,8 @@
    ============================================================ */
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --text-2xs: 0.625rem;
   --text-2xs--line-height: 0.875rem;
@@ -424,3 +426,10 @@ body {
   opacity: 1;
   filter: saturate(1.25);
 }
+
+/* —— Dark contrast safety net —— */
+.dark body { color: var(--foreground); }
+.dark select, .dark input, .dark textarea { color: var(--foreground-strong); color-scheme: dark; }
+.dark select option, .dark select optgroup { background-color: oklch(0.2 0.03 285); color: oklch(0.94 0.008 285); }
+.dark input::placeholder, .dark textarea::placeholder { color: oklch(0.62 0.02 283); }
+.dark .admin-empty-title { color: var(--foreground-strong); }
