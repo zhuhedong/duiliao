@@ -128,39 +128,37 @@ export function DashboardPage() {
 
   return (
     <div className="workspace-fill w-full flex flex-col gap-3 content-start">
-      {/* 顶部：问候 + 刷新 */}
-      <header className="admin-card px-5 sm:px-6 py-4 flex items-center gap-4 flex-wrap">
-        <div className="min-w-0 flex-1">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
-            工作台 · {data?.today.date ?? new Date().toISOString().slice(0, 10)}
+      {/* Bento hero */}
+      <header className="glass-panel rounded-[26px] px-5 sm:px-7 py-6 relative overflow-hidden">
+        <div className="pointer-events-none absolute -right-10 -top-16 w-72 h-72 rounded-full bg-violet-500/25 blur-3xl" />
+        <div className="pointer-events-none absolute right-24 -bottom-20 w-56 h-56 rounded-full bg-fuchsia-500/20 blur-3xl" />
+        <div className="relative flex flex-col lg:flex-row lg:items-end gap-5">
+          <div className="min-w-0 flex-1">
+            <div className="display-kicker">Mission Control · {data?.today.date ?? new Date().toISOString().slice(0, 10)}</div>
+            <h2 className="display-title mt-2 truncate">
+              {greet()}，{user.display_name || user.email}
+            </h2>
+            <p className="mt-2 text-sm text-slate-300/80 max-w-2xl leading-relaxed">
+              采集、对料、判定与调度的实时经营总览
+              {data ? ` · 数据更新于 ${data.generated_at.slice(11)}` : ""}
+            </p>
           </div>
-          <h2 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white truncate">
-            {greet()}，{user.display_name || user.email}
-          </h2>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-            采集、对料、判定与调度的实时经营总览
-            {data ? ` · 数据更新于 ${data.generated_at.slice(11)}` : ""}
-          </p>
+          <button
+            type="button"
+            onClick={() => void load(true)}
+            disabled={loading || refreshing}
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-2xl text-xs font-semibold glow-button cursor-pointer disabled:opacity-60 shrink-0"
+          >
+            <RefreshIcon size={14} className={refreshing ? "animate-spin" : ""} />
+            刷新数据
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => void load(true)}
-          disabled={loading || refreshing}
-          className="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-semibold glass-subtle text-slate-700 dark:text-slate-200 hover:bg-violet-500/10 transition-colors cursor-pointer disabled:opacity-60"
-        >
-          <RefreshIcon size={14} className={refreshing ? "animate-spin" : ""} />
-          刷新数据
-        </button>
       </header>
 
       {error && (
-        <div className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 px-4 py-3 text-sm flex items-center justify-between gap-3">
+        <div className="rounded-2xl border border-rose-400/40 bg-rose-500/10 text-rose-200 px-4 py-3 text-sm flex items-center justify-between gap-3">
           <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="shrink-0 text-xs font-semibold underline underline-offset-2 cursor-pointer"
-          >
+          <button type="button" onClick={() => void load()} className="shrink-0 text-xs font-semibold underline underline-offset-2 cursor-pointer">
             重试
           </button>
         </div>
@@ -169,32 +167,19 @@ export function DashboardPage() {
       {loading && !data ? (
         <DashboardSkeleton />
       ) : data ? (
-        <>
-          <KpiRow data={data} />
-
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
-            <section className="xl:col-span-7">
-              <LatestDrawsPanel draws={data.latest_draws} />
-            </section>
-            <section className="xl:col-span-5">
-              <TrendPanel data={data} />
-            </section>
-            <section className="xl:col-span-7">
-              <LeaderboardPanel data={data} />
-            </section>
-            <section className="xl:col-span-5">
-              <PlayTypePanel data={data} />
-            </section>
-            <section className="xl:col-span-5">
-              <AlertsPanel data={data} />
-            </section>
-            <section className="xl:col-span-7">
-              <SchedulePanel data={data} />
-            </section>
-          </div>
-
-          <QuickNav />
-        </>
+        <div className="bento-grid">
+          <section className="bento-span-4"><KpiTile data={data} index={0} /></section>
+          <section className="bento-span-4"><KpiTile data={data} index={1} /></section>
+          <section className="bento-span-4"><KpiTile data={data} index={2} /></section>
+          <section className="bento-span-8 bento-tall"><LatestDrawsPanel draws={data.latest_draws} /></section>
+          <section className="bento-span-4 bento-tall"><AlertsPanel data={data} /></section>
+          <section className="bento-span-5"><TrendPanel data={data} /></section>
+          <section className="bento-span-7"><LeaderboardPanel data={data} /></section>
+          <section className="bento-span-4"><KpiTile data={data} index={3} /></section>
+          <section className="bento-span-8"><PlayTypePanel data={data} /></section>
+          <section className="bento-span-12"><SchedulePanel data={data} /></section>
+          <section className="bento-span-12"><QuickNav /></section>
+        </div>
       ) : null}
     </div>
   );
@@ -205,46 +190,27 @@ export function DashboardPage() {
 // --------------------------------------------------------------------------- //
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-3 animate-pulse">
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="admin-card h-28" />
-        ))}
-      </div>
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
-        <div className="xl:col-span-7 admin-card h-64" />
-        <div className="xl:col-span-5 admin-card h-64" />
-        <div className="xl:col-span-7 admin-card h-72" />
-        <div className="xl:col-span-5 admin-card h-72" />
-      </div>
+    <div className="bento-grid animate-pulse">
+      {[4, 4, 4, 8, 4, 5, 7, 12].map((span, i) => (
+        <div key={i} className={`bento-span-${span} glass-card rounded-[22px] ${span >= 8 ? "h-64" : "h-32"}`} />
+      ))}
     </div>
   );
 }
 
-// --------------------------------------------------------------------------- //
-// KPI 指标卡
-// --------------------------------------------------------------------------- //
-function KpiRow({ data }: { data: OverviewResult }) {
+
+function KpiTile({ data, index }: { data: OverviewResult; index: number }) {
   const { judge, today, totals, alerts } = data;
   const collectRate = today.source_total > 0 ? today.source_ok / today.source_total : null;
   const coverageRate = totals.sources > 0 ? totals.sources_enabled / totals.sources : null;
   const alertTotal = alerts.lagging_sources + judge.pending_judge;
-
-  const cards: {
-    icon: ReactNode;
-    label: string;
-    value: string;
-    valueClass: string;
-    sub: string;
-    bar?: number | null;
-    to: string;
-  }[] = [
+  const cards = [
     {
       icon: <TargetIcon size={18} />,
       label: "综合命中率",
       value: pct(judge.hit_rate),
       valueClass: rateTone(judge.hit_rate),
-      sub: `中 ${judge.hits.toLocaleString()} / 判定 ${judge.judged.toLocaleString()} · 今日 ${pct(judge.today_hit_rate)}`,
+      sub: `中 ${judge.hits.toLocaleString()} / 判定 ${judge.judged.toLocaleString()}`,
       bar: judge.hit_rate,
       to: "/collector/ratings",
     },
@@ -252,8 +218,8 @@ function KpiRow({ data }: { data: OverviewResult }) {
       icon: <DatabaseIcon size={18} />,
       label: "数据覆盖",
       value: `${totals.sources_enabled}/${totals.sources}`,
-      valueClass: "text-violet-600 dark:text-violet-300",
-      sub: `启用源 · ${totals.predictions.toLocaleString()} 条预测 · ${totals.draws.toLocaleString()} 期开奖`,
+      valueClass: "text-violet-300",
+      sub: `${totals.predictions.toLocaleString()} 条预测 · ${totals.draws.toLocaleString()} 期开奖`,
       bar: coverageRate,
       to: "/collector/sources",
     },
@@ -261,13 +227,8 @@ function KpiRow({ data }: { data: OverviewResult }) {
       icon: <ActivityIcon size={18} />,
       label: "今日采集",
       value: today.source_total > 0 ? `${today.source_ok}/${today.source_total}` : "未采集",
-      valueClass:
-        today.source_total === 0
-          ? "text-slate-400"
-          : collectRate !== null && collectRate >= 0.95
-            ? "text-emerald-600 dark:text-emerald-300"
-            : "text-amber-600 dark:text-amber-300",
-      sub: `${today.crawl_runs} 轮 · 新增预测 ${today.new_predictions.toLocaleString()} 条`,
+      valueClass: today.source_total === 0 ? "text-slate-400" : collectRate !== null && collectRate >= 0.95 ? "text-emerald-300" : "text-amber-300",
+      sub: `${today.crawl_runs} 轮 · 新增 ${today.new_predictions.toLocaleString()}`,
       bar: collectRate,
       to: "/collector/sources",
     },
@@ -275,50 +236,33 @@ function KpiRow({ data }: { data: OverviewResult }) {
       icon: <AlertIcon size={18} />,
       label: "待办告警",
       value: alertTotal > 0 ? String(alertTotal) : "全部同步",
-      valueClass:
-        alertTotal > 0
-          ? "text-amber-600 dark:text-amber-300"
-          : "text-emerald-600 dark:text-emerald-300",
-      sub: `缺期源 ${alerts.lagging_sources} · 待判定 ${judge.pending_judge} · 未采集 ${alerts.never_collected}`,
+      valueClass: alertTotal > 0 ? "text-amber-300" : "text-emerald-300",
+      sub: `缺期 ${alerts.lagging_sources} · 待判定 ${judge.pending_judge}`,
+      bar: null as number | null,
       to: "/collector/monitor",
     },
   ];
-
+  const c = cards[index]!;
   return (
-    <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-      {cards.map((c) => (
-        <Link
-          key={c.label}
-          to={c.to}
-          className="admin-card p-4 sm:p-5 flex flex-col justify-between gap-3 no-underline text-inherit hover:bg-violet-500/5 transition-colors group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-              <span className="text-violet-500 dark:text-violet-300">{c.icon}</span>
-              {c.label}
-            </span>
-            <ArrowRightIcon
-              size={13}
-              className="text-slate-300 dark:text-slate-600 group-hover:text-violet-500 group-hover:translate-x-0.5 transition-all"
-            />
+    <Link to={c.to} className="glass-card rounded-[22px] p-5 h-full flex flex-col justify-between gap-4 no-underline text-inherit hover:bg-violet-500/10 transition-colors group relative overflow-hidden">
+      <div className="pointer-events-none absolute -right-6 -top-6 w-24 h-24 rounded-full bg-violet-500/15 blur-2xl group-hover:bg-violet-400/25 transition-colors" />
+      <div className="relative flex items-center justify-between">
+        <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+          <span className="text-violet-300">{c.icon}</span>
+          {c.label}
+        </span>
+        <ArrowRightIcon size={14} className="text-slate-500 group-hover:text-violet-300 transition-colors" />
+      </div>
+      <div className="relative">
+        <div className={`text-3xl font-bold tracking-tight ${c.valueClass}`}>{c.value}</div>
+        <div className="mt-1 text-[11px] text-slate-400 leading-relaxed">{c.sub}</div>
+        {c.bar != null ? (
+          <div className="mt-3 h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div className={`h-full rounded-full ${rateBar(c.bar)}`} style={{ width: `${Math.max(4, Math.min(100, c.bar * 100))}%` }} />
           </div>
-          <div>
-            <div className={`text-2xl sm:text-[26px] font-extrabold tracking-tight leading-none ${c.valueClass}`}>
-              {c.value}
-            </div>
-            <div className="mt-1.5 text-[11px] text-slate-400 dark:text-slate-500">{c.sub}</div>
-            {c.bar !== undefined && (
-              <div className="mt-2.5 h-1 rounded-full bg-slate-200/60 dark:bg-white/8 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${rateBar(c.bar)}`}
-                  style={{ width: `${Math.round((c.bar ?? 0) * 100)}%` }}
-                />
-              </div>
-            )}
-          </div>
-        </Link>
-      ))}
-    </div>
+        ) : null}
+      </div>
+    </Link>
   );
 }
 

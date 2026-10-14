@@ -96,7 +96,7 @@ export function LoginPage() {
   return (
     <AuthShell
       title="欢迎回来"
-      description="登录您的对料账号，进入 Aurora Glass 加密工作台"
+      description="进入 Aurora Command — 加密采集、对照与研判的统一玻璃工作台"
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3.5 mt-1">
         {error && (

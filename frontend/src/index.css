@@ -165,8 +165,8 @@ body {
 }
 .dark .app-aurora::before {
   background-image:
-    radial-gradient(42rem 42rem at 12% 8%, oklch(0.62 0.22 283 / 32%), transparent 62%),
-    radial-gradient(38rem 38rem at 88% 12%, oklch(0.6 0.24 310 / 26%), transparent 60%),
+    radial-gradient(48rem 48rem at 10% 6%, oklch(0.62 0.24 283 / 42%), transparent 62%),
+    radial-gradient(44rem 44rem at 90% 10%, oklch(0.62 0.26 310 / 36%), transparent 60%),
     radial-gradient(46rem 46rem at 85% 88%, oklch(0.55 0.22 250 / 28%), transparent 62%),
     radial-gradient(34rem 34rem at 8% 85%, oklch(0.6 0.18 200 / 20%), transparent 58%);
 }
@@ -372,4 +372,55 @@ body {
   filter: blur(40px);
   pointer-events: none;
   opacity: 0.55;
+}
+
+
+/* —— Bento + Display typography —— */
+.display-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: oklch(0.78 0.14 290);
+}
+.display-title {
+  font-size: clamp(1.6rem, 2.4vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: oklch(0.96 0.01 285);
+}
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.bento-span-4 { grid-column: span 12; }
+.bento-span-5 { grid-column: span 12; }
+.bento-span-7 { grid-column: span 12; }
+.bento-span-8 { grid-column: span 12; }
+.bento-span-12 { grid-column: span 12; }
+.bento-tall { min-height: 18rem; }
+@media (min-width: 1024px) {
+  .bento-span-4 { grid-column: span 4; }
+  .bento-span-5 { grid-column: span 5; }
+  .bento-span-7 { grid-column: span 7; }
+  .bento-span-8 { grid-column: span 8; }
+  .bento-span-12 { grid-column: span 12; }
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* denser glass */
+.glass-card {
+  backdrop-filter: blur(26px) saturate(1.75);
+  -webkit-backdrop-filter: blur(26px) saturate(1.75);
+}
+.glass-panel {
+  backdrop-filter: blur(32px) saturate(1.9);
+  -webkit-backdrop-filter: blur(32px) saturate(1.9);
+}
+.dark .app-aurora::before {
+  opacity: 1;
+  filter: saturate(1.25);
 }
