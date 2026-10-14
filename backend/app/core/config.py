@@ -85,6 +85,8 @@ class Settings(BaseSettings):
     # (dev only). In production, provide a stable key via env/secret manager so
     # deployed instances share the same keypair.
     RSA_PRIVATE_KEY_PEM: str = ""
+    # Alternative: path to a mounted PEM file (used when _PEM is empty).
+    RSA_PRIVATE_KEY_FILE: str = ""
     RSA_KEY_SIZE: int = 2048
     # Lifetime of a negotiated AES session key (seconds).
     SESSION_KEY_TTL_SECONDS: int = 3600
@@ -186,6 +188,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
+        if not self.RSA_PRIVATE_KEY_PEM.strip() and self.RSA_PRIVATE_KEY_FILE.strip():
+            try:
+                with open(self.RSA_PRIVATE_KEY_FILE.strip(), encoding="utf-8") as fh:
+                    self.RSA_PRIVATE_KEY_PEM = fh.read()
+            except OSError as exc:
+                raise ValueError(f"RSA_PRIVATE_KEY_FILE cannot be read: {exc}") from exc
         if self.is_production:
             if self.JWT_SECRET.startswith("CHANGE_ME"):
                 raise ValueError("JWT_SECRET must be changed in production")
