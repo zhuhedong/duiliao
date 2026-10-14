@@ -542,6 +542,15 @@ class CollectorRepository {
     return AiReport.fromJson(json);
   }
 
+  /// Read the TTL-cached 588080 full-page dump summary (no outbound scrape).
+  Future<Map<String, dynamic>> latestSiteDump({double maxAgeSec = 1800}) async {
+    final json = await _client.get<Map<String, dynamic>>(
+      '/collector/site-dump/588080/latest',
+      query: {'max_age_sec': maxAgeSec},
+    );
+    return asMap(json);
+  }
+
   /// Drop everything cached. Called when the signed-in user changes so one
   /// account never sees another's cached data.
   Future<void> clearCache() => _cache.clear();

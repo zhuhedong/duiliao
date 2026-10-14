@@ -15,9 +15,16 @@ HOSTS = list(STATIC_API_HOSTS)
 
 
 def api_hosts() -> list[str]:
-    """Use the catalog watcher's validated routes before bundled fallbacks."""
+    """Prefer the shared host pool, then env / file cache / static fallbacks."""
     configured = re.split(r"[,;\s]+", os.getenv("PRED_DINGJIAN_HOSTS", "").strip())
-    values = [*configured, *load_cached_api_hosts(), *HOSTS]
+    pooled: list[str] = []
+    try:
+        from host_pool import load_pool
+
+        pooled = list((load_pool() or {}).get("hosts") or [])
+    except Exception:
+        pooled = []
+    values = [*configured, *pooled, *load_cached_api_hosts(), *HOSTS]
     result: list[str] = []
     for value in values:
         host = origin(str(value))

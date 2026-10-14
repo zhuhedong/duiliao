@@ -56,7 +56,18 @@ def analyze_scraped_data(
     """Analyze scraped 588080.com prediction data with the selected AI model and prompt."""
     t0 = time.perf_counter()
 
-    # 1. Fetch fresh data if not supplied
+    # 1. Prefer TTL dump cache, then live fetch if still missing
+    if scraped_data is None:
+        try:
+            from app.services.ai.scraped_data import load_latest_scraped_data, save_scraped_data
+
+            cached = load_latest_scraped_data()
+            if cached is not None:
+                log.info("使用 TTL 内的 588080 dump 缓存作为分析上下文")
+                scraped_data = cached
+        except Exception:
+            log.exception("读取 dump 缓存失败，回退实时抓取")
+            scraped_data = None
     if scraped_data is None:
         log.info("未提供抓取数据，正在实时从 588080.com 抓取最新数据...")
         scraped_data = fetch_588080_full_page()
@@ -73,6 +84,12 @@ def analyze_scraped_data(
                 scraped_summary={},
                 error=f"网页数据抓取失败: {scraped_data.error}",
             )
+        try:
+            from app.services.ai.scraped_data import save_scraped_data
+
+            save_scraped_data(scraped_data)
+        except Exception:
+            log.exception("保存 dump 缓存失败")
 
     try:
         if isinstance(scraped_data, (str, Path)):
@@ -184,13 +201,29 @@ def analyze_scraped_data_stream(
     """Execute streaming AI analysis, yielding progress events and real-time delta tokens."""
     t0 = time.perf_counter()
 
-    # 1. Fetch fresh data if not supplied
+    # 1. Prefer TTL dump cache, then live fetch
+    if scraped_data is None:
+        try:
+            from app.services.ai.scraped_data import load_latest_scraped_data, save_scraped_data
+
+            cached = load_latest_scraped_data()
+            if cached is not None:
+                yield {"stage": "status", "message": "使用缓存的 588080 dump 作为分析上下文"}
+                scraped_data = cached
+        except Exception:
+            scraped_data = None
     if scraped_data is None:
         yield {"stage": "status", "message": "未检测到已抓取数据，正在实时抓取最新预测模块..."}
         scraped_data = fetch_588080_full_page()
         if not scraped_data.ok:
             yield {"stage": "error", "error": f"网页数据抓取失败: {scraped_data.error}"}
             return
+        try:
+            from app.services.ai.scraped_data import save_scraped_data
+
+            save_scraped_data(scraped_data)
+        except Exception:
+            pass
 
     try:
         if isinstance(scraped_data, (str, Path)):

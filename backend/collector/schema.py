@@ -394,6 +394,36 @@ class CollectJob(Base):
     )
 
 
+
+class FetchObservation(Base):
+    """Append-only fetch audit trail for collector HTTP outcomes.
+
+    Written by the collect-job worker (and optionally site-dump) so operators can
+    see latency, failures, and content-hash changes without digging through
+    subprocess logs. Not used as a source of prediction truth.
+    """
+
+    __tablename__ = "fetch_observation"
+
+    id: Mapped[int] = mapped_column(PK_INT, primary_key=True, autoincrement=True)
+    source_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    lottery: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    period: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    http_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    elapsed_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    error: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    job_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    ok: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now(), index=True)
+
+    __table_args__ = (
+        Index("idx_fetch_obs_source_created", "source_id", "created_at"),
+        Index("idx_fetch_obs_job", "job_id"),
+    )
+
+
 class ConsensusLeader(Base):
     """Last-known consensus leader per (lottery, period, play_type).
 

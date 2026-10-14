@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -13,9 +14,11 @@ if TYPE_CHECKING:
 
 SCRAPED_DATA_DIR = BACKEND_DIR / "collector" / "html"
 STORAGE_DIR = BACKEND_DIR / "storage"
+LATEST_META_NAME = "588080-latest.json"
+DEFAULT_TTL_SEC = 30 * 60
 
 
-def save_scraped_data(result: FetchResult) -> dict[str, str]:
+def save_scraped_data(result: FetchResult, *, as_latest: bool = True) -> dict[str, str]:
     """Save both formatting modes without changing the collector's CLI output."""
     SCRAPED_DATA_DIR.mkdir(parents=True, exist_ok=True)
     stem = f"588080-{uuid4().hex}"
@@ -30,11 +33,84 @@ def save_scraped_data(result: FetchResult) -> dict[str, str]:
         "html": result.html,
         "raw_html": result.raw_html,
         "modules": result.modules,
+        "saved_at": time.time(),
     }
     data_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    return {
+    paths = {
         "file_path": data_path.relative_to(BACKEND_DIR).as_posix(),
         "html_file_path": html_path.relative_to(BACKEND_DIR).as_posix(),
+    }
+    if as_latest and result.ok:
+        _write_latest_pointer(paths, payload["summary"], payload["saved_at"])
+    return paths
+
+
+def _write_latest_pointer(paths: dict[str, str], summary: dict[str, Any], saved_at: float) -> None:
+    meta = {
+        "schema": "588080-dump-cache.v1",
+        "saved_at": saved_at,
+        "saved_at_iso": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(saved_at)),
+        "file_path": paths["file_path"],
+        "html_file_path": paths.get("html_file_path"),
+        "summary": summary,
+    }
+    target = SCRAPED_DATA_DIR / LATEST_META_NAME
+    temporary = target.with_suffix(target.suffix + ".tmp")
+    temporary.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(target)
+
+
+def latest_cache_meta() -> dict[str, Any] | None:
+    target = SCRAPED_DATA_DIR / LATEST_META_NAME
+    try:
+        payload = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("schema") != "588080-dump-cache.v1":
+        return None
+    return payload
+
+
+def load_latest_scraped_data(*, max_age_sec: float = DEFAULT_TTL_SEC) -> dict[str, Any] | None:
+    """Return the latest dump payload if it is within TTL; otherwise None."""
+    meta = latest_cache_meta()
+    if not meta:
+        return None
+    saved_at = float(meta.get("saved_at") or 0)
+    if max_age_sec is not None and saved_at and (time.time() - saved_at) > max_age_sec:
+        return None
+    path = meta.get("file_path")
+    if not path:
+        return None
+    try:
+        data = load_scraped_data(path)
+    except ValueError:
+        return None
+    data["_cache"] = {
+        "saved_at": saved_at,
+        "age_sec": round(time.time() - saved_at, 1) if saved_at else None,
+        "file_path": path,
+        "summary": meta.get("summary") or {},
+        "fresh": True,
+    }
+    return data
+
+
+def latest_cache_status(*, max_age_sec: float = DEFAULT_TTL_SEC) -> dict[str, Any]:
+    meta = latest_cache_meta()
+    if not meta:
+        return {"ok": False, "fresh": False, "reason": "no_cache"}
+    saved_at = float(meta.get("saved_at") or 0)
+    age = (time.time() - saved_at) if saved_at else None
+    fresh = age is not None and age <= max_age_sec
+    return {
+        "ok": True,
+        "fresh": fresh,
+        "age_sec": round(age, 1) if age is not None else None,
+        "max_age_sec": max_age_sec,
+        "saved_at": meta.get("saved_at_iso"),
+        "file_path": meta.get("file_path"),
+        "summary": meta.get("summary") or {},
     }
 
 
