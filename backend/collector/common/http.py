@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
 import time
 from typing import Any
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
@@ -15,6 +18,9 @@ UA = (
     "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 )
 
+_MAX_REDIRECTS = 5
+_ALLOWED_SCHEMES = {"http", "https"}
+
 
 def _timeout(timeout: float | httpx.Timeout | None) -> httpx.Timeout:
     if isinstance(timeout, httpx.Timeout):
@@ -24,10 +30,67 @@ def _timeout(timeout: float | httpx.Timeout | None) -> httpx.Timeout:
     return httpx.Timeout(connect=connect, read=sec, write=sec, pool=connect)
 
 
+def _host_is_blocked(hostname: str, port: int | None = None, *, resolve_dns: bool = True) -> bool:
+    """Reject loopback / private / link-local / metadata targets (SSRF guard)."""
+    host = (hostname or "").rstrip(".").lower()
+    if not host:
+        return True
+    if host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
+        return True
+
+    def _ip_blocked(address: str) -> bool:
+        ip = ipaddress.ip_address(address)
+        return (
+            ip.is_loopback
+            or ip.is_private
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        )
+
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None:
+        return _ip_blocked(str(literal))
+    if not resolve_dns:
+        return False
+
+    try:
+        infos = socket.getaddrinfo(host, port or 0, type=socket.SOCK_STREAM)
+    except OSError:
+        # Unresolvable hosts are not private; let the HTTP client surface the error.
+        return False
+    addresses = {item[4][0] for item in infos}
+    return (not addresses) or any(_ip_blocked(addr) for addr in addresses)
+
+
+def assert_safe_url(url: str, *, resolve_dns: bool = True) -> str:
+    """Validate a URL before any outbound request or redirect hop."""
+    raw = (url or "").strip()
+    if not raw:
+        raise ValueError("URL 不能为空")
+    parts = urlsplit(raw)
+    if parts.scheme.lower() not in _ALLOWED_SCHEMES:
+        raise ValueError("URL 必须使用 http 或 https")
+    if not parts.hostname or parts.username or parts.password:
+        raise ValueError("URL 主机无效")
+    try:
+        port = parts.port
+    except ValueError as exc:
+        raise ValueError("URL 端口无效") from exc
+    if _host_is_blocked(parts.hostname, port, resolve_dns=resolve_dns):
+        raise ValueError("禁止请求本机或内网地址")
+    return raw
+
+
 def client(timeout: float | None = None) -> httpx.Client:
+    # Redirects are followed manually in get() so each hop can be re-validated.
     return httpx.Client(
         timeout=_timeout(timeout),
-        follow_redirects=True,
+        follow_redirects=False,
         headers={
             "User-Agent": UA,
             "Accept": "application/json,text/html,*/*",
@@ -49,9 +112,7 @@ def get(
         with client(timeout) as c:
             for i in range(n + 1):
                 try:
-                    r = c.get(url, headers=headers)
-                    r.raise_for_status()
-                    return r
+                    return _get_following_redirects(c, url, headers=headers)
                 except Exception as e:
                     last = e
                     log.warning("GET %s failed (%s/%s): %s", url, i + 1, n + 1, e)
@@ -62,6 +123,27 @@ def get(
     if last is None:
         raise RuntimeError("HTTP request did not run")
     raise last
+
+
+def _get_following_redirects(
+    c: httpx.Client,
+    url: str,
+    *,
+    headers: dict[str, str] | None = None,
+) -> httpx.Response:
+    current = assert_safe_url(url)
+    for _ in range(_MAX_REDIRECTS + 1):
+        response = c.get(current, headers=headers)
+        if response.status_code not in {301, 302, 303, 307, 308}:
+            response.raise_for_status()
+            return response
+        location = response.headers.get("location")
+        if not location:
+            response.raise_for_status()
+            return response
+        nxt = urljoin(current, location)
+        current = assert_safe_url(nxt)
+    raise ValueError(f"重定向次数过多: {url}")
 
 
 def get_text(url: str, **kw: Any) -> str:

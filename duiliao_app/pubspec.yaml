@@ -63,5 +63,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/fixtures/
+  # Intentionally no assets/fixtures here: crypto_vectors.json carries a test
+  # RSA private key and API dumps are for unit tests only (loaded via File()
+  # from the repo path). Shipping them in release APKs would leak fixtures.
