@@ -14,7 +14,9 @@ enum AppEventType {
   sourceHit('source_hit', '关注源命中'),
   sourceMissStreak('source_miss_streak', '关注源连挂'),
   consensusLeaderChanged('consensus_leader_changed', '共识领先变动'),
-  collectJobFinished('collect_job_finished', '采集任务');
+  collectJobFinished('collect_job_finished', '采集任务'),
+  fetchHashChanged('fetch_hash_changed', '采集内容变更'),
+  fetchFailStreak('fetch_fail_streak', '采集连续失败');
 
   const AppEventType(this.code, this.label);
   final String code;
@@ -105,6 +107,10 @@ class AppEvent {
       case AppEventType.collectJobFinished:
         final jobId = asIntOrNull(data['job_id']);
         return jobId == null ? '/collect' : '/collect/job/$jobId';
+      case AppEventType.fetchHashChanged:
+      case AppEventType.fetchFailStreak:
+        final sourceId = asStringOrNull(data['source_id']);
+        return sourceId == null ? '/collect' : '/ratings/source/$sourceId';
       case null:
         return null;
     }

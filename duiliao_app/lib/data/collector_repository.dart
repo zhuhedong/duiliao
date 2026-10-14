@@ -333,6 +333,10 @@ class CollectorRepository {
   // Operations (staff/admin)
   // ------------------------------------------------------------------ //
   /// Submit a collection job. Returns immediately with the queued job.
+  /// Current 588080 API host pool (read-only). Useful on the collect screen.
+  Future<Map<String, dynamic>> hostPoolStatus() =>
+      _client.get<Map<String, dynamic>>('/collector/host-pool');
+
   Future<CollectJob> submitCollectJob({
     required String lottery,
     String? period,

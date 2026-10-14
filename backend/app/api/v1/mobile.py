@@ -497,6 +497,62 @@ async def events(
                 }
             )
 
+
+    # Operational fetch signals (hash drift / consecutive failures). Opt-in for
+    # hash changes; fail-streak defaults on with a configurable threshold.
+    if enabled("fetch_hash_changed", False):
+        for row in await asyncio.to_thread(
+            cb.list_fetch_hash_change_events, query_since, lottery=lottery, limit=source_limit
+        ) or []:
+            occurred = row.get("occurred_at")
+            out.append(
+                {
+                    "type": "fetch_hash_changed",
+                    "occurred_at": _iso(occurred),
+                    "lottery": row.get("lottery"),
+                    "period": row.get("period"),
+                    "title": "采集内容变更",
+                    "body": f"{row.get('source_id')} 内容 hash 已变化",
+                    "data": {
+                        "source_id": row.get("source_id"),
+                        "old_hash": row.get("old_hash"),
+                        "new_hash": row.get("new_hash"),
+                        "url": row.get("url"),
+                        "observation_id": row.get("observation_id"),
+                        "occurred_at": _iso(occurred),
+                    },
+                }
+            )
+
+    if enabled("fetch_fail_streak"):
+        fail_threshold = int(rules.get("fetch_fail_streak_threshold") or 3)
+        for row in await asyncio.to_thread(
+            cb.list_fetch_fail_streak_events,
+            query_since,
+            lottery=lottery,
+            threshold=fail_threshold,
+            limit=source_limit,
+        ) or []:
+            occurred = row.get("occurred_at")
+            out.append(
+                {
+                    "type": "fetch_fail_streak",
+                    "occurred_at": _iso(occurred),
+                    "lottery": row.get("lottery"),
+                    "period": row.get("period"),
+                    "title": "采集连续失败",
+                    "body": f"{row.get('source_id')} 已连续失败 {row.get('streak')} 次",
+                    "data": {
+                        "source_id": row.get("source_id"),
+                        "streak": row.get("streak"),
+                        "threshold": row.get("threshold"),
+                        "error": row.get("error"),
+                        "observation_id": row.get("observation_id"),
+                        "occurred_at": _iso(occurred),
+                    },
+                }
+            )
+
     # Subscription scopes are shared by all event types. Events without a
     # play-type (draws and job completion) are still governed by the lottery
     # preference, while source/consensus events additionally honour play types.

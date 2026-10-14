@@ -1155,3 +1155,73 @@ async def create_backfill_job(
         dry_run=req.dry_run,
     )
     return {"ok": True, **result}
+
+
+class CatalogBatchEnableItem(BaseModel):
+    action: str = Field(..., description="create_source | enable_source")
+    source_id: str | None = None
+    source_name: str | None = None
+    upstream_id: str | None = None
+    parser: str | None = Field(
+        default=None,
+        description="Required for create_source; must be a reviewed EXTRACTORS key",
+    )
+    lottery: Lottery = "macau"
+    play_type: str | None = None
+    kind: str | None = None
+    enabled: bool | None = True
+
+
+class CatalogBatchEnableRequest(BaseModel):
+    items: list[CatalogBatchEnableItem]
+    confirm: bool = Field(
+        False,
+        description="Must be true to apply changes (ignored when dry_run=true)",
+    )
+    dry_run: bool = False
+
+
+@router.post("/catalog/batch-enable")
+def catalog_batch_enable(
+    req: CatalogBatchEnableRequest,
+    _: User = _staff,
+) -> dict[str, Any]:
+    """Staff-only: batch enable existing sources or create template sources.
+
+    New sources require a reviewed ``parser`` + numeric ``upstream_id``. Blind
+    enable of unknown parsers is rejected. Creating scripts still requires
+    WRITE_SCRIPT_ENABLED.
+    """
+    payloads = [item.model_dump(exclude_none=True) for item in req.items]
+    will_create = any(p.get("action") == "create_source" for p in payloads)
+    if will_create and not req.dry_run:
+        _require_script_writes()
+    try:
+        return cb.catalog_batch_enable(
+            payloads,
+            confirm=req.confirm,
+            dry_run=req.dry_run,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/host-pool/scheduler")
+def get_host_pool_scheduler(_: User = _user) -> dict[str, Any]:
+    from app.services.host_pool_scheduler import host_pool_scheduler
+
+    return {"ok": True, **host_pool_scheduler.status()}
+
+
+@router.post("/host-pool/probe")
+async def trigger_host_pool_probe(
+    force_refresh: bool = Query(False),
+    _: User = _staff,
+) -> dict[str, Any]:
+    """Manually wake the host-pool probe (staff)."""
+    from app.services.host_pool_scheduler import host_pool_scheduler
+
+    result = await host_pool_scheduler.run_once(manual=True, force_refresh=force_refresh)
+    return {"ok": True, "result": result}

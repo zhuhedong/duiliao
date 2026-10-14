@@ -162,3 +162,122 @@ def previous_hash(source_id: str) -> str | None:
             .limit(1)
         ).first()
         return row.content_hash if row else None
+
+
+def list_hash_change_events(
+    since: datetime | None = None,
+    *,
+    lottery: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    """Emit an event when a source's content_hash differs from its previous observation.
+
+    ``since`` only filters the *newer* observation so older hashes remain
+    visible for comparison even when they fall before the cursor.
+    """
+    limit = max(1, min(int(limit), 200))
+    with session_scope() as session:
+        stmt = (
+            select(FetchObservation)
+            .where(FetchObservation.content_hash.is_not(None))
+            .where(FetchObservation.ok == 1)
+            .order_by(desc(FetchObservation.id))
+            .limit(max(limit * 10, 100))
+        )
+        if lottery:
+            stmt = stmt.where(FetchObservation.lottery == lottery)
+        rows = list(session.scalars(stmt).all())
+
+    by_source: dict[str, list[FetchObservation]] = {}
+    for row in rows:
+        if not row.source_id:
+            continue
+        by_source.setdefault(row.source_id, []).append(row)
+
+    events: list[dict[str, Any]] = []
+    cutoff = None
+    if since is not None:
+        cutoff = since.replace(tzinfo=None) if since.tzinfo else since
+
+    for source_id, items in by_source.items():
+        for idx, newer in enumerate(items[:-1]):
+            if cutoff is not None and newer.created_at and newer.created_at < cutoff:
+                continue
+            older = items[idx + 1]
+            if not newer.content_hash or not older.content_hash:
+                continue
+            if newer.content_hash == older.content_hash:
+                continue
+            events.append(
+                {
+                    "source_id": source_id,
+                    "lottery": newer.lottery,
+                    "period": newer.period,
+                    "old_hash": older.content_hash,
+                    "new_hash": newer.content_hash,
+                    "url": newer.url,
+                    "observation_id": newer.id,
+                    "occurred_at": newer.created_at,
+                }
+            )
+            break
+    events.sort(key=lambda e: e["occurred_at"] or datetime.min, reverse=True)
+    return events[:limit]
+
+
+def list_consecutive_failure_events(
+    since: datetime | None = None,
+    *,
+    lottery: str | None = None,
+    threshold: int = 3,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    """Emit when a source's newest failure streak *exactly* equals ``threshold``.
+
+    Exact match avoids re-notifying on every subsequent failure; the next alert
+    waits until the streak recovers and then crosses the threshold again.
+    """
+    threshold = max(2, min(int(threshold), 20))
+    limit = max(1, min(int(limit), 200))
+    with session_scope() as session:
+        stmt = select(FetchObservation).order_by(desc(FetchObservation.id)).limit(400)
+        if lottery:
+            stmt = stmt.where(FetchObservation.lottery == lottery)
+        rows = list(session.scalars(stmt).all())
+
+    by_source: dict[str, list[FetchObservation]] = {}
+    for row in rows:
+        if not row.source_id:
+            continue
+        by_source.setdefault(row.source_id, []).append(row)
+
+    events: list[dict[str, Any]] = []
+    for source_id, items in by_source.items():
+        streak = 0
+        newest_fail: FetchObservation | None = None
+        for row in items:
+            if row.ok:
+                break
+            streak += 1
+            if newest_fail is None:
+                newest_fail = row
+        if streak != threshold or newest_fail is None:
+            continue
+        if since is not None and newest_fail.created_at:
+            cutoff = since.replace(tzinfo=None) if since.tzinfo else since
+            if newest_fail.created_at < cutoff:
+                continue
+        events.append(
+            {
+                "source_id": source_id,
+                "lottery": newest_fail.lottery,
+                "period": newest_fail.period,
+                "streak": streak,
+                "threshold": threshold,
+                "error": newest_fail.error,
+                "observation_id": newest_fail.id,
+                "occurred_at": newest_fail.created_at,
+            }
+        )
+    events.sort(key=lambda e: e["occurred_at"] or datetime.min, reverse=True)
+    return events[:limit]

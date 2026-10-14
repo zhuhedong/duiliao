@@ -3035,3 +3035,220 @@ def catalog_suggestions(site_family: str | None = None) -> dict[str, Any]:
         },
         "note": "建议仅供人工确认；停用请调用 POST /collector/catalog/reconcile?disable_missing=true",
     }
+
+
+def host_pool_probe() -> dict[str, Any]:
+    prepare_modules()
+    import host_pool
+
+    return host_pool.probe()
+
+
+def list_fetch_hash_change_events(
+    since=None,
+    *,
+    lottery: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    prepare_modules()
+    import fetch_observation as fo
+
+    return fo.list_hash_change_events(since, lottery=lottery, limit=limit)
+
+
+def list_fetch_fail_streak_events(
+    since=None,
+    *,
+    lottery: str | None = None,
+    threshold: int = 3,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    prepare_modules()
+    import fetch_observation as fo
+
+    return fo.list_consecutive_failure_events(
+        since, lottery=lottery, threshold=threshold, limit=limit
+    )
+
+
+def catalog_batch_enable(
+    items: list[dict[str, Any]],
+    *,
+    confirm: bool = False,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Batch enable/create catalog sources with explicit confirm.
+
+    - ``enable_source``: flip existing yaml/db ``enabled`` — no script write.
+    - ``create_source``: requires numeric ``upstream_id`` + reviewed ``parser``
+      from ``EXTRACTORS``; still gated by WRITE_SCRIPT_ENABLED at the API layer.
+    Unknown parsers / missing upstream_id are rejected (no blind enable).
+    """
+    prepare_modules()
+    from common.dingjian_columns import EXTRACTORS
+    from common.template_fetch import byid_path, source_extra_template
+
+    reg = registry_module()
+
+    if not dry_run and not confirm:
+        raise ValueError("必须 confirm=true 才会真正启用或创建源")
+    if not items:
+        raise ValueError("items 不能为空")
+
+    results: list[dict[str, Any]] = []
+    to_create: list[dict[str, Any]] = []
+    to_enable: list[dict[str, Any]] = []
+
+    existing_rows = {str(r.get("source_id")): r for r in reg.list_sources()}
+
+    for raw in items:
+        item = dict(raw or {})
+        action = str(item.get("action") or "").strip()
+        upstream_id = str(item.get("upstream_id") or "").strip()
+        parser = str(item.get("parser") or "").strip()
+        source_id = str(item.get("source_id") or "").strip()
+        entry: dict[str, Any] = {
+            "action": action,
+            "upstream_id": upstream_id or None,
+            "parser": parser or None,
+            "source_id": source_id or None,
+            "ok": False,
+        }
+
+        if action == "enable_source":
+            targets: list[str] = []
+            if source_id:
+                targets = [source_id]
+            elif upstream_id:
+                for sid, row in existing_rows.items():
+                    extra = row.get("extra") or {}
+                    if str(extra.get("upstream_id") or "") == upstream_id:
+                        targets.append(sid)
+            if not targets:
+                entry["error"] = "enable_source 需要 source_id，或能匹配 upstream_id 的已有源"
+                results.append(entry)
+                continue
+            for sid in targets:
+                row = existing_rows.get(sid)
+                if not row:
+                    results.append({**entry, "source_id": sid, "error": "源不存在"})
+                    continue
+                to_enable.append({"source_id": sid, "row": row, "entry": {**entry, "source_id": sid}})
+            continue
+
+        if action == "create_source":
+            if not upstream_id.isdigit():
+                entry["error"] = "create_source 需要数字 upstream_id"
+                results.append(entry)
+                continue
+            if parser not in EXTRACTORS:
+                entry["error"] = f"parser 未在已验收列表中: {parser or '(empty)'}"
+                results.append(entry)
+                continue
+            if not source_id:
+                entry["error"] = "create_source 需要 source_id"
+                results.append(entry)
+                continue
+            if source_id in existing_rows:
+                entry["error"] = "源已存在，请改用 enable_source"
+                results.append(entry)
+                continue
+            kind, _count, _pat = EXTRACTORS[parser]
+            play_type = "tema_n" if kind == "num" else "texiao"
+            if kind == "all":
+                kind = "mixed"
+            payload = {
+                "source_id": source_id,
+                "source_name": (item.get("source_name") or source_id).strip(),
+                "site_family": "dingjian_dashi",
+                "lottery": item.get("lottery") or "macau",
+                "play_type": item.get("play_type") or play_type,
+                "hit_mode": "any",
+                "enabled": True if item.get("enabled") is None else bool(item.get("enabled")),
+                "create_script": True,
+                "extra": source_extra_template(
+                    upstream_id=upstream_id,
+                    parser=parser,
+                    kind=str(item.get("kind") or kind),
+                ),
+            }
+            # Ensure path is set for renderer
+            payload["extra"]["path"] = byid_path(upstream_id)
+            to_create.append({"payload": payload, "entry": entry})
+            continue
+
+        entry["error"] = f"不支持的 action: {action or '(empty)'}（仅 create_source / enable_source）"
+        results.append(entry)
+
+    if dry_run:
+        for item in to_enable:
+            results.append({**item["entry"], "ok": True, "will_enable": True, "dry_run": True})
+        for item in to_create:
+            results.append(
+                {
+                    **item["entry"],
+                    "ok": True,
+                    "will_create": True,
+                    "dry_run": True,
+                    "source_id": item["payload"]["source_id"],
+                    "parser": item["payload"]["extra"].get("parser"),
+                    "upstream_id": item["payload"]["extra"].get("upstream_id"),
+                }
+            )
+        return {
+            "ok": True,
+            "dry_run": True,
+            "confirm": confirm,
+            "counts": {
+                "enable": len(to_enable),
+                "create": len(to_create),
+                "rejected": sum(1 for r in results if not r.get("ok")),
+            },
+            "items": results,
+            "note": "dry_run 未写库；真正执行需 confirm=true 且关闭 dry_run",
+        }
+
+    for item in to_enable:
+        sid = item["source_id"]
+        try:
+            updated = reg.update_source(sid, {"enabled": True})
+            results.append(
+                {
+                    **item["entry"],
+                    "ok": True,
+                    "enabled": True,
+                    "source_name": updated.get("source_name"),
+                }
+            )
+        except Exception as exc:
+            results.append({**item["entry"], "ok": False, "error": str(exc)})
+
+    for item in to_create:
+        try:
+            created = reg.create_source(item["payload"])
+            results.append(
+                {
+                    **item["entry"],
+                    "ok": True,
+                    "created": True,
+                    "source_id": created.get("source_id"),
+                    "source_name": created.get("source_name"),
+                    "parser": item["payload"]["extra"].get("parser"),
+                    "upstream_id": item["payload"]["extra"].get("upstream_id"),
+                }
+            )
+        except Exception as exc:
+            msg = getattr(exc, "message", None) or str(exc)
+            results.append({**item["entry"], "ok": False, "error": msg})
+
+    return {
+        "ok": all(r.get("ok") for r in results) if results else False,
+        "dry_run": False,
+        "confirm": True,
+        "counts": {
+            "enable": sum(1 for r in results if r.get("enabled")),
+            "create": sum(1 for r in results if r.get("created")),
+            "rejected": sum(1 for r in results if not r.get("ok")),
+        },
+        "items": results,
+    }

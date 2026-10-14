@@ -175,10 +175,11 @@ def refresh(
             seen.add(base)
             unique.append(base)
 
+    prev_health = dict((load_pool() or {}).get("health") or {})
     health: dict[str, Any] = {}
     healthy: list[str] = []
     for host in unique[:max_valid]:
-        check = health_check(host)
+        check = _merge_health(prev_health.get(host), health_check(host))
         health[host] = check
         if check["ok"]:
             healthy.append(host)
@@ -247,3 +248,72 @@ def status() -> dict[str, Any]:
         "health": dict(pool.get("health") or {}),
         "host_count": len(pool.get("hosts") or []),
     }
+
+
+def _merge_health(prev: dict[str, Any] | None, check: dict[str, Any]) -> dict[str, Any]:
+    """Attach consecutive_failures / last_ok_at onto a fresh health-check result."""
+    prev = prev or {}
+    out = dict(check)
+    if check.get("ok"):
+        out["consecutive_failures"] = 0
+        out["last_ok_at"] = check.get("checked_at") or prev.get("last_ok_at")
+    else:
+        out["consecutive_failures"] = int(prev.get("consecutive_failures") or 0) + 1
+        out["last_ok_at"] = prev.get("last_ok_at")
+    return out
+
+
+def probe(*, full_refresh_if_empty: bool = True) -> dict[str, Any]:
+    """Health-check hosts already in the pool; refresh only when empty or all fail.
+
+    Safer default for the background worker than always re-running discovery.
+    """
+    pool = load_pool()
+    hosts = [h for h in (pool.get("hosts") or []) if h]
+    if not hosts:
+        if full_refresh_if_empty:
+            refreshed = refresh()
+            refreshed["action"] = "refresh"
+            return refreshed
+        status_payload = status()
+        status_payload["action"] = "noop_empty"
+        return status_payload
+
+    prev_health = dict(pool.get("health") or {})
+    health: dict[str, Any] = {}
+    healthy: list[str] = []
+    for host in hosts:
+        check = _merge_health(prev_health.get(host), health_check(host))
+        health[host] = check
+        if check.get("ok"):
+            healthy.append(host)
+
+    if not healthy:
+        refreshed = refresh()
+        refreshed["action"] = "refresh_after_probe_fail"
+        # Preserve consecutive failure counts for hosts that still fail.
+        merged_health = dict(refreshed.get("health") or {})
+        for host, check in health.items():
+            if host in merged_health and not merged_health[host].get("ok"):
+                merged_health[host] = _merge_health(check, merged_health[host])
+            elif host not in merged_health:
+                merged_health[host] = check
+        refreshed["health"] = merged_health
+        return save_pool(refreshed) | {"action": "refresh_after_probe_fail"}
+
+    # Keep unhealthy hosts at the end so collectors still have fallbacks recorded.
+    ordered = healthy + [h for h in hosts if h not in healthy]
+    payload = {
+        "schema": SCHEMA,
+        "updated_at": _now_iso(),
+        "entry_urls": list(pool.get("entry_urls") or DEFAULT_ENTRIES),
+        "hosts": ordered,
+        "primary": healthy[0],
+        "errors": list(pool.get("errors") or [])[-20:],
+        "health": health,
+        "ok": True,
+        "action": "probe",
+    }
+    saved = save_pool(payload)
+    saved["action"] = "probe"
+    return saved

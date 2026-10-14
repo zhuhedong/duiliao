@@ -219,6 +219,9 @@ abstract final class NotifyRule {
   static const String missStreakThreshold = 'miss_streak_threshold';
   static const String consensusLeaderChanged = 'consensus_leader_changed';
   static const String collectJobFinished = 'collect_job_finished';
+  static const String fetchHashChanged = 'fetch_hash_changed';
+  static const String fetchFailStreak = 'fetch_fail_streak';
+  static const String fetchFailStreakThreshold = 'fetch_fail_streak_threshold';
 
   /// Boolean rules in display order, with their labels.
   static const Map<String, String> toggles = {
@@ -227,6 +230,8 @@ abstract final class NotifyRule {
     sourceMissStreak: '关注源连挂',
     consensusLeaderChanged: '共识领先变动',
     collectJobFinished: '采集任务完成或失败',
+    fetchHashChanged: '采集内容 hash 变更',
+    fetchFailStreak: '采集连续失败',
   };
 }
 
