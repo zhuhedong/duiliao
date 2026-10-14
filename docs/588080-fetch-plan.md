@@ -68,12 +68,12 @@
 
 ## 验收标准
 
-- [ ] 入口挂掉后，刷新 Host 池可在数分钟内切到备用 base（不依赖发版）  
-- [ ] 新栏目：scan → suggestions 可见，不强制写脚本也能看见 pending  
-- [ ] 单期全量采集：有 job id + 实时进度，APP 不超时  
-- [ ] 缺期回填：preview + 提交 job，结果可对账  
-- [ ] AI / APP 可在 TTL 内复用 dump，而不必每次外连  
-- [ ] 相关 pytest 覆盖 Host 池、观测写入、SSRF、回填预览  
+- [x] 入口挂掉后，刷新 Host 池可在数分钟内切到备用 base（不依赖发版）  
+- [x] 新栏目：scan → suggestions 可见，不强制写脚本也能看见 pending  
+- [x] 单期全量采集：有 job id + 实时进度，APP 不超时  
+- [x] 缺期回填：preview + 提交 job，结果可对账  
+- [x] AI / APP 可在 TTL 内复用 dump，而不必每次外连  
+- [x] 相关 pytest 覆盖 Host 池、观测写入、SSRF、回填预览  
 
 ## 明确不做
 
@@ -85,3 +85,23 @@
 ## 本 PR 范围说明
 
 见 Pull Request 描述：**已交付 vs 后续跟进**。
+
+
+## 跟进交付（PR #3）
+
+1. **Host 池后台探测**  
+   - `HostPoolScheduler`：默认每 15 分钟 `probe()`（最短 5 分钟）  
+   - 全挂时才 `refresh()` 重新发现  
+   - API：`GET /collector/host-pool/scheduler`、`POST /collector/host-pool/probe`
+
+2. **目录批量启用**  
+   - `POST /collector/catalog/batch-enable`（员工，需 `confirm=true`）  
+   - `create_source` 必须 `upstream_id` + 已验收 `parser`；禁止盲开未知 parser  
+   - 写脚本仍受 `WRITE_SCRIPT_ENABLED` 约束
+
+3. **通知钩子**  
+   - `fetch_hash_changed` / `fetch_fail_streak` 进入 `GET /app/events`  
+   - APP `NotifyRule` / `AppEventType` 已同步
+
+4. **APP 采集进度**  
+   - 已走异步 `collect-jobs` + `jobProgressProvider` 轮询（本跟进确认完整）

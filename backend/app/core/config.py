@@ -122,6 +122,10 @@ class Settings(BaseSettings):
     # API workers share state. "memory" keeps the old single-process behaviour.
     CRYPTO_STORE: str = "database"  # database | memory
 
+    # 588080 host-pool background probe (seconds; minimum enforced at 300)
+    HOST_POOL_PROBE_ENABLED: bool = True
+    HOST_POOL_PROBE_INTERVAL_SEC: int = 900
+
     # --- First-run admin bootstrap ---
     # When no admin/staff account exists yet, allow creating the first admin
     # from a loopback client without auth. Always disabled in production and

@@ -25,6 +25,7 @@ from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.services.collect_jobs import collect_job_worker
 from app.services.draw_scheduler import draw_scheduler
 from app.services.source_scheduler import source_scheduler
+from app.services.host_pool_scheduler import host_pool_scheduler
 
 # Uvicorn only configures its own loggers; everything else bubbles up to a root
 # logger with no handler, where anything below WARNING is dropped. Install a
@@ -99,11 +100,13 @@ async def lifespan(app: FastAPI):
     task_draw = asyncio.create_task(draw_scheduler.run_loop())
     task_source = asyncio.create_task(source_scheduler.run_loop())
     task_jobs = asyncio.create_task(collect_job_worker.run_loop())
+    task_host_pool = asyncio.create_task(host_pool_scheduler.run_loop())
     yield
     task_purge.cancel()
     task_draw.cancel()
     task_source.cancel()
     task_jobs.cancel()
+    task_host_pool.cancel()
 
 
 app = FastAPI(

@@ -30,6 +30,9 @@ DEFAULT_NOTIFY_RULES: dict[str, object] = {
     "miss_streak_threshold": 3,
     "consensus_leader_changed": False,
     "collect_job_finished": True,
+    "fetch_hash_changed": False,
+    "fetch_fail_streak": True,
+    "fetch_fail_streak_threshold": 3,
 }
 
 
