@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Spinner } from "@appica/ui-react/spinner";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Spinner } from "../../components/ui/spinner";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -122,7 +122,7 @@ export function SourceHistoryModal({
       return (
         <span
           key={idx}
-          className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-400/40 dark:border-violet-400/25 backdrop-blur-md"
+          className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-bold bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-400/40 dark:border-violet-400/25"
         >
           {atom.value}
         </span>
@@ -139,8 +139,8 @@ export function SourceHistoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-6xl max-h-[92vh] glass-panel rounded-3xl animate-glassPop flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+      <div className="w-full max-w-6xl max-h-[92vh] admin-card rounded-3xl animate-fadeIn flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-white/8 px-6 py-4">
           <div className="space-y-1">
@@ -195,7 +195,7 @@ export function SourceHistoryModal({
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {error && (
-            <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 backdrop-blur-md text-rose-700 dark:text-rose-300">
+            <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300">
               <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
           )}
@@ -220,14 +220,14 @@ export function SourceHistoryModal({
                 </div>
               </div>
 
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
+              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25">
                 <span className="text-2xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase block">命中次数</span>
                 <span className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1 block">
                   {stats.hits} 次
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md">
+              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25">
                 <span className="text-2xs font-semibold text-rose-600 dark:text-rose-400 uppercase block">未中(挂)次数</span>
                 <span className="text-lg font-bold font-mono text-rose-600 dark:text-rose-400 mt-1 block">
                   {stats.misses} 次
@@ -250,7 +250,7 @@ export function SourceHistoryModal({
                 </div>
               </div>
 
-              <div className={`p-3 rounded-2xl border backdrop-blur-md ${
+              <div className={`p-3 rounded-2xl border  ${
                 stats.conflicts > 0
                   ? "bg-amber-500/10 border-amber-400/40 dark:border-amber-400/25"
                   : "bg-slate-500/5 border-slate-400/30 dark:border-slate-400/20"
@@ -444,7 +444,7 @@ export function SourceHistoryModal({
                         {/* Claimed Status & Conflict check */}
                         <td className={tableTdClass}>
                           {item.is_conflict ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-400/40 dark:border-rose-400/25">
                               <span>⚠️ 自称中 (实测挂)</span>
                             </span>
                           ) : (
@@ -509,7 +509,7 @@ export function SourceHistoryModal({
                                 <span className="text-2xs font-semibold text-slate-400 uppercase mb-1 block">
                                   网页爬虫原始解析文本 (Scraped Raw Text):
                                 </span>
-                                <pre className="p-3 rounded-xl bg-slate-950/90 backdrop-blur-md text-emerald-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner border border-white/10">
+                                <pre className="p-3 rounded-xl bg-slate-950/90 text-emerald-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner border border-white/10">
                                   {item.raw_text || "无原始文本内容"}
                                 </pre>
                               </div>

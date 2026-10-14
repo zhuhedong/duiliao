@@ -129,7 +129,7 @@ export function DashboardPage() {
   return (
     <div className="workspace-fill w-full flex flex-col gap-3 content-start">
       {/* 顶部：问候 + 刷新 */}
-      <header className="rounded-[28px] glass-panel px-5 sm:px-6 py-4 flex items-center gap-4 flex-wrap">
+      <header className="admin-card px-5 sm:px-6 py-4 flex items-center gap-4 flex-wrap">
         <div className="min-w-0 flex-1">
           <div className="text-[11px] uppercase tracking-[0.18em] text-violet-600 dark:text-violet-300">
             工作台 · {data?.today.date ?? new Date().toISOString().slice(0, 10)}
@@ -154,7 +154,7 @@ export function DashboardPage() {
       </header>
 
       {error && (
-        <div className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md px-4 py-3 text-sm flex items-center justify-between gap-3">
+        <div className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 px-4 py-3 text-sm flex items-center justify-between gap-3">
           <span>{error}</span>
           <button
             type="button"
@@ -208,14 +208,14 @@ function DashboardSkeleton() {
     <div className="flex flex-col gap-3 animate-pulse">
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="rounded-3xl glass-card h-28" />
+          <div key={i} className="admin-card h-28" />
         ))}
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
-        <div className="xl:col-span-7 rounded-3xl glass-card h-64" />
-        <div className="xl:col-span-5 rounded-3xl glass-card h-64" />
-        <div className="xl:col-span-7 rounded-3xl glass-card h-72" />
-        <div className="xl:col-span-5 rounded-3xl glass-card h-72" />
+        <div className="xl:col-span-7 admin-card h-64" />
+        <div className="xl:col-span-5 admin-card h-64" />
+        <div className="xl:col-span-7 admin-card h-72" />
+        <div className="xl:col-span-5 admin-card h-72" />
       </div>
     </div>
   );
@@ -290,7 +290,7 @@ function KpiRow({ data }: { data: OverviewResult }) {
         <Link
           key={c.label}
           to={c.to}
-          className="rounded-3xl glass-card p-4 sm:p-5 flex flex-col justify-between gap-3 no-underline text-inherit hover:bg-violet-500/5 transition-colors group"
+          className="admin-card p-4 sm:p-5 flex flex-col justify-between gap-3 no-underline text-inherit hover:bg-violet-500/5 transition-colors group"
         >
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
@@ -825,7 +825,7 @@ function QuickNav() {
     { to: "/settings", label: "系统设置", icon: <SettingsIcon size={18} /> },
   ];
   return (
-    <nav className="rounded-[28px] glass-card p-4">
+    <nav className="rounded-[28px] admin-card p-4">
       <div className="px-1 pb-3 text-sm font-semibold text-slate-900 dark:text-white">业务入口</div>
       <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
         {items.map((it) => (
@@ -864,7 +864,7 @@ function PanelShell({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[28px] glass-card p-5 h-full flex flex-col">
+    <div className="rounded-[28px] admin-card p-5 h-full flex flex-col">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <div className="min-w-0">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">

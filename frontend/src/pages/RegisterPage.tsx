@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { Button } from "@appica/ui-react/button";
-import { Input } from "@appica/ui-react/input";
-import { Field, FieldLabel, FieldDescription } from "@appica/ui-react/field";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
-import { Spinner } from "@appica/ui-react/spinner";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Field, FieldLabel, FieldDescription } from "../components/ui/field";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Spinner } from "../components/ui/spinner";
 import { useAuth } from "../auth/AuthContext";
 import { AuthShell } from "../components/AuthShell";
 import { ApiError } from "../lib/api";
@@ -59,7 +59,7 @@ export function RegisterPage() {
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-1">
         {error && (
-          <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
+          <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300">
             <AlertDescription className="text-sm leading-relaxed">{error}</AlertDescription>
           </Alert>
         )}

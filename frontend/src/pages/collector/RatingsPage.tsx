@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Spinner } from "@appica/ui-react/spinner";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Spinner } from "../../components/ui/spinner";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ApiError } from "../../lib/api";
 import { collectorApi, type Lottery, type RatingsResult, type RuleRow } from "../../lib/collector";
 import {
@@ -119,7 +119,7 @@ export function CollectorRatingsPage() {
     <PageWorkspace summary="用同一段最近期号比较各来源的真实命中率、缺期、连中连挂和虚假报喜。">
 
       {error && (
-        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
+        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300">
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}

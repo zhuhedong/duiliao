@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Button } from "@appica/ui-react/button";
-import { Input } from "@appica/ui-react/input";
-import { Field, FieldLabel } from "@appica/ui-react/field";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
-import { Spinner } from "@appica/ui-react/spinner";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Field, FieldLabel } from "../components/ui/field";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Spinner } from "../components/ui/spinner";
 import { useAuth } from "../auth/AuthContext";
 import { userApi, type SessionInfo } from "../lib/api";
 import { ChevronDownIcon, DevicesIcon } from "../components/icons";
@@ -113,7 +113,7 @@ export function ProfilePage() {
   return (
     <div className="workspace-fill w-full grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch content-start">
       {/* 用户概览与基本资料卡片 */}
-      <div className="xl:col-span-5 xl:sticky xl:top-[5rem] xl:self-start p-6 sm:p-8 rounded-3xl glass-card">
+      <div className="xl:col-span-5 xl:sticky xl:top-[5rem] xl:self-start p-6 sm:p-8 admin-card">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200/50 dark:border-white/8">
           <div className="flex items-center gap-4">
             <UserAvatar
@@ -126,7 +126,7 @@ export function ProfilePage() {
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   {user?.display_name || "用户"}
                 </h2>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold border border-violet-400/40 dark:border-violet-400/25 backdrop-blur-md">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold border border-violet-400/40 dark:border-violet-400/25">
                   {USER_ROLE_LABEL[user?.role ?? ""] ?? user?.role ?? "普通用户"}
                 </span>
               </div>
@@ -146,7 +146,7 @@ export function ProfilePage() {
 
         <form onSubmit={onSave} className="mt-6 space-y-4">
           {savedMsg && (
-            <Alert variant="success" className="rounded-xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 py-2.5 px-3 backdrop-blur-md">
+            <Alert variant="success" className="rounded-xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 py-2.5 px-3">
               <AlertDescription className="text-xs leading-relaxed font-medium">{savedMsg}</AlertDescription>
             </Alert>
           )}
@@ -260,12 +260,12 @@ export function ProfilePage() {
           {showPasswordForm && (
             <form onSubmit={onPasswordSubmit} className="mt-4 space-y-4 max-w-md p-5 rounded-2xl glass-subtle">
               {passwordError && (
-                <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 py-2.5 px-3 backdrop-blur-md">
+                <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 py-2.5 px-3">
                   <AlertDescription className="text-xs leading-relaxed font-medium">{passwordError}</AlertDescription>
                 </Alert>
               )}
               {passwordSuccess && (
-                <Alert variant="success" className="rounded-xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 py-2.5 px-3 backdrop-blur-md">
+                <Alert variant="success" className="rounded-xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 py-2.5 px-3">
                   <AlertDescription className="text-xs leading-relaxed font-medium">{passwordSuccess}</AlertDescription>
                 </Alert>
               )}
@@ -351,7 +351,7 @@ export function ProfilePage() {
       </div>
 
       {/* 登录设备与安全会话管控 */}
-      <div className="xl:col-span-7 p-6 sm:p-8 rounded-3xl glass-card">
+      <div className="xl:col-span-7 p-6 sm:p-8 admin-card">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <DevicesIcon size={18} className="text-violet-600 dark:text-violet-300" />
@@ -377,7 +377,7 @@ export function ProfilePage() {
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl glass-subtle hover:border-violet-400/40 dark:hover:border-violet-400/30 transition-colors"
               >
                 <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-400/30 flex items-center justify-center shrink-0 backdrop-blur-sm">
+                  <div className="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-300 border border-violet-400/30 flex items-center justify-center shrink-0">
                     <DevicesIcon size={20} />
                   </div>
                   <div>
@@ -386,12 +386,12 @@ export function ProfilePage() {
                         {s.device_name || "未知设备终端"}
                       </span>
                       {s.platform && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-600 dark:text-slate-300 font-medium border border-slate-400/30 dark:border-slate-400/20 backdrop-blur-md">
+                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-600 dark:text-slate-300 font-medium border border-slate-400/30 dark:border-slate-400/20">
                           {PLATFORM_LABEL[s.platform] ?? s.platform}
                         </span>
                       )}
                       {s.current && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
+                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold border border-emerald-400/40 dark:border-emerald-400/25">
                           当前会话
                         </span>
                       )}
@@ -410,7 +410,7 @@ export function ProfilePage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="rounded-xl text-xs text-rose-700 dark:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md cursor-pointer"
+                    className="rounded-xl text-xs text-rose-700 dark:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border-rose-400/40 dark:border-rose-400/25 cursor-pointer"
                     onClick={() => revoke(s.id)}
                   >
                     吊销凭据

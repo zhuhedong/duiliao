@@ -60,8 +60,8 @@ export function AdvancedDrawer({
 
   return (
     <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
-      <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col gap-4 overflow-y-auto glass-panel p-5 shadow-2xl">
+      <div className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col gap-4 overflow-y-auto admin-card p-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
             <SettingsIcon size={17} className="text-primary" />

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Card } from "@appica/ui-react/card";
-import { Button } from "@appica/ui-react/button";
-import { Badge } from "@appica/ui-react/badge";
-import { Spinner } from "@appica/ui-react/spinner";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Card } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/ui/badge";
+import { Spinner } from "../../components/ui/spinner";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -344,7 +344,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
     <div className="space-y-6">
       {/* Alerts */}
       {error && (
-        <Alert variant="error" className="flex items-center justify-between rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 backdrop-blur-md text-rose-700 dark:text-rose-300">
+        <Alert variant="error" className="flex items-center justify-between rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300">
           <AlertDescription>{error}</AlertDescription>
           <button onClick={() => setError(null)} className="text-xs hover:underline cursor-pointer">
             关闭
@@ -353,7 +353,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
       )}
 
       {successMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md text-sm flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-sm flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckBadgeIcon size={18} />
             <span>{successMsg}</span>
@@ -365,7 +365,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
       )}
 
       {/* Scheduler Status Header Card */}
-      <Card className="p-5 rounded-3xl glass-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
+      <Card className="p-5 admin-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start md:items-center gap-3">
             <div className="p-3 rounded-2xl bg-primary/10 text-primary">
@@ -382,7 +382,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                     服务运行中
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-transparent text-slate-500 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 backdrop-blur-md">
+                  <Badge variant="outline" className="bg-transparent text-slate-500 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8">
                     等待初始化
                   </Badge>
                 )}
@@ -469,12 +469,12 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
       {/* Schedules Table / Empty State */}
       {loading ? (
-        <Card className="p-12 flex flex-col items-center justify-center text-slate-400 rounded-3xl glass-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
+        <Card className="p-12 flex flex-col items-center justify-center text-slate-400 admin-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
           <Spinner className="w-8 h-8 text-primary mb-3" />
           <p className="text-sm">正在加载定时采集任务...</p>
         </Card>
       ) : filteredSchedules.length === 0 ? (
-        <Card className="p-12 text-center text-slate-400 rounded-3xl glass-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
+        <Card className="p-12 text-center text-slate-400 admin-card [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
           <div className="w-12 h-12 mx-auto mb-3 rounded-2xl glass-subtle flex items-center justify-center text-slate-400">
             <ClockIcon size={24} />
           </div>
@@ -500,7 +500,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
             return (
               <Card
                 key={sched.id}
-                className="p-5 rounded-3xl glass-card hover:border-violet-400/40 dark:hover:border-violet-400/30 transition-colors [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none"
+                className="p-5 admin-card hover:border-violet-400/40 dark:hover:border-violet-400/30 transition-colors [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none"
               >
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   {/* Left: Task info */}
@@ -512,7 +512,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                       <h4 className="text-base font-bold text-slate-900 dark:text-white">
                         {sched.name}
                       </h4>
-                      <Badge variant="outline" className="uppercase font-mono text-[11px] bg-transparent text-slate-600 dark:text-slate-300 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 backdrop-blur-md">
+                      <Badge variant="outline" className="uppercase font-mono text-[11px] bg-transparent text-slate-600 dark:text-slate-300 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8">
                         {sched.lottery}
                       </Badge>
                       {sched.period ? (
@@ -520,12 +520,12 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           指定期数: {sched.period}
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[11px] bg-transparent text-slate-500 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 backdrop-blur-md">
+                        <Badge variant="outline" className="text-[11px] bg-transparent text-slate-500 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8">
                           最新期 (自动识别)
                         </Badge>
                       )}
                       {sched.spec?.time_window_start && (
-                        <Badge variant="secondary" className="text-[11px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
+                        <Badge variant="secondary" className="text-[11px] bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25">
                           {sched.spec.window_date === "daily" ? "每日" : "当天"} {sched.spec.time_window_start}-{sched.spec.time_window_end} (每{sched.spec.interval_minutes}分)
                         </Badge>
                       )}
@@ -538,7 +538,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           已启用
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[11px] bg-transparent text-slate-400 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8 backdrop-blur-md">
+                        <Badge variant="outline" className="text-[11px] bg-transparent text-slate-400 before:bg-transparent before:border-slate-200/50 dark:before:border-white/8">
                           已暂停
                         </Badge>
                       )}
@@ -671,8 +671,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
       {/* Create / Edit Schedule Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-0 glass-panel rounded-3xl overflow-hidden animate-glassPop [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-0 admin-card rounded-3xl overflow-hidden animate-fadeIn [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/50 dark:border-white/8 shrink-0">
               <div className="flex items-center gap-2">
                 <ClockIcon size={20} className="text-primary" />
@@ -1021,7 +1021,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               )}
 
               {/* Thread Pool Concurrency Configuration */}
-              <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-400/30 dark:border-violet-400/25 backdrop-blur-md space-y-2.5">
+              <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-400/30 dark:border-violet-400/25 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-violet-950 dark:text-violet-200 flex items-center gap-1.5">
                     <span>⚡</span>
@@ -1242,8 +1242,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
       {/* Execution Logs Drawer / Modal */}
       {activeLogSchedule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-6 glass-panel rounded-3xl animate-glassPop [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+          <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-6 admin-card rounded-3xl animate-fadeIn [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200/50 dark:border-white/8">
               <div className="flex items-center gap-2">
                 <ActivityIcon size={20} className="text-primary" />
@@ -1332,7 +1332,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           {l.detail || (l as any).message}
                         </p>
                         {(l as any).result && (
-                          <pre className="p-2 rounded-lg bg-slate-950/90 backdrop-blur-md text-emerald-400 border border-white/10 text-[11px] overflow-x-auto">
+                          <pre className="p-2 rounded-lg bg-slate-950/90 text-emerald-400 border border-white/10 text-[11px] overflow-x-auto">
                             {JSON.stringify((l as any).result, null, 2)}
                           </pre>
                         )}

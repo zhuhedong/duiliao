@@ -434,7 +434,7 @@ export function SystemSettingsPage() {
         ) : undefined
       }
       nav={
-        <div className="rounded-3xl glass-card p-2 flex flex-col gap-1">
+        <div className="admin-card p-2 flex flex-col gap-1">
           <button onClick={() => setActiveTab("ai")} className={tabClass("ai")}>
             <SparklesIcon size={16} />
             模型与密钥
@@ -460,21 +460,21 @@ export function SystemSettingsPage() {
 
       {/* Status Alerts */}
       {saveSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-sm flex items-center gap-2 animate-fadeIn backdrop-blur-md">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-sm flex items-center gap-2 animate-fadeIn">
           <CheckBadgeIcon size={18} />
           <span>系统 AI 配置已成功保存并立即全局生效！</span>
         </div>
       )}
 
       {dbSaveSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-sm flex items-center gap-2 animate-fadeIn backdrop-blur-md">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-sm flex items-center gap-2 animate-fadeIn">
           <CheckBadgeIcon size={18} />
           <span>数据库配置已成功应用并重新建立连接池！</span>
         </div>
       )}
 
       {saveError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between backdrop-blur-md">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between">
           <span>{saveError}</span>
           <button
             onClick={() => setSaveError(null)}
@@ -486,7 +486,7 @@ export function SystemSettingsPage() {
       )}
 
       {dbError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between backdrop-blur-md">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between">
           <span>{dbError}</span>
           <button
             onClick={() => setDbError(null)}
@@ -498,7 +498,7 @@ export function SystemSettingsPage() {
       )}
 
       {schemaError && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between backdrop-blur-md">
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-sm flex items-center justify-between">
           <span>{schemaError}</span>
           <button
             onClick={() => setSchemaError(null)}
@@ -523,7 +523,7 @@ export function SystemSettingsPage() {
           {activeTab === "ai" && (
             <div className="space-y-6">
               {/* Default Provider Card */}
-              <div className="p-6 rounded-3xl glass-card space-y-4">
+              <div className="p-6 admin-card space-y-4">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <SparklesIcon size={18} className="text-violet-600 dark:text-violet-300" />
@@ -601,7 +601,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* CARD 1: OpenAI / DeepSeek / 兼容 */}
-              <div className="p-6 rounded-3xl glass-card space-y-5">
+              <div className="p-6 admin-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
@@ -609,11 +609,11 @@ export function SystemSettingsPage() {
                         OpenAI / DeepSeek / 兼容协议配置
                       </h3>
                       {openaiConfigured ? (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25">
                           已配置密钥
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25">
                           待配置
                         </span>
                       )}
@@ -713,8 +713,8 @@ export function SystemSettingsPage() {
                   <div
                     className={`p-3 rounded-xl text-xs flex items-center justify-between ${
                       testResult["openai"].ok
-                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
-                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 backdrop-blur-md"
+                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 "
+                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 "
                     }`}
                   >
                     <span>{testResult["openai"].message}</span>
@@ -726,7 +726,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* CARD 2: Google Gemini */}
-              <div className="p-6 rounded-3xl glass-card space-y-5">
+              <div className="p-6 admin-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
@@ -734,11 +734,11 @@ export function SystemSettingsPage() {
                         Google Gemini 配置
                       </h3>
                       {geminiConfigured ? (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25">
                           已配置密钥
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25">
                           待配置
                         </span>
                       )}
@@ -817,8 +817,8 @@ export function SystemSettingsPage() {
                   <div
                     className={`p-3 rounded-xl text-xs flex items-center justify-between ${
                       testResult["gemini"].ok
-                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
-                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 backdrop-blur-md"
+                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 "
+                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 "
                     }`}
                   >
                     <span>{testResult["gemini"].message}</span>
@@ -830,7 +830,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* CARD 3: Anthropic Claude */}
-              <div className="p-6 rounded-3xl glass-card space-y-5">
+              <div className="p-6 admin-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2">
@@ -838,11 +838,11 @@ export function SystemSettingsPage() {
                         Anthropic Claude 配置
                       </h3>
                       {anthropicConfigured ? (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25">
                           已配置密钥
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
+                        <span className="px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25">
                           待配置
                         </span>
                       )}
@@ -925,8 +925,8 @@ export function SystemSettingsPage() {
                   <div
                     className={`p-3 rounded-xl text-xs flex items-center justify-between ${
                       testResult["anthropic"].ok
-                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
-                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 backdrop-blur-md"
+                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 "
+                        : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 "
                     }`}
                   >
                     <span>{testResult["anthropic"].message}</span>
@@ -939,7 +939,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* Bottom Action Bar */}
-              <div className="p-4 rounded-2xl glass-bar flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="p-4 admin-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="text-xs text-slate-500 dark:text-slate-400">
                   <span>💡 提示：配置保存后将通过<strong>数据库 + .env 双重持久化</strong>，无论重启后端、重启前端或切换运行目录均永久有效。</span>
                 </div>
@@ -967,7 +967,7 @@ export function SystemSettingsPage() {
           {activeTab === "database" && (
             <div className="space-y-6">
               {/* Card 1: Database Status & Stats */}
-              <div className="p-6 rounded-3xl glass-card space-y-5">
+              <div className="p-6 admin-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <DatabaseIcon size={20} className="text-violet-600 dark:text-violet-300" />
@@ -982,12 +982,12 @@ export function SystemSettingsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {dbStatus?.mode === "postgresql" ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-400/40 dark:border-emerald-400/25">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                         PostgreSQL 企业级模式
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25">
                         <span className="w-2 h-2 rounded-full bg-amber-500" />
                         SQLite 本地存储模式
                       </span>
@@ -1091,7 +1091,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* Card 1.5: Schema Verification & Repair */}
-              <div className="p-6 rounded-3xl glass-card space-y-5">
+              <div className="p-6 admin-card space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <ShieldIcon size={20} className="text-violet-600 dark:text-violet-300" />
@@ -1108,8 +1108,8 @@ export function SystemSettingsPage() {
                     <span
                       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
                         schemaReport.ok
-                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md"
-                          : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md"
+                          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/40 dark:border-emerald-400/25 "
+                          : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25 "
                       }`}
                     >
                       <span
@@ -1166,7 +1166,7 @@ export function SystemSettingsPage() {
                             {item.rep.missing.map((name) => (
                               <span
                                 key={name}
-                                className="px-2 py-0.5 rounded-md text-2xs font-mono bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md"
+                                className="px-2 py-0.5 rounded-md text-2xs font-mono bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-400/40 dark:border-rose-400/25"
                               >
                                 {name}
                               </span>
@@ -1201,8 +1201,8 @@ export function SystemSettingsPage() {
                   <div
                     className={`p-3.5 rounded-xl text-xs space-y-2 animate-fadeIn ${
                       repairResult.ok
-                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
-                        : "bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 backdrop-blur-md"
+                        ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 "
+                        : "bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 "
                     }`}
                   >
                     <div className="font-semibold">
@@ -1287,7 +1287,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* Card 2: PostgreSQL Configuration & Switching */}
-              <div className="p-6 rounded-3xl glass-card space-y-4">
+              <div className="p-6 admin-card space-y-4">
                 <div className="flex items-center gap-2">
                   <DatabaseIcon size={20} className="text-violet-600 dark:text-violet-300" />
                   <div>
@@ -1350,8 +1350,8 @@ export function SystemSettingsPage() {
                     <div
                       className={`p-3.5 rounded-xl text-xs flex items-center justify-between animate-fadeIn ${
                         pgTestResult.ok
-                          ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md"
-                          : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 backdrop-blur-md"
+                          ? "bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 "
+                          : "bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 "
                       }`}
                     >
                       <div className="space-y-0.5">
@@ -1392,7 +1392,7 @@ export function SystemSettingsPage() {
               </div>
 
               {/* Card 3: SQLite File Upload & Data Import */}
-              <div className="p-6 rounded-3xl glass-card space-y-4">
+              <div className="p-6 admin-card space-y-4">
                 <div className="flex items-center gap-2">
                   <UploadIcon size={20} className="text-violet-600 dark:text-violet-300" />
                   <div>
@@ -1439,7 +1439,7 @@ export function SystemSettingsPage() {
                         if (file) handleFileSelected(file);
                       }}
                     />
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/15 to-fuchsia-500/10 text-violet-600 dark:text-violet-300 border border-violet-400/30 flex items-center justify-center mb-3 backdrop-blur-sm">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/15 to-fuchsia-500/10 text-violet-600 dark:text-violet-300 border border-violet-400/30 flex items-center justify-center mb-3">
                       <UploadIcon size={24} />
                     </div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -1617,7 +1617,7 @@ export function SystemSettingsPage() {
 
                 {/* Import Result Feedback */}
                 {importResult && (
-                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-xs space-y-2 animate-fadeIn backdrop-blur-md">
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-xs space-y-2 animate-fadeIn">
                     <div className="font-bold flex items-center gap-2 text-sm">
                       <CheckBadgeIcon size={18} />
                       <span>数据导入成功！</span>
@@ -1639,7 +1639,7 @@ export function SystemSettingsPage() {
                 )}
 
                 {importError && (
-                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-xs animate-fadeIn backdrop-blur-md">
+                  <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-xs animate-fadeIn">
                     {importError}
                   </div>
                 )}
@@ -1650,7 +1650,7 @@ export function SystemSettingsPage() {
           {/* TAB 3: System Environment & Security */}
           {activeTab === "system" && (
             <div className="space-y-6">
-              <div className="p-6 rounded-3xl glass-card space-y-4">
+              <div className="p-6 admin-card space-y-4">
                 <div className="flex items-center gap-2">
                   <ShieldIcon size={20} className="text-violet-600 dark:text-violet-300" />
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">

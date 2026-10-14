@@ -1,21 +1,19 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { Spinner } from "@appica/ui-react/spinner";
+import { Spinner } from "../components/ui/spinner";
 import { useAuth } from "./AuthContext";
 
-/**
- * Gates its children behind authentication. While the session is being
- * restored we show a spinner; unauthenticated users are redirected to /login
- * with the attempted location preserved for post-login redirect.
- */
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { status } = useAuth();
   const location = useLocation();
 
   if (status === "loading") {
     return (
-      <div style={{ display: "grid", placeItems: "center", height: "100dvh" }}>
-        <Spinner aria-label="加载中" />
+      <div className="grid place-items-center h-dvh bg-[var(--admin-bg)] text-slate-500">
+        <div className="flex flex-col items-center gap-3">
+          <Spinner className="size-6 text-brand-600" aria-label="加载中" />
+          <span className="text-xs">正在恢复会话…</span>
+        </div>
       </div>
     );
   }
