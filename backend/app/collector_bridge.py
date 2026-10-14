@@ -375,6 +375,9 @@ def sync_draws(
     from common.period import normalize
 
     canonical_period = normalize(lottery, period) if period else None
+    from common.period import ensure_not_future
+
+    ensure_not_future(canonical_period)  # explicit API input -> 400
 
     if draws:
         rows = [draw_sync.from_generic(obj, lottery, str(obj.get("source") or "api")) for obj in draws]
@@ -445,7 +448,7 @@ def sync_draws(
     from sqlalchemy.exc import IntegrityError
 
     try:
-        res = draw_sync.sync_draws(rows)
+        res = draw_sync.sync_draws(rows, skip_future=not draws)
     except IntegrityError as exc:
         if not _is_stale_sequence_error(exc):
             raise
@@ -453,7 +456,7 @@ def sync_draws(
         # the insert asked for an id that already exists. Repair and retry once:
         # upsert_draw is idempotent, so replaying the batch is safe.
         _align_sequences("draw sync recovery")
-        res = draw_sync.sync_draws(rows)
+        res = draw_sync.sync_draws(rows, skip_future=not draws)
 
     try:
         from app.services.betting_records_service import settle_all_users_records
@@ -585,8 +588,12 @@ def consensus_latest_period(lottery: str) -> dict[str, Any]:
 
     today_p = period_for_date()
     with session_scope(guard=False) as s:
-        official = s.scalar(select(func.max(Draw.period)).where(Draw.lottery == lottery))
-        predicted = s.scalar(select(func.max(Prediction.period)).where(Prediction.lottery == lottery))
+        # Source pages (资料) list upcoming rows such as "290期:平特【鼠牛虎】开:？00准";
+        # a future prediction period must never become the current/开奖 period.
+        official = s.scalar(select(func.max(Draw.period)).where(Draw.lottery == lottery, Draw.period <= today_p))
+        predicted = s.scalar(
+            select(func.max(Prediction.period)).where(Prediction.lottery == lottery, Prediction.period <= today_p)
+        )
     current = max([p for p in (today_p, official, predicted) if p], default=today_p)
     return {
         "ok": True,
