@@ -142,3 +142,37 @@ def _naive(dt):
         from datetime import timedelta, timezone
         return dt.astimezone(timezone(timedelta(hours=8))).replace(tzinfo=None)
     return dt
+
+
+# --------------------------------------------------------------------------- #
+# Upper bound: never store a period beyond "today" (Beijing time).
+#
+# Rule: canonical periods are YYYYDDD where DDD is the Beijing-time day of
+# year (see period_for_date). Today's period is therefore
+# period_for_date(beijing_now()), e.g. 2026-10-14 -> 2026287. Any prediction,
+# missing-period placeholder, backfill target or manual collect period that
+# is greater than today's period is a future period and must not be written.
+# HK uses a draw-sequence number (always <= day of year), so the same cap is a
+# safe, looser bound there.
+# --------------------------------------------------------------------------- #
+class FuturePeriodError(ValueError):
+    """Raised when a period exceeds today's period."""
+
+
+def max_allowed_period(now: date | datetime | None = None) -> str:
+    """Today's period in Beijing time; the highest period that may be stored."""
+    return period_for_date(now)
+
+
+def is_future_period(period: str | None, now: date | datetime | None = None) -> bool:
+    p = str(period or "").strip()
+    if len(p) != 7 or not p.isdigit():
+        return False
+    return p > max_allowed_period(now)
+
+
+def ensure_not_future(period: str | None, now: date | datetime | None = None) -> None:
+    if is_future_period(period, now):
+        raise FuturePeriodError(
+            f"期号 {period} 超过当天期号 {max_allowed_period(now)}（北京时间），不允许采集或写入未来期"
+        )

@@ -15,7 +15,10 @@ from common.draw_tags import POSITIONS, draw_tags
 from audit import ensure_baseline, record, now_local
 from common.config import load_yaml
 from common.http import get_json, get_text
-from common.period import normalize, period_raw_of
+from common.period import FuturePeriodError, normalize, period_raw_of
+import logging
+
+logger = logging.getLogger("collector.draw_sync")
 from db import session_scope
 from schema import Draw, JudgeResult, Prediction, create_all
 
@@ -320,6 +323,12 @@ def validate_draw(row: dict[str, Any]) -> dict[str, Any]:
     period = str(row["period"])
     if not re.fullmatch(r"\d{7}", period) or int(period[4:]) == 0 or int(period[:4]) != dt.year:
         raise ValueError("开奖期号必须为年份加三位期数，且年份与开奖日期一致")
+    from common.period import ensure_not_future, period_for_date
+    ensure_not_future(period)
+    if row.get("lottery") != "hk" and period > period_for_date(dt):
+        # macau/taiwan/new number draws by day of year: a period ahead of its
+        # own draw date is a next-issue placeholder / mis-parsed field.
+        raise FuturePeriodError(f"开奖期号 {period} 超过开奖日期 {dt} 对应期号 {period_for_date(dt)}，疑似下一期占位数据")
     if row["lottery"] not in {"hk", "macau", "taiwan", "new"}:
         raise ValueError("未知彩种")
     balls = []
@@ -375,16 +384,40 @@ def upsert_draw(row: dict[str, Any]) -> str:
         return "updated"
 
 
-def sync_draws(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Persist this batch, then judge every source for its lottery/period keys."""
+def drop_future_draws(rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
+    """Skip (with a warning) fetched draws whose period is beyond today / their date."""
+    kept: list[dict[str, Any]] = []
+    skipped = 0
+    for row in rows:
+        try:
+            validate_draw(row)
+        except FuturePeriodError as e:
+            logger.warning("skip future draw %s %s: %s", row.get("lottery"), row.get("period"), e)
+            skipped += 1
+            continue
+        except Exception:
+            pass  # other validation errors are raised by sync_draws as before
+        kept.append(row)
+    return kept, skipped
+
+
+def sync_draws(rows: list[dict[str, Any]], *, skip_future: bool = False) -> dict[str, Any]:
+    """Persist this batch, then judge every source for its lottery/period keys.
+
+    ``skip_future=True`` (fetcher/scheduler path) drops future-period rows with a
+    warning; otherwise (explicit API input) a future period rejects the batch.
+    """
     from judge import run_judge
 
+    skipped = 0
+    if skip_future:
+        rows, skipped = drop_future_draws(rows)
     # Reject malformed batches before any of their rows are persisted.
     rows = [validate_draw(row) for row in rows]
 
     stats: dict[str, Any] = {"ok": True, "inserted": 0, "updated": 0, "count": 0,
                              "judged_periods": 0, "judged": 0, "hits": 0,
-                             "dirty_claimed": 0, "deadletter": []}
+                             "dirty_claimed": 0, "deadletter": [], "skipped_future": skipped}
     keys = set()
     for row in rows:
         action = upsert_draw(row)
@@ -461,7 +494,7 @@ def main() -> None:
         rows = [r for r in rows if r["period"] == period]
         if not rows:
             raise SystemExit(f"no draw for {lottery} {period}")
-    stats = sync_draws(rows)
+    stats = sync_draws(rows, skip_future=not args.from_json)
     sys.stdout.write(json.dumps(stats, ensure_ascii=False) + "\n")
 
 

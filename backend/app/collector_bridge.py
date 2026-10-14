@@ -373,6 +373,9 @@ def sync_draws(
     from common.period import normalize
 
     canonical_period = normalize(lottery, period) if period else None
+    from common.period import ensure_not_future
+
+    ensure_not_future(canonical_period)  # explicit API input -> 400
 
     if draws:
         rows = [draw_sync.from_generic(obj, lottery, str(obj.get("source") or "api")) for obj in draws]
@@ -443,7 +446,7 @@ def sync_draws(
     from sqlalchemy.exc import IntegrityError
 
     try:
-        res = draw_sync.sync_draws(rows)
+        res = draw_sync.sync_draws(rows, skip_future=not draws)
     except IntegrityError as exc:
         if not _is_stale_sequence_error(exc):
             raise
@@ -451,7 +454,7 @@ def sync_draws(
         # the insert asked for an id that already exists. Repair and retry once:
         # upsert_draw is idempotent, so replaying the batch is safe.
         _align_sequences("draw sync recovery")
-        res = draw_sync.sync_draws(rows)
+        res = draw_sync.sync_draws(rows, skip_future=not draws)
 
     try:
         from app.services.betting_records_service import settle_all_users_records
