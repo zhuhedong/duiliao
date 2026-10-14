@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AISettings } from "../../../lib/api";
 import { CheckBadgeIcon, CloseIcon, SettingsIcon } from "../../../components/icons";
 import { getPeriodForDate } from "../../../lib/collector";
+import { Portal } from "../../../components/Portal";
 
 interface AdvancedDrawerProps {
   open: boolean;
@@ -59,7 +60,7 @@ export function AdvancedDrawer({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
+    <Portal><div className="fixed inset-0 z-50" role="dialog" aria-modal="true">
       <div className="absolute inset-0 bg-slate-950/40" onClick={onClose} />
       <aside className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col gap-4 overflow-y-auto admin-card p-5 shadow-2xl">
         <div className="flex items-center justify-between">
@@ -242,6 +243,6 @@ export function AdvancedDrawer({
           )}
         </div>
       </aside>
-    </div>
+    </div></Portal>
   );
 }

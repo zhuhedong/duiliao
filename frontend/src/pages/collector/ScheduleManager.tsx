@@ -32,6 +32,7 @@ import {
   CalendarIcon,
   SparklesIcon,
 } from "../../components/icons";
+import { Portal } from "../../components/Portal";
 
 interface PresetCron {
   label: string;
@@ -671,7 +672,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
 
       {/* Create / Edit Schedule Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+        <Portal onClose={() => setShowModal(false)}><div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
           <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-0 admin-card rounded-3xl overflow-hidden animate-fadeIn [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/50 dark:border-white/8 shrink-0">
               <div className="flex items-center gap-2">
@@ -1237,12 +1238,12 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               </div>
             </div>
           </Card>
-        </div>
+        </div></Portal>
       )}
 
       {/* Execution Logs Drawer / Modal */}
       {activeLogSchedule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+        <Portal onClose={() => setActiveLogSchedule(null)}><div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
           <Card className="w-full max-w-3xl max-h-[85vh] flex flex-col p-6 admin-card rounded-3xl animate-fadeIn [&_[data-slot=card-content]]:bg-transparent [&_[data-slot=card-content]]:border-0 [&_[data-slot=card-content]]:p-0 [&_[data-slot=card-content]]:shadow-none">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200/50 dark:border-white/8">
               <div className="flex items-center gap-2">
@@ -1349,7 +1350,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
               </Button>
             </div>
           </Card>
-        </div>
+        </div></Portal>
       )}
     </div>
   );
