@@ -535,8 +535,9 @@ export function CollectorFetchPlatformPage() {
             <button
               type="button"
               disabled={!!busy || !(preview?.missing_count)}
+              title={!preview ? "请先预览缺期" : !preview.missing_count ? "当前无缺期，无需补采" : undefined}
               onClick={() => void runBackfill()}
-              className="px-4 py-2 rounded-xl text-xs font-semibold glow-button border-0 cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 rounded-xl text-xs font-semibold glow-button border-0 cursor-pointer"
             >
               {busy === "backfill" ? "提交中…" : "提交补采"}
             </button>

@@ -187,7 +187,7 @@ export function AppLayout() {
 
           {/* Contextual secondary strip */}
           <div className="hidden md:flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
-            <span className="text-[10px] uppercase tracking-[0.16em] text-violet-300/80 px-1">{page.eyebrow}</span>
+            <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-violet-600 dark:text-violet-200 px-1">{page.eyebrow}</span>
             <span className="text-sm font-semibold text-white/90">{page.title}</span>
             <div className="flex-1" />
             {NAV.filter((n) => n.group !== "core").map((item) => {

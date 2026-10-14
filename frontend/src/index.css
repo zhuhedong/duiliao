@@ -99,8 +99,8 @@
   --background-strong: oklch(0.26 0.035 285);
 
   --foreground: oklch(0.9 0.012 285);
-  --foreground-subtle: oklch(0.72 0.02 283);
-  --foreground-muted: oklch(0.64 0.022 283);
+  --foreground-subtle: oklch(0.8 0.02 283);
+  --foreground-muted: oklch(0.74 0.022 283);
   --foreground-strong: oklch(0.94 0.008 285);
 
   --border: oklch(1 0 0 / 9%);
@@ -313,7 +313,14 @@ body {
     inset 0 1px 0 oklch(1 0 0 / 30%);
 }
 .glow-button:active { transform: scale(0.98); }
-.glow-button:disabled { opacity: 0.55; filter: saturate(0.6); }
+.glow-button:disabled {
+  opacity: 0.55 !important;
+  filter: none;
+  box-shadow: none !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+.glow-button:disabled:hover { filter: none; box-shadow: none !important; }
 
 .workspace-fill { min-height: calc(100vh - 11rem); width: 100%; }
 @media (min-width: 768px) {
@@ -431,5 +438,15 @@ body {
 .dark body { color: var(--foreground); }
 .dark select, .dark input, .dark textarea { color: var(--foreground-strong); color-scheme: dark; }
 .dark select option, .dark select optgroup { background-color: oklch(0.2 0.03 285); color: oklch(0.94 0.008 285); }
-.dark input::placeholder, .dark textarea::placeholder { color: oklch(0.62 0.02 283); }
+.dark input::placeholder, .dark textarea::placeholder { color: oklch(0.72 0.02 283); }
+/* 深色模式辅助文字对比度（WCAG AA）：仅覆盖未显式声明 dark:text-* 的低对比灰字 */
+.dark .text-slate-400:not([class*="dark:text-"]) { color: oklch(0.8 0.02 283); }
+.dark .text-slate-500:not([class*="dark:text-"]),
+.dark .text-slate-600:not([class*="dark:text-"]) { color: oklch(0.76 0.02 283); }
+.dark .dark\:text-slate-500, .dark .dark\:text-slate-600 { color: oklch(0.76 0.02 283); }
+.dark .dark\:text-slate-400 { color: oklch(0.8 0.02 283); }
+.dark .dark\:text-white\/25 { color: oklch(1 0 0 / 60%); }
+.dark .opacity-40:not(button):not(svg), .dark .opacity-50:not(button):not(svg):not(:disabled) { opacity: 0.8; }
+.dark svg.opacity-40, .dark svg.opacity-50, .dark button.opacity-40 { opacity: 0.75; }
+.dark .recharts-cartesian-axis-tick-value, .dark .recharts-text { fill: oklch(0.78 0.02 283); }
 .dark .admin-empty-title { color: var(--foreground-strong); }
