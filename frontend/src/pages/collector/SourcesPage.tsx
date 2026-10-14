@@ -46,6 +46,7 @@ import {
   ChevronDownIcon,
   CloseIcon,
 } from "../../components/icons";
+import { Portal } from "../../components/Portal";
 
 export function CollectorSourcesPage() {
   const canWrite = useCanWrite();
@@ -1028,7 +1029,7 @@ export function CollectorSourcesPage() {
 
       {/* 脚本代码查看与在线编辑弹窗 */}
       {scriptModal?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
           <div className="w-full max-w-4xl max-h-[90vh] admin-card rounded-3xl animate-fadeIn flex flex-col overflow-hidden p-6 gap-4">
             <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-white/8 pb-3">
               <div>
@@ -1085,12 +1086,12 @@ export function CollectorSourcesPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div></Portal>
       )}
 
       {/* 单脚本调试执行弹窗 */}
       {testModal?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+        <Portal><div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
           <div className="w-full max-w-4xl max-h-[90vh] admin-card rounded-3xl animate-fadeIn flex flex-col overflow-hidden p-6 gap-4">
             <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-white/8 pb-3">
               <div>
@@ -1204,7 +1205,7 @@ export function CollectorSourcesPage() {
               </div>
             )}
           </div>
-        </div>
+        </div></Portal>
       )}
 
       {/* 数据源历史数据详情弹窗 */}
