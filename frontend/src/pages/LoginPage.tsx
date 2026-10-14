@@ -96,7 +96,7 @@ export function LoginPage() {
   return (
     <AuthShell
       title="欢迎回来"
-      description="登录对料账号，进入采集管理后台"
+      description="登录您的对料账号，进入 Aurora Glass 加密工作台"
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3.5 mt-1">
         {error && (
@@ -183,7 +183,7 @@ export function LoginPage() {
           type="submit"
           disabled={submitting}
           size="md"
-          className="glow-button w-full mt-2 font-semibold text-sm tracking-wide flex items-center justify-center gap-2 h-10"
+          className="glow-button w-full mt-3 font-semibold text-sm tracking-wide flex items-center justify-center gap-2 h-11 rounded-xl"
         >
           {submitting ? (
             <>

@@ -7,7 +7,7 @@ export function Card({
   ...props
 }: HTMLAttributes<HTMLDivElement> & { children?: ReactNode }) {
   return (
-    <div className={cx("admin-card", className)} {...props}>
+    <div className={cx("glass-card", className)} {...props}>
       {children}
     </div>
   );
