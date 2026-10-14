@@ -586,8 +586,12 @@ def consensus_latest_period(lottery: str) -> dict[str, Any]:
 
     today_p = period_for_date()
     with session_scope(guard=False) as s:
-        official = s.scalar(select(func.max(Draw.period)).where(Draw.lottery == lottery))
-        predicted = s.scalar(select(func.max(Prediction.period)).where(Prediction.lottery == lottery))
+        # Source pages (资料) list upcoming rows such as "290期:平特【鼠牛虎】开:？00准";
+        # a future prediction period must never become the current/开奖 period.
+        official = s.scalar(select(func.max(Draw.period)).where(Draw.lottery == lottery, Draw.period <= today_p))
+        predicted = s.scalar(
+            select(func.max(Prediction.period)).where(Prediction.lottery == lottery, Prediction.period <= today_p)
+        )
     current = max([p for p in (today_p, official, predicted) if p], default=today_p)
     return {
         "ok": True,

@@ -85,3 +85,37 @@ def test_fix_future_draws_script_dry_run_and_delete():
     assert run()["by_lottery"]["taiwan"]["count"] == 1  # dry run kept it
     assert run(delete=True)["deleted"] == 1
     assert "taiwan" not in run()["by_lottery"]
+
+
+def test_source_page_future_rows_never_become_draw_or_current_period():
+    """Realistic 资料 rows: an upcoming placeholder row must not be a draw nor the current period."""
+    p, ds = _mods()
+    from app import collector_bridge as cb
+    from common.parse_pred import parse_column_text
+    from db import session_scope
+    from schema import Prediction
+    from sqlalchemy import delete
+
+    today = p.max_allowed_period()
+    future = p.period_for_date(p.beijing_now() + timedelta(days=3))
+    text = f"{future[4:]}期:平特【鼠牛虎】开:？00准\n{today[4:]}期:平特【猴鸡狗】开:猴29准"
+    items = parse_column_text(text)
+    assert {it["period_raw"] for it in items} == {future[4:], today[4:]}
+    # A page row (placeholder claim "？00") can never pass as a draw.
+    with pytest.raises(ValueError):
+        ds.validate_draw(_row(p.normalize("macau", items[0]["period_raw"]), p.beijing_now().date()) | {"tema": "00"})
+    with pytest.raises(ValueError):
+        ds.validate_draw(_row(future, p.beijing_now().date()))
+    now = p.beijing_now().replace(tzinfo=None)
+    with session_scope() as s:
+        s.add(Prediction(source_id="dj_4xiao", lottery="macau", play_type="pingte_xiao", hit_mode="any",
+                         period=future, period_raw=future[4:], preds_json=[], claimed_status="pending",
+                         raw_text=items[0]["raw_text"], content_hash="t", fetched_at=now,
+                         first_seen_at=now, last_seen_at=now, last_run_id="t"))
+    try:
+        info = cb.consensus_latest_period("macau")
+        assert info["current_period"] == today
+        assert info["latest_prediction_period"] != future
+    finally:
+        with session_scope() as s:
+            s.execute(delete(Prediction).where(Prediction.period == future))
