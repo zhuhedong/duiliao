@@ -2926,3 +2926,112 @@ def get_queued_job_ids(limit: int = 5) -> list[int]:
             .limit(limit)
         )
         return list(s.scalars(stmt))
+
+
+# --------------------------------------------------------------------------- #
+# 588080 host pool / fetch observation / catalog suggestions
+# --------------------------------------------------------------------------- #
+def host_pool_status() -> dict[str, Any]:
+    prepare_modules()
+    import host_pool
+
+    return host_pool.status()
+
+
+def host_pool_refresh(entries: list[str] | None = None) -> dict[str, Any]:
+    prepare_modules()
+    import host_pool
+
+    return host_pool.refresh(entries=entries)
+
+
+def record_fetch_observation_from_result(
+    result: dict[str, Any],
+    *,
+    lottery: str | None = None,
+    period: str | None = None,
+    job_id: int | None = None,
+) -> dict[str, Any] | None:
+    prepare_modules()
+    import fetch_observation as fo
+
+    return fo.record_from_collect_result(result, lottery=lottery, period=period, job_id=job_id)
+
+
+def list_fetch_observations(**kwargs: Any) -> dict[str, Any]:
+    prepare_modules()
+    import fetch_observation as fo
+
+    return fo.list_observations(**kwargs)
+
+
+def catalog_suggestions(site_family: str | None = None) -> dict[str, Any]:
+    """Derive enable/disable/new-column suggestions from the latest catalog status."""
+    status = catalog_status(site_family=site_family)
+    sites = []
+    if status.get("site_family") == "all" and isinstance(status.get("sites"), dict):
+        for family, payload in status["sites"].items():
+            sites.append((family, payload if isinstance(payload, dict) else {}))
+    else:
+        sites.append((status.get("site_family") or site_family or "unknown", status))
+
+    suggest_enable: list[dict[str, Any]] = []
+    suggest_disable: list[dict[str, Any]] = []
+    suggest_new: list[dict[str, Any]] = []
+    renamed: list[dict[str, Any]] = []
+
+    for family, payload in sites:
+        for item in payload.get("pending") or []:
+            suggest_new.append(
+                {
+                    "action": "create_source",
+                    "site_family": family,
+                    "upstream_id": item.get("upstream_id") or item.get("path"),
+                    "name": item.get("name"),
+                    "coverage": item.get("coverage"),
+                    "reason": "上游栏目存在但本地未登记",
+                }
+            )
+        for item in payload.get("missing") or []:
+            for source in item.get("sources") or []:
+                suggest_disable.append(
+                    {
+                        "action": "disable_source",
+                        "site_family": family,
+                        "source_id": source.get("source_id"),
+                        "source_name": source.get("source_name"),
+                        "upstream_id": item.get("upstream_id") or item.get("path"),
+                        "reason": "本地启用中但上游栏目已消失",
+                    }
+                )
+        for item in payload.get("items") or []:
+            if item.get("coverage") == "disabled":
+                suggest_enable.append(
+                    {
+                        "action": "enable_source",
+                        "site_family": family,
+                        "upstream_id": item.get("upstream_id"),
+                        "name": item.get("name"),
+                        "sources": item.get("sources") or [],
+                        "reason": "上游仍在，本地源已停用，可考虑重新启用",
+                    }
+                )
+        for item in payload.get("renamed") or []:
+            renamed.append({"site_family": family, **dict(item)})
+
+    return {
+        "ok": True,
+        "site_family": status.get("site_family") or site_family,
+        "updated_at": status.get("updated_at") or status.get("last_scan_at"),
+        "suggest_new": suggest_new,
+        "suggest_disable": suggest_disable,
+        "suggest_enable": suggest_enable[:50],
+        "renamed": renamed,
+        "counts": {
+            "new": len(suggest_new),
+            "disable": len(suggest_disable),
+            "enable": len(suggest_enable),
+            "renamed": len(renamed),
+        },
+        "note": "建议仅供人工确认；停用请调用 POST /collector/catalog/reconcile?disable_missing=true",
+    }

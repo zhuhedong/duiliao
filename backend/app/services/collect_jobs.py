@@ -138,6 +138,15 @@ class CollectJobWorker:
                     error_code=result.get("error_code"),
                     error_msg=result.get("error_msg"),
                 )
+                try:
+                    cb.record_fetch_observation_from_result(
+                        result,
+                        lottery=lottery,
+                        period=period,
+                        job_id=job_id,
+                    )
+                except Exception:
+                    logger.exception("fetch observation failed for job %s source %s", job_id, source_id)
 
             def on_phase(phase: str) -> None:
                 cb.set_collect_job_phase(job_id, phase)

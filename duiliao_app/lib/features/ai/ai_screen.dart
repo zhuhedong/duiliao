@@ -14,6 +14,7 @@ import '../../core/net/api_client.dart';
 import '../../core/net/api_exception.dart';
 import '../../core/net/stream_client.dart';
 import '../../core/providers.dart';
+import '../../domain/json.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/app_event.dart';
 import '../../ui/glass/glass_widgets.dart';
@@ -106,19 +107,50 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   Future<void> _fetchContext() async {
     setState(() => _fetching = true);
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    if (!mounted) return;
-    setState(() {
-      _fetching = false;
-      _injectedCount = _selectedSources.length * 4;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '已抓取并去噪 ${_selectedSources.length} 个数据源（共 $_injectedCount 条上下文）',
+    try {
+      final repo = ref.read(collectorRepositoryProvider);
+      final dump = await repo.latestSiteDump();
+      final summary = asMap(dump['summary']);
+      final modules = summary['content_modules_count'] ??
+          summary['loaded_content_count'] ??
+          _selectedSources.length * 4;
+      final count = modules is int
+          ? modules
+          : int.tryParse('$modules') ?? _selectedSources.length * 4;
+      if (!mounted) return;
+      setState(() {
+        _fetching = false;
+        _injectedCount = count;
+      });
+      final age = dump['cache'] is Map ? (dump['cache'] as Map)['age_sec'] : null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            age == null
+                ? '已载入服务端 dump 缓存（约 $_injectedCount 个内容模块）'
+                : '已载入服务端 dump 缓存（约 $_injectedCount 个内容模块，缓存 ${age}s）',
+          ),
         ),
-      ),
-    );
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _fetching = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.isNotFound
+                ? '暂无新鲜 dump 缓存，请先在后台执行 588080 全页抓取'
+                : '载入 dump 缓存失败：${e.message}',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _fetching = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('载入 dump 缓存失败：$e')),
+      );
+    }
   }
 
   void _openReport(String activePeriod) {

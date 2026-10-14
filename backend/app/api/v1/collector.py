@@ -1002,3 +1002,156 @@ def get_collection_schedule_logs(
         "total": res["total"],
         "logs": res["items"],
     }
+
+
+# --------------------------------------------------------------------------- #
+# 588080 host pool / catalog suggestions / dump cache / observations / backfill
+# --------------------------------------------------------------------------- #
+class HostPoolRefreshRequest(BaseModel):
+    entries: list[str] | None = Field(
+        default=None,
+        description="Optional entry URLs; defaults to https://588080.com/",
+    )
+
+
+class BackfillRequest(BaseModel):
+    lottery: Lottery = "macau"
+    period: str | None = None
+    source_ids: list[str] | None = None
+    concurrency: int = Field(8, ge=1, le=32)
+    dry_run: bool = False
+
+
+@router.get("/host-pool")
+def get_host_pool(_: User = _user) -> dict[str, Any]:
+    """Return the current 588080 / 顶尖大师 API host pool status."""
+    return {"ok": True, **cb.host_pool_status()}
+
+
+@router.post("/host-pool/refresh")
+def refresh_host_pool(
+    req: HostPoolRefreshRequest = Body(default_factory=HostPoolRefreshRequest),
+    _: User = _staff,
+) -> dict[str, Any]:
+    """Re-discover and health-check API hosts (staff only)."""
+    from app.services.settings_service import validate_external_url
+
+    entries = req.entries
+    if entries:
+        safe: list[str] = []
+        for entry in entries:
+            try:
+                safe.append(validate_external_url(entry if "://" in entry else f"https://{entry}"))
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail=str(exc)) from exc
+        entries = safe
+    try:
+        pool = cb.host_pool_refresh(entries=entries)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Host 池刷新失败: {exc}") from exc
+    return {"ok": bool(pool.get("hosts")), "pool": pool}
+
+
+@router.get("/catalog/suggestions")
+def catalog_suggestions(
+    site_family: str | None = Query(None),
+    _: User = _user,
+) -> dict[str, Any]:
+    """Suggest new / enable / disable actions from the latest catalog scan."""
+    try:
+        return cb.catalog_suggestions(site_family=site_family)
+    except (ValueError, RuntimeError) as exc:
+        raise _bad_request(exc)
+
+
+@router.get("/site-dump/588080/latest")
+def latest_588080_dump(
+    max_age_sec: float = Query(1800, ge=60, le=86400),
+    include_html: bool = Query(False),
+    include_modules: bool = Query(False),
+    _: User = _user,
+) -> dict[str, Any]:
+    """Return the TTL-cached 588080 full-page dump without outbound fetch."""
+    from app.services.ai.scraped_data import latest_cache_status, load_latest_scraped_data
+
+    status = latest_cache_status(max_age_sec=max_age_sec)
+    if not status.get("fresh"):
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "message": "无可用的新鲜 dump 缓存，请先调用 POST /collector/site-dump/588080",
+                "cache": status,
+            },
+        )
+    data = load_latest_scraped_data(max_age_sec=max_age_sec)
+    if not data:
+        raise HTTPException(status_code=404, detail="dump 缓存文件缺失，请重新抓取")
+    out: dict[str, Any] = {
+        "ok": True,
+        "cache": data.get("_cache") or status,
+        "summary": (data.get("summary") or status.get("summary") or {}),
+        "site_title": data.get("site_title"),
+    }
+    if include_html:
+        out["html"] = data.get("html")
+        out["raw_html"] = data.get("raw_html")
+    if include_modules:
+        out["modules"] = data.get("modules")
+    return out
+
+
+@router.get("/fetch-observations")
+def get_fetch_observations(
+    source_id: str | None = None,
+    lottery: str | None = None,
+    job_id: int | None = None,
+    only_failures: bool = False,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    _: User = _user,
+) -> dict[str, Any]:
+    """List recent fetch observation / audit rows."""
+    return {
+        "ok": True,
+        **cb.list_fetch_observations(
+            source_id=source_id,
+            lottery=lottery,
+            job_id=job_id,
+            only_failures=only_failures,
+            limit=limit,
+            offset=offset,
+        ),
+    }
+
+
+@router.get("/backfill-jobs/preview")
+def preview_backfill_job(
+    lottery: Lottery = "macau",
+    period: str | None = None,
+    _: User = _user,
+) -> dict[str, Any]:
+    """Preview which enabled sources lack predictions for a period."""
+    from app.services.backfill_jobs import preview_missing
+
+    return preview_missing(lottery=lottery, period=period)
+
+
+@router.post("/backfill-jobs")
+async def create_backfill_job(
+    req: BackfillRequest,
+    user: User = _staff,
+) -> dict[str, Any]:
+    """Submit an async collect job for sources missing the target period."""
+    from app.services.backfill_jobs import submit_backfill
+
+    result = await submit_backfill(
+        lottery=req.lottery,
+        period=req.period,
+        source_ids=req.source_ids,
+        concurrency=req.concurrency,
+        created_by=str(user.id),
+        dry_run=req.dry_run,
+    )
+    return {"ok": True, **result}

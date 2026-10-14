@@ -129,9 +129,18 @@ def analyze_588080_page(
     """Execute AI analysis on 588080.com scraped data using the specified prompt and model."""
     data_source = None
     if not req.fetch_fresh:
-        if not req.custom_data:
-            raise HTTPException(status_code=400, detail="fetch_fresh 为 false 时必须提供 custom_data 数据对象")
-        data_source = req.custom_data
+        if req.custom_data:
+            data_source = req.custom_data
+        else:
+            from app.services.ai.scraped_data import load_latest_scraped_data
+
+            cached = load_latest_scraped_data()
+            if cached is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="fetch_fresh 为 false 时须提供 custom_data，或先产生新鲜的 dump 缓存",
+                )
+            data_source = cached
 
     if not _AI_CONCURRENCY.acquire(timeout=5):
         raise HTTPException(status_code=429, detail="AI 分析任务较多，请稍后重试")
@@ -164,12 +173,18 @@ def analyze_stream_page(
     """Stream AI analysis progress and generation tokens in real time (SSE)."""
     data_source = None
     if not req.fetch_fresh:
-        if not req.custom_data:
-            raise HTTPException(
-                status_code=400,
-                detail="fetch_fresh 为 false 时必须提供 custom_data 文件路径或数据对象",
-            )
-        data_source = req.custom_data
+        if req.custom_data:
+            data_source = req.custom_data
+        else:
+            from app.services.ai.scraped_data import load_latest_scraped_data
+
+            cached = load_latest_scraped_data()
+            if cached is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="fetch_fresh 为 false 时须提供 custom_data，或先产生新鲜的 dump 缓存",
+                )
+            data_source = cached
 
     if not _AI_CONCURRENCY.acquire(timeout=5):
         raise HTTPException(status_code=429, detail="AI 分析任务较多，请稍后重试")

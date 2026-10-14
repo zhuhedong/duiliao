@@ -103,6 +103,19 @@ def resolve_app_base(
     Returns:
         (app_base, site_config, resolved_entry_url)
     """
+    # Prefer the shared host pool when it already has a healthy primary.
+    try:
+        from host_pool import load_pool
+
+        pool = load_pool()
+        primary = pool.get("primary") or (pool.get("hosts") or [None])[0]
+        if primary:
+            valid, config = validate_host(primary, timeout=timeout)
+            if valid:
+                return str(primary).rstrip("/"), config, (entries[0] if entries else "")
+    except Exception as e:
+        log.debug("host pool lookup skipped: %s", e)
+
     for entry in entries:
         try:
             entry_html = get_text(entry, timeout=timeout, retries=1)
