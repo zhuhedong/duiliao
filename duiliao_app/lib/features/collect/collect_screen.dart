@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/net/api_exception.dart';
 import '../../core/providers.dart';
+import '../auth/auth_providers.dart';
 import '../../domain/lottery.dart';
 import '../../domain/models/collect_job.dart';
 import '../../ui/glass/glass_widgets.dart';
@@ -94,6 +95,8 @@ class _CollectForm extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 8, bottom: 100),
       children: [
+        const _HostPoolHealthCard(),
+        if (ref.watch(canOperateProvider)) const _BackfillCard(),
         GlassSectionCard(
           title: '采集参数',
           subtitle: '选择彩种并确认期号策略',
@@ -898,6 +901,225 @@ class _JobResultCard extends StatelessWidget {
                   style: context.texts.bodySmall,
                 ),
               ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+
+class _HostPoolHealthCard extends ConsumerWidget {
+  const _HostPoolHealthCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final async = ref.watch(hostPoolStatusProvider);
+    return GlassSectionCard(
+      title: '588080 Host 池',
+      subtitle: '采集入口健康状态（只读）',
+      icon: Icons.dns_rounded,
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      action: IconButton(
+        tooltip: '刷新',
+        icon: const Icon(Icons.refresh, size: 18),
+        onPressed: () => ref.invalidate(hostPoolStatusProvider),
+      ),
+      child: async.when(
+        loading: () => const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: LinearProgressIndicator(minHeight: 2),
+        ),
+        error: (err, _) => Text(
+          err is ApiException ? err.message : 'Host 池加载失败',
+          style: TextStyle(color: context.colors.error, fontSize: 13),
+        ),
+        data: (pool) {
+          final ok = pool['ok'] == true;
+          final primary = pool['primary']?.toString();
+          final count = pool['host_count'] ?? (pool['hosts'] is List ? (pool['hosts'] as List).length : 0);
+          final updated = pool['updated_at']?.toString();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    ok ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+                    size: 18,
+                    color: ok ? DuiliaoColors.hit : DuiliaoColors.warning,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    ok ? '可用 · $count 台主机' : '无健康主机',
+                    style: context.texts.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              if (primary != null && primary.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '主用 $primary',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.texts.bodySmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ],
+              if (updated != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  '更新 $updated',
+                  style: context.texts.labelSmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BackfillCard extends ConsumerStatefulWidget {
+  const _BackfillCard();
+
+  @override
+  ConsumerState<_BackfillCard> createState() => _BackfillCardState();
+}
+
+class _BackfillCardState extends ConsumerState<_BackfillCard> {
+  String? _period;
+  Map<String, dynamic>? _preview;
+  bool _loading = false;
+  String? _message;
+  String? _error;
+
+  Future<void> _runPreview() async {
+    final draft = ref.read(collectDraftProvider);
+    setState(() {
+      _loading = true;
+      _error = null;
+      _message = null;
+    });
+    try {
+      final body = await ref.read(collectorRepositoryProvider).previewBackfill(
+            lottery: draft.lottery.code,
+            period: _period,
+          );
+      setState(() => _preview = body);
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    final draft = ref.read(collectDraftProvider);
+    final missing = (_preview?['missing_count'] as num?)?.toInt() ?? 0;
+    if (missing <= 0) return;
+    final period = _preview?['period']?.toString();
+    final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('提交缺期补采'),
+            content: Text('将为 ${draft.lottery.label} 第 ${period ?? "?"} 期补采 $missing 个源，确认？'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('提交')),
+            ],
+          ),
+        ) ??
+        false;
+    if (!ok) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+      _message = null;
+    });
+    try {
+      final body = await ref.read(collectorRepositoryProvider).submitBackfill(
+            lottery: draft.lottery.code,
+            period: period,
+          );
+      final job = body['job'];
+      final jobId = job is Map ? job['id'] : null;
+      setState(() {
+        _preview = body;
+        _message = jobId != null ? '已提交补采任务 #$jobId' : (body['note']?.toString() ?? '未提交任务');
+      });
+      if (jobId is int) {
+        ref.read(activeJobIdProvider.notifier).set(jobId);
+      }
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final missing = (_preview?['missing_count'] as num?)?.toInt() ?? 0;
+    final periodLabel = _preview?['period']?.toString();
+    return GlassSectionCard(
+      title: '缺期补采',
+      subtitle: '员工：预览缺少预测的源并提交异步任务',
+      icon: Icons.playlist_add_check_rounded,
+      margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            decoration: const InputDecoration(
+              labelText: '期号（可空=最新开奖期）',
+              isDense: true,
+            ),
+            onChanged: (v) => _period = v.trim().isEmpty ? null : v.trim(),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _loading ? null : _runPreview,
+                  child: Text(_loading ? '处理中…' : '预览缺期'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _loading || missing <= 0 ? null : _submit,
+                  child: const Text('提交补采'),
+                ),
+              ),
+            ],
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!, style: TextStyle(color: context.colors.error, fontSize: 13)),
+          ],
+          if (_message != null) ...[
+            const SizedBox(height: 8),
+            Text(_message!, style: TextStyle(color: DuiliaoColors.hit, fontSize: 13)),
+          ],
+          if (_preview != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              periodLabel == null
+                  ? '无可对账期号（${_preview!['note'] ?? 'no_draws'}）'
+                  : '第 $periodLabel 期缺少 $missing 个源',
+              style: context.texts.bodySmall,
+            ),
           ],
         ],
       ),

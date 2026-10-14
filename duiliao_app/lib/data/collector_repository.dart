@@ -337,6 +337,45 @@ class CollectorRepository {
   Future<Map<String, dynamic>> hostPoolStatus() =>
       _client.get<Map<String, dynamic>>('/collector/host-pool');
 
+  Future<Map<String, dynamic>> hostPoolScheduler() =>
+      _client.get<Map<String, dynamic>>('/collector/host-pool/scheduler');
+
+  Future<Map<String, dynamic>> probeHostPool({bool forceRefresh = false}) =>
+      _client.post<Map<String, dynamic>>(
+        '/collector/host-pool/probe',
+        query: {'force_refresh': forceRefresh},
+      );
+
+  Future<Map<String, dynamic>> previewBackfill({
+    required String lottery,
+    String? period,
+  }) =>
+      _client.get<Map<String, dynamic>>(
+        '/collector/backfill-jobs/preview',
+        query: {
+          'lottery': lottery,
+          if (period != null && period.trim().isNotEmpty) 'period': period.trim(),
+        },
+      );
+
+  Future<Map<String, dynamic>> submitBackfill({
+    required String lottery,
+    String? period,
+    List<String>? sourceIds,
+    int concurrency = 8,
+    bool dryRun = false,
+  }) =>
+      _client.post<Map<String, dynamic>>(
+        '/collector/backfill-jobs',
+        body: {
+          'lottery': lottery,
+          if (period != null && period.trim().isNotEmpty) 'period': period.trim(),
+          'source_ids': ?sourceIds,
+          'concurrency': concurrency,
+          'dry_run': dryRun,
+        },
+      );
+
   Future<CollectJob> submitCollectJob({
     required String lottery,
     String? period,

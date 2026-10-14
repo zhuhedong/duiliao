@@ -105,3 +105,27 @@
 
 4. **APP 采集进度**  
    - 已走异步 `collect-jobs` + `jobProgressProvider` 轮询（本跟进确认完整）
+
+## 产品界面接线（PR #4 / feat/588080-ui-wiring）
+
+一期～三期后端能力已落地；本轮把接口接到 Web / APP：
+
+### Web（`frontend/`）
+
+- 新页面 **采集平台** `/collector/platform`（导航「质量」分组）
+- Host 池状态 + 调度信息；员工可「立即探测 / 重新发现」
+- 栏目建议计数；勾选后干跑 / 确认 `batch-enable`（仅 `enable_source`）
+- 缺期补采预览与提交
+- Dump 缓存状态与员工刷新；最近 `fetch-observations`
+
+### Flutter APP（`duiliao_app/`）
+
+- 采集页顶部 Host 池健康卡片（只读 + 下拉刷新）
+- 员工可见「缺期补采」卡片（预览 / 提交，成功后切到任务进度）
+- 通知：`fetch_hash_changed` / `fetch_fail_streak` 图标、深度链接与订阅开关已接通
+
+### 仍未做 / 可选跟进
+
+- Web 上「创建新栏」向导（选 parser + source_id）——仍建议走人工 + `sources` 页
+- Host 池探测结果的 WebSocket 推送（当前轮询/手动刷新足够）
+- APP 内嵌完整栏目批量启用 UI（复杂度高，优先 Web）

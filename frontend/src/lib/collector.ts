@@ -770,6 +770,139 @@ export interface OverviewResult {
   scheduler?: OverviewScheduler;
 }
 
+
+export interface HostPoolHealthEntry {
+  ok?: boolean;
+  elapsed_ms?: number | null;
+  error?: string | null;
+  checked_at?: string | null;
+  consecutive_failures?: number;
+  last_ok_at?: string | null;
+}
+
+export interface HostPoolStatus {
+  ok: boolean;
+  schema?: string;
+  updated_at?: string | null;
+  primary?: string | null;
+  hosts: string[];
+  entry_urls?: string[];
+  errors?: string[];
+  health?: Record<string, HostPoolHealthEntry>;
+  host_count?: number;
+}
+
+export interface HostPoolSchedulerStatus {
+  ok: boolean;
+  enabled?: boolean;
+  running?: boolean;
+  interval_seconds: number;
+  last_run_at?: string | null;
+  last_success_at?: string | null;
+  last_error?: string | null;
+  last_result?: Record<string, unknown> | null;
+}
+
+export interface CatalogSuggestionItem {
+  action: string;
+  site_family?: string;
+  upstream_id?: string | null;
+  name?: string | null;
+  source_id?: string | null;
+  source_name?: string | null;
+  coverage?: string | null;
+  reason?: string;
+  sources?: Array<{ source_id?: string; source_name?: string; enabled?: boolean }>;
+  parser?: string | null;
+}
+
+export interface CatalogSuggestions {
+  ok: boolean;
+  site_family?: string | null;
+  updated_at?: string | null;
+  suggest_new: CatalogSuggestionItem[];
+  suggest_disable: CatalogSuggestionItem[];
+  suggest_enable: CatalogSuggestionItem[];
+  renamed: Record<string, unknown>[];
+  counts: { new: number; disable: number; enable: number; renamed: number };
+  note?: string;
+}
+
+export interface CatalogBatchEnableItem {
+  action: "create_source" | "enable_source";
+  source_id?: string;
+  source_name?: string;
+  upstream_id?: string;
+  parser?: string;
+  lottery?: Lottery;
+  play_type?: string;
+  kind?: string;
+  enabled?: boolean;
+}
+
+export interface CatalogBatchEnableResult {
+  ok?: boolean;
+  dry_run?: boolean;
+  confirm?: boolean;
+  counts?: Record<string, number>;
+  items?: Record<string, unknown>[];
+  message?: string;
+}
+
+export interface SiteDumpLatest {
+  ok: boolean;
+  cache?: Record<string, unknown>;
+  summary?: Record<string, unknown>;
+  site_title?: string | null;
+  html?: string;
+  raw_html?: string;
+  modules?: unknown[];
+}
+
+export interface FetchObservationRow {
+  id?: number;
+  source_id?: string;
+  lottery?: string | null;
+  period?: string | null;
+  url?: string | null;
+  http_status?: number | null;
+  elapsed_ms?: number | null;
+  content_hash?: string | null;
+  ok?: boolean;
+  error_code?: string | null;
+  error_msg?: string | null;
+  job_id?: number | null;
+  created_at?: string | null;
+}
+
+export interface FetchObservationsResult {
+  ok: boolean;
+  total: number;
+  items: FetchObservationRow[];
+}
+
+export interface BackfillMissingSource {
+  source_id: string;
+  source_name: string;
+  play_type?: string;
+  site_family?: string;
+}
+
+export interface BackfillPreview {
+  ok: boolean;
+  lottery: string;
+  period: string | null;
+  missing_count: number;
+  missing_sources: BackfillMissingSource[];
+  note?: string;
+}
+
+export interface BackfillSubmitResult extends BackfillPreview {
+  dry_run?: boolean;
+  submitted?: boolean;
+  job?: CollectJob | null;
+}
+
 export const collectorApi = {
   // --- pipeline ---
   submitCollectJob(input: {
@@ -1009,5 +1142,85 @@ export const collectorApi = {
     return api.post<{ ok: boolean; dry_run: boolean; items: Record<string, unknown>[] }>(
       `/collector/catalog/reconcile?disable_missing=${disableMissing}${family}`,
     );
+  },
+
+  // --- 588080 host pool / catalog suggestions / dump cache / backfill ---
+  hostPool() {
+    return api.get<HostPoolStatus>("/collector/host-pool");
+  },
+  hostPoolScheduler() {
+    return api.get<HostPoolSchedulerStatus>("/collector/host-pool/scheduler");
+  },
+  refreshHostPool(entries?: string[]) {
+    return api.post<{ ok: boolean; pool: HostPoolStatus }>("/collector/host-pool/refresh", {
+      entries: entries ?? null,
+    });
+  },
+  probeHostPool(forceRefresh = false) {
+    return api.post<{ ok: boolean; result: Record<string, unknown> }>(
+      `/collector/host-pool/probe?force_refresh=${forceRefresh}`,
+    );
+  },
+  catalogSuggestions(siteFamily?: string) {
+    const q = siteFamily ? `?site_family=${encodeURIComponent(siteFamily)}` : "";
+    return api.get<CatalogSuggestions>(`/collector/catalog/suggestions${q}`);
+  },
+  catalogBatchEnable(input: {
+    items: CatalogBatchEnableItem[];
+    confirm?: boolean;
+    dry_run?: boolean;
+  }) {
+    return api.post<CatalogBatchEnableResult>("/collector/catalog/batch-enable", {
+      items: input.items,
+      confirm: input.confirm ?? false,
+      dry_run: input.dry_run ?? false,
+    });
+  },
+  latestSiteDump(params?: {
+    max_age_sec?: number;
+    include_html?: boolean;
+    include_modules?: boolean;
+  }) {
+    const q = new URLSearchParams();
+    if (params?.max_age_sec != null) q.set("max_age_sec", String(params.max_age_sec));
+    if (params?.include_html) q.set("include_html", "true");
+    if (params?.include_modules) q.set("include_modules", "true");
+    const qs = q.toString() ? `?${q}` : "";
+    return api.get<SiteDumpLatest>(`/collector/site-dump/588080/latest${qs}`);
+  },
+  siteDump588080(input?: { host?: string; force?: boolean }) {
+    return api.post<Record<string, unknown>>("/collector/site-dump/588080", input || {});
+  },
+  fetchObservations(params?: {
+    source_id?: string;
+    lottery?: string;
+    job_id?: number;
+    only_failures?: boolean;
+    limit?: number;
+    offset?: number;
+  }) {
+    const q = new URLSearchParams();
+    if (params?.source_id) q.set("source_id", params.source_id);
+    if (params?.lottery) q.set("lottery", params.lottery);
+    if (params?.job_id != null) q.set("job_id", String(params.job_id));
+    if (params?.only_failures) q.set("only_failures", "true");
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.offset != null) q.set("offset", String(params.offset));
+    const qs = q.toString() ? `?${q}` : "";
+    return api.get<FetchObservationsResult>(`/collector/fetch-observations${qs}`);
+  },
+  previewBackfill(lottery: Lottery = "macau", period?: string) {
+    const q = new URLSearchParams({ lottery });
+    if (period) q.set("period", period);
+    return api.get<BackfillPreview>(`/collector/backfill-jobs/preview?${q}`);
+  },
+  submitBackfill(input: {
+    lottery: Lottery;
+    period?: string;
+    source_ids?: string[];
+    concurrency?: number;
+    dry_run?: boolean;
+  }) {
+    return api.post<BackfillSubmitResult>("/collector/backfill-jobs", input);
   },
 };

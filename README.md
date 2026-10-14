@@ -218,6 +218,17 @@ Read endpoints require a logged-in user; mutating / operational endpoints requir
 | POST | `/catalog/scan[?site_family=...]` | staff | Run one or all dynamic catalog discovery scans |
 | POST | `/catalog/reconcile[?site_family=...]` | staff | Preview or explicitly disable sources whose columns disappeared |
 | POST | `/sources/batch` | staff | Create reviewed source/script rows in one batch (supports `dry_run`) |
+| GET | `/host-pool` | user | 588080 API host pool status |
+| POST | `/host-pool/refresh` | staff | Re-discover / health-check hosts (SSRF-checked entries) |
+| GET | `/host-pool/scheduler` | user | Background probe scheduler status |
+| POST | `/host-pool/probe` | staff | Manually wake host-pool probe |
+| GET | `/catalog/suggestions` | user | Pending / enable / disable suggestions from last scan |
+| POST | `/catalog/batch-enable` | staff | Batch enable or create template sources (`confirm` required) |
+| GET | `/site-dump/588080/latest` | user | TTL-cached full-page dump (no outbound fetch) |
+| POST | `/site-dump/588080` | staff | Fetch and cache 588080 full page |
+| GET | `/fetch-observations` | user | Fetch audit log (hash / failures) |
+| GET | `/backfill-jobs/preview` | user | Preview sources missing a period |
+| POST | `/backfill-jobs` | staff | Submit async backfill collect job |
 
 The catalog aggregate performs site-specific live analysis instead of trusting
 the existing source registry: 588080 fetches every visible content component's
@@ -259,6 +270,15 @@ print(cb.ratings('macau','pingte_xiao'))
 
 The original CLIs still work too (run from `backend/collector/` with the venv), e.g. `python judge.py --lottery macau --period 248`.
 
+### 588080 fetch platform
+
+Phases 1–3 of the 588080 collector platform are implemented in the backend
+(host pool + probe scheduler, catalog suggestions / batch-enable, dump TTL cache,
+fetch observations, missing-period backfill, APP notify hooks). See
+[`docs/588080-fetch-plan.md`](docs/588080-fetch-plan.md). The Web **采集平台**
+page and the APP collect tab surface these APIs without relaxing SSRF or script
+write locks.
+
 ### Frontend pages
 
 The React app gains a collector section (all behind the login guard). The nav
@@ -271,6 +291,7 @@ adds these pages, wired to the endpoints above:
 | `/collector/consensus` | 对照 — cross-source consensus vote for a period | `/consensus`, `/rules` |
 | `/collector/ratings` | 源评级 — rolling-window hit-rate table | `/ratings`, `/rules` |
 | `/collector/monitor` | 监控 — missing-period coverage + catalog scan status | `/monitor`, `/catalog/*` |
+| `/collector/platform` | 采集平台 — Host 池、栏目建议批量启用、缺期补采、dump 缓存与观测 | `/host-pool*`, `/catalog/suggestions`, `/catalog/batch-enable`, `/backfill-jobs*`, `/site-dump/588080*`, `/fetch-observations` |
 
 Read pages render for any logged-in user; buttons that trigger collection,
 draw sync, judging, or source edits are disabled unless the user is `staff` /

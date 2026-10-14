@@ -13,6 +13,7 @@ import {
   StarIcon,
   HashIcon,
   ActivityIcon,
+  GlobeIcon,
   UserIcon,
   LogOutIcon,
   MoonIcon,
@@ -55,6 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/collector/ratings", label: "源可信评级", short: "评级", icon: <StarIcon size={18} /> },
       { to: "/collector/monitor", label: "服务监控", short: "监控", icon: <ActivityIcon size={18} /> },
+      { to: "/collector/platform", label: "采集平台", short: "平台", icon: <GlobeIcon size={18} /> },
     ],
   },
   {
@@ -75,6 +77,7 @@ const PAGE_TITLES: Record<string, { title: string; group: string }> = {
   "/collector/numbers": { title: "号码分析", group: "业务" },
   "/collector/ratings": { title: "源可信评级", group: "质量" },
   "/collector/monitor": { title: "服务监控", group: "质量" },
+  "/collector/platform": { title: "采集平台", group: "质量" },
   "/profile": { title: "个人中心", group: "账户" },
   "/settings": { title: "系统设置", group: "账户" },
 };
