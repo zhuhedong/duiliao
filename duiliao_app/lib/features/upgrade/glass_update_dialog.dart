@@ -22,15 +22,23 @@ class GlassUpdateDialog extends ConsumerStatefulWidget {
   const GlassUpdateDialog({
     super.key,
     required this.result,
+    this.onIgnore,
   });
 
   final UpdateCheckResult result;
 
-  static Future<void> show(BuildContext context, UpdateCheckResult result) {
+  /// Persists "skip this version" (automatic checks stop prompting for it).
+  final Future<void> Function()? onIgnore;
+
+  static Future<void> show(
+    BuildContext context,
+    UpdateCheckResult result, {
+    Future<void> Function()? onIgnore,
+  }) {
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
-      builder: (_) => GlassUpdateDialog(result: result),
+      builder: (_) => GlassUpdateDialog(result: result, onIgnore: onIgnore),
     );
   }
 
@@ -253,6 +261,16 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                 const SizedBox(height: 14),
               ] else if (_status == _DownloadStatus.completed) ...[
                 _buildCompletedView(context),
+                if (_errorMsg != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorMsg!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.orange.shade200 : Colors.orange.shade900,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
               ] else if (_status == _DownloadStatus.error) ...[
                 Container(
@@ -287,6 +305,14 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
                         onPressed: _openInBrowser,
                       ),
                     ),
+                    if (widget.onIgnore != null)
+                      TextButton(
+                        onPressed: () async {
+                          await widget.onIgnore!();
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                        child: const Text('跳过此版本'),
+                      ),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('稍后'),
@@ -404,12 +430,21 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
 
     final service = ref.read(githubUpdateServiceProvider);
     try {
-      final file = await service.downloadApk(
+      final file = await service.downloadApkWithFallback(
         downloadUrl: apk.downloadUrl,
         fileName: apk.name,
         expectedSha256: digest,
         expectedSize: apk.size,
-        useMirror: _useMirror,
+        preferMirror: _useMirror,
+        onSourceChanged: (mirror) {
+          if (mounted && mirror != _useMirror) {
+            setState(() {
+              _useMirror = mirror;
+              _received = 0;
+              _progress = 0;
+            });
+          }
+        },
         onProgress: (received, total) {
           if (mounted) {
             setState(() {
@@ -443,10 +478,31 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
 
   Future<void> _openDownloadedFile() async {
     if (_downloadedFile == null) return;
+    if (_errorMsg != null) setState(() => _errorMsg = null);
     // Android 7+ refuses file:// APK installs; use FileProvider via the
-    // platform channel. Fall back to the trusted browser URL if that fails.
-    if (await installApkFile(_downloadedFile!)) return;
-    await _openInBrowser();
+    // platform channel.
+    final outcome = await installApkFile(_downloadedFile!);
+    if (!mounted) return;
+    switch (outcome) {
+      case InstallOutcome.started:
+        return;
+      case InstallOutcome.needsPermission:
+        setState(() {
+          _status = _DownloadStatus.completed;
+          _errorMsg = '请在系统设置中允许「对料」安装未知应用，返回后点「打开安装」。';
+        });
+      case InstallOutcome.signatureMismatch:
+        setState(() {
+          _status = _DownloadStatus.error;
+          _errorMsg = '新版本签名与当前安装的 App 不一致（可能是本地调试包），无法覆盖安装。'
+              '请先卸载当前 App 再安装新版本（本地数据需重新登录）。';
+        });
+      case InstallOutcome.failed:
+        setState(() {
+          _status = _DownloadStatus.error;
+          _errorMsg = '无法打开系统安装程序，请点「浏览器下载」手动安装。';
+        });
+    }
   }
 
   Future<void> _openInBrowser() async {

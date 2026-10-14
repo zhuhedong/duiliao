@@ -119,6 +119,33 @@ jobs:
           done
           cd "$OUT_DIR"
           zip -9 "duiliao-android-v${VER}.zip" duiliao-v${VER}-*.apk
+          # Release manifest (same shape as GitHub's releases/latest API) so the
+          # app can read it via releases/latest/download/latest.json through a
+          # download mirror when api.github.com is blocked or rate-limited.
+          TAG="v${VER}" REPO="${GITHUB_REPOSITORY}" python3 - <<'PY'
+          import glob, hashlib, json, os
+          tag, repo = os.environ["TAG"], os.environ["REPO"]
+          assets = []
+          for path in sorted(glob.glob(f"duiliao-{tag}-*.apk")):
+              name = os.path.basename(path)
+              data = open(path, "rb").read()
+              assets.append({
+                  "name": name,
+                  "size": len(data),
+                  "content_type": "application/vnd.android.package-archive",
+                  "digest": "sha256:" + hashlib.sha256(data).hexdigest(),
+                  "browser_download_url": f"https://github.com/{repo}/releases/download/{tag}/{name}",
+              })
+          json.dump({
+              "tag_name": tag,
+              "name": f"对料 App {tag}",
+              "body": "",
+              "html_url": f"https://github.com/{repo}/releases/tag/{tag}",
+              "prerelease": False,
+              "draft": False,
+              "assets": assets,
+          }, open("latest.json", "w"), ensure_ascii=False, indent=2)
+          PY
           ls -lh
 
       - name: Upload versioned APK artifact
@@ -136,6 +163,7 @@ jobs:
           files: |
             duiliao_app/build/release-apk/duiliao-v${{ steps.version.outputs.version }}-*.apk
             duiliao_app/build/release-apk/duiliao-android-v${{ steps.version.outputs.version }}.zip
+            duiliao_app/build/release-apk/latest.json
           generate_release_notes: true
           draft: false
           prerelease: false
