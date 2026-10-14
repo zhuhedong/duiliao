@@ -1135,7 +1135,10 @@ def preview_backfill_job(
     """Preview which enabled sources lack predictions for a period."""
     from app.services.backfill_jobs import preview_missing
 
-    return preview_missing(lottery=lottery, period=period)
+    try:
+        return preview_missing(lottery=lottery, period=period)
+    except ValueError as exc:
+        raise _bad_request(exc)
 
 
 @router.post("/backfill-jobs")
@@ -1146,14 +1149,17 @@ async def create_backfill_job(
     """Submit an async collect job for sources missing the target period."""
     from app.services.backfill_jobs import submit_backfill
 
-    result = await submit_backfill(
-        lottery=req.lottery,
-        period=req.period,
-        source_ids=req.source_ids,
-        concurrency=req.concurrency,
-        created_by=str(user.id),
-        dry_run=req.dry_run,
-    )
+    try:
+        result = await submit_backfill(
+            lottery=req.lottery,
+            period=req.period,
+            source_ids=req.source_ids,
+            concurrency=req.concurrency,
+            created_by=str(user.id),
+            dry_run=req.dry_run,
+        )
+    except ValueError as exc:
+        raise _bad_request(exc)
     return {"ok": True, **result}
 
 

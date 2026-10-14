@@ -60,6 +60,11 @@ class CollectJobWorker:
         created_by: str | None = None,
     ) -> dict[str, Any]:
         """Create a queued job and wake the worker. Returns the job immediately."""
+        if period and str(period).strip():
+            cb.prepare_modules()
+            from common.period import ensure_not_future, normalize
+
+            ensure_not_future(normalize(lottery, str(period).strip()))
         job = await asyncio.to_thread(
             cb.create_collect_job,
             lottery=lottery,
