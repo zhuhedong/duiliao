@@ -61,7 +61,7 @@ export function StreakConfigBar({
   isLoadingData: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 rounded-2xl glass-card px-4 py-3">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5 admin-card px-4 py-3">
       <ChipGroup
         label="彩种"
         options={[
@@ -167,7 +167,7 @@ function StreakBuckets({
 export function StreakDataView({ data }: { data: any }) {
   if (!data) return null;
   return (
-    <div className="space-y-4 rounded-3xl glass-card p-4">
+    <div className="space-y-4 admin-card p-4">
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-bold text-slate-900 dark:text-white">📊 连肖统计概览</h4>
         <span className="text-2xs text-slate-400">
@@ -227,7 +227,7 @@ export function StreakDataView({ data }: { data: any }) {
         </div>
         <div className="max-h-60 overflow-auto">
           <table className="w-full whitespace-nowrap text-xs">
-            <thead className="sticky top-0 glass-panel">
+            <thead className="sticky top-0 admin-card">
               <tr className="border-b border-slate-200/60 dark:border-white/8">
                 <th className="px-2 py-1.5 text-left text-slate-500">期号</th>
                 {["正1", "正2", "正3", "正4", "正5", "正6"].map((h) => (

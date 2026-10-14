@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Spinner } from "@appica/ui-react/spinner";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Spinner } from "../../components/ui/spinner";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -221,13 +221,13 @@ export function CollectorDrawsPage() {
     >
 
       {error && (
-        <Alert variant="error" className="rounded-2xl border bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md">
+        <Alert variant="error" className="rounded-2xl border bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25">
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}
 
       {successMsg && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 backdrop-blur-md text-sm flex items-center justify-between animate-fadeIn">
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 text-sm flex items-center justify-between animate-fadeIn">
           <div className="flex items-center gap-2">
             <CheckBadgeIcon size={18} />
             <span className="font-medium">{successMsg}</span>
@@ -280,7 +280,7 @@ export function CollectorDrawsPage() {
               <button
                 type="button"
                 onClick={() => setShowConfig(!showConfig)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
               >
                 <SettingsIcon size={13} />
                 <span>{showConfig ? "收起设置" : "设置窗口"}</span>
@@ -288,7 +288,7 @@ export function CollectorDrawsPage() {
               <button
                 type="button"
                 onClick={() => setShowLogs(!showLogs)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
               >
                 <ActivityIcon size={13} />
                 <span>{showLogs ? "收起日志" : "查看日志"}</span>
@@ -299,8 +299,8 @@ export function CollectorDrawsPage() {
                 disabled={schedulerLoading}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
                   scheduler?.enabled
-                    ? "border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 backdrop-blur-md"
-                    : "border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 backdrop-blur-md"
+                    ? "border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 "
+                    : "border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 "
                 }`}
               >
                 {schedulerLoading ? "处理中..." : scheduler?.enabled ? "暂停自动更新" : "启动自动更新"}
@@ -437,7 +437,7 @@ export function CollectorDrawsPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfig(false)}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                 >
                   取消
                 </button>
@@ -516,7 +516,7 @@ export function CollectorDrawsPage() {
               type="button"
               onClick={judge}
               disabled={!canWrite || busy != null || !period.trim()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
             >
               {busy === "judge" ? "计算中…" : "手动触发对奖"}
             </button>
@@ -532,7 +532,7 @@ export function CollectorDrawsPage() {
                 onChange={(e) => setDrawsText(e.target.value)}
                 placeholder='[{"period":"248","draw_date":"2026-04-18","numbers":["01","02","03","04","05","06"],"tema":"07"}]'
                 rows={4}
-                className="w-full font-mono text-xs p-3 rounded-xl bg-slate-950/90 backdrop-blur-md text-emerald-300 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-inner"
+                className="w-full font-mono text-xs p-3 rounded-xl bg-slate-950/90 text-emerald-300 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-inner"
               />
             </div>
           </details>
@@ -580,7 +580,7 @@ export function CollectorDrawsPage() {
             type="button"
             onClick={loadList}
             disabled={loadingList}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
           >
             <RefreshIcon size={14} className={loadingList ? "animate-spin" : ""} />
             <span>刷新列表</span>
@@ -894,7 +894,7 @@ export function CollectorDrawsPage() {
                     type="button"
                     onClick={() => setOffset(Math.max(0, offset - limit))}
                     disabled={offset === 0}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm disabled:opacity-40 transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
                   >
                     上一页
                   </button>
@@ -902,7 +902,7 @@ export function CollectorDrawsPage() {
                     type="button"
                     onClick={() => setOffset(offset + limit)}
                     disabled={offset + limit >= total}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm disabled:opacity-40 transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
                   >
                     下一页
                   </button>

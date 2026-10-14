@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Spinner } from "@appica/ui-react/spinner";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Spinner } from "../../components/ui/spinner";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ApiError } from "../../lib/api";
 import { collectorApi, type NumberAttr } from "../../lib/collector";
 import {
@@ -95,7 +95,7 @@ export function CollectorNumbersPage() {
     <PageWorkspace summary="01–49 的波色、单双、头尾、合数是固定的。生肖和家野跟着所选日期的农历年变。">
 
       {error && (
-        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
+        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300">
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}
@@ -293,7 +293,7 @@ export function CollectorNumbersPage() {
             </TableContainer>
 
             {!wuxingAvailable && (
-              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 text-xs backdrop-blur-md">
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 text-xs">
                 ⚠️ 当前所选日期对应的农历年暂无五行对照表（只录入了有官方资料的年份）。切换到已录入年份即可显示五行。
               </div>
             )}

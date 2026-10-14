@@ -184,7 +184,7 @@ export function ReportCanvas({
   const ModeIcon = accent === "violet" ? SparklesIcon : ActivityIcon;
 
   return (
-    <section className="rounded-3xl glass-card flex min-h-[560px] flex-col overflow-hidden">
+    <section className="admin-card flex min-h-[560px] flex-col overflow-hidden">
       {/* —— 画布头：标题 + 元信息 + 操作 —— */}
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-200/50 dark:border-white/8 px-5 py-3.5">
         <h3 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-white">
@@ -217,7 +217,7 @@ export function ReportCanvas({
           {viewing && (
             <button
               onClick={() => onViewHistory(null)}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 glass-subtle transition-colors hover:text-slate-800 dark:hover:text-slate-200"
+              className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 glass-subtle transition-colors hover:text-slate-800 dark:hover:text-slate-200 dark:text-slate-100"
             >
               <CloseIcon size={13} />
               返回最新
@@ -271,7 +271,7 @@ export function ReportCanvas({
 
       {/* —— 错误 —— */}
       {error && (
-        <div className="mx-5 mt-4 rounded-xl border border-rose-400/40 bg-rose-500/10 p-4 text-sm text-rose-700 backdrop-blur-md dark:border-rose-400/25 dark:text-rose-300">
+        <div className="mx-5 mt-4 rounded-xl border border-rose-400/40 bg-rose-500/10 p-4 text-sm text-rose-700 dark:border-rose-400/25 dark:text-rose-300">
           {error}
         </div>
       )}

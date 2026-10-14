@@ -1,26 +1,39 @@
 /* ============================================================
-   对料 · Aurora Glass 设计系统
+   对料 · Aurora Glass 设计系统（Web）
    玻璃拟态 + 极光渐变（靛蓝 → 紫罗兰 → 品红）
-   引入 Appica UI 令牌后在此全面覆盖品牌与背景体系。
+   与 APP / app-design 共用同一套视觉令牌。
    ============================================================ */
-@import "@appica/ui-react/styles.css";
+@import "tailwindcss";
 
-/* 让 Tailwind 扫描已编译的 Appica UI 组件里用到的工具类，
-   与本项目的样式合并进同一次构建。 */
-@source "../node_modules/@appica/ui-react/dist";
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* 补充设计令牌 */
 @theme {
   --text-2xs: 0.625rem;
   --text-2xs--line-height: 0.875rem;
+  --font-sans: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Heiti SC",
+    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-border: var(--border);
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
 }
 
-/* ————————————————————————————————————————————————
-   1. 品牌令牌覆盖（亮色）
-   ———————————————————————————————————————————————— */
+/* —— 亮色令牌 —— */
 :root,
 .light {
-  /* 品牌主色：靛蓝 × 紫罗兰 */
   --primary: oklch(0.558 0.245 280.5);
   --primary-subtle: oklch(0.558 0.245 280.5 / 8%);
   --primary-soft: oklch(0.558 0.245 280.5 / 16%);
@@ -28,49 +41,28 @@
   --primary-strong: oklch(0.47 0.26 281);
   --primary-foreground: oklch(1 0 0);
 
-  /* 辅助色：紫罗兰 */
   --secondary: oklch(0.62 0.24 296);
   --secondary-subtle: oklch(0.62 0.24 296 / 10%);
   --secondary-soft: oklch(0.62 0.24 296 / 20%);
-  --secondary-muted: oklch(0.9 0.06 296);
-  --secondary-strong: oklch(0.68 0.2 296);
-  --secondary-emphasis: oklch(0.62 0.24 296);
-  --secondary-intense: oklch(0.52 0.27 296);
-  --secondary-foreground: oklch(1 0 0);
 
-  /* 信息色：天青（与主色互补的冷色） */
   --info: oklch(0.72 0.15 222);
-  --info-subtle: oklch(0.66 0.17 232 / 10%);
-  --info-soft: oklch(0.66 0.17 232 / 20%);
-  --info-muted: oklch(0.92 0.04 230);
-  --info-strong: oklch(0.72 0.15 228);
-  --info-emphasis: oklch(0.66 0.17 232);
-  --info-intense: oklch(0.56 0.19 240);
-  --info-foreground: oklch(1 0 0);
 
-  /* 背景：微紫调的冷白 */
   --background: oklch(0.978 0.007 285);
   --background-subtle: oklch(0.968 0.009 285);
   --background-muted: oklch(0.952 0.013 285);
   --background-strong: oklch(0.922 0.016 285);
-  --background-inverse: oklch(0.17 0.03 285);
 
-  /* 边框带一点紫调 */
+  --foreground: oklch(0.22 0.03 285);
+  --foreground-subtle: oklch(0.45 0.02 283);
+  --foreground-muted: oklch(0.55 0.02 283);
+  --foreground-strong: oklch(0.16 0.03 285);
+
   --border: oklch(0.918 0.014 285);
   --border-muted: oklch(0.952 0.009 285);
   --border-strong: oklch(0.862 0.02 282);
-  --border-emphasis: oklch(0.72 0.03 281);
-  --border-intense: oklch(0.58 0.04 280);
 
-  --focus-ring: oklch(0.558 0.245 280.5 / 35%);
-  --focus-ring-primary: oklch(0.558 0.245 280.5 / 30%);
-  --focus-ring-secondary: oklch(0.62 0.24 296 / 30%);
-  --focus-ring-info: oklch(0.66 0.17 232 / 30%);
-
-  --shadow-color: oklch(0.558 0.245 280.5 / 14%);
   --selection-color: oklch(0.558 0.245 280.5 / 16%);
 
-  /* 玻璃材质令牌（亮色） */
   --glass-bg: oklch(1 0 0 / 62%);
   --glass-bg-strong: oklch(1 0 0 / 78%);
   --glass-bg-subtle: oklch(1 0 0 / 42%);
@@ -78,13 +70,16 @@
   --glass-highlight: oklch(1 0 0 / 85%);
   --glass-shadow: 0 8px 32px -12px oklch(0.558 0.245 280.5 / 18%),
     0 2px 8px -4px oklch(0.3 0.05 280 / 8%);
+
+  --aurora-indigo: #4f46e5;
+  --aurora-violet: #7c3aed;
+  --aurora-fuchsia: #c026d3;
+  --aurora-sky: #0284c7;
+  color-scheme: light;
 }
 
-/* ————————————————————————————————————————————————
-   2. 品牌令牌覆盖（暗色）
-   ———————————————————————————————————————————————— */
+/* —— 暗色：深空靛蓝 —— */
 .dark {
-  /* 暗色下主色提亮，保证玻璃上可读 */
   --primary: oklch(0.72 0.185 283);
   --primary-subtle: oklch(0.72 0.185 283 / 14%);
   --primary-soft: oklch(0.72 0.185 283 / 24%);
@@ -95,27 +90,13 @@
   --secondary: oklch(0.7 0.2 297);
   --secondary-subtle: oklch(0.7 0.2 297 / 14%);
   --secondary-soft: oklch(0.7 0.2 297 / 24%);
-  --secondary-muted: oklch(0.32 0.06 296);
-  --secondary-strong: oklch(0.78 0.15 297);
-  --secondary-emphasis: oklch(0.7 0.2 297);
-  --secondary-intense: oklch(0.8 0.14 297);
-  --secondary-foreground: oklch(0.17 0.03 285);
 
   --info: oklch(0.75 0.13 225);
-  --info-subtle: oklch(0.7 0.15 230 / 14%);
-  --info-soft: oklch(0.7 0.15 230 / 24%);
-  --info-muted: oklch(0.3 0.05 235);
-  --info-strong: oklch(0.8 0.11 228);
-  --info-emphasis: oklch(0.7 0.15 230);
-  --info-intense: oklch(0.82 0.1 232);
-  --info-foreground: oklch(0.17 0.03 285);
 
-  /* 背景：深空靛蓝 */
   --background: oklch(0.155 0.028 285);
   --background-subtle: oklch(0.185 0.03 285);
   --background-muted: oklch(0.215 0.032 285);
   --background-strong: oklch(0.26 0.035 285);
-  --background-inverse: oklch(0.97 0.005 285);
 
   --foreground: oklch(0.9 0.012 285);
   --foreground-subtle: oklch(0.72 0.02 283);
@@ -125,17 +106,9 @@
   --border: oklch(1 0 0 / 9%);
   --border-muted: oklch(1 0 0 / 6%);
   --border-strong: oklch(1 0 0 / 16%);
-  --border-emphasis: oklch(1 0 0 / 26%);
 
-  --focus-ring: oklch(0.72 0.185 283 / 40%);
-  --focus-ring-primary: oklch(0.72 0.185 283 / 35%);
-  --focus-ring-secondary: oklch(0.7 0.2 297 / 35%);
-  --focus-ring-info: oklch(0.7 0.15 230 / 35%);
-
-  --shadow-color: oklch(0 0 0 / 45%);
   --selection-color: oklch(0.72 0.185 283 / 28%);
 
-  /* 玻璃材质令牌（暗色） */
   --glass-bg: oklch(0.23 0.032 285 / 55%);
   --glass-bg-strong: oklch(0.2 0.03 285 / 78%);
   --glass-bg-subtle: oklch(1 0 0 / 5%);
@@ -143,41 +116,34 @@
   --glass-highlight: oklch(1 0 0 / 8%);
   --glass-shadow: 0 12px 40px -12px oklch(0 0 0 / 55%),
     0 2px 8px -4px oklch(0 0 0 / 35%);
+
+  --aurora-indigo: #4f46e5;
+  --aurora-violet: #7c3aed;
+  --aurora-fuchsia: #c026d3;
+  --aurora-sky: #0284c7;
+  color-scheme: dark;
 }
 
-/* ————————————————————————————————————————————————
-   3. 基础
-   ———————————————————————————————————————————————— */
-html,
-body,
-#root {
-  height: 100%;
-}
+html, body, #root { height: 100%; min-height: 100%; }
 
 body {
   margin: 0;
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-family:
-    "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Heiti SC",
-    system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-::selection {
-  background: var(--selection-color);
-}
+::selection { background: var(--selection-color); }
 
-/* ————————————————————————————————————————————————
-   4. 极光背景系统（固定层，透过玻璃材质可见）
-   ———————————————————————————————————————————————— */
+/* —— 极光背景 —— */
 .app-aurora {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   overflow: hidden;
-  background-color: var(--color-background);
+  background-color: var(--background);
   pointer-events: none;
 }
 .app-aurora::before,
@@ -201,8 +167,8 @@ body {
 }
 .dark .app-aurora::before {
   background-image:
-    radial-gradient(42rem 42rem at 12% 8%, oklch(0.62 0.22 283 / 30%), transparent 62%),
-    radial-gradient(38rem 38rem at 88% 12%, oklch(0.6 0.24 310 / 26%), transparent 60%),
+    radial-gradient(48rem 48rem at 10% 6%, oklch(0.62 0.24 283 / 42%), transparent 62%),
+    radial-gradient(44rem 44rem at 90% 10%, oklch(0.62 0.26 310 / 36%), transparent 60%),
     radial-gradient(46rem 46rem at 85% 88%, oklch(0.55 0.22 250 / 28%), transparent 62%),
     radial-gradient(34rem 34rem at 8% 85%, oklch(0.6 0.18 200 / 20%), transparent 58%);
 }
@@ -211,7 +177,6 @@ body {
     radial-gradient(30rem 30rem at 55% 40%, oklch(0.6 0.26 296 / 16%), transparent 60%),
     radial-gradient(26rem 26rem at 30% 70%, oklch(0.62 0.22 283 / 16%), transparent 58%);
 }
-/* 细腻网格纹理 */
 .app-aurora-grid {
   position: fixed;
   inset: 0;
@@ -235,20 +200,17 @@ body {
   100% { transform: translate3d(-2%, 2%, 0) rotate(-3deg) scale(1.08); }
 }
 
-/* ————————————————————————————————————————————————
-   5. 玻璃材质工具类
-   ———————————————————————————————————————————————— */
-
-/* 标准玻璃卡片 */
-.glass-card {
+/* —— 玻璃材质 —— */
+.glass-card,
+.admin-card {
   background: var(--glass-bg);
   backdrop-filter: blur(22px) saturate(1.6);
   -webkit-backdrop-filter: blur(22px) saturate(1.6);
   border: 1px solid var(--glass-border);
+  border-radius: 1.25rem;
   box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
 }
 
-/* 强玻璃（侧边栏、顶栏、弹层） */
 .glass-panel {
   background: var(--glass-bg-strong);
   backdrop-filter: blur(28px) saturate(1.8);
@@ -257,7 +219,6 @@ body {
   box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
 }
 
-/* 轻玻璃（表格头、内嵌块、输入底色） */
 .glass-subtle {
   background: var(--glass-bg-subtle);
   backdrop-filter: blur(12px) saturate(1.3);
@@ -265,22 +226,24 @@ body {
   border: 1px solid var(--glass-border);
 }
 
-/* 玻璃输入控件 */
-.glass-input {
+.glass-input,
+.admin-input-wrap {
   background: var(--glass-bg-subtle);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  width: 100%;
 }
 .glass-input:focus-within,
-.glass-input:focus {
-  border-color: color-mix(in oklch, var(--color-primary) 55%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 18%, transparent);
+.glass-input:focus,
+.admin-input-wrap:focus-within {
+  border-color: color-mix(in oklch, var(--primary) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 18%, transparent);
   outline: none;
 }
 
-/* 玻璃悬浮条（工具栏 / 胶囊容器） */
 .glass-bar {
   background: var(--glass-bg);
   backdrop-filter: blur(18px) saturate(1.5);
@@ -290,12 +253,8 @@ body {
     inset 0 1px 0 var(--glass-highlight);
 }
 
-/* ————————————————————————————————————————————————
-   6. 品牌元素
-   ———————————————————————————————————————————————— */
-
-/* 品牌渐变：靛蓝 → 紫罗兰 → 品红 */
-.brand-gradient {
+.brand-gradient,
+.brand-mark {
   background-image: linear-gradient(
     135deg,
     oklch(0.62 0.24 272),
@@ -303,8 +262,16 @@ body {
     oklch(0.62 0.27 322)
   );
 }
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px -8px oklch(0.585 0.26 290 / 70%);
+}
 
-/* 品牌渐变文字 */
 .text-gradient {
   background-image: linear-gradient(
     120deg,
@@ -325,15 +292,15 @@ body {
   );
 }
 
-/* 品牌光晕按钮（主操作） */
 .glow-button {
   background-image: linear-gradient(
     135deg,
     oklch(0.62 0.24 272),
     oklch(0.585 0.26 290) 52%,
     oklch(0.62 0.27 322)
-  );
-  color: #fff;
+  ) !important;
+  color: #fff !important;
+  border: 0 !important;
   box-shadow:
     0 8px 24px -8px oklch(0.585 0.26 290 / 55%),
     inset 0 1px 0 oklch(1 0 0 / 25%);
@@ -345,37 +312,37 @@ body {
     0 12px 32px -8px oklch(0.585 0.26 290 / 65%),
     inset 0 1px 0 oklch(1 0 0 / 30%);
 }
-.glow-button:active {
-  transform: scale(0.98);
-}
-.glow-button:disabled {
-  opacity: 0.55;
-  filter: saturate(0.6);
-}
+.glow-button:active { transform: scale(0.98); }
+.glow-button:disabled { opacity: 0.55; filter: saturate(0.6); }
 
-/* ————————————————————————————————————————————————
-   7. 工作区高度
-   顶栏 4.25rem + 主区内边距。窄屏底栏更高，单独扣掉。
-   ———————————————————————————————————————————————— */
-.workspace-fill {
-  min-height: calc(100vh - 11rem);
-}
+.workspace-fill { min-height: calc(100vh - 11rem); width: 100%; }
 @media (min-width: 768px) {
-  .workspace-fill {
-    min-height: calc(100vh - 6rem);
-  }
+  .workspace-fill { min-height: calc(100vh - 6rem); }
 }
 
-/* ————————————————————————————————————————————————
-   8. 滚动条与动效
-   ———————————————————————————————————————————————— */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 16px;
+  color: var(--foreground-muted);
+  text-align: center;
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+.admin-empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground-strong);
 }
+.admin-page-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: oklch(0.6 0.1 283 / 28%);
   border-radius: 9999px;
@@ -388,24 +355,81 @@ body {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fadeIn {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-
-/* 弹层进入动效 */
 @keyframes glassPop {
   from { opacity: 0; transform: scale(0.96) translateY(8px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
-.animate-glassPop {
+.animate-glassPop,
+.animate-fadeIn.glass-pop {
   animation: glassPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes briefWrite {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(320%); }
+/* 登录页额外光晕 */
+.auth-glow-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(40px);
+  pointer-events: none;
+  opacity: 0.55;
 }
-.brief-write {
-  animation: briefWrite 1.15s ease-in-out infinite;
+
+
+/* —— Bento + Display typography —— */
+.display-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: oklch(0.78 0.14 290);
 }
+.display-title {
+  font-size: clamp(1.6rem, 2.4vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: oklch(0.96 0.01 285);
+}
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.bento-span-4 { grid-column: span 12; }
+.bento-span-5 { grid-column: span 12; }
+.bento-span-7 { grid-column: span 12; }
+.bento-span-8 { grid-column: span 12; }
+.bento-span-12 { grid-column: span 12; }
+.bento-tall { min-height: 18rem; }
+@media (min-width: 1024px) {
+  .bento-span-4 { grid-column: span 4; }
+  .bento-span-5 { grid-column: span 5; }
+  .bento-span-7 { grid-column: span 7; }
+  .bento-span-8 { grid-column: span 8; }
+  .bento-span-12 { grid-column: span 12; }
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* denser glass */
+.glass-card {
+  backdrop-filter: blur(26px) saturate(1.75);
+  -webkit-backdrop-filter: blur(26px) saturate(1.75);
+}
+.glass-panel {
+  backdrop-filter: blur(32px) saturate(1.9);
+  -webkit-backdrop-filter: blur(32px) saturate(1.9);
+}
+.dark .app-aurora::before {
+  opacity: 1;
+  filter: saturate(1.25);
+}
+
+/* —— Dark contrast safety net —— */
+.dark body { color: var(--foreground); }
+.dark select, .dark input, .dark textarea { color: var(--foreground-strong); color-scheme: dark; }
+.dark select option, .dark select optgroup { background-color: oklch(0.2 0.03 285); color: oklch(0.94 0.008 285); }
+.dark input::placeholder, .dark textarea::placeholder { color: oklch(0.62 0.02 283); }
+.dark .admin-empty-title { color: var(--foreground-strong); }

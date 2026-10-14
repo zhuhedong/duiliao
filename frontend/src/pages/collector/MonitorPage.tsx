@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Spinner } from "@appica/ui-react/spinner";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Spinner } from "../../components/ui/spinner";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ApiError } from "../../lib/api";
 import { collectorApi, type CatalogStatus, type Lottery, type MonitorResult } from "../../lib/collector";
 import {
@@ -114,7 +114,7 @@ export function CollectorMonitorPage() {
     >
 
       {error && (
-        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
+        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300">
           <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}
@@ -206,7 +206,7 @@ export function CollectorMonitorPage() {
           )}
 
           {catalog?.last_error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-xs backdrop-blur-md">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-400/40 dark:border-rose-400/25 text-rose-700 dark:text-rose-300 text-xs">
               最近错误：{catalog.last_error}
             </div>
           )}
@@ -335,7 +335,7 @@ export function CollectorMonitorPage() {
                         <button
                           type="button"
                           onClick={() => handleConfirmMissing(m.source_id, m.pending)}
-                          className="px-2.5 py-0.5 rounded-lg text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md transition-colors cursor-pointer"
+                          className="px-2.5 py-0.5 rounded-lg text-xs font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 transition-colors cursor-pointer"
                         >
                           确认缺期
                         </button>

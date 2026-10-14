@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Spinner } from "@appica/ui-react/spinner";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Spinner } from "../../components/ui/spinner";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -475,13 +475,13 @@ export function CollectorSourcesPage() {
 
       {/* 状态提示信息 */}
       {error && (
-        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 backdrop-blur-md text-rose-700 dark:text-rose-300">
+        <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300">
           <AlertDescription className="text-sm font-medium">{error}</AlertDescription>
         </Alert>
       )}
 
       {successMsg && (
-        <Alert variant="success" className="rounded-2xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 backdrop-blur-md">
+        <Alert variant="success" className="rounded-2xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
           <AlertDescription className="flex items-center justify-between gap-3 text-sm font-medium">
             <span>{successMsg}</span>
             <button
@@ -645,7 +645,7 @@ export function CollectorSourcesPage() {
                     placeholder="# 录入您的 Python 采集脚本代码，或直接留空按默认模版自动生成..."
                     rows={12}
                     spellCheck={false}
-                    className="w-full font-mono text-xs sm:text-sm p-4 rounded-2xl bg-slate-950/90 backdrop-blur-md text-emerald-400 border border-white/10 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-inner"
+                    className="w-full font-mono text-xs sm:text-sm p-4 rounded-2xl bg-slate-950/90 text-emerald-400 border border-white/10 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-inner"
                   />
                 </div>
 
@@ -721,7 +721,7 @@ export function CollectorSourcesPage() {
               </div>
 
               {activeJob && running && (
-                <div className="p-4 rounded-2xl border border-violet-400/30 dark:border-violet-400/20 bg-violet-500/5 dark:bg-violet-400/5 backdrop-blur-md space-y-2.5">
+                <div className="p-4 rounded-2xl border border-violet-400/30 dark:border-violet-400/20 bg-violet-500/5 dark:bg-violet-400/5 space-y-2.5">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
                       <span className="relative flex h-2.5 w-2.5">
@@ -916,8 +916,8 @@ export function CollectorSourcesPage() {
                               disabled={!canWrite}
                               className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border cursor-pointer transition-all ${
                                 s.enabled
-                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md"
-                                  : "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-400/30 dark:border-slate-400/20 backdrop-blur-md"
+                                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/40 dark:border-emerald-400/25 "
+                                  : "bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-400/30 dark:border-slate-400/20 "
                               }`}
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${s.enabled ? "bg-emerald-500" : "bg-slate-400"}`} />
@@ -943,7 +943,7 @@ export function CollectorSourcesPage() {
                               <button
                                 type="button"
                                 onClick={() => openTestModal(s)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 transition-colors cursor-pointer"
                                 title="调试运行此脚本"
                               >
                                 <PlayIcon size={13} />
@@ -1028,8 +1028,8 @@ export function CollectorSourcesPage() {
 
       {/* 脚本代码查看与在线编辑弹窗 */}
       {scriptModal?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl max-h-[90vh] glass-panel rounded-3xl animate-glassPop flex flex-col overflow-hidden p-6 gap-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+          <div className="w-full max-w-4xl max-h-[90vh] admin-card rounded-3xl animate-fadeIn flex flex-col overflow-hidden p-6 gap-4">
             <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-white/8 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1058,7 +1058,7 @@ export function CollectorSourcesPage() {
                 value={scriptModal.content}
                 onChange={(e) => setScriptModal({ ...scriptModal, content: e.target.value })}
                 spellCheck={false}
-                className="flex-1 min-h-[380px] font-mono text-xs sm:text-sm p-4 rounded-2xl bg-slate-950/90 backdrop-blur-md text-emerald-400 border border-white/10 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none shadow-inner"
+                className="flex-1 min-h-[380px] font-mono text-xs sm:text-sm p-4 rounded-2xl bg-slate-950/90 text-emerald-400 border border-white/10 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none shadow-inner"
               />
             </div>
 
@@ -1090,8 +1090,8 @@ export function CollectorSourcesPage() {
 
       {/* 单脚本调试执行弹窗 */}
       {testModal?.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-4xl max-h-[90vh] glass-panel rounded-3xl animate-glassPop flex flex-col overflow-hidden p-6 gap-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+          <div className="w-full max-w-4xl max-h-[90vh] admin-card rounded-3xl animate-fadeIn flex flex-col overflow-hidden p-6 gap-4">
             <div className="flex justify-between items-center border-b border-slate-200/50 dark:border-white/8 pb-3">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1171,14 +1171,14 @@ export function CollectorSourcesPage() {
                     提取预测项: <strong className="text-slate-700 dark:text-slate-200">{testModal.result.item_count} 条</strong>
                   </span>
                   {testModal.result.ingest && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold border border-violet-400/40 dark:border-violet-400/25 backdrop-blur-md">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold border border-violet-400/40 dark:border-violet-400/25">
                       入库: 新增 {testModal.result.ingest.inserted}, 更新 {testModal.result.ingest.updated}
                     </span>
                   )}
                 </div>
 
                 {testModal.result.error_msg && (
-                  <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 backdrop-blur-md text-rose-700 dark:text-rose-300 py-2.5 px-3">
+                  <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 py-2.5 px-3">
                     <AlertDescription className="text-xs">{testModal.result.error_msg}</AlertDescription>
                   </Alert>
                 )}
@@ -1187,7 +1187,7 @@ export function CollectorSourcesPage() {
                   <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
                     标准输出与错误日志 (Stdout & Stderr):
                   </div>
-                  <pre className="m-0 p-3.5 rounded-2xl bg-slate-950/90 backdrop-blur-md text-slate-300 border border-white/10 text-xs font-mono max-h-48 overflow-y-auto leading-relaxed shadow-inner">
+                  <pre className="m-0 p-3.5 rounded-2xl bg-slate-950/90 text-slate-300 border border-white/10 text-xs font-mono max-h-48 overflow-y-auto leading-relaxed shadow-inner">
                     {testModal.result.stdout || "(无 stdout 输出)"}
                     {testModal.result.stderr ? `\n--- STDERR ---\n${testModal.result.stderr}` : ""}
                   </pre>

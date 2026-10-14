@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@appica/ui-react/button";
-import { Input } from "@appica/ui-react/input";
-import { Field, FieldLabel } from "@appica/ui-react/field";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
-import { Checkbox } from "@appica/ui-react/checkbox";
-import { Spinner } from "@appica/ui-react/spinner";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Field, FieldLabel } from "../components/ui/field";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Checkbox } from "../components/ui/checkbox";
+import { Spinner } from "../components/ui/spinner";
 import { useAuth } from "../auth/AuthContext";
 import { AuthShell } from "../components/AuthShell";
 import { ApiError, authApi } from "../lib/api";
@@ -96,11 +96,11 @@ export function LoginPage() {
   return (
     <AuthShell
       title="欢迎回来"
-      description="登录您的对料账号以进入加密工作台"
+      description="进入 Aurora Command — 加密采集、对照与研判的统一玻璃工作台"
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3.5 mt-1">
         {error && (
-          <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md py-2.5 px-3">
+          <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 py-2.5 px-3">
             <AlertDescription className="text-xs leading-relaxed">{error}</AlertDescription>
           </Alert>
         )}
@@ -139,7 +139,7 @@ export function LoginPage() {
             </button>
           </div>
           {showForgotPassword && (
-            <div className="text-[11px] bg-sky-500/10 text-sky-700 dark:text-sky-300 p-2.5 rounded-lg border border-sky-400/30 dark:border-sky-400/25 backdrop-blur-md leading-relaxed">
+            <div className="text-[11px] bg-sky-500/10 text-sky-700 dark:text-sky-300 p-2.5 rounded-lg border border-sky-400/30 dark:border-sky-400/25 leading-relaxed">
               本系统采用零知识端到端加密架构，密码仅在您的设备上解密，服务端无法恢复。如需重置密码，请联系系统管理员。
             </div>
           )}
@@ -183,7 +183,7 @@ export function LoginPage() {
           type="submit"
           disabled={submitting}
           size="md"
-          className="glow-button border-0 w-full rounded-xl mt-2 font-semibold text-sm tracking-wide shadow-sm hover:shadow-md transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer h-10.5"
+          className="glow-button w-full mt-3 font-semibold text-sm tracking-wide flex items-center justify-center gap-2 h-11 rounded-xl"
         >
           {submitting ? (
             <>

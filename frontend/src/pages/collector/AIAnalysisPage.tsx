@@ -430,7 +430,7 @@ export function CollectorAIAnalysisPage() {
   return (
     <PageWorkspace summary="选定模式与期号，一键启动大模型研判；报告流式呈现，历史自动沉淀。高级参数收在右侧抽屉。">
       {/* ═══ 指挥条 ═══ */}
-      <div className="sticky top-[5rem] z-20 flex flex-wrap items-center gap-x-3 gap-y-2.5 rounded-2xl glass-bar p-3.5">
+      <div className="sticky top-[5rem] z-20 flex flex-wrap items-center gap-x-3 gap-y-2.5 admin-card p-3.5">
         <SegmentedTabs
           tabs={[
             { id: "post" as const, label: "帖文研判", icon: <SparklesIcon size={15} /> },
@@ -542,7 +542,7 @@ export function CollectorAIAnalysisPage() {
 
       {/* ═══ 配置带 ═══ */}
       {isPost ? (
-        <div className="rounded-3xl glass-card p-4">
+        <div className="admin-card p-4">
           <PromptDock
             prompts={prompts}
             selectedId={selectedPromptId}
@@ -608,7 +608,7 @@ export function CollectorAIAnalysisPage() {
       />
 
       {/* ═══ 上下文数据（可折叠，画布之下）═══ */}
-      <div className="rounded-3xl glass-card">
+      <div className="admin-card">
         <button
           onClick={() => setShowContext((v) => !v)}
           className="flex w-full cursor-pointer items-center justify-between px-5 py-3.5 text-left"

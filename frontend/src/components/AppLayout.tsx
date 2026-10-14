@@ -1,8 +1,8 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { Button } from "@appica/ui-react/button";
-import { useTheme } from "@appica/ui-react/hooks/use-theme";
+import { Button } from "./ui/button";
+import { useTheme } from "../theme/ThemeProvider";
 import { useAuth } from "../auth/AuthContext";
 import { UserAvatar } from "./UserAvatar";
 import {
@@ -29,211 +29,203 @@ interface NavItem {
   label: string;
   short: string;
   icon: ReactNode;
+  group: "core" | "ops" | "account";
 }
 
-interface NavGroup {
-  title: string;
-  items: NavItem[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    title: "概览",
-    items: [{ to: "/", label: "工作台", short: "工作台", icon: <DashboardIcon size={18} /> }],
-  },
-  {
-    title: "业务",
-    items: [
-      { to: "/collector/ai-analysis", label: "AI研判", short: "研判", icon: <SparklesIcon size={18} /> },
-      { to: "/collector/sources", label: "数据源采集", short: "采集", icon: <DatabaseIcon size={18} /> },
-      { to: "/collector/draws", label: "开奖管理", short: "开奖", icon: <TrophyIcon size={18} /> },
-      { to: "/collector/consensus", label: "多源对照", short: "对照", icon: <CompareIcon size={18} /> },
-      { to: "/collector/numbers", label: "号码分析", short: "号码", icon: <HashIcon size={18} /> },
-    ],
-  },
-  {
-    title: "质量",
-    items: [
-      { to: "/collector/ratings", label: "源可信评级", short: "评级", icon: <StarIcon size={18} /> },
-      { to: "/collector/monitor", label: "服务监控", short: "监控", icon: <ActivityIcon size={18} /> },
-      { to: "/collector/platform", label: "采集平台", short: "平台", icon: <GlobeIcon size={18} /> },
-    ],
-  },
-  {
-    title: "账户",
-    items: [
-      { to: "/profile", label: "个人中心", short: "账户", icon: <UserIcon size={18} /> },
-      { to: "/settings", label: "系统设置", short: "设置", icon: <SettingsIcon size={18} /> },
-    ],
-  },
+const NAV: NavItem[] = [
+  { to: "/", label: "工作台", short: "工作台", icon: <DashboardIcon size={16} />, group: "core" },
+  { to: "/collector/ai-analysis", label: "AI 研判", short: "研判", icon: <SparklesIcon size={16} />, group: "core" },
+  { to: "/collector/sources", label: "数据源", short: "采集", icon: <DatabaseIcon size={16} />, group: "core" },
+  { to: "/collector/draws", label: "开奖", short: "开奖", icon: <TrophyIcon size={16} />, group: "core" },
+  { to: "/collector/consensus", label: "多源对照", short: "对照", icon: <CompareIcon size={16} />, group: "core" },
+  { to: "/collector/numbers", label: "号码", short: "号码", icon: <HashIcon size={16} />, group: "ops" },
+  { to: "/collector/ratings", label: "评级", short: "评级", icon: <StarIcon size={16} />, group: "ops" },
+  { to: "/collector/monitor", label: "监控", short: "监控", icon: <ActivityIcon size={16} />, group: "ops" },
+  { to: "/collector/platform", label: "采集平台", short: "平台", icon: <GlobeIcon size={16} />, group: "ops" },
+  { to: "/profile", label: "个人中心", short: "账户", icon: <UserIcon size={16} />, group: "account" },
+  { to: "/settings", label: "系统设置", short: "设置", icon: <SettingsIcon size={16} />, group: "account" },
 ];
 
-const PAGE_TITLES: Record<string, { title: string; group: string }> = {
-  "/": { title: "工作台", group: "概览" },
-  "/collector/ai-analysis": { title: "AI研判", group: "业务" },
-  "/collector/sources": { title: "数据源采集", group: "业务" },
-  "/collector/draws": { title: "开奖管理", group: "业务" },
-  "/collector/consensus": { title: "多源对照", group: "业务" },
-  "/collector/numbers": { title: "号码分析", group: "业务" },
-  "/collector/ratings": { title: "源可信评级", group: "质量" },
-  "/collector/monitor": { title: "服务监控", group: "质量" },
-  "/collector/platform": { title: "采集平台", group: "质量" },
-  "/profile": { title: "个人中心", group: "账户" },
-  "/settings": { title: "系统设置", group: "账户" },
-};
-
-const MOBILE_PRIMARY_COUNT = 4;
+const PAGE_META: Record<string, { title: string; eyebrow: string }> = Object.fromEntries(
+  NAV.map((n) => [
+    n.to,
+    {
+      title: n.label,
+      eyebrow: n.group === "core" ? "核心业务" : n.group === "ops" ? "质量与平台" : "账户",
+    },
+  ]),
+);
 
 export function AppLayout() {
   const { user, logout } = useAuth();
   const { resolvedTheme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [jumpOpen, setJumpOpen] = useState(false);
+  const [jumpQuery, setJumpQuery] = useState("");
   const [sessionStatus, setSessionStatus] = useState(api.getSessionStatus());
 
-  useEffect(() => {
-    return api.subscribeStatus(setSessionStatus);
-  }, []);
+  useEffect(() => api.subscribeStatus(setSessionStatus), []);
 
   useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMobileMenuOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setJumpOpen(true);
+      }
+      if (e.key === "Escape") {
+        setJumpOpen(false);
+        setMobileOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mobileMenuOpen]);
+  }, []);
+
+  const page = PAGE_META[location.pathname] || { title: "工作台", eyebrow: "核心业务" };
+  const core = NAV.filter((n) => n.group === "core");
+  const filteredJump = useMemo(() => {
+    const q = jumpQuery.trim().toLowerCase();
+    if (!q) return NAV;
+    return NAV.filter((n) => n.label.toLowerCase().includes(q) || n.short.includes(q) || n.to.includes(q));
+  }, [jumpQuery]);
+
+  const statusText =
+    sessionStatus === "connected" ? "链路加密" : sessionStatus === "connecting" ? "握手中" : "已断开";
+  const statusClass =
+    sessionStatus === "connected"
+      ? "text-emerald-300 bg-emerald-500/15 border-emerald-400/30"
+      : sessionStatus === "connecting"
+        ? "text-amber-200 bg-amber-500/15 border-amber-400/30"
+        : "text-rose-200 bg-rose-500/15 border-rose-400/30";
 
   const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
 
-  const page = PAGE_TITLES[location.pathname] || { title: "工作台", group: "概览" };
-  const mobileItems = NAV_GROUPS.flatMap((group) => group.items);
-  const mobilePrimary = mobileItems.slice(0, MOBILE_PRIMARY_COUNT);
-  const moreActive = !mobilePrimary.some((item) => item.to === location.pathname);
-
-  const statusClass =
-    sessionStatus === "connected"
-      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-400/40 dark:border-emerald-400/25"
-      : sessionStatus === "connecting"
-        ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-400/40 dark:border-amber-400/25"
-        : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25";
-  const dotClass =
-    sessionStatus === "connected"
-      ? "bg-emerald-500 animate-pulse"
-      : sessionStatus === "connecting"
-        ? "bg-amber-500 animate-pulse"
-        : "bg-rose-500";
-  const statusText =
-    sessionStatus === "connected" ? "加密链路正常" : sessionStatus === "connecting" ? "连接中" : "链路断开";
-
-  const rail = (
-    <nav className="flex flex-col gap-1">
-      {NAV_GROUPS.map((group, gi) => (
-        <div key={group.title}>
-          {gi > 0 && <div className="my-2 mx-3 h-px bg-slate-200/70 dark:bg-white/10" />}
-          {group.items.map((item) => {
-            const active = location.pathname === item.to;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                title={item.label}
-                className={`flex flex-col items-center justify-center gap-1 h-[68px] rounded-2xl no-underline transition-all ${
-                  active
-                    ? "bg-violet-500/15 text-violet-700 dark:text-violet-200 shadow-[inset_0_0_0_1px_rgba(139,92,246,0.35)]"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <span className={active ? "text-violet-600 dark:text-violet-300" : ""}>{item.icon}</span>
-                <span className="text-[10px] font-medium leading-none">{item.short}</span>
-              </Link>
-            );
-          })}
-        </div>
-      ))}
-    </nav>
-  );
-
   return (
-    <div className="min-h-screen flex flex-col text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen relative text-slate-900 dark:text-slate-100">
       <div className="app-aurora" />
       <div className="app-aurora-grid" />
 
-      <header className="sticky top-0 z-30 px-3 sm:px-4 pt-3">
-        <div className="h-14 glass-panel rounded-2xl px-3 sm:px-4 flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-2.5 no-underline shrink-0">
-            <div className="w-9 h-9 rounded-xl brand-gradient flex items-center justify-center text-white font-bold shadow-[0_8px_20px_-8px_rgba(139,92,246,0.7)]">
-              对
+      {/* Floating command island — replaces left sidebar IA */}
+      <div className="sticky top-0 z-40 px-3 sm:px-5 pt-3 pb-2">
+        <div className="mx-auto max-w-[1440px] glass-panel rounded-[22px] px-2.5 sm:px-3 py-2 shadow-[0_20px_60px_-30px_rgba(124,58,237,0.55)]">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link to="/" className="flex items-center gap-2 no-underline shrink-0 pl-1">
+              <div className="w-9 h-9 rounded-2xl brand-gradient flex items-center justify-center text-white font-bold text-sm shadow-[0_10px_24px_-10px_rgba(139,92,246,0.85)]">
+                对
+              </div>
+              <div className="hidden lg:block leading-tight">
+                <div className="text-sm font-bold text-gradient tracking-[0.18em]">对料</div>
+                <div className="text-[10px] text-slate-400">Aurora Command</div>
+              </div>
+            </Link>
+
+            <div className="hidden md:flex items-center gap-1 flex-1 min-w-0 overflow-x-auto no-scrollbar px-1">
+              {core.map((item) => {
+                const active = location.pathname === item.to;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-semibold no-underline transition-all ${
+                      active
+                        ? "bg-violet-500/20 text-violet-100 shadow-[inset_0_0_0_1px_rgba(167,139,250,0.45)]"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </Link>
+                );
+              })}
             </div>
-            <span className="font-bold text-gradient tracking-wider hidden sm:inline">对料</span>
-          </Link>
-          <div className="h-6 w-px bg-slate-200/80 dark:bg-white/10 hidden sm:block" />
-          <div className="min-w-0 flex-1">
-            <div className="text-[10px] uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500">{page.group}</div>
-            <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{page.title}</div>
+
+            <button
+              type="button"
+              onClick={() => setJumpOpen(true)}
+              className="hidden sm:flex items-center gap-2 h-9 px-3 rounded-xl glass-subtle text-[11px] text-slate-400 hover:text-slate-100 cursor-pointer min-w-[140px]"
+            >
+              <span className="opacity-70">⌘K</span>
+              <span>跳转页面…</span>
+            </button>
+
+            <div className={`hidden xl:inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full text-[11px] font-medium border ${statusClass}`}>
+              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+              {statusText}
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="切换主题"
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            >
+              {resolvedTheme === "dark" ? <SunIcon size={15} /> : <MoonIcon size={15} />}
+            </Button>
+
+            <Link to="/profile" className="no-underline hidden sm:block" title="个人中心">
+              <UserAvatar name={user?.display_name || user?.email} url={user?.avatar_url} className="h-8 w-8 rounded-full text-xs" />
+            </Link>
+
+            <Button variant="ghost" size="icon-sm" aria-label="退出" onClick={handleLogout} className="hidden sm:inline-flex">
+              <LogOutIcon size={15} />
+            </Button>
+
+            <button
+              type="button"
+              className="md:hidden p-2 rounded-xl glass-subtle"
+              onClick={() => setMobileOpen(true)}
+              aria-label="打开菜单"
+            >
+              <MenuIcon size={16} />
+            </button>
           </div>
-          <div className={`hidden sm:inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-medium border ${statusClass}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
-            {statusText}
+
+          {/* Contextual secondary strip */}
+          <div className="hidden md:flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-violet-300/80 px-1">{page.eyebrow}</span>
+            <span className="text-sm font-semibold text-white/90">{page.title}</span>
+            <div className="flex-1" />
+            {NAV.filter((n) => n.group !== "core").map((item) => {
+              const active = location.pathname === item.to;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-[11px] no-underline ${
+                    active ? "bg-white/10 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                  }`}
+                >
+                  {item.icon}
+                  {item.short}
+                </Link>
+              );
+            })}
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="切换主题"
-            className="text-slate-500 hover:text-violet-600 dark:text-slate-400 dark:hover:text-violet-300"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          >
-            {resolvedTheme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
-          </Button>
-          <Link
-            to="/profile"
-            className="no-underline"
-            title={user?.display_name || user?.email || "个人中心"}
-          >
-            <UserAvatar
-              name={user?.display_name || user?.email}
-              url={user?.avatar_url}
-              className="h-8 w-8 rounded-full text-xs"
-            />
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="退出登录"
-            className="text-slate-500 hover:text-rose-500 dark:text-slate-400"
-            onClick={handleLogout}
-          >
-            <LogOutIcon size={16} />
-          </Button>
         </div>
-      </header>
-
-      <div className="flex flex-1 min-h-0 w-full">
-        <aside className="hidden md:block w-[92px] shrink-0 sticky top-[4.25rem] h-[calc(100vh-4.25rem)] px-2 py-3">
-          <div className="h-full glass-panel rounded-3xl p-2 overflow-y-auto">{rail}</div>
-        </aside>
-
-        <main className="flex-1 min-w-0 w-full px-3 sm:px-4 pb-24 md:pb-4 pt-3">
-          <div className="workspace-fill w-full animate-fadeIn">
-            <Outlet />
-          </div>
-        </main>
       </div>
 
-      <div className="md:hidden fixed inset-x-0 bottom-0 z-30 p-3">
+      <main className="relative z-10 mx-auto max-w-[1440px] px-3 sm:px-5 pb-28 md:pb-8">
+        <div className="workspace-fill animate-fadeIn">
+          <Outlet />
+        </div>
+      </main>
+
+      {/* Mobile floating dock */}
+      <div className="md:hidden fixed inset-x-3 bottom-3 z-40">
         <div className="glass-panel rounded-2xl px-1.5 py-1.5 grid grid-cols-5 gap-1">
-          {mobilePrimary.map((item) => {
+          {core.slice(0, 4).map((item) => {
             const active = location.pathname === item.to;
             return (
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl no-underline text-[10px] ${
-                  active ? "bg-violet-500/15 text-violet-700 dark:text-violet-200" : "text-slate-500 dark:text-slate-400"
+                className={`flex flex-col items-center justify-center gap-1 h-12 rounded-xl no-underline text-[10px] ${
+                  active ? "bg-violet-500/20 text-violet-100" : "text-slate-400"
                 }`}
               >
                 {item.icon}
@@ -243,45 +235,35 @@ export function AppLayout() {
           })}
           <button
             type="button"
-            aria-expanded={mobileMenuOpen}
-            aria-haspopup="dialog"
-            className={`flex flex-col items-center justify-center gap-1 h-14 rounded-xl text-[10px] ${
-              moreActive || mobileMenuOpen
-                ? "bg-violet-500/15 text-violet-700 dark:text-violet-200"
-                : "text-slate-500 dark:text-slate-400"
-            }`}
-            onClick={() => setMobileMenuOpen(true)}
+            className="flex flex-col items-center justify-center gap-1 h-12 rounded-xl text-[10px] text-slate-400"
+            onClick={() => setMobileOpen(true)}
           >
-            <MenuIcon size={18} />
-            更多
+            <MenuIcon size={16} />
+            全部
           </button>
         </div>
       </div>
 
-      {mobileMenuOpen && (
+      {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <div
-            role="dialog"
-            aria-label="全部导航"
-            className="absolute left-3 right-3 bottom-24 glass-panel rounded-3xl p-4 animate-glassPop"
-          >
+          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <div className="absolute left-3 right-3 bottom-20 glass-panel rounded-3xl p-4 animate-glassPop">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold">全部导航</span>
-              <button type="button" className="p-1.5 rounded-lg glass-subtle" onClick={() => setMobileMenuOpen(false)} aria-label="关闭菜单">
-                <CloseIcon size={16} />
+              <span className="text-sm font-semibold">全部模块</span>
+              <button type="button" className="p-1.5 rounded-lg glass-subtle" onClick={() => setMobileOpen(false)}>
+                <CloseIcon size={14} />
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {NAV_GROUPS.flatMap((g) => g.items).map((item) => {
+            <div className="grid grid-cols-3 gap-2">
+              {NAV.map((item) => {
                 const active = location.pathname === item.to;
                 return (
                   <Link
                     key={item.to}
                     to={item.to}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex flex-col items-center gap-1 py-3 rounded-2xl no-underline text-[11px] ${
-                      active ? "bg-violet-500/15 text-violet-700 dark:text-violet-200" : "text-slate-600 dark:text-slate-300"
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl no-underline text-[11px] ${
+                      active ? "bg-violet-500/20 text-violet-100" : "text-slate-300 glass-subtle"
                     }`}
                   >
                     {item.icon}
@@ -289,6 +271,42 @@ export function AppLayout() {
                   </Link>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {jumpOpen && (
+        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[12vh] px-4">
+          <div className="absolute inset-0 bg-slate-950/55 backdrop-blur-md" onClick={() => setJumpOpen(false)} />
+          <div className="relative w-full max-w-lg glass-panel rounded-3xl p-3 animate-glassPop shadow-[0_30px_80px_-20px_rgba(124,58,237,0.55)]">
+            <input
+              autoFocus
+              value={jumpQuery}
+              onChange={(e) => setJumpQuery(e.target.value)}
+              placeholder="搜索模块 / 路径…"
+              className="w-full h-11 px-4 rounded-2xl glass-input text-sm outline-none"
+            />
+            <div className="mt-2 max-h-72 overflow-y-auto flex flex-col gap-1">
+              {filteredJump.map((item) => (
+                <button
+                  key={item.to}
+                  type="button"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-violet-500/15 cursor-pointer"
+                  onClick={() => {
+                    navigate(item.to);
+                    setJumpOpen(false);
+                    setJumpQuery("");
+                  }}
+                >
+                  <span className="text-violet-300">{item.icon}</span>
+                  <span className="flex-1 text-sm font-medium">{item.label}</span>
+                  <span className="text-[10px] text-slate-500">{item.to}</span>
+                </button>
+              ))}
+              {filteredJump.length === 0 && (
+                <div className="px-3 py-8 text-center text-xs text-slate-500">没有匹配的页面</div>
+              )}
             </div>
           </div>
         </div>

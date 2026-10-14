@@ -62,7 +62,7 @@ export function YearZodiacPanel() {
   };
 
   return (
-    <section className="rounded-3xl glass-card p-4" aria-labelledby="year-zodiac-title">
+    <section className="admin-card p-4" aria-labelledby="year-zodiac-title">
       <div className="flex flex-wrap items-center gap-3">
         <h3 id="year-zodiac-title" className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
           <DatabaseIcon size={16} className="text-violet-500" />

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Badge } from "@appica/ui-react/badge";
-import { Alert, AlertDescription } from "@appica/ui-react/alert";
+import { Badge } from "../../components/ui/badge";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -944,7 +944,7 @@ export function CollectorConsensusPage() {
                 onClick={handlePrevPeriod}
                 title="上一期"
                 disabled={loading || !period.trim()}
-                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
               >
                 ◀
               </button>
@@ -953,7 +953,7 @@ export function CollectorConsensusPage() {
                 onClick={handleNextPeriod}
                 title="下一期"
                 disabled={loading || !period.trim()}
-                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
               >
                 ▶
               </button>
@@ -962,7 +962,7 @@ export function CollectorConsensusPage() {
                 onClick={handleLatestPeriod}
                 title="载入最新预测/开奖期号"
                 disabled={loading}
-                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
               >
                 ⚡ 最新期
               </button>
@@ -1026,7 +1026,7 @@ export function CollectorConsensusPage() {
                 type="button"
                 onClick={handleRejudge}
                 disabled={rejudging || !!snapshotBusy || !period.trim()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 backdrop-blur-sm transition-all disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {rejudging ? "计算中…" : "🔄 重新触发对奖比对"}
               </button>
@@ -1039,7 +1039,7 @@ export function CollectorConsensusPage() {
                   onClick={() => void handleFreezeSnapshot(false)}
                   disabled={snapshotBusy !== null || loading || !period.trim()}
                   title={consensusData?.snapshot?.frozen ? "已有快照时不会覆盖" : "为当前已开奖期保存频次榜快照"}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-emerald-400/50 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 backdrop-blur-sm transition-all disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-emerald-400/50 hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {snapshotBusy === "freeze" ? "冻结中…" : consensusData?.snapshot?.frozen ? "🔒 已冻结" : "🔒 冻结历史榜"}
                 </button>
@@ -1049,7 +1049,7 @@ export function CollectorConsensusPage() {
                     onClick={() => void handleFreezeSnapshot(true)}
                     disabled={snapshotBusy !== null || loading}
                     title="用当前数据覆盖已有历史快照"
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border border-amber-400/50 hover:bg-amber-500/10 text-amber-700 dark:text-amber-300 backdrop-blur-sm transition-all disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border border-amber-400/50 hover:bg-amber-500/10 text-amber-700 dark:text-amber-300 transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {snapshotBusy === "rebuild" ? "重建中…" : "♻️ 重建快照"}
                   </button>
@@ -1060,13 +1060,13 @@ export function CollectorConsensusPage() {
         </Toolbar>
 
         {error ? (
-          <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 backdrop-blur-md">
+          <Alert variant="error" className="rounded-2xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300">
             <AlertDescription className="text-sm">{error}</AlertDescription>
           </Alert>
         ) : null}
 
         {successMsg ? (
-          <Alert variant="success" className="rounded-2xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 backdrop-blur-md">
+          <Alert variant="success" className="rounded-2xl border border-emerald-400/40 dark:border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
             <AlertDescription className="text-sm">{successMsg}</AlertDescription>
           </Alert>
         ) : null}
@@ -1078,7 +1078,7 @@ export function CollectorConsensusPage() {
           (() => {
             const { ballsDetail, temaDetail, summary } = ensureDrawDetails(officialDraw);
             return (
-              <div className="rounded-3xl p-4 sm:p-5 glass-card flex flex-col gap-4">
+              <div className="rounded-3xl p-4 sm:p-5 admin-card flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/50 dark:border-white/8 pb-3">
                   <div className="flex items-center gap-2.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -1234,7 +1234,7 @@ export function CollectorConsensusPage() {
             );
           })()
         ) : (
-          <div className="rounded-3xl p-4 bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md flex items-center justify-between gap-4">
+          <div className="rounded-3xl p-4 bg-amber-500/10 border border-amber-400/40 dark:border-amber-400/25 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <span className="text-xl">⏳</span>
               <div>
@@ -1336,7 +1336,7 @@ export function CollectorConsensusPage() {
               <div
                 className={`p-3.5 rounded-2xl border flex flex-col gap-1 ${
                   officialDraw
-                    ? "bg-emerald-500/10 border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md"
+                    ? "bg-emerald-500/10 border-emerald-400/40 dark:border-emerald-400/25 "
                     : "glass-subtle"
                 }`}
               >
@@ -1383,7 +1383,7 @@ export function CollectorConsensusPage() {
               {/* ========================================================================= */}
               {/* 左列：特码出现频次排行                                                     */}
               {/* ========================================================================= */}
-              <div className="rounded-3xl p-4 sm:p-5 glass-card flex flex-col gap-4">
+              <div className="rounded-3xl p-4 sm:p-5 admin-card flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-3 border-b border-slate-200/50 dark:border-white/8 pb-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <span className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -1495,7 +1495,7 @@ export function CollectorConsensusPage() {
               {/* ========================================================================= */}
               {/* 右列：特肖出现频次排行                                                     */}
               {/* ========================================================================= */}
-              <div className="rounded-3xl p-4 sm:p-5 glass-card flex flex-col gap-4">
+              <div className="rounded-3xl p-4 sm:p-5 admin-card flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-3 border-b border-slate-200/50 dark:border-white/8 pb-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <span className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -1610,7 +1610,7 @@ export function CollectorConsensusPage() {
                   {comparison.summary.judged}
                 </span>
               </div>
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md flex flex-col gap-1">
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 flex flex-col gap-1">
                 <span className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
                   🎯 官方命中数
                 </span>
@@ -1627,7 +1627,7 @@ export function CollectorConsensusPage() {
               <div
                 className={`p-3.5 rounded-2xl border flex flex-col gap-1 ${
                   comparison.summary.conflicts > 0
-                    ? "bg-rose-500/10 border-rose-400/40 dark:border-rose-400/25 backdrop-blur-md"
+                    ? "bg-rose-500/10 border-rose-400/40 dark:border-rose-400/25 "
                     : "glass-subtle"
                 }`}
               >
@@ -1689,7 +1689,7 @@ export function CollectorConsensusPage() {
                 当前筛选条件下暂无预测比对记录。
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-3xl glass-card">
+              <div className="overflow-x-auto admin-card">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
                     <tr className="glass-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8">
@@ -1763,7 +1763,7 @@ export function CollectorConsensusPage() {
                                     {isJsonOpen ? "收起参数" : "查看参数"}
                                   </button>
                                   {isJsonOpen && (
-                                    <pre className="mt-1 p-2 rounded-xl bg-slate-950/90 backdrop-blur-md text-emerald-300 border border-white/10 font-mono text-[10px] overflow-x-auto max-h-32 shadow-inner">
+                                    <pre className="mt-1 p-2 rounded-xl bg-slate-950/90 text-emerald-300 border border-white/10 font-mono text-[10px] overflow-x-auto max-h-32 shadow-inner">
                                       {JSON.stringify(detail.rawJson, null, 2)}
                                     </pre>
                                   )}
@@ -1825,7 +1825,7 @@ export function CollectorConsensusPage() {
                     {consensusStats.totalVotes} 票
                   </span>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 backdrop-blur-md flex flex-col gap-1">
+                <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/40 dark:border-emerald-400/25 flex flex-col gap-1">
                   <span className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
                     🏆 领跑项开奖命中率
                   </span>
@@ -1849,7 +1849,7 @@ export function CollectorConsensusPage() {
                   return (
                     <div
                       key={g.play_type}
-                      className="rounded-3xl p-4 sm:p-5 glass-card flex flex-col gap-4"
+                      className="rounded-3xl p-4 sm:p-5 admin-card flex flex-col gap-4"
                     >
                       {/* 分组头部 */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/50 dark:border-white/8 pb-3">

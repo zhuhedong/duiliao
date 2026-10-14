@@ -50,7 +50,7 @@ export function DataPanel({ data, isScraping, error, onScrape }: DataPanelProps)
 
   if (!data) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-slate-300/70 p-10 text-center glass-card dark:border-white/10">
+      <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-slate-300/70 p-10 text-center admin-card dark:border-white/10">
         <DatabaseIcon size={32} className="text-slate-400" />
         <p className="text-sm text-slate-600 dark:text-slate-300">
           尚未抓取站外预测数据
@@ -85,7 +85,7 @@ export function DataPanel({ data, isScraping, error, onScrape }: DataPanelProps)
       </div>
 
       {/* 模块清单 */}
-      <div className="space-y-3 rounded-3xl glass-card p-4">
+      <div className="space-y-3 admin-card p-4">
         <div className="flex flex-wrap items-center gap-2">
           <h4 className="text-sm font-bold text-slate-900 dark:text-white">
             注入模块清单 <span className="font-normal text-slate-400">({modules.length})</span>
@@ -149,7 +149,7 @@ export function DataPanel({ data, isScraping, error, onScrape }: DataPanelProps)
       </div>
 
       {/* 原始 HTML（按需展开） */}
-      <div className="rounded-3xl glass-card p-4">
+      <div className="admin-card p-4">
         <button
           onClick={() => setShowRaw((v) => !v)}
           className="flex w-full cursor-pointer items-center justify-between text-left"
@@ -207,11 +207,11 @@ export function DataPanel({ data, isScraping, error, onScrape }: DataPanelProps)
       {/* 模块详情弹层 */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
           onClick={() => setSelected(null)}
         >
           <div
-            className="w-full max-w-2xl space-y-3 rounded-3xl glass-panel p-5"
+            className="w-full max-w-2xl space-y-3 admin-card p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">

@@ -10,7 +10,6 @@
     "lint": "tsc -b --noEmit"
   },
   "dependencies": {
-    "@appica/ui-react": "^1.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",

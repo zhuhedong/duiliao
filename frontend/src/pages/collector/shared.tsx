@@ -238,7 +238,7 @@ export function TextInput({
   );
 }
 
-/** 页面工作区：左侧说明与操作，右侧内容。顶栏已经显示页面名，这里不再重复大标题。 */
+/** 页面工作区：顶部玻璃英雄条 + 全宽内容（不再使用左侧说明栏） */
 export function PageWorkspace({
   summary,
   actions,
@@ -251,18 +251,20 @@ export function PageWorkspace({
   children: ReactNode;
 }) {
   return (
-    <div className="workspace-fill w-full grid grid-cols-1 xl:grid-cols-[240px_minmax(0,1fr)] gap-3 items-stretch">
-      <aside className="xl:sticky xl:top-[5rem] xl:self-start flex flex-col gap-3">
-        <div className="rounded-3xl glass-card p-4">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300">
-            本页
+    <div className="workspace-fill w-full flex flex-col gap-3">
+      <div className="glass-panel rounded-[22px] p-4 sm:p-5 relative overflow-hidden">
+        <div className="pointer-events-none absolute -right-8 -top-10 w-40 h-40 rounded-full bg-violet-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-16 -bottom-12 w-32 h-32 rounded-full bg-fuchsia-500/15 blur-3xl" />
+        <div className="relative flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-300">上下文</div>
+            <p className="mt-1.5 text-sm text-slate-200/90 leading-relaxed max-w-3xl">{summary}</p>
           </div>
-          <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{summary}</p>
-          {actions ? <div className="mt-4 flex flex-col gap-2">{actions}</div> : null}
+          {actions ? <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div> : null}
         </div>
-        {nav}
-      </aside>
-      <div className="min-w-0 w-full h-full flex flex-col gap-3">{children}</div>
+        {nav ? <div className="relative mt-3 pt-3 border-t border-white/8">{nav}</div> : null}
+      </div>
+      <div className="min-w-0 w-full flex flex-col gap-3">{children}</div>
     </div>
   );
 }
@@ -284,7 +286,7 @@ export function Toolbar({
   );
 }
 
-/** 统一玻璃表格容器 */
+/** 统一玻璃表格容器 — 卡片化表格（圆角面板 + 行悬浮） */
 export function TableContainer({
   children,
   className = "",
@@ -293,20 +295,18 @@ export function TableContainer({
   className?: string;
 }) {
   return (
-    <div
-      className={`w-full overflow-x-auto rounded-3xl glass-card ${className}`}
-    >
-      <table className="w-full text-left text-sm border-collapse">{children}</table>
+    <div className={`w-full overflow-x-auto rounded-[22px] glass-card ${className}`}>
+      <table className="w-full text-left text-sm border-collapse [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-violet-500/8">{children}</table>
     </div>
   );
 }
 
 export const tableThClass =
-  "py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-white/25 dark:bg-white/5 border-b border-slate-200/50 dark:border-white/8 select-none backdrop-blur-md";
+  "py-3 px-3.5 text-[11px] font-semibold text-slate-400 uppercase tracking-[0.12em] bg-white/5 border-b border-white/8 select-none";
 export const tableTdClass =
-  "py-3.5 px-4 text-sm text-slate-800 dark:text-slate-200 border-b border-slate-200/40 dark:border-white/5 align-middle";
+  "py-3 px-3.5 text-sm text-slate-200 border-b border-white/5 align-middle";
 export const tableRowClass =
-  "hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors";
+  "hover:bg-violet-500/8 transition-colors";
 
 /** JSON 预览面板 */
 export function ResultJson({ data }: { data: unknown }) {
@@ -346,5 +346,20 @@ export function ReadOnlyNote() {
     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-400/40 dark:border-amber-400/25 backdrop-blur-md">
       只读模式：需要员工 / 管理员角色方可执行采集操作
     </span>
+  );
+}
+
+
+export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
+  return (
+    <div className="glass-card rounded-[22px] px-6 py-12 flex flex-col items-center text-center gap-3 relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: "radial-gradient(circle at 50% 0%, oklch(0.65 0.22 290 / 35%), transparent 55%)" }} />
+      <div className="relative w-16 h-16 rounded-2xl brand-gradient flex items-center justify-center text-white text-2xl font-bold shadow-[0_16px_40px_-16px_rgba(124,58,237,0.9)]">
+        ∅
+      </div>
+      <div className="relative admin-empty-title text-base">{title}</div>
+      {description ? <p className="relative text-xs text-slate-400 max-w-sm leading-relaxed">{description}</p> : null}
+      {action ? <div className="relative mt-1">{action}</div> : null}
+    </div>
   );
 }
