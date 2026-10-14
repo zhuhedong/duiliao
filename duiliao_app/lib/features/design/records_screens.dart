@@ -1062,8 +1062,12 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
     };
 
     final periods = <String>[];
+    final periodItemsMap = <String, List<BettingRecordItem>>{};
     for (final item in filtered) {
-      if (!periods.contains(item.period)) periods.add(item.period);
+      if (!periods.contains(item.period)) {
+        periods.add(item.period);
+      }
+      (periodItemsMap[item.period] ??= []).add(item);
     }
 
     final summaryPeriodText = pendingRecords.isNotEmpty
@@ -1307,18 +1311,17 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                     ),
                   ] else
                     for (final period in periods) ...[
-                      final periodItems = filtered.where((r) => r.period == period).toList();
                       DesignSectionHeader(
                         title: '第 $period 期',
                         trailing: _buildPeriodTrailing(
                           context,
                           period,
-                          periodItems,
+                          periodItemsMap[period] ?? const [],
                           lottery,
                           periodCtx,
                         ),
                       ),
-                      for (final item in periodItems)
+                      for (final item in (periodItemsMap[period] ?? const []))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Dismissible(
