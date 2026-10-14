@@ -16,6 +16,7 @@ import 'features/auth/auth_providers.dart';
 import 'features/auth/login_screen.dart';
 import 'features/shell/operator_shell.dart';
 import 'features/upgrade/github_update_service.dart';
+import 'features/upgrade/startup_update_check.dart';
 import 'domain/models/app_event.dart';
 import 'ui/glass/glass_widgets.dart';
 import 'ui/theme.dart';
@@ -175,7 +176,8 @@ class _VersionGateState extends ConsumerState<VersionGate> {
           if (mounted) flushPendingDeepLink();
         });
       }
-      return const OperatorShell();
+      // Throttled GitHub update check (forced updates stay on /app/version).
+      return const StartupUpdateCheck(child: OperatorShell());
     },
   );
 }

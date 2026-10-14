@@ -17,10 +17,18 @@ import 'github_release.dart';
 const String kDefaultGitHubRepo = 'zhuhedong/duiliao';
 
 /// Acceleration proxies for regions where raw github.com is throttled.
+///
+/// `mirror.ghproxy.com` is dead and `ghproxy.net` does not proxy
+/// `api.github.com` (403), so the mirror is only used for github.com
+/// download URLs: the APK and the `latest.json` release manifest.
 const List<String> kGitHubMirrors = [
   'https://ghproxy.net/',
-  'https://mirror.ghproxy.com/',
 ];
+
+/// Release manifest published by CI next to the APKs. Same shape as the
+/// GitHub `releases/latest` API response, so it can be fetched through the
+/// download mirror when `api.github.com` is unreachable or rate-limited.
+const String kReleaseManifestName = 'latest.json';
 
 /// Maximum artifact size accepted by the in-app installer.
 const int kMaxApkBytes = 200 * 1024 * 1024;
@@ -32,7 +40,6 @@ const Set<String> kAllowedUpdateHosts = {
   'api.github.com',
   'github.com',
   'ghproxy.net',
-  'mirror.ghproxy.com',
 };
 
 class UpdateDownloadException implements Exception {
@@ -52,7 +59,7 @@ bool isAllowedUpdateUri(Uri uri, {bool allowMirrors = false}) {
 
   final host = uri.host.toLowerCase();
   if (host.endsWith('.githubusercontent.com')) return true;
-  if (host == 'ghproxy.net' || host == 'mirror.ghproxy.com') {
+  if (host == 'ghproxy.net') {
     return allowMirrors;
   }
   return kAllowedUpdateHosts.contains(host);
@@ -115,11 +122,8 @@ class GitHubUpdateService {
         allowPrerelease: allowPrerelease,
       );
       if (release == null) {
-        return UpdateCheckResult(
-          hasUpdate: false,
-          currentVersion: currentVersion,
-          error: '未能从 GitHub 获取到发布版本信息',
-        );
+        // Every source answered: there is simply no stable release yet.
+        return UpdateCheckResult(hasUpdate: false, currentVersion: currentVersion);
       }
 
       final hasUpdate = release.isNewerThan(currentVersion);
@@ -143,6 +147,11 @@ class GitHubUpdateService {
   }
 
   /// Fetch the latest GitHub Release metadata.
+  ///
+  /// Order: GitHub API → CI `latest.json` manifest on github.com → the same
+  /// manifest through the download mirror. Returns null only when every
+  /// source answered but no stable release exists; otherwise throws an
+  /// [UpdateDownloadException] carrying the most useful failure reason.
   Future<GitHubRelease?> fetchLatestRelease({
     String? targetRepo,
     bool allowPrerelease = false,
@@ -152,46 +161,59 @@ class GitHubUpdateService {
       throw const UpdateDownloadException('更新仓库配置无效');
     }
 
-    final primaryUri = Uri.parse('https://api.github.com/repos/$r/releases/latest');
     final headers = {
-      'Accept': 'application/vnd.github.v3+json',
+      'Accept': 'application/vnd.github+json',
       'User-Agent': 'Duiliao-App-Updater',
     };
+    final manifest =
+        'https://github.com/$r/releases/latest/download/$kReleaseManifestName';
+    final sources = <(Uri, Duration)>[
+      (Uri.parse('https://api.github.com/repos/$r/releases/latest'), const Duration(seconds: 8)),
+      (Uri.parse(manifest), const Duration(seconds: 10)),
+      for (final m in kGitHubMirrors) (Uri.parse('$m$manifest'), const Duration(seconds: 12)),
+    ];
 
-    GitHubRelease? parseResponse(http.Response response) {
-      if (response.statusCode != 200) return null;
-      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-      if (decoded is! Map<String, dynamic>) return null;
-      final release = GitHubRelease.fromJson(decoded);
-      if (release.prerelease && !allowPrerelease) return null;
-      return release;
-    }
-
-    // Attempt direct GitHub API request first.
-    try {
-      final response = await _client.get(primaryUri, headers: headers).timeout(
-            const Duration(seconds: 8),
-          );
-      final release = parseResponse(response);
-      if (release != null || response.statusCode == 200) return release;
-    } catch (_) {
-      // Fall through to the allowlisted mirror proxies.
-    }
-
-    for (final mirror in kGitHubMirrors) {
+    final errors = <String>[];
+    var sawNoRelease = false;
+    for (final (uri, timeout) in sources) {
+      if (!isAllowedUpdateUri(uri, allowMirrors: true)) continue;
       try {
-        final mirrorUri = Uri.parse('${mirror}https://api.github.com/repos/$r/releases/latest');
-        if (!isAllowedUpdateUri(mirrorUri, allowMirrors: true)) continue;
-        final response = await _client.get(mirrorUri, headers: headers).timeout(
-              const Duration(seconds: 10),
-            );
-        final release = parseResponse(response);
-        if (release != null || response.statusCode == 200) return release;
-      } catch (_) {
-        // Try the next allowlisted mirror.
+        final response = await _client.get(uri, headers: headers).timeout(timeout);
+        final code = response.statusCode;
+        if (code == 200) {
+          final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+          if (decoded is! Map<String, dynamic>) {
+            errors.add('${uri.host} 返回格式无效');
+            continue;
+          }
+          final release = GitHubRelease.fromJson(decoded);
+          if (release.tagName.isEmpty) {
+            errors.add('${uri.host} 返回格式无效');
+            continue;
+          }
+          if (release.prerelease && !allowPrerelease) return null;
+          return release;
+        }
+        if (code == 404) {
+          sawNoRelease = true;
+          continue;
+        }
+        if ((code == 403 || code == 429) &&
+            response.headers['x-ratelimit-remaining'] == '0') {
+          errors.add('GitHub 接口限流，请稍后再试');
+        } else {
+          errors.add('${uri.host} HTTP $code');
+        }
+      } on TimeoutException {
+        errors.add('${uri.host} 连接超时');
+      } catch (e) {
+        errors.add('${uri.host} 无法连接');
       }
     }
-    return null;
+    if (errors.isEmpty && sawNoRelease) return null;
+    throw UpdateDownloadException(
+      errors.isEmpty ? '未能获取发布信息' : '无法获取发布信息（${errors.toSet().join('；')}）',
+    );
   }
 
   String? _assetSafetyError(GitHubReleaseAsset? asset) {
@@ -327,6 +349,40 @@ class GitHubUpdateService {
     } finally {
       if (!digestClosed) digestInput.close();
       if (await tempFile.exists()) await tempFile.delete();
+    }
+  }
+
+  /// Download from github.com first; on a network/HTTP failure retry once
+  /// through the mirror. Integrity failures (size / SHA-256) are never
+  /// retried, they are reported as-is.
+  Future<File> downloadApkWithFallback({
+    required String downloadUrl,
+    required String fileName,
+    required String expectedSha256,
+    required void Function(int receivedBytes, int totalBytes) onProgress,
+    int expectedSize = 0,
+    bool preferMirror = false,
+    void Function(bool usingMirror)? onSourceChanged,
+  }) async {
+    Future<File> attempt(bool mirror) {
+      onSourceChanged?.call(mirror);
+      return downloadApk(
+        downloadUrl: downloadUrl,
+        fileName: fileName,
+        expectedSha256: expectedSha256,
+        onProgress: onProgress,
+        expectedSize: expectedSize,
+        useMirror: mirror,
+      ).timeout(const Duration(minutes: 10));
+    }
+
+    try {
+      return await attempt(preferMirror);
+    } on UpdateDownloadException catch (e) {
+      if (e.message.contains('SHA-256') || e.message.contains('大小')) rethrow;
+      return attempt(!preferMirror);
+    } catch (_) {
+      return attempt(!preferMirror);
     }
   }
 

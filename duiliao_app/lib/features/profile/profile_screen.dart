@@ -14,8 +14,8 @@ import '../comparison/comparison_screen.dart';
 import '../design/design_screens.dart';
 import '../numbers/numbers_screen.dart';
 import '../ratings/ratings_screen.dart';
+import '../upgrade/startup_update_check.dart';
 import '../upgrade/github_update_service.dart';
-import '../upgrade/glass_update_dialog.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -477,38 +477,39 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         duration: Duration(seconds: 2),
       ),
     );
-
+    // GitHub releases first (in-app download); the backend /app/version
+    // download link remains a fallback when GitHub has nothing newer.
     try {
       final current = await ref.read(appVersionProvider.future);
-      final updateService = ref.read(githubUpdateServiceProvider);
-      final ghResult = await updateService.checkUpdate(currentVersion: current);
+      final ghResult = await ref
+          .read(githubUpdateServiceProvider)
+          .checkUpdate(currentVersion: current);
       if (!context.mounted) return;
       if (ghResult.hasUpdate && ghResult.latestRelease != null) {
-        await GlassUpdateDialog.show(context, ghResult);
+        await runUpdateCheck(context, ref, manual: true);
         return;
       }
-
-      final version = await ref
-          .read(collectorRepositoryProvider)
-          .version(platform: ref.read(platformNameProvider), current: current);
-      if (!context.mounted) return;
-
-      if (version.updateAvailable && version.downloadUrl != null) {
-        await launchUrl(
-          Uri.parse(version.downloadUrl!),
-          mode: LaunchMode.externalApplication,
-        );
-        return;
+      try {
+        final version = await ref
+            .read(collectorRepositoryProvider)
+            .version(platform: ref.read(platformNameProvider), current: current);
+        if (version.updateAvailable && version.downloadUrl != null) {
+          await launchUrl(
+            Uri.parse(version.downloadUrl!),
+            mode: LaunchMode.externalApplication,
+          );
+          return;
+        }
+      } catch (_) {
+        // Backend check is optional; report the GitHub result below.
       }
       messenger.showSnackBar(
-        SnackBar(content: Text('当前版本 v$current 已是最新')),
+        SnackBar(
+          content: Text(ghResult.error ?? '当前版本 v$current 已是最新'),
+        ),
       );
-    } catch (_) {
-      if (context.mounted) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('当前版本 v2.1.3 已是最新')),
-        );
-      }
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('检查更新失败：$e')));
     }
   }
 }
