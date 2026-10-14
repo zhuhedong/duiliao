@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import 'github_release.dart';
+import '../../core/platform/apk_installer.dart';
 import 'github_update_service.dart';
 
 enum _DownloadStatus { idle, downloading, completed, error }
@@ -442,13 +443,10 @@ class _GlassUpdateDialogState extends ConsumerState<GlassUpdateDialog> {
 
   Future<void> _openDownloadedFile() async {
     if (_downloadedFile == null) return;
-    final uri = Uri.file(_downloadedFile!.path);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      // Fallback: launch external browser download
-      await _openInBrowser();
-    }
+    // Android 7+ refuses file:// APK installs; use FileProvider via the
+    // platform channel. Fall back to the trusted browser URL if that fails.
+    if (await installApkFile(_downloadedFile!)) return;
+    await _openInBrowser();
   }
 
   Future<void> _openInBrowser() async {

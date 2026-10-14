@@ -415,6 +415,35 @@ void main() {
       client.dispose();
     });
 
+    test('login with authenticated:false never attaches a bearer', () async {
+      final tokens = _RecordingTokenProvider(token: 'stale-token');
+      final backend = FakeBackend(signingSecret: _secret);
+      String? seen;
+      backend.handlers['/auth/login'] = (req) {
+        seen = req.bearerToken;
+        return {
+          'access_token': 'a',
+          'refresh_token': 'r',
+          'token_type': 'bearer',
+          'expires_in': 900,
+          'user': {'id': 'u1', 'role': 'user', 'email_verified': false, 'phone_verified': false, 'locale': 'zh', 'timezone': 'Asia/Shanghai', 'mfa_enabled': false},
+        };
+      };
+      final client = ApiClient(
+        config: _config(),
+        httpClient: backend.client,
+        tokenProvider: tokens,
+      );
+      await client.post<Map<String, dynamic>>(
+        '/auth/login',
+        body: {'identifier': 'a', 'password': 'b'},
+        authenticated: false,
+      );
+      expect(seen, isNull, reason: 'bootstrap auth must not send Authorization');
+      expect(tokens.refreshCalls, 0);
+      client.dispose();
+    });
+
     test('attaches the bearer token when present', () async {
       final tokens = _RecordingTokenProvider(token: 'my-token');
       final backend = FakeBackend(signingSecret: _secret);

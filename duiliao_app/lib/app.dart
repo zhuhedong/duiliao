@@ -389,14 +389,7 @@ class _RestoringView extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Text(
-                    'v2.1.3',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: context.colors.onSurfaceVariant,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                  ),
+                  const _SplashVersionLabel(),
                 ],
               ),
             ),
@@ -405,6 +398,24 @@ class _RestoringView extends StatelessWidget {
       ),
     ),
   );
+}
+
+
+class _SplashVersionLabel extends ConsumerWidget {
+  const _SplashVersionLabel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final version = ref.watch(appVersionProvider).asData?.value;
+    return Text(
+      version == null || version.isEmpty ? '对料' : 'v$version',
+      style: TextStyle(
+        fontSize: 11,
+        color: context.colors.onSurfaceVariant,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      ),
+    );
+  }
 }
 
 class _DecoSphere extends StatelessWidget {

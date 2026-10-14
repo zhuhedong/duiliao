@@ -119,20 +119,61 @@ class ApiClient {
   // ignore: use_setters_to_change_properties
   void attachTokenProvider(TokenProvider provider) => _tokens = provider;
 
-  Future<T> get<T>(String path, {Map<String, dynamic>? query}) =>
-      request<T>('GET', path, query: query);
+  Future<T> get<T>(
+    String path, {
+    Map<String, dynamic>? query,
+    bool authenticated = true,
+  }) =>
+      request<T>('GET', path, query: query, authenticated: authenticated);
 
-  Future<T> post<T>(String path, {Object? body, Map<String, dynamic>? query}) =>
-      request<T>('POST', path, body: body ?? const {}, query: query);
+  Future<T> post<T>(
+    String path, {
+    Object? body,
+    Map<String, dynamic>? query,
+    bool authenticated = true,
+  }) =>
+      request<T>(
+        'POST',
+        path,
+        body: body ?? const {},
+        query: query,
+        authenticated: authenticated,
+      );
 
-  Future<T> put<T>(String path, {Object? body, Map<String, dynamic>? query}) =>
-      request<T>('PUT', path, body: body ?? const {}, query: query);
+  Future<T> put<T>(
+    String path, {
+    Object? body,
+    Map<String, dynamic>? query,
+    bool authenticated = true,
+  }) =>
+      request<T>(
+        'PUT',
+        path,
+        body: body ?? const {},
+        query: query,
+        authenticated: authenticated,
+      );
 
-  Future<T> patch<T>(String path, {Object? body, Map<String, dynamic>? query}) =>
-      request<T>('PATCH', path, body: body ?? const {}, query: query);
+  Future<T> patch<T>(
+    String path, {
+    Object? body,
+    Map<String, dynamic>? query,
+    bool authenticated = true,
+  }) =>
+      request<T>(
+        'PATCH',
+        path,
+        body: body ?? const {},
+        query: query,
+        authenticated: authenticated,
+      );
 
-  Future<T> delete<T>(String path, {Map<String, dynamic>? query}) =>
-      request<T>('DELETE', path, query: query);
+  Future<T> delete<T>(
+    String path, {
+    Map<String, dynamic>? query,
+    bool authenticated = true,
+  }) =>
+      request<T>('DELETE', path, query: query, authenticated: authenticated);
 
   /// Perform an encrypted, signed request.
   ///

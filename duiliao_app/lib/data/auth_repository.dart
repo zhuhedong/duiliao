@@ -71,8 +71,8 @@ class AuthRepository {
     final response = await _client.post<Map<String, dynamic>>(
       '/auth/login',
       body: payload,
-      // No bearer token exists yet, and sending a stale one could trigger a
-      // pointless refresh attempt.
+      // Login must not send a leftover bearer or trigger a refresh retry.
+      authenticated: false,
     );
     final tokens = AuthTokens.fromJson(response);
     final user = AppUser.fromJson(
@@ -96,6 +96,8 @@ class AuthRepository {
     final response = await _client.post<Map<String, dynamic>>(
       '/auth/refresh',
       body: {'refresh_token': refreshToken},
+      // Refresh authenticates with the refresh token body only.
+      authenticated: false,
     );
     final tokens = AuthTokens.fromJson(response);
     if (!tokens.isValid) {

@@ -101,7 +101,7 @@ Future<void> _pollInBackground() async {
   Hive.init(directory.path);
   final cache = HiveCacheStore();
   await cache.init();
-  final secure = const FlutterSecureStorage();
+  final secure = kDuiliaoSecureStorage;
   final accountId = await secure.read(key: SecureKeys.notificationUserId);
   // Never reuse a previous account's cursor or message log when a refresh token
   // exists without a matching authenticated account identity.
