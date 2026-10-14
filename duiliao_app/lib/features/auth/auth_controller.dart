@@ -304,6 +304,10 @@ class AuthNotifier extends Notifier<AuthState> implements TokenProvider {
     _accessToken = null;
     // Fire and forget: the state change is what matters for the UI.
     _repository.clearCredentials();
+    // Drop the notification scope key so a background isolate cannot keep
+    // polling under a stale account id after forced sign-out.
+    unawaited(ref.read(secureStoreProvider).delete(SecureKeys.notificationUserId));
+    unawaited(_clearLocalCache());
     _emit(const AuthState(
       phase: AuthPhase.unauthenticated,
       errorMessage: '登录已过期，请重新登录',

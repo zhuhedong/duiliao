@@ -168,7 +168,11 @@ if _FRONTEND_DIST.exists():
         if full_path.startswith("api/") or full_path == "api":
             from fastapi import HTTPException
             raise HTTPException(status_code=404, detail="API route not found")
-        target = _FRONTEND_DIST / full_path
-        if full_path and target.is_file():
-            return FileResponse(target)
-        return FileResponse(_FRONTEND_DIST / "index.html")
+        # Confine served files to the frontend dist tree. Pathlib joins keep
+        # ``..`` components until resolve(), so an unchecked ``is_file()`` would
+        # otherwise leak arbitrary readable paths (e.g. ``../../etc/passwd``).
+        root = _FRONTEND_DIST.resolve()
+        candidate = (root / full_path).resolve()
+        if full_path and candidate.is_file() and candidate.is_relative_to(root):
+            return FileResponse(candidate)
+        return FileResponse(root / "index.html")

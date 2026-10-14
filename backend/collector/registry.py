@@ -26,6 +26,16 @@ def sources_dir() -> Path:
 SOURCE_ID_RE = re.compile(r"^[a-z][a-z0-9_]{1,62}$")
 SCRIPT_NAME_RE = re.compile(r"^[a-zA-Z0-9_]+\.py$")
 MAX_SCRIPT_BYTES = 200_000
+# Soft deny-list for staff-written source scripts. Paths are already
+# confined to sources/*.py; this blocks the most common shell-out footguns.
+DANGEROUS_SCRIPT_RE = re.compile(
+    r"(?i)(?:os\.system\s*\(|os\.popen\s*\(|pty\.|"
+    r"ctypes\.|"
+    r"subprocess\.[A-Za-z_]+\([^)]*shell\s*=\s*True|"
+    r"__import__\s*\(\s*['\"]os['\"]\s*\)|"
+    r"eval\s*\(|exec\s*\(|compile\s*\()"
+)
+
 
 DB_FIELDS = (
     "source_name",
@@ -366,10 +376,18 @@ def read_script(name: str) -> dict[str, Any]:
 
 def write_script(name: str, content: str) -> dict[str, Any]:
     path = script_path_for(name)
+    if "\x00" in (content or ""):
+        raise RegistryError("bad_script", "脚本不能包含空字节")
+    if DANGEROUS_SCRIPT_RE.search(content or ""):
+        raise RegistryError(
+            "dangerous_script",
+            "脚本包含禁止的调用（os.system/os.popen/shell=True/eval/exec/ctypes/pty）",
+        )
     data = content if content.endswith("\n") else content + "\n"
     encoded = data.encode("utf-8")
     if len(encoded) > MAX_SCRIPT_BYTES:
         raise RegistryError("too_large", "脚本超过 200KB")
+    # script_path_for already enforces sources/*.py via SCRIPT_NAME_RE + is_relative_to
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(data, encoding="utf-8")
     return {"ok": True, "name": path.name, "path": f"sources/{path.name}", "bytes": len(encoded)}

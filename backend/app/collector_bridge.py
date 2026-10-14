@@ -126,7 +126,15 @@ def _resolve_fixture_dir(fixture_dir: str | None) -> Path | None:
     path = Path(fixture_dir)
     if not path.is_absolute():
         path = COLLECTOR_ROOT / path
-    return path
+    # Staff-supplied fixture paths must stay under the collector tree so a
+    # ``../../etc`` style argument cannot make source scripts read arbitrary files.
+    root = COLLECTOR_ROOT.resolve()
+    resolved = path.resolve()
+    if not resolved.is_relative_to(root):
+        raise ValueError("fixture_dir must be inside the collector directory")
+    if not resolved.is_dir():
+        raise ValueError("fixture_dir is not a directory")
+    return resolved
 
 
 # --------------------------------------------------------------------------- #
@@ -1625,7 +1633,15 @@ def run_script_by_name(
     }
     extra: list[str] = []
     if fixture:
-        extra += ["--fixture", fixture]
+        fp = Path(fixture)
+        if not fp.is_absolute():
+            fp = COLLECTOR_ROOT / fp
+        resolved = fp.resolve()
+        if not resolved.is_relative_to(COLLECTOR_ROOT.resolve()):
+            raise ValueError("fixture path must be inside the collector directory")
+        if not resolved.is_file():
+            raise ValueError("fixture file does not exist")
+        extra += ["--fixture", str(resolved)]
     res = runner.run_one(mock_row, lottery, canonical_period, extra)
     return {
         "ok": res["ok"],

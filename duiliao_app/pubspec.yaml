@@ -8,7 +8,9 @@ publish_to: 'none'
 version: 2.1.3+4
 
 environment:
-  sdk: ^3.13.4
+  # Flutter 3.44 ships Dart 3.12; keep these aligned so pub get works on the
+  # stated minimum Flutter and on newer stable CI images.
+  sdk: ^3.12.0
   flutter: ">=3.44.0"
 
 dependencies:
@@ -63,5 +65,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/fixtures/
+  # Intentionally no assets/fixtures here: crypto_vectors.json carries a test
+  # RSA private key and API dumps are for unit tests only (loaded via File()
+  # from the repo path). Shipping them in release APKs would leak fixtures.

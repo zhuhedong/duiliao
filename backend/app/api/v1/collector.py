@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from app import collector_bridge as cb
 from app.api.deps import get_current_user, require_roles
+from app.core.config import settings
 from app.models.user import User, UserRole
 
 router = APIRouter(prefix="/collector", tags=["collector"])
@@ -28,6 +29,22 @@ Lottery = str  # "hk" | "macau" | "taiwan" | "new"
 
 def _bad_request(exc: Exception) -> HTTPException:
     return HTTPException(status_code=400, detail=str(exc))
+
+
+def _require_script_writes() -> None:
+    if not settings.write_script_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Script writes are disabled (set WRITE_SCRIPT_ENABLED=true to allow)",
+        )
+
+
+def _require_script_runs() -> None:
+    if not settings.run_script_enabled:
+        raise HTTPException(
+            status_code=403,
+            detail="Ad-hoc script runs are disabled (set RUN_SCRIPT_ENABLED=true to allow)",
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -113,6 +130,10 @@ class SourceUpdate(BaseModel):
 
 class ScriptWrite(BaseModel):
     content: str
+    confirm: bool = Field(
+        False,
+        description="Must be true to acknowledge writing executable collector source code.",
+    )
 
 
 class DrawConfigUpdate(BaseModel):
@@ -421,6 +442,8 @@ def get_source(source_id: str, _: User = _user) -> dict[str, Any]:
 
 @router.post("/sources", status_code=201)
 def create_source(body: SourceCreate, _: User = _staff) -> dict[str, Any]:
+    if body.script is not None or body.create_script:
+        _require_script_writes()
     reg = cb.registry_module()
     try:
         return reg.create_source(body.model_dump(exclude_none=True))
@@ -431,6 +454,8 @@ def create_source(body: SourceCreate, _: User = _staff) -> dict[str, Any]:
 @router.post("/sources/batch", status_code=201)
 def create_sources_batch(body: SourceBatchCreate, _: User = _staff) -> dict[str, Any]:
     """Bulk attach reviewed catalog columns to source scripts."""
+    if not body.dry_run:
+        _require_script_writes()
     reg = cb.registry_module()
     payloads = [item.model_dump(exclude_none=True) for item in body.sources]
     ids = [str(item.get("source_id") or "") for item in payloads]
@@ -468,6 +493,8 @@ def create_sources_batch(body: SourceBatchCreate, _: User = _staff) -> dict[str,
 
 @router.patch("/sources/{source_id}")
 def update_source(source_id: str, body: SourceUpdate, _: User = _staff) -> dict[str, Any]:
+    if body.script is not None:
+        _require_script_writes()
     reg = cb.registry_module()
     try:
         return reg.update_source(source_id, body.model_dump(exclude_unset=True))
@@ -508,6 +535,12 @@ def read_script(name: str, _: User = _staff) -> dict[str, Any]:
 
 @router.put("/scripts/{name}")
 def write_script(name: str, body: ScriptWrite, _: User = _staff) -> dict[str, Any]:
+    _require_script_writes()
+    if not body.confirm:
+        raise HTTPException(
+            status_code=400,
+            detail="confirm=true is required to write executable collector scripts",
+        )
     reg = cb.registry_module()
     try:
         return reg.write_script(name, body.content)
@@ -594,6 +627,7 @@ def run_script(
     _: User = _staff,
 ) -> dict[str, Any]:
     """Execute any script in sources/ directly by filename."""
+    _require_script_runs()
     try:
         return cb.run_script_by_name(
             name,
@@ -674,12 +708,30 @@ class SiteDumpRequest(BaseModel):
     include_modules: bool = False
 
 
+def _normalize_site_dump_host(host: str | None) -> str | None:
+    """Reject private/loopback hosts so site-dump cannot be used as an SSRF pivot."""
+    if host is None:
+        return None
+    raw = host.strip()
+    if not raw:
+        return None
+    from urllib.parse import urlsplit, urlunsplit
+
+    from app.services.settings_service import validate_external_url
+
+    candidate = raw if "://" in raw else f"https://{raw}"
+    validated = validate_external_url(candidate, resolve_dns=True)
+    parts = urlsplit(validated)
+    # fetch_588080 expects a scheme://host[:port] base, not a provider path.
+    return urlunsplit((parts.scheme, parts.netloc, "", "", ""))
+
+
 @router.post("/site-dump/588080")
 def dump_588080(
     req: SiteDumpRequest = Body(default_factory=SiteDumpRequest),
-    _: User = _user,
+    _: User = _staff,
 ) -> dict[str, Any]:
-    """Fetch complete data and assembled HTML for 588080.com."""
+    """Fetch complete data and assembled HTML for 588080.com (staff/admin only)."""
     import sys
     from pathlib import Path
 
@@ -688,8 +740,13 @@ def dump_588080(
         sys.path.insert(0, str(collector_dir))
     from collector.fetch_588080 import fetch_588080_full_page
 
+    try:
+        safe_host = _normalize_site_dump_host(req.host)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     result = fetch_588080_full_page(
-        host=req.host,
+        host=safe_host,
         timeout=req.timeout,
     )
     if not result.ok:

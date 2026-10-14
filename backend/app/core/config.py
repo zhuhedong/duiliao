@@ -106,6 +106,22 @@ class Settings(BaseSettings):
     # --- Password policy ---
     PASSWORD_MIN_LENGTH: int = 8
 
+    # --- Public registration ---
+    # None => open in non-production, closed in production.
+    # Explicit true/false always wins. Admin bootstrap (ALLOW_LOCAL_BOOTSTRAP /
+    # scripts/manage_admin.py) is independent of this flag.
+    ALLOW_PUBLIC_REGISTER: bool | None = None
+
+    # --- Collector script mutation (staff RCE surface) ---
+    # Writing/running ad-hoc Python under collector/sources/. None => enabled
+    # outside production, disabled in production unless explicitly set true.
+    WRITE_SCRIPT_ENABLED: bool | None = None
+    RUN_SCRIPT_ENABLED: bool | None = None
+
+    # Persist AES sessions + anti-replay nonces in the app DB so multiple
+    # API workers share state. "memory" keeps the old single-process behaviour.
+    CRYPTO_STORE: str = "database"  # database | memory
+
     # --- First-run admin bootstrap ---
     # When no admin/staff account exists yet, allow creating the first admin
     # from a loopback client without auth. Always disabled in production and
@@ -142,13 +158,44 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.APP_ENV.lower() == "production"
 
+    @property
+    def allow_public_register(self) -> bool:
+        if self.ALLOW_PUBLIC_REGISTER is not None:
+            return self.ALLOW_PUBLIC_REGISTER
+        return not self.is_production
+
+    @property
+    def write_script_enabled(self) -> bool:
+        if self.WRITE_SCRIPT_ENABLED is not None:
+            return self.WRITE_SCRIPT_ENABLED
+        return not self.is_production
+
+    @property
+    def run_script_enabled(self) -> bool:
+        if self.RUN_SCRIPT_ENABLED is not None:
+            return self.RUN_SCRIPT_ENABLED
+        return not self.is_production
+
+    @property
+    def crypto_store_database(self) -> bool:
+        return (self.CRYPTO_STORE or "database").strip().lower() != "memory"
+
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
         if self.is_production:
             if self.JWT_SECRET.startswith("CHANGE_ME"):
                 raise ValueError("JWT_SECRET must be changed in production")
+            if len(self.JWT_SECRET.encode("utf-8")) < 32:
+                raise ValueError("JWT_SECRET must be at least 32 bytes in production")
             if self.APP_SIGNING_SECRET.startswith("CHANGE_ME"):
                 raise ValueError("APP_SIGNING_SECRET must be changed in production")
+            if len(self.APP_SIGNING_SECRET.encode("utf-8")) < 16:
+                raise ValueError("APP_SIGNING_SECRET must be at least 16 bytes in production")
+            if not self.RSA_PRIVATE_KEY_PEM.strip():
+                raise ValueError("RSA_PRIVATE_KEY_PEM must be set in production")
+            store = (self.CRYPTO_STORE or "").strip().lower()
+            if store not in ("database", "memory"):
+                raise ValueError("CRYPTO_STORE must be 'database' or 'memory'")
         return self
 
 

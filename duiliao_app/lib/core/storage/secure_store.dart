@@ -29,18 +29,23 @@ abstract class SecureStore {
   Future<void> clearCredentials();
 }
 
+/// Shared options so foreground and background isolates read the same store.
+/// Background Workmanager must construct [FlutterSecureStorage] with these
+/// options; the plugin defaults use a different Android backend and would miss
+/// tokens written by [FlutterSecureStore].
+const FlutterSecureStorage kDuiliaoSecureStorage = FlutterSecureStorage(
+  aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  iOptions: IOSOptions(
+    // Requires the device to have been unlocked at least once since
+    // boot, and excludes the value from iCloud/iTunes backups so a
+    // restored backup cannot resurrect a session.
+    accessibility: KeychainAccessibility.first_unlock_this_device,
+  ),
+);
+
 class FlutterSecureStore implements SecureStore {
   FlutterSecureStore({FlutterSecureStorage? storage})
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-              iOptions: IOSOptions(
-                // Requires the device to have been unlocked at least once since
-                // boot, and excludes the value from iCloud/iTunes backups so a
-                // restored backup cannot resurrect a session.
-                accessibility: KeychainAccessibility.first_unlock_this_device,
-              ),
-            );
+      : _storage = storage ?? kDuiliaoSecureStorage;
 
   final FlutterSecureStorage _storage;
 

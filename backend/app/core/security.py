@@ -124,27 +124,72 @@ def timestamp_within_window(timestamp: str) -> bool:
 
 
 class NonceCache:
-    """Remembers recently-seen nonces to reject replays. TTL-bounded."""
+    """Remembers recently-seen nonces to reject replays. TTL-bounded.
+
+    Uses the app database when ``CRYPTO_STORE=database`` so multiple API
+    workers share anti-replay state. An in-process dict remains the L1 cache
+    and the fallback if the database is temporarily unavailable.
+    """
 
     def __init__(self, ttl_seconds: int) -> None:
         self._ttl = ttl_seconds
         self._seen: dict[str, float] = {}
         self._lock = Lock()
+        self._ops = 0
+
+    def _memory_check_and_store(self, nonce: str, now: float, expires: float) -> bool:
+        with self._lock:
+            if len(self._seen) > 10000:
+                for k in [k for k, exp in self._seen.items() if exp < now]:
+                    self._seen.pop(k, None)
+            if nonce in self._seen and self._seen[nonce] > now:
+                return False
+            self._seen[nonce] = expires
+            return True
+
+    def _db_check_and_store(self, nonce: str, now: float, expires: float) -> bool | None:
+        """Return True/False on success, or None to signal fallback to memory."""
+        try:
+            from sqlalchemy import delete
+            from sqlalchemy.exc import IntegrityError
+
+            from app.db.session import SessionLocal
+            from app.models.crypto_store import RequestNonce
+
+            with SessionLocal() as db:
+                self._ops += 1
+                if self._ops % 64 == 0:
+                    db.execute(delete(RequestNonce).where(RequestNonce.expires_at < now))
+                row = db.get(RequestNonce, nonce)
+                if row is not None and float(row.expires_at) > now:
+                    return False
+                if row is None:
+                    db.add(RequestNonce(nonce=nonce, expires_at=expires))
+                else:
+                    row.expires_at = expires
+                try:
+                    db.commit()
+                except IntegrityError:
+                    db.rollback()
+                    return False
+                return True
+        except Exception:
+            return None
 
     def check_and_store(self, nonce: str) -> bool:
         """Return True if nonce is fresh (and record it); False if replayed."""
         if not nonce:
             return False
         now = time.time()
-        with self._lock:
-            # opportunistic purge
-            if len(self._seen) > 10000:
-                for k in [k for k, exp in self._seen.items() if exp < now]:
-                    self._seen.pop(k, None)
-            if nonce in self._seen and self._seen[nonce] > now:
-                return False
-            self._seen[nonce] = now + self._ttl
-            return True
+        expires = now + self._ttl
+        if settings.crypto_store_database:
+            result = self._db_check_and_store(nonce, now, expires)
+            if result is not None:
+                if result:
+                    with self._lock:
+                        self._seen[nonce] = expires
+                return result
+        return self._memory_check_and_store(nonce, now, expires)
 
 
 nonce_cache = NonceCache(settings.REQUEST_TIMESTAMP_TOLERANCE_SECONDS * 2)

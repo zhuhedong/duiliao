@@ -363,7 +363,7 @@ void main() {
       client.dispose();
     });
 
-    test('never tries to refresh while calling /auth/*', () async {
+    test('never tries to refresh while calling login/register/refresh/bootstrap', () async {
       final tokens = _RecordingTokenProvider();
       final backend = FakeBackend(signingSecret: _secret);
       backend.handlers['/auth/login'] = (_) => throw const FakeHandlerError(
@@ -386,6 +386,61 @@ void main() {
         )),
       );
       expect(tokens.refreshCalls, 0, reason: 'refreshing during login would recurse');
+      client.dispose();
+    });
+
+    test('refreshes on /auth/logout when the access token expired', () async {
+      final tokens = _RecordingTokenProvider();
+      final backend = FakeBackend(signingSecret: _secret);
+      var calls = 0;
+      backend.handlers['/auth/logout'] = (req) {
+        calls++;
+        if (req.bearerToken != 'refreshed-token') {
+          throw const FakeHandlerError(401, 'Access token expired', code: 'expired');
+        }
+        return <String, dynamic>{};
+      };
+      final client = ApiClient(
+        config: _config(),
+        httpClient: backend.client,
+        tokenProvider: tokens,
+      );
+
+      await client.post<Map<String, dynamic>>(
+        '/auth/logout',
+        body: {'all_devices': false},
+      );
+      expect(tokens.refreshCalls, 1);
+      expect(calls, 2);
+      client.dispose();
+    });
+
+    test('login with authenticated:false never attaches a bearer', () async {
+      final tokens = _RecordingTokenProvider(token: 'stale-token');
+      final backend = FakeBackend(signingSecret: _secret);
+      String? seen;
+      backend.handlers['/auth/login'] = (req) {
+        seen = req.bearerToken;
+        return {
+          'access_token': 'a',
+          'refresh_token': 'r',
+          'token_type': 'bearer',
+          'expires_in': 900,
+          'user': {'id': 'u1', 'role': 'user', 'email_verified': false, 'phone_verified': false, 'locale': 'zh', 'timezone': 'Asia/Shanghai', 'mfa_enabled': false},
+        };
+      };
+      final client = ApiClient(
+        config: _config(),
+        httpClient: backend.client,
+        tokenProvider: tokens,
+      );
+      await client.post<Map<String, dynamic>>(
+        '/auth/login',
+        body: {'identifier': 'a', 'password': 'b'},
+        authenticated: false,
+      );
+      expect(seen, isNull, reason: 'bootstrap auth must not send Authorization');
+      expect(tokens.refreshCalls, 0);
       client.dispose();
     });
 

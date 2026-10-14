@@ -52,6 +52,13 @@ def _raise(err: AuthError) -> None:
 @router.post("/register", response_model=TokenResponse, status_code=201)
 @limiter.limit(settings.RATE_LIMIT_AUTH)
 def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenResponse:
+    # Closed by default in production (ALLOW_PUBLIC_REGISTER). First admin is
+    # created via ALLOW_LOCAL_BOOTSTRAP or ``scripts/manage_admin.py``.
+    if not settings.allow_public_register:
+        raise HTTPException(
+            status_code=403,
+            detail={"message": "Public registration is disabled", "code": "register_disabled"},
+        )
     try:
         user = register_user(db, payload)
         from app.services.auth import _issue_tokens

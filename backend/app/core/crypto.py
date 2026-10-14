@@ -20,8 +20,9 @@ Wire format for AES-GCM (interoperable with browser Web Crypto API):
 
 Implemented with `pycryptodome` (no OpenSSL/Rust build dependency).
 
-NOTE: the session-key store here is in-memory and therefore single-process.
-For horizontally-scaled production deployments back it with Redis.
+NOTE: session keys default to the app database (CRYPTO_STORE=database) so
+multiple API workers share handshakes. Set CRYPTO_STORE=memory for the
+legacy single-process store. An in-process dict is always used as L1 cache.
 """
 from __future__ import annotations
 
@@ -91,44 +92,126 @@ class SessionKey:
 
 
 class SessionKeyStore:
-    """In-memory TTL store mapping sessionId -> AES key."""
+    """TTL store mapping sessionId -> AES key (DB-backed by default)."""
 
     def __init__(self, ttl_seconds: int) -> None:
         self._ttl = ttl_seconds
         self._store: Dict[str, SessionKey] = {}
         self._lock = Lock()
+        self._ops = 0
 
     def create(self, aes_key: bytes) -> tuple[str, int]:
         if len(aes_key) not in (16, 24, 32):
             raise ValueError("AES key must be 128/192/256-bit")
         session_id = secrets.token_urlsafe(32)
         now = time.time()
+        expires = now + self._ttl
+        entry = SessionKey(key=aes_key, created_at=now, expires_at=expires)
         with self._lock:
-            self._store[session_id] = SessionKey(
-                key=aes_key, created_at=now, expires_at=now + self._ttl
-            )
+            self._store[session_id] = entry
+        if settings.crypto_store_database:
+            self._db_put(session_id, aes_key, expires)
         return session_id, self._ttl
 
     def get(self, session_id: str) -> Optional[bytes]:
         now = time.time()
         with self._lock:
             entry = self._store.get(session_id)
-            if entry is None:
-                return None
-            if entry.expires_at < now:
-                self._store.pop(session_id, None)
-                return None
-            return entry.key
+            if entry is not None:
+                if entry.expires_at < now:
+                    self._store.pop(session_id, None)
+                else:
+                    return entry.key
+        if settings.crypto_store_database:
+            key = self._db_get(session_id, now)
+            if key is not None:
+                with self._lock:
+                    self._store[session_id] = SessionKey(
+                        key=key, created_at=now, expires_at=now + self._ttl
+                    )
+                return key
+        return None
 
     def revoke(self, session_id: str) -> None:
         with self._lock:
             self._store.pop(session_id, None)
+        if settings.crypto_store_database:
+            self._db_delete(session_id)
 
     def purge_expired(self) -> None:
         now = time.time()
         with self._lock:
             for k in [k for k, v in self._store.items() if v.expires_at < now]:
                 self._store.pop(k, None)
+        if settings.crypto_store_database:
+            self._db_purge(now)
+
+    def _db_put(self, session_id: str, aes_key: bytes, expires: float) -> None:
+        try:
+            from app.db.session import SessionLocal
+            from app.models.crypto_store import CryptoSession
+
+            with SessionLocal() as db:
+                row = db.get(CryptoSession, session_id)
+                if row is None:
+                    db.add(
+                        CryptoSession(
+                            session_id=session_id,
+                            key_b64=b64e(aes_key),
+                            expires_at=expires,
+                        )
+                    )
+                else:
+                    row.key_b64 = b64e(aes_key)
+                    row.expires_at = expires
+                db.commit()
+        except Exception:
+            # L1 memory entry still works for this process.
+            pass
+
+    def _db_get(self, session_id: str, now: float) -> Optional[bytes]:
+        try:
+            from app.db.session import SessionLocal
+            from app.models.crypto_store import CryptoSession
+
+            with SessionLocal() as db:
+                self._ops += 1
+                row = db.get(CryptoSession, session_id)
+                if row is None:
+                    return None
+                if float(row.expires_at) < now:
+                    db.delete(row)
+                    db.commit()
+                    return None
+                return b64d(row.key_b64)
+        except Exception:
+            return None
+
+    def _db_delete(self, session_id: str) -> None:
+        try:
+            from app.db.session import SessionLocal
+            from app.models.crypto_store import CryptoSession
+
+            with SessionLocal() as db:
+                row = db.get(CryptoSession, session_id)
+                if row is not None:
+                    db.delete(row)
+                    db.commit()
+        except Exception:
+            pass
+
+    def _db_purge(self, now: float) -> None:
+        try:
+            from sqlalchemy import delete
+
+            from app.db.session import SessionLocal
+            from app.models.crypto_store import CryptoSession
+
+            with SessionLocal() as db:
+                db.execute(delete(CryptoSession).where(CryptoSession.expires_at < now))
+                db.commit()
+        except Exception:
+            pass
 
 
 # --- AES-GCM payload helpers (Web Crypto compatible) -------------------------
