@@ -926,3 +926,102 @@ def clear_user_records(
         db.commit()
     return len(rows)
 
+
+def copy_user_records(
+    db: Session,
+    user_id: str,
+    target_period: str,
+    source_period: str | None = None,
+    record_ids: list[str] | None = None,
+    lottery: str | None = None,
+) -> list[dict[str, Any]]:
+    """Copy betting records by source period or record IDs to target period."""
+    _ensure_table(db)
+    from common.period import normalize, period_for_date
+
+    clean_target = str(target_period).strip() if target_period else ""
+    if not clean_target:
+        clean_target = period_for_date()
+
+    stmt = select(UserBettingRecord).where(UserBettingRecord.user_id == user_id)
+    if record_ids:
+        stmt = stmt.where(UserBettingRecord.id.in_(record_ids))
+    elif source_period:
+        stmt = stmt.where(UserBettingRecord.period == str(source_period).strip())
+        if lottery:
+            stmt = stmt.where(UserBettingRecord.lottery == str(lottery).strip())
+    else:
+        return []
+
+    sources = list(db.scalars(stmt).all())
+    if not sources:
+        return []
+
+    new_records: list[UserBettingRecord] = []
+    needed_draws: set[tuple[str, str]] = set()
+
+    for s in sources:
+        lot = s.lottery or lottery or "macau"
+        norm_period = (
+            normalize(lot, clean_target)
+            if (len(clean_target) <= 3 and clean_target.isdigit())
+            else clean_target
+        )
+        needed_draws.add((lot, norm_period))
+        source_note = s.source_badge or f"复制自{s.period}期"
+        new_rec = UserBettingRecord(
+            user_id=user_id,
+            lottery=lot,
+            period=norm_period,
+            mode=s.mode,
+            play_type=s.play_type,
+            numbers=list(s.numbers or []),
+            xiaos=list(s.xiaos or []),
+            stake_per_note=s.stake_per_note,
+            multiplier=s.multiplier,
+            notes_count=s.notes_count,
+            total_amount=s.total_amount,
+            odds=s.odds,
+            status="pending",
+            hit_numbers=[],
+            hit_notes=0,
+            payout=0,
+            net_profit=0,
+            raw_input=s.raw_input,
+            note=s.note,
+            source_badge=source_note,
+        )
+        new_records.append(new_rec)
+
+    draws_map = _fetch_draws_map(needed_draws)
+    for rec in new_records:
+        draw = draws_map.get((rec.lottery, rec.period))
+        if draw is not None:
+            evaluate_record_against_draw(rec, draw)
+        db.add(rec)
+
+    db.commit()
+    for rec in new_records:
+        db.refresh(rec)
+
+    return [
+        serialize_record(rec, draws_map.get((rec.lottery, rec.period)))
+        for rec in new_records
+    ]
+
+
+def copy_single_user_record(
+    db: Session,
+    user_id: str,
+    record_id: str,
+    target_period: str,
+) -> dict[str, Any] | None:
+    """Copy a single record owned by user to target period."""
+    results = copy_user_records(
+        db=db,
+        user_id=user_id,
+        target_period=target_period,
+        record_ids=[record_id],
+    )
+    return results[0] if results else None
+

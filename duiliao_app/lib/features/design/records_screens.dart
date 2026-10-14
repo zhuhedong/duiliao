@@ -2,6 +2,7 @@
 library;
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -100,6 +101,64 @@ class BettingRecordItem {
     'special_number': specialNumber,
     'draw_time': drawTime,
   };
+
+  BettingRecordItem copyWith({
+    String? id,
+    Lottery? lottery,
+    String? period,
+    String? playType,
+    String? timeLabel,
+    List<String>? numbers,
+    List<String>? xiaos,
+    int? stakePerNote,
+    int? multiplier,
+    int? notesCount,
+    int? totalAmount,
+    String? status,
+    int? fushiLink,
+    List<int>? fushiLinks,
+    List<String>? hitNumbers,
+    int? hitNotes,
+    double? odds,
+    int? payout,
+    int? netProfit,
+    String? winPillLabel,
+    String? rawInput,
+    String? note,
+    String? sourceBadge,
+    List<String>? drawNumbers,
+    String? specialNumber,
+    String? drawTime,
+  }) {
+    return BettingRecordItem(
+      id: id ?? this.id,
+      lottery: lottery ?? this.lottery,
+      period: period ?? this.period,
+      playType: playType ?? this.playType,
+      timeLabel: timeLabel ?? this.timeLabel,
+      numbers: numbers ?? this.numbers,
+      xiaos: xiaos ?? this.xiaos,
+      stakePerNote: stakePerNote ?? this.stakePerNote,
+      multiplier: multiplier ?? this.multiplier,
+      notesCount: notesCount ?? this.notesCount,
+      totalAmount: totalAmount ?? this.totalAmount,
+      status: status ?? this.status,
+      fushiLink: fushiLink ?? this.fushiLink,
+      fushiLinks: fushiLinks ?? this.fushiLinks,
+      hitNumbers: hitNumbers ?? this.hitNumbers,
+      hitNotes: hitNotes ?? this.hitNotes,
+      odds: odds ?? this.odds,
+      payout: payout ?? this.payout,
+      netProfit: netProfit ?? this.netProfit,
+      winPillLabel: winPillLabel ?? this.winPillLabel,
+      rawInput: rawInput ?? this.rawInput,
+      note: note ?? this.note,
+      sourceBadge: sourceBadge ?? this.sourceBadge,
+      drawNumbers: drawNumbers ?? this.drawNumbers,
+      specialNumber: specialNumber ?? this.specialNumber,
+      drawTime: drawTime ?? this.drawTime,
+    );
+  }
 
   factory BettingRecordItem.fromJson(Map<String, Object?> json) {
     final drawMap = json['draw'] is Map
@@ -357,6 +416,141 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
       }
     } catch (_) {}
   }
+
+  Future<BettingRecordItem?> copyRecordToPeriod(
+    String recordId,
+    String targetPeriod,
+  ) async {
+    final existingIndex = state.indexWhere((r) => r.id == recordId);
+    if (existingIndex < 0) return null;
+    final src = state[existingIndex];
+    final yearPrefix = '${DateTime.now().toUtc().add(const Duration(hours: 8)).year}';
+    final trimmed = targetPeriod.trim();
+    final normTarget = (trimmed.length <= 3 && int.tryParse(trimmed) != null)
+        ? '$yearPrefix${trimmed.padLeft(3, '0')}'
+        : trimmed;
+
+    final tempId = 'rec-${DateTime.now().millisecondsSinceEpoch}-${Random().nextInt(9999)}';
+    final cloned = src.copyWith(
+      id: tempId,
+      period: normTarget,
+      status: 'pending',
+      hitNumbers: const <String>[],
+      hitNotes: 0,
+      payout: 0,
+      netProfit: -src.totalAmount,
+      winPillLabel: null,
+      timeLabel: '${recentChinaMmDd(0)} 复制',
+      sourceBadge: src.sourceBadge ?? '复制自${src.period}期',
+      drawNumbers: const <String>[],
+      specialNumber: '',
+      drawTime: '',
+    );
+
+    final next = [cloned, ...state];
+    state = next;
+    await _persistLocal(next);
+
+    try {
+      final api = ref.read(apiClientProvider);
+      final res = await api.post(
+        '/app/records/$recordId/copy',
+        body: {'target_period': normTarget},
+      );
+      final rawRecord = res['record'];
+      if (rawRecord is Map) {
+        final serverRec = BettingRecordItem.fromJson(
+          Map<String, Object?>.from(rawRecord),
+        );
+        state = [
+          for (final r in state)
+            if (r.id == tempId) serverRec else r,
+        ];
+        await _persistLocal(state);
+        return serverRec;
+      }
+    } catch (_) {}
+
+    return cloned;
+  }
+
+  Future<List<BettingRecordItem>> copyPeriodToPeriod(
+    String sourcePeriod,
+    String targetPeriod, {
+    Lottery? lottery,
+  }) async {
+    final yearPrefix = '${DateTime.now().toUtc().add(const Duration(hours: 8)).year}';
+    final trimmed = targetPeriod.trim();
+    final normTarget = (trimmed.length <= 3 && int.tryParse(trimmed) != null)
+        ? '$yearPrefix${trimmed.padLeft(3, '0')}'
+        : trimmed;
+
+    final matching = state.where((r) {
+      if (r.period != sourcePeriod) return false;
+      if (lottery != null && r.lottery != lottery) return false;
+      return true;
+    }).toList();
+
+    if (matching.isEmpty) return const [];
+
+    final rand = Random();
+    final tempMap = <String, BettingRecordItem>{};
+    final clonedList = <BettingRecordItem>[];
+
+    for (var i = 0; i < matching.length; i++) {
+      final src = matching[i];
+      final tempId = 'rec-${DateTime.now().millisecondsSinceEpoch}-$i-${rand.nextInt(9999)}';
+      final cloned = src.copyWith(
+        id: tempId,
+        period: normTarget,
+        status: 'pending',
+        hitNumbers: const <String>[],
+        hitNotes: 0,
+        payout: 0,
+        netProfit: -src.totalAmount,
+        winPillLabel: null,
+        timeLabel: '${recentChinaMmDd(0)} 复制',
+        sourceBadge: src.sourceBadge ?? '复制自${src.period}期',
+        drawNumbers: const <String>[],
+        specialNumber: '',
+        drawTime: '',
+      );
+      tempMap[tempId] = cloned;
+      clonedList.add(cloned);
+    }
+
+    final next = [...clonedList, ...state];
+    state = next;
+    await _persistLocal(next);
+
+    try {
+      final api = ref.read(apiClientProvider);
+      final res = await api.post(
+        '/app/records/copy',
+        body: {
+          'source_period': sourcePeriod,
+          'target_period': normTarget,
+          if (lottery != null) 'lottery': lottery.code,
+        },
+      );
+      final rawItems = res['items'];
+      if (rawItems is List && rawItems.isNotEmpty) {
+        final serverList = rawItems
+            .whereType<Map>()
+            .map((m) => BettingRecordItem.fromJson(Map<String, Object?>.from(m)))
+            .toList();
+        final tempIds = tempMap.keys.toSet();
+        state = [
+          ...serverList,
+          ...state.where((r) => !tempIds.contains(r.id)),
+        ];
+        await _persistLocal(state);
+        return serverList;
+      }
+    } catch (_) {}
+
+    return clonedList;
+  }
 }
 
 final bettingRecordsProvider =
@@ -529,6 +723,233 @@ final recordPeriodContextProvider =
         selectablePeriods: options,
       );
     });
+
+Future<String?> showTargetPeriodSheet(
+  BuildContext context, {
+  required Lottery lottery,
+  required String currentPeriod,
+  required List<String> selectablePeriods,
+  String? defaultTargetPeriod,
+  String? title,
+  String? subtitle,
+}) async {
+  final targetDefault = defaultTargetPeriod ?? currentPeriod;
+  final ctrl = TextEditingController(text: targetDefault);
+
+  final quickChips = <String>[];
+  if (!quickChips.contains(currentPeriod)) quickChips.add(currentPeriod);
+  final nextP = nextPeriodOf(currentPeriod);
+  if (!quickChips.contains(nextP)) quickChips.add(nextP);
+  for (final p in selectablePeriods.take(6)) {
+    if (!quickChips.contains(p)) quickChips.add(p);
+  }
+
+  String selectedPeriod = targetDefault;
+
+  return showModalBottomSheet<String>(
+    context: context,
+    backgroundColor: const Color(0xFF111827),
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+    ),
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 18,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 18,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.content_copy_rounded,
+                          size: 19,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          title ?? '复制记录到指定期',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                const Text(
+                  '快捷选择目标期号',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final p in quickChips) ...[
+                        InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () {
+                            setSheetState(() {
+                              selectedPeriod = p;
+                              ctrl.text = p;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: selectedPeriod == p
+                                  ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.22)
+                                  : Colors.white.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: selectedPeriod == p
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.white.withValues(alpha: 0.12),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '第 $p 期',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: selectedPeriod == p ? FontWeight.w800 : FontWeight.w500,
+                                    color: selectedPeriod == p
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.white,
+                                  ),
+                                ),
+                                if (p == currentPeriod) ...[
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: DuiliaoColors.hit.withValues(alpha: 0.25),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      '当前期',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: DuiliaoColors.hit,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  '指定期号',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ctrl,
+                  keyboardType: TextInputType.number,
+                  onChanged: (val) {
+                    setSheetState(() {
+                      selectedPeriod = val.trim();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.pin_rounded, size: 18),
+                    hintText: '例如：$currentPeriod（支持填3位如 ${dayOfYearInChina()} 自动补全年份）',
+                    hintStyle: const TextStyle(fontSize: 12, color: Colors.white38),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.05),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.12)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: GlassButton(
+                    height: 44,
+                    onPressed: () {
+                      final raw = ctrl.text.trim();
+                      if (raw.isEmpty) return;
+                      final yearPrefix = '${DateTime.now().toUtc().add(const Duration(hours: 8)).year}';
+                      final norm = (raw.length <= 3 && int.tryParse(raw) != null)
+                          ? '$yearPrefix${raw.padLeft(3, '0')}'
+                          : raw;
+                      Navigator.pop(ctx, norm);
+                    },
+                    child: const Text(
+                      '确认一键复制',
+                      style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
 /// Records List Screen (records.html).
 class RecordsScreen extends ConsumerStatefulWidget {
@@ -886,16 +1307,18 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                     ),
                   ] else
                     for (final period in periods) ...[
+                      final periodItems = filtered.where((r) => r.period == period).toList();
                       DesignSectionHeader(
                         title: '第 $period 期',
                         trailing: _buildPeriodTrailing(
+                          context,
                           period,
-                          filtered.where((r) => r.period == period).toList(),
+                          periodItems,
+                          lottery,
+                          periodCtx,
                         ),
                       ),
-                      for (final item in filtered.where(
-                        (r) => r.period == period,
-                      ))
+                      for (final item in periodItems)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Dismissible(
@@ -945,6 +1368,12 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                             },
                             child: _RecordCard(
                               item: item,
+                              onCopy: () => _copySingleRecordFlow(
+                                context,
+                                item,
+                                lottery,
+                                periodCtx,
+                              ),
                               onDelete: () {
                                 ref
                                     .read(bettingRecordsProvider.notifier)
@@ -971,21 +1400,136 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
     );
   }
 
-  Widget _buildPeriodTrailing(String period, List<BettingRecordItem> items) {
-    final hasPending = items.any((r) => r.status == 'pending');
-    if (hasPending) {
-      return const GlassStatusPill(
-        label: '待开奖 · 今晚 21:34',
-        tone: GlassPillTone.warning,
-        pulse: true,
-      );
+  Future<void> _copySingleRecordFlow(
+    BuildContext context,
+    BettingRecordItem item,
+    Lottery lottery,
+    RecordPeriodContext? periodCtx,
+  ) async {
+    final currentP = periodCtx?.currentPeriod ?? currentPeriodForLottery(lottery);
+    final selectable = periodCtx?.selectablePeriods ?? [currentP];
+    final target = await showTargetPeriodSheet(
+      context,
+      lottery: lottery,
+      currentPeriod: currentP,
+      selectablePeriods: selectable,
+      defaultTargetPeriod: currentP,
+      title: '一键复制记录到指定期',
+      subtitle: '源：第 ${item.period} 期 · ${item.playType} · ¥${item.totalAmount} (${item.notesCount}注)',
+    );
+
+    if (target != null && target.isNotEmpty && context.mounted) {
+      await ref
+          .read(bettingRecordsProvider.notifier)
+          .copyRecordToPeriod(item.id, target);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已成功复制该记录到第 $target 期（待开奖）'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
     }
+  }
+
+  Future<void> _copyWholePeriodFlow(
+    BuildContext context,
+    String period,
+    List<BettingRecordItem> items,
+    Lottery lottery,
+    RecordPeriodContext? periodCtx,
+  ) async {
+    final currentP = periodCtx?.currentPeriod ?? currentPeriodForLottery(lottery);
+    final selectable = periodCtx?.selectablePeriods ?? [currentP];
+    final totalStake = items.fold<int>(0, (acc, r) => acc + r.totalAmount);
+    final totalNotes = items.fold<int>(0, (acc, r) => acc + r.notesCount);
+    final target = await showTargetPeriodSheet(
+      context,
+      lottery: lottery,
+      currentPeriod: currentP,
+      selectablePeriods: selectable,
+      defaultTargetPeriod: currentP,
+      title: '一键复制整期到指定期',
+      subtitle: '源：第 $period 期 · 共 ${items.length} 单 · $totalNotes 注 · 合计 ¥$totalStake',
+    );
+
+    if (target != null && target.isNotEmpty && context.mounted) {
+      final copied = await ref
+          .read(bettingRecordsProvider.notifier)
+          .copyPeriodToPeriod(period, target, lottery: lottery);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已成功将第 $period 期的 ${copied.length} 条记录复制到第 $target 期（待开奖）'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildPeriodTrailing(
+    BuildContext context,
+    String period,
+    List<BettingRecordItem> items,
+    Lottery lottery,
+    RecordPeriodContext? periodCtx,
+  ) {
+    final hasPending = items.any((r) => r.status == 'pending');
     final net = items.fold<int>(0, (acc, r) => acc + r.netProfit);
     final sign = net >= 0 ? '+' : '−';
-    return GlassStatusPill(
-      label: '盈亏 $sign¥${net.abs()}',
-      tone: net >= 0 ? GlassPillTone.success : GlassPillTone.danger,
-      showDot: false,
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => _copyWholePeriodFlow(context, period, items, lottery, periodCtx),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.copy_all_rounded,
+                  size: 13,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 3.5),
+                Text(
+                  '整期复制',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        if (hasPending)
+          const GlassStatusPill(
+            label: '待开奖 · 今晚 21:34',
+            tone: GlassPillTone.warning,
+            pulse: true,
+          )
+        else
+          GlassStatusPill(
+            label: '盈亏 $sign¥${net.abs()}',
+            tone: net >= 0 ? GlassPillTone.success : GlassPillTone.danger,
+            showDot: false,
+          ),
+      ],
     );
   }
 }
@@ -1086,9 +1630,11 @@ class _RecordCard extends StatelessWidget {
   const _RecordCard({
     required this.item,
     required this.onDelete,
+    this.onCopy,
   });
   final BettingRecordItem item;
   final VoidCallback onDelete;
+  final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -1136,6 +1682,21 @@ class _RecordCard extends StatelessWidget {
                         ),
                 ),
                 const SizedBox(width: 8),
+                if (onCopy != null) ...[
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: onCopy,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.content_copy_rounded,
+                        size: 16.5,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 InkWell(
                   borderRadius: BorderRadius.circular(8),
                   onTap: onDelete,
@@ -2779,6 +3340,11 @@ class RecordDetailScreen extends ConsumerWidget {
                 title: '记录详情',
                 actions: [
                   GlassIconButton(
+                    icon: Icons.content_copy_rounded,
+                    tooltip: '复制到指定期',
+                    onTap: () => _copyToTargetPeriod(context, ref, item),
+                  ),
+                  GlassIconButton(
                     icon: Icons.more_vert_rounded,
                     tooltip: '更多',
                     onTap: () {
@@ -3060,16 +3626,11 @@ class RecordDetailScreen extends ConsumerWidget {
                   child: Row(
                     children: [
                       GlassGhostButton(
-                        label: '复制格式',
-                        icon: Icons.copy_rounded,
-                        onTap: () {
-                          Clipboard.setData(ClipboardData(text: item.rawInput));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('已复制原始录入格式')),
-                          );
-                        },
+                        label: '复制到指定期',
+                        icon: Icons.content_copy_rounded,
+                        onTap: () => _copyToTargetPeriod(context, ref, item),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       GlassGhostButton(
                         label: '删除',
                         icon: Icons.delete_outline_rounded,
@@ -3084,7 +3645,7 @@ class RecordDetailScreen extends ConsumerWidget {
                           Navigator.of(context).maybePop();
                         },
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: GlassButton(
                           height: 40,
@@ -3119,6 +3680,47 @@ class RecordDetailScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _copyToTargetPeriod(
+    BuildContext context,
+    WidgetRef ref,
+    BettingRecordItem item,
+  ) async {
+    final lottery = item.lottery;
+    final periodCtx = ref.read(recordPeriodContextProvider(lottery)).value;
+    final currentP = periodCtx?.currentPeriod ?? currentPeriodForLottery(lottery);
+    final selectable = periodCtx?.selectablePeriods ?? [currentP];
+    final target = await showTargetPeriodSheet(
+      context,
+      lottery: lottery,
+      currentPeriod: currentP,
+      selectablePeriods: selectable,
+      defaultTargetPeriod: currentP,
+      title: '一键复制记录到指定期',
+      subtitle: '源：第 ${item.period} 期 · ${item.playType} · ¥${item.totalAmount} (${item.notesCount}注)',
+    );
+
+    if (target != null && target.isNotEmpty && context.mounted) {
+      final copied = await ref
+          .read(bettingRecordsProvider.notifier)
+          .copyRecordToPeriod(item.id, target);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已成功复制该记录到第 $target 期（待开奖）'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+        );
+        if (copied != null) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => RecordDetailScreen(record: copied),
+            ),
+          );
+        }
+      }
+    }
   }
 }
 

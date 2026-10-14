@@ -478,3 +478,61 @@ def test_betting_record_multi_link_fushi_3_4_and_settlement(user_client):
     assert after_clear["items"] == []
 
 
+def test_betting_records_copy_single_and_batch_to_target_period(user_client):
+    # 1. Create two records in period 2026203
+    r1 = user_client.post(
+        "/app/records",
+        {
+            "lottery": "macau",
+            "period": "2026203",
+            "raw_input": "龙兔各数5",
+        },
+    )
+    assert r1["ok"] is True
+    id1 = r1["record"]["id"]
+
+    r2 = user_client.post(
+        "/app/records",
+        {
+            "lottery": "macau",
+            "period": "2026203",
+            "raw_input": "03,15,28 特码各10",
+        },
+    )
+    assert r2["ok"] is True
+    id2 = r2["record"]["id"]
+
+    # 2. Test copy_single_record: copy r1 into target period 2026287 (3-digit '287' test)
+    copy_single_res = user_client.post(
+        f"/app/records/{id1}/copy",
+        {"target_period": "287"},
+    )
+    assert copy_single_res["ok"] is True
+    copied_single = copy_single_res["record"]
+    assert copied_single["id"] != id1
+    assert copied_single["period"] == "2026287"
+    assert copied_single["status"] == "pending"
+    assert copied_single["total_amount"] == r1["record"]["total_amount"]
+    assert "复制自2026203期" in (copied_single["source_badge"] or "")
+
+    # 3. Test copy_records (batch/whole period): copy all records from 2026203 to 2026288
+    copy_batch_res = user_client.post(
+        "/app/records/copy",
+        {
+            "lottery": "macau",
+            "source_period": "2026203",
+            "target_period": "2026288",
+        },
+    )
+    assert copy_batch_res["ok"] is True
+    assert copy_batch_res["copied_count"] == 2
+    batch_items = copy_batch_res["items"]
+    assert len(batch_items) == 2
+    for b in batch_items:
+        assert b["period"] == "2026288"
+        assert b["status"] == "pending"
+
+    # Cleanup
+    user_client.delete("/app/records")
+
+

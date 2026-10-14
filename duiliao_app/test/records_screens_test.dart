@@ -168,4 +168,76 @@ void main() {
     expect(find.text('常中号码'), findsOneWidget);
     expect(find.text('月度小结'), findsOneWidget);
   });
+
+  testWidgets('Records copy single and whole period to specified period',
+      (tester) async {
+    tester.view.physicalSize = const Size(393 * 3, 852 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: DuiliaoTheme.dark(),
+          home: const RecordsScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // 1. Add record in period 2026286
+    container.read(bettingRecordsProvider.notifier).addRecord(
+          const BettingRecordItem(
+            id: 'rec-test-copy-1',
+            lottery: Lottery.macau,
+            period: '2026286',
+            playType: '正码',
+            timeLabel: '10:00',
+            numbers: ['03', '15', '27'],
+            xiaos: [],
+            stakePerNote: 10,
+            multiplier: 1,
+            notesCount: 3,
+            totalAmount: 30,
+            status: 'won',
+            hitNumbers: ['03'],
+            payout: 70,
+            netProfit: 40,
+            rawInput: '03,15,27各10',
+          ),
+        );
+    await tester.pump();
+
+    expect(find.text('第 2026286 期'), findsOneWidget);
+    expect(find.text('整期复制'), findsOneWidget);
+
+    // 2. Test copyRecordToPeriod
+    final copied = await container
+        .read(bettingRecordsProvider.notifier)
+        .copyRecordToPeriod('rec-test-copy-1', '2026287');
+    expect(copied, isNotNull);
+    expect(copied!.period, '2026287');
+    expect(copied.status, 'pending');
+    expect(copied.hitNumbers, isEmpty);
+    expect(copied.payout, 0);
+    expect(copied.netProfit, -30);
+    await tester.pump();
+
+    expect(find.text('第 2026287 期'), findsOneWidget);
+
+    // 3. Test copyPeriodToPeriod
+    final batchCopied = await container
+        .read(bettingRecordsProvider.notifier)
+        .copyPeriodToPeriod('2026286', '2026288');
+    expect(batchCopied.length, 1);
+    expect(batchCopied.first.period, '2026288');
+    expect(batchCopied.first.status, 'pending');
+    await tester.pump();
+
+    expect(find.text('第 2026288 期'), findsOneWidget);
+  });
 }

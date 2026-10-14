@@ -669,6 +669,17 @@ class BettingRecordUpdatePayload(BaseModel):
     source_badge: str | None = Field(None, max_length=64)
 
 
+class CopyRecordsPayload(BaseModel):
+    target_period: str = Field(..., min_length=1, max_length=32, description="Target period")
+    source_period: str | None = Field(None, max_length=32, description="Source period")
+    record_ids: list[str] | None = Field(None, description="Record IDs to copy")
+    lottery: str | None = None
+
+
+class CopySingleRecordPayload(BaseModel):
+    target_period: str = Field(..., min_length=1, max_length=32, description="Target period")
+
+
 @router.get("/records")
 def get_records(
     lottery: str | None = Query(None),
@@ -775,4 +786,47 @@ def settle_records(
         lottery=lottery,
         auto_settle=True,
     )
+
+
+@router.post("/records/copy", status_code=status.HTTP_201_CREATED)
+def copy_records(
+    payload: CopyRecordsPayload,
+    db: Session = Depends(get_db),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Copy records from a source period (or by IDs) into a target period."""
+    if payload.lottery:
+        _validate_lottery(payload.lottery)
+    from app.services.betting_records_service import copy_user_records
+
+    copied = copy_user_records(
+        db=db,
+        user_id=user.id,
+        target_period=payload.target_period,
+        source_period=payload.source_period,
+        record_ids=payload.record_ids,
+        lottery=payload.lottery,
+    )
+    return {"ok": True, "copied_count": len(copied), "items": copied}
+
+
+@router.post("/records/{record_id}/copy", status_code=status.HTTP_201_CREATED)
+def copy_single_record(
+    record_id: str,
+    payload: CopySingleRecordPayload,
+    db: Session = Depends(get_db),
+    user: User = _user,
+) -> dict[str, Any]:
+    """Copy a specific betting record into a target period."""
+    from app.services.betting_records_service import copy_single_user_record
+
+    rec = copy_single_user_record(
+        db=db,
+        user_id=user.id,
+        record_id=record_id,
+        target_period=payload.target_period,
+    )
+    if rec is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="record not found")
+    return {"ok": True, "record": rec}
 
