@@ -303,6 +303,10 @@ class MessageCentre extends Notifier<MessageCentreState> {
         subscription.isEnabled(NotifyRule.consensusLeaderChanged, fallback: false),
       AppEventType.collectJobFinished =>
         subscription.isEnabled(NotifyRule.collectJobFinished),
+      AppEventType.fetchHashChanged =>
+        subscription.isEnabled(NotifyRule.fetchHashChanged),
+      AppEventType.fetchFailStreak =>
+        subscription.isEnabled(NotifyRule.fetchFailStreak),
       null => false,
     };
   }

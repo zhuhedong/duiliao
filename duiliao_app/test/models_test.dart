@@ -1149,9 +1149,11 @@ void main() {
       expect(followed.withSource('haige_pingte', true).sourceIds, hasLength(1));
     });
 
-    test('the five notification toggles are declared', () {
-      expect(NotifyRule.toggles, hasLength(5));
+    test('the notification toggles are declared', () {
+      expect(NotifyRule.toggles, hasLength(7));
       expect(NotifyRule.toggles.keys, contains(NotifyRule.collectJobFinished));
+      expect(NotifyRule.toggles.keys, contains(NotifyRule.fetchHashChanged));
+      expect(NotifyRule.toggles.keys, contains(NotifyRule.fetchFailStreak));
     });
   });
 

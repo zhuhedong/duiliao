@@ -10,6 +10,7 @@ import { CollectorDrawsPage } from "./pages/collector/DrawsPage";
 import { CollectorConsensusPage } from "./pages/collector/ConsensusPage";
 import { CollectorRatingsPage } from "./pages/collector/RatingsPage";
 import { CollectorMonitorPage } from "./pages/collector/MonitorPage";
+import { CollectorFetchPlatformPage } from "./pages/collector/FetchPlatformPage";
 import { CollectorNumbersPage } from "./pages/collector/NumbersPage";
 import { CollectorAIAnalysisPage } from "./pages/collector/AIAnalysisPage";
 import { SystemSettingsPage } from "./pages/SystemSettingsPage";
@@ -37,6 +38,7 @@ export function App() {
         <Route path="/collector/ai-analysis" element={<CollectorAIAnalysisPage />} />
         <Route path="/collector/ratings" element={<CollectorRatingsPage />} />
         <Route path="/collector/monitor" element={<CollectorMonitorPage />} />
+        <Route path="/collector/platform" element={<CollectorFetchPlatformPage />} />
         <Route path="/collector/numbers" element={<CollectorNumbersPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SystemSettingsPage />} />

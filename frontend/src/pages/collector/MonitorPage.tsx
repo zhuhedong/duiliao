@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Spinner } from "@appica/ui-react/spinner";
 import { Alert, AlertDescription } from "@appica/ui-react/alert";
 import { ApiError } from "../../lib/api";
@@ -99,7 +100,17 @@ export function CollectorMonitorPage() {
   return (
     <PageWorkspace
       summary="对照已开奖期号看各来源缺了多少期，并检查上游栏目是否还在。"
-      actions={canWrite ? null : <ReadOnlyNote />}
+      actions={
+        <div className="flex items-center gap-2">
+          {!canWrite && <ReadOnlyNote />}
+          <Link
+            to="/collector/platform"
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            采集平台（Host 池 / 补采）→
+          </Link>
+        </div>
+      }
     >
 
       {error && (

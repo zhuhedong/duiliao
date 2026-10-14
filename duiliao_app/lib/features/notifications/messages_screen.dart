@@ -18,6 +18,7 @@ import '../comparison/comparison_screen.dart';
 import '../consensus/consensus_screen.dart';
 import '../draws/draw_detail_screen.dart';
 import '../ratings/source_detail_screen.dart';
+import '../collect/collect_screen.dart';
 import 'notification_service.dart';
 
 class MessagesScreen extends ConsumerWidget {
@@ -64,7 +65,7 @@ class MessagesScreen extends ConsumerWidget {
                     const EmptyState(
                       message: '暂无消息',
                       icon: Icons.notifications_none,
-                      detail: '开奖、命中、连挂与采集完成的通知会显示在这里',
+                      detail: '开奖、命中、连挂、采集完成与内容变更/连续失败通知会显示在这里',
                     ),
                   ],
                 )
@@ -111,6 +112,18 @@ class MessagesScreen extends ConsumerWidget {
         }
       case AppEventType.collectJobFinished:
         target = ComparisonScreen(lottery: lottery, initialPeriod: event.period);
+      case AppEventType.fetchHashChanged:
+      case AppEventType.fetchFailStreak:
+        final sourceId = event.data['source_id'];
+        if (sourceId is String) {
+          target = SourceDetailScreen(
+            sourceId: sourceId,
+            lottery: lottery,
+            sourceName: event.data['source_name'] as String?,
+          );
+        } else {
+          target = const CollectScreen();
+        }
       case null:
         target = null;
     }
@@ -167,6 +180,14 @@ class _MessageTile extends StatelessWidget {
       AppEventType.collectJobFinished => (
           Icons.cloud_done_outlined,
           context.colors.tertiary,
+        ),
+      AppEventType.fetchHashChanged => (
+          Icons.change_circle_outlined,
+          DuiliaoColors.warning,
+        ),
+      AppEventType.fetchFailStreak => (
+          Icons.cloud_off_outlined,
+          DuiliaoColors.miss,
         ),
       null => (Icons.notifications_none, DuiliaoColors.pending),
     };

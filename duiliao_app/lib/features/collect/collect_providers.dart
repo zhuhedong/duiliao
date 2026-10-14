@@ -310,3 +310,19 @@ final sourcesForLotteryProvider =
   rows.sort((a, b) => a.sourceName.compareTo(b.sourceName));
   return rows;
 });
+
+
+/// 588080 host pool snapshot for the collect screen health card.
+final hostPoolStatusProvider =
+    FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  return ref.read(collectorRepositoryProvider).hostPoolStatus();
+});
+
+/// Preview sources missing a period (staff backfill entry).
+final backfillPreviewProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, ({String lottery, String? period})>((ref, args) async {
+  return ref.read(collectorRepositoryProvider).previewBackfill(
+        lottery: args.lottery,
+        period: args.period,
+      );
+});
