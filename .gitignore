@@ -4,6 +4,8 @@ backend/.venv/
 *.pyc
 backend/.env
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3
 
 # Node / frontend

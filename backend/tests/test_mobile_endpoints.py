@@ -563,3 +563,115 @@ def test_betting_records_copy_single_and_batch_to_target_period(user_client):
     user_client.delete("/app/records")
 
 
+def test_lianxiao_settlement_with_ma_5_yuan_yields_45_not_56():
+    """Verify that a ¥5 bet on 3-lian containing '马' evaluates to ¥45 payout (not 56),
+
+    even if an existing record in DB previously had legacy odds 11.2 and payout 56.
+    """
+    from app.services.betting_records_service import (
+        UserBettingRecord,
+        evaluate_record_against_draw,
+        _sync_record_odds,
+    )
+
+    # 1. Stored legacy record with odds=11.2, payout=56
+    legacy_rec = UserBettingRecord(
+        user_id="test_user",
+        lottery="macau",
+        period="2026203",
+        mode="连肖复试",
+        play_type="3连肖",
+        xiaos=["马", "羊", "猴"],
+        numbers=[],
+        stake_per_note=5,
+        multiplier=1,
+        notes_count=1,
+        total_amount=5,
+        odds=11.2,
+        status="won",
+        hit_numbers=["马", "羊", "猴"],
+        hit_notes=1,
+        payout=56,
+        net_profit=51,
+        raw_input="三连 马 羊 猴 各5块",
+    )
+
+    draw = {
+        "lottery": "macau",
+        "period": "2026203",
+        "balls": ["01", "12", "11", "03", "04", "05"],  # 01=马, 12=羊, 11=猴
+        "tema": "45",
+    }
+
+    # Evaluate against draw must auto-correct odds to 9.0 and payout to 45 (5 * 9.0 = 45)
+    changed = evaluate_record_against_draw(legacy_rec, draw)
+    assert changed is True
+    assert legacy_rec.status == "won"
+    assert legacy_rec.odds == 9.0
+    assert legacy_rec.payout == 45
+    assert legacy_rec.net_profit == 40  # 45 - 5 = 40
+
+    # Running evaluate again must be stable and return False
+    assert evaluate_record_against_draw(legacy_rec, draw) is False
+
+    # 2. 3连 不带马 test: 5块 should yield 50 payout (5 * 10.0 = 50, net profit +45)
+    rec_no_ma = UserBettingRecord(
+        user_id="test_user",
+        lottery="macau",
+        period="2026203",
+        mode="连肖复试",
+        play_type="3连肖",
+        xiaos=["牛", "羊", "猴"],
+        numbers=[],
+        stake_per_note=5,
+        multiplier=1,
+        notes_count=1,
+        total_amount=5,
+        odds=11.2,
+        status="pending",
+        hit_numbers=[],
+        hit_notes=0,
+        payout=0,
+        net_profit=0,
+        raw_input="三连 牛 羊 猴 各5块",
+    )
+    draw_no_ma = {
+        "lottery": "macau",
+        "period": "2026203",
+        "balls": ["06", "12", "11", "03", "04", "05"],  # 06=牛, 12=羊, 11=猴
+        "tema": "45",
+    }
+    changed_no_ma = evaluate_record_against_draw(rec_no_ma, draw_no_ma)
+    assert changed_no_ma is True
+    assert rec_no_ma.status == "won"
+    assert rec_no_ma.odds == 10.0
+    assert rec_no_ma.payout == 50
+    assert rec_no_ma.net_profit == 45
+
+    # 3. Test _sync_record_odds on pending record before draw
+    pending_rec = UserBettingRecord(
+        user_id="test_user",
+        lottery="macau",
+        period="2026204",
+        mode="连肖复试",
+        play_type="3连肖",
+        xiaos=["马", "鸡", "狗"],
+        numbers=[],
+        stake_per_note=5,
+        multiplier=1,
+        notes_count=1,
+        total_amount=5,
+        odds=11.2,
+        status="pending",
+        hit_numbers=[],
+        hit_notes=0,
+        payout=0,
+        net_profit=0,
+        raw_input="三连 马 鸡 狗 各5块",
+    )
+    synced = _sync_record_odds(pending_rec)
+    assert synced is True
+    assert pending_rec.odds == 9.0
+
+
+

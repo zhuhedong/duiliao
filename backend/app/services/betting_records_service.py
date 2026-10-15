@@ -374,6 +374,44 @@ def compute_notes_count(mode: str, play_type: str, numbers: list[str], xiaos: li
     return max(1, len(numbers))
 
 
+_LEGACY_LIANXIAO_ODDS: set[float] = {4.2, 11.2, 33.0, 95.0, 3.8, 9.8}
+
+
+def _sync_record_odds(record: UserBettingRecord) -> bool:
+    """Ensure record.odds is synchronized with the latest odds standard (e.g. 连肖 带马/不带马)."""
+    play_type = record.play_type or "正码"
+    mode = record.mode or "号码单式"
+    rec_xiaos = [str(x).strip() for x in (record.xiaos or []) if str(x).strip()]
+
+    is_lianxiao = (
+        mode == "连肖复试"
+        or "连肖" in play_type
+        or ("连" in play_type and rec_xiaos)
+        or (rec_xiaos and bool(_LIANXIAO_EXPR_RE.search(record.raw_input or "")))
+    )
+    if not is_lianxiao:
+        if not record.odds or record.odds <= 0:
+            record.odds = default_odds_for(play_type, mode, rec_xiaos)
+            return True
+        return False
+
+    ks = _lianxiao_ks(play_type, record.raw_input or "")
+    if len(ks) == 1 and len(rec_xiaos) == ks[0]:
+        expected = lianxiao_odds(ks[0], "马" in rec_xiaos)
+    else:
+        expected = default_odds_for(play_type, mode, rec_xiaos)
+
+    if (
+        not record.odds
+        or record.odds in _LEGACY_LIANXIAO_ODDS
+        or (len(ks) == 1 and len(rec_xiaos) == ks[0] and record.odds != expected)
+    ):
+        if record.odds != expected:
+            record.odds = expected
+            return True
+    return False
+
+
 def evaluate_record_against_draw(
     record: UserBettingRecord,
     draw: dict[str, Any],
@@ -392,18 +430,20 @@ def evaluate_record_against_draw(
     rec_xiaos = [str(x).strip() for x in (record.xiaos or []) if str(x).strip()]
     play_type = record.play_type or "正码"
     mode = record.mode or "号码单式"
-    odds = record.odds if record.odds and record.odds > 0 else default_odds_for(play_type, mode, rec_xiaos)
 
-    hit_items: list[str] = []
-    hit_notes = 0
-    custom_payout: int | None = None
-
-    if (
+    is_lianxiao = (
         mode == "连肖复试"
         or "连肖" in play_type
         or ("连" in play_type and rec_xiaos)
         or (rec_xiaos and bool(_LIANXIAO_EXPR_RE.search(record.raw_input or "")))
-    ):
+    )
+
+    hit_items: list[str] = []
+    hit_notes = 0
+    custom_payout: int | None = None
+    target_odds: float | None = None
+
+    if is_lianxiao:
         ks = _lianxiao_ks(play_type, record.raw_input or "")
         hit_items = [x for x in rec_xiaos if x in draw_xiaos]
         payout_accum = 0.0
@@ -413,22 +453,18 @@ def evaluate_record_against_draw(
                     if all(x in draw_xiaos for x in combo):
                         hit_notes += 1
                         has_ma = "马" in combo
-                        combo_odds = (
-                            record.odds
-                            if (record.odds and record.odds > 0 and len(ks) == 1 and len(rec_xiaos) == k)
-                            else lianxiao_odds(k, has_ma)
-                        )
+                        combo_odds = lianxiao_odds(k, has_ma)
                         payout_accum += record.stake_per_note * record.multiplier * combo_odds
             elif rec_xiaos and all(x in draw_xiaos for x in rec_xiaos):
                 hit_notes += 1
                 has_ma = "马" in rec_xiaos
-                combo_odds = (
-                    record.odds
-                    if (record.odds and record.odds > 0 and len(ks) == 1)
-                    else lianxiao_odds(k, has_ma)
-                )
+                combo_odds = lianxiao_odds(k, has_ma)
                 payout_accum += record.stake_per_note * record.multiplier * combo_odds
         custom_payout = int(round(payout_accum)) if hit_notes > 0 else 0
+        if len(ks) == 1 and len(rec_xiaos) == ks[0]:
+            target_odds = lianxiao_odds(ks[0], "马" in rec_xiaos)
+        elif not record.odds or record.odds in _LEGACY_LIANXIAO_ODDS:
+            target_odds = default_odds_for(play_type, mode, rec_xiaos)
     elif mode == "不中码" or "不中" in play_type:
         # In N不中, if NONE of the selected numbers appeared in the 7 drawn numbers, the whole group wins
         hit_items = [n for n in rec_nums if n in all_draw_nums]
@@ -452,8 +488,11 @@ def evaluate_record_against_draw(
     if custom_payout is not None:
         payout = custom_payout
     else:
+        odds = record.odds if record.odds and record.odds > 0 else default_odds_for(play_type, mode, rec_xiaos)
         payout = int(round(hit_notes * record.stake_per_note * record.multiplier * odds)) if hit_notes > 0 else 0
     net_profit = payout - record.total_amount
+
+    odds_changed = bool(target_odds is not None and record.odds != target_odds)
 
     changed = (
         record.status != new_status
@@ -461,6 +500,7 @@ def evaluate_record_against_draw(
         or record.hit_notes != hit_notes
         or record.payout != payout
         or record.net_profit != net_profit
+        or odds_changed
     )
     if changed:
         record.status = new_status
@@ -468,6 +508,8 @@ def evaluate_record_against_draw(
         record.hit_notes = hit_notes
         record.payout = payout
         record.net_profit = net_profit
+        if target_odds is not None:
+            record.odds = target_odds
         record.updated_at = datetime.now(timezone.utc)
     return changed
 
@@ -504,13 +546,15 @@ def settle_all_users_records(
                 return 0
             settled_count = 0
             for r in rows:
+                if _sync_record_odds(r):
+                    settled_count += 1
                 draw = draws_map.get((r.lottery, r.period))
                 if draw is not None and evaluate_record_against_draw(r, draw):
                     settled_count += 1
             if settled_count > 0:
                 db.commit()
                 logger.info(
-                    "Auto-settled %d user betting record(s) for lottery=%s period=%s",
+                    "Auto-settled/synchronized %d user betting record(s) for lottery=%s period=%s",
                     settled_count,
                     lottery,
                     period,
@@ -636,13 +680,15 @@ def list_user_records(
     draws_map = _fetch_draws_map(pairs) if pairs else {}
 
     dirty = False
-    if auto_settle and draws_map:
-        for r in rows:
+    for r in rows:
+        if _sync_record_odds(r):
+            dirty = True
+        if auto_settle and draws_map:
             draw = draws_map.get((r.lottery, r.period))
             if draw is not None and evaluate_record_against_draw(r, draw):
                 dirty = True
-        if dirty:
-            db.commit()
+    if dirty:
+        db.commit()
 
     filtered = [
         r for r in rows if not status_filter or status_filter == "all" or r.status == status_filter
@@ -821,7 +867,23 @@ def create_user_record(
     notes_count = compute_notes_count(mode, play_type, numbers, xiaos, raw_input)
     notes_count = max(1, notes_count)
     total_amount = notes_count * stake_per_note * multiplier
-    odds = float(payload.get("odds") or default_odds_for(play_type, mode, xiaos))
+    is_lx = (
+        mode == "连肖复试"
+        or "连肖" in play_type
+        or ("连" in play_type and xiaos)
+        or (xiaos and bool(_LIANXIAO_EXPR_RE.search(raw_input or "")))
+    )
+    raw_odds = float(payload.get("odds")) if payload.get("odds") else None
+    if is_lx:
+        ks = _lianxiao_ks(play_type, raw_input or "")
+        if len(ks) == 1 and len(xiaos) == ks[0]:
+            odds = lianxiao_odds(ks[0], "马" in xiaos)
+        elif not raw_odds or raw_odds in _LEGACY_LIANXIAO_ODDS:
+            odds = default_odds_for(play_type, mode, xiaos)
+        else:
+            odds = raw_odds
+    else:
+        odds = raw_odds or default_odds_for(play_type, mode, xiaos)
 
     rec = UserBettingRecord(
         user_id=user_id,
@@ -917,9 +979,13 @@ def update_user_record(
         rec.multiplier = max(1, int(parsed["multiplier"]))
 
     if "odds" in payload and payload["odds"] is not None:
-        rec.odds = float(payload["odds"])
+        raw_odds = float(payload["odds"])
+        if raw_odds in _LEGACY_LIANXIAO_ODDS:
+            _sync_record_odds(rec)
+        else:
+            rec.odds = raw_odds
     else:
-        rec.odds = default_odds_for(rec.play_type, rec.mode, rec.xiaos)
+        _sync_record_odds(rec)
 
     rec.notes_count = compute_notes_count(
         rec.mode,
