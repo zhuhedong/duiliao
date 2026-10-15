@@ -73,6 +73,13 @@ class BettingRecordItem {
   final String specialNumber;
   final String drawTime;
 
+  bool get isLianxiao =>
+      xiaos.isNotEmpty || playType.contains('连') || fushiLinks.isNotEmpty || fushiLink != null;
+
+  String get mode => isLianxiao
+      ? '连肖复试'
+      : (playType.contains('不中') ? '不中码' : '号码单式');
+
   Map<String, Object?> toJson() => {
     'id': id,
     'lottery': lottery.code,
@@ -3559,7 +3566,7 @@ class RecordDetailScreen extends ConsumerWidget {
                           label: '中单',
                           sub: item.hitNumbers.isEmpty && item.hitNotes == 0
                               ? (isPending ? '等待开奖对奖' : '未命中')
-                              : (item.mode == '连肖复试' || item.fushiLinks.isNotEmpty
+                              : (item.isLianxiao
                                   ? '${item.hitNumbers.join(' · ')} 命中 ${item.hitNotes} 组'
                                   : '${item.hitNumbers.join(' · ')} × 赔率 1:${item.odds % 1 == 0 ? item.odds.toInt() : item.odds}'),
                           value:
@@ -3569,7 +3576,7 @@ class RecordDetailScreen extends ConsumerWidget {
                           label: '派彩',
                           sub: isPending
                               ? '待开奖后结算'
-                              : (item.mode == '连肖复试' || item.fushiLinks.isNotEmpty
+                              : (item.isLianxiao
                                   ? '按组合分档（带马/不带马）派彩 ¥${item.payout}'
                                   : '${item.hitNotes > 0 ? item.hitNotes : item.hitNumbers.length} 注 × ¥${item.stakePerNote} × ${item.odds % 1 == 0 ? item.odds.toInt() : item.odds} 倍'),
                           value: '¥${item.payout}',
