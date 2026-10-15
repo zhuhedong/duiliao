@@ -466,16 +466,43 @@ def test_betting_record_multi_link_fushi_3_4_and_settlement(user_client):
     settled_rec = next(r for r in listed["items"] if r["id"] == rec["id"])
     assert settled_rec["status"] == "won"
     assert settled_rec["hit_numbers"] == ["鼠", "虎", "马", "猴"]
-    assert settled_rec["hit_notes"] == 5
-    assert settled_rec["payout"] > 75
-    assert settled_rec["net_profit"] == settled_rec["payout"] - 75
-    assert settled_rec["win_pill_label"] == f"中 5 注 +¥{settled_rec['net_profit']}"
+    assert settled_rec["payout"] == 325  # (鼠虎马 45 + 鼠虎猴 50 + 鼠马猴 45 + 虎马猴 45) + (鼠虎马猴 140) = 325
+    assert settled_rec["net_profit"] == 250
+    assert settled_rec["win_pill_label"] == "中 5 注 +¥250"
+
 
     cleared = user_client.delete("/app/records", params={"lottery": "macau"})
     assert cleared["ok"] is True
     assert cleared["deleted_count"] >= 1
     after_clear = user_client.get("/app/records", params={"lottery": "macau"})
     assert after_clear["items"] == []
+
+
+def test_lianxiao_odds_with_and_without_ma():
+    from app.services.betting_records_service import default_odds_for, lianxiao_odds
+
+    # 1. Verification of user-configured table
+    # 不带马: 2=4.0, 3=10.0, 4=30.0, 5=100.0
+    assert lianxiao_odds(2, has_ma=False) == 4.0
+    assert lianxiao_odds(3, has_ma=False) == 10.0
+    assert lianxiao_odds(4, has_ma=False) == 30.0
+    assert lianxiao_odds(5, has_ma=False) == 100.0
+
+    # 带马: 2=3.5, 3=9.0, 4=28.0, 5=80.0
+    assert lianxiao_odds(2, has_ma=True) == 3.5
+    assert lianxiao_odds(3, has_ma=True) == 9.0
+    assert lianxiao_odds(4, has_ma=True) == 28.0
+    assert lianxiao_odds(5, has_ma=True) == 80.0
+
+    # 2. default_odds_for inferring from xiaos
+    assert default_odds_for("3连肖", xiaos=["鼠", "虎", "猴"]) == 10.0
+    assert default_odds_for("3连肖", xiaos=["鼠", "虎", "马"]) == 9.0
+    assert default_odds_for("2连肖", xiaos=["鼠", "虎"]) == 4.0
+    assert default_odds_for("2连肖", xiaos=["鼠", "马"]) == 3.5
+    assert default_odds_for("4连肖", xiaos=["鼠", "虎", "兔", "龙"]) == 30.0
+    assert default_odds_for("4连肖", xiaos=["鼠", "虎", "兔", "马"]) == 28.0
+    assert default_odds_for("5连肖", xiaos=["鼠", "虎", "兔", "龙", "蛇"]) == 100.0
+    assert default_odds_for("5连肖", xiaos=["鼠", "虎", "兔", "龙", "马"]) == 80.0
 
 
 def test_betting_records_copy_single_and_batch_to_target_period(user_client):

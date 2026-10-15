@@ -54,17 +54,26 @@ DEFAULT_ODDS: dict[str, float] = {
     "平特肖": 2.05,
     "平特一肖": 2.05,
     "特肖": 11.5,
-    "2连肖": 4.2,
-    "2连肖（复试）": 4.2,
-    "3连肖": 11.2,
-    "3连肖（复试）": 11.2,
-    "3 连": 11.2,
-    "4连肖": 33.0,
-    "4连肖（复试）": 33.0,
-    "4 连": 33.0,
-    "5连肖": 95.0,
-    "5连肖（复试）": 95.0,
-    "5 连": 95.0,
+    "2连肖": 4.0,
+    "2连肖（带马）": 3.5,
+    "2连肖（不带马）": 4.0,
+    "2连肖（复试）": 4.0,
+    "2 连": 4.0,
+    "3连肖": 10.0,
+    "3连肖（带马）": 9.0,
+    "3连肖（不带马）": 10.0,
+    "3连肖（复试）": 10.0,
+    "3 连": 10.0,
+    "4连肖": 30.0,
+    "4连肖（带马）": 28.0,
+    "4连肖（不带马）": 30.0,
+    "4连肖（复试）": 30.0,
+    "4 连": 30.0,
+    "5连肖": 100.0,
+    "5连肖（带马）": 80.0,
+    "5连肖（不带马）": 100.0,
+    "5连肖（复试）": 100.0,
+    "5 连": 100.0,
     "5 不中": 2.12,
     "6 不中": 2.58,
     "7 不中": 3.15,
@@ -76,6 +85,33 @@ DEFAULT_ODDS: dict[str, float] = {
     "九不中": 4.70,
     "十不中": 5.80,
 }
+
+LIANXIAO_ODDS_WITHOUT_MA: dict[int, float] = {
+    2: 4.0,
+    3: 10.0,
+    4: 30.0,
+    5: 100.0,
+}
+
+LIANXIAO_ODDS_WITH_MA: dict[int, float] = {
+    2: 3.5,
+    3: 9.0,
+    4: 28.0,
+    5: 80.0,
+}
+
+
+def lianxiao_odds(k: int, has_ma: bool) -> float:
+    """Return odds for k-lianxiao, distinguishing between containing '马' (5-ball zodiac) or not.
+
+    User-configured odds standard:
+    - 不带马: 2连=4.0, 3连=10.0, 4连=30.0, 5连=100.0
+    - 带马:   2连=3.5, 3连=9.0,  4连=28.0, 5连=80.0
+    """
+    if has_ma:
+        return LIANXIAO_ODDS_WITH_MA.get(k, 80.0 if k >= 5 else 3.5)
+    return LIANXIAO_ODDS_WITHOUT_MA.get(k, 100.0 if k >= 5 else 4.0)
+
 
 NBUZHONG_K: dict[str, int] = {
     "五不中": 5,
@@ -96,19 +132,34 @@ def bose_for_number(num_str: str) -> str:
     return "绿波"
 
 
-def default_odds_for(play_type: str, mode: str = "号码单式") -> float:
+def default_odds_for(
+    play_type: str,
+    mode: str = "号码单式",
+    xiaos: list[str] | tuple[str, ...] | None = None,
+) -> float:
+    if "带马" in play_type or "含马" in play_type:
+        has_ma = True
+    elif "不带马" in play_type or "不含马" in play_type:
+        has_ma = False
+    else:
+        has_ma = any("马" in str(x) for x in (xiaos or []))
+
+    if "连肖" in play_type or "连" in play_type or mode == "连肖复试":
+        k = 3
+        if "2" in play_type or "二" in play_type:
+            k = 2
+        elif "3" in play_type or "三" in play_type:
+            k = 3
+        elif "4" in play_type or "四" in play_type:
+            k = 4
+        elif "5" in play_type or "五" in play_type:
+            k = 5
+        return lianxiao_odds(k, has_ma)
+
     if play_type in DEFAULT_ODDS:
         return DEFAULT_ODDS[play_type]
     if "不中" in play_type or mode == "不中码":
         return 2.58
-    if "连肖" in play_type or "连" in play_type or mode == "连肖复试":
-        if "2" in play_type or "二" in play_type:
-            return 4.2
-        if "3" in play_type or "三" in play_type:
-            return 11.2
-        if "5" in play_type or "五" in play_type:
-            return 95.0
-        return 33.0
     if "平特" in play_type:
         return 2.05
     if "特肖" in play_type:
@@ -341,7 +392,7 @@ def evaluate_record_against_draw(
     rec_xiaos = [str(x).strip() for x in (record.xiaos or []) if str(x).strip()]
     play_type = record.play_type or "正码"
     mode = record.mode or "号码单式"
-    odds = record.odds if record.odds and record.odds > 0 else default_odds_for(play_type, mode)
+    odds = record.odds if record.odds and record.odds > 0 else default_odds_for(play_type, mode, rec_xiaos)
 
     hit_items: list[str] = []
     hit_notes = 0
@@ -357,21 +408,26 @@ def evaluate_record_against_draw(
         hit_items = [x for x in rec_xiaos if x in draw_xiaos]
         payout_accum = 0.0
         for k in ks:
-            k_hits = 0
             if len(rec_xiaos) >= k:
                 for combo in itertools.combinations(rec_xiaos, k):
                     if all(x in draw_xiaos for x in combo):
-                        k_hits += 1
+                        hit_notes += 1
+                        has_ma = "马" in combo
+                        combo_odds = (
+                            record.odds
+                            if (record.odds and record.odds > 0 and len(ks) == 1 and len(rec_xiaos) == k)
+                            else lianxiao_odds(k, has_ma)
+                        )
+                        payout_accum += record.stake_per_note * record.multiplier * combo_odds
             elif rec_xiaos and all(x in draw_xiaos for x in rec_xiaos):
-                k_hits = 1
-            if k_hits > 0:
-                hit_notes += k_hits
-                k_odds = (
+                hit_notes += 1
+                has_ma = "马" in rec_xiaos
+                combo_odds = (
                     record.odds
                     if (record.odds and record.odds > 0 and len(ks) == 1)
-                    else default_odds_for(f"{k}连", "连肖复试")
+                    else lianxiao_odds(k, has_ma)
                 )
-                payout_accum += k_hits * record.stake_per_note * record.multiplier * k_odds
+                payout_accum += record.stake_per_note * record.multiplier * combo_odds
         custom_payout = int(round(payout_accum)) if hit_notes > 0 else 0
     elif mode == "不中码" or "不中" in play_type:
         # In N不中, if NONE of the selected numbers appeared in the 7 drawn numbers, the whole group wins
@@ -765,7 +821,7 @@ def create_user_record(
     notes_count = compute_notes_count(mode, play_type, numbers, xiaos, raw_input)
     notes_count = max(1, notes_count)
     total_amount = notes_count * stake_per_note * multiplier
-    odds = float(payload.get("odds") or default_odds_for(play_type, mode))
+    odds = float(payload.get("odds") or default_odds_for(play_type, mode, xiaos))
 
     rec = UserBettingRecord(
         user_id=user_id,
@@ -863,7 +919,7 @@ def update_user_record(
     if "odds" in payload and payload["odds"] is not None:
         rec.odds = float(payload["odds"])
     else:
-        rec.odds = default_odds_for(rec.play_type, rec.mode)
+        rec.odds = default_odds_for(rec.play_type, rec.mode, rec.xiaos)
 
     rec.notes_count = compute_notes_count(
         rec.mode,

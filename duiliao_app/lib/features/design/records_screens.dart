@@ -2921,6 +2921,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             _RuleBullet('② 支持单连与多连复试：复试4连 → C(M,4) 注；复试3，4连 → C(M,3)+C(M,4) 注'),
                             _RuleBullet('③ 「一组5块」「各数10」「个数10」识别为每注单额；「倍2」「×2倍」识别为倍数'),
                             _RuleBullet('④ 示例：鼠虎马猴鸡 给我打复试3，4连一组5块 → C(5,3)+C(5,4)=15 注 × ¥5 = ¥75'),
+                            _RuleBullet('⑤ 连肖赔率：不带马 2连=4 / 3连=10 / 4连=30 / 5连=100；带马 2连=3.5 / 3连=9 / 4连=28 / 5连=80'),
                           ],
                           '不中码' => const [
                             _RuleBullet('① 「不中码」为整组玩法：N 个号码合成 1 注，不逐码拆分'),
@@ -3558,7 +3559,9 @@ class RecordDetailScreen extends ConsumerWidget {
                           label: '中单',
                           sub: item.hitNumbers.isEmpty && item.hitNotes == 0
                               ? (isPending ? '等待开奖对奖' : '未命中')
-                              : '${item.hitNumbers.join(' · ')} × 赔率 1:${item.odds % 1 == 0 ? item.odds.toInt() : item.odds}',
+                              : (item.mode == '连肖复试' || item.fushiLinks.isNotEmpty
+                                  ? '${item.hitNumbers.join(' · ')} 命中 ${item.hitNotes} 组'
+                                  : '${item.hitNumbers.join(' · ')} × 赔率 1:${item.odds % 1 == 0 ? item.odds.toInt() : item.odds}'),
                           value:
                               '${item.hitNotes > 0 ? item.hitNotes : item.hitNumbers.length} 注',
                         ),
@@ -3566,7 +3569,9 @@ class RecordDetailScreen extends ConsumerWidget {
                           label: '派彩',
                           sub: isPending
                               ? '待开奖后结算'
-                              : '${item.hitNotes > 0 ? item.hitNotes : item.hitNumbers.length} 注 × ¥${item.stakePerNote} × ${item.odds % 1 == 0 ? item.odds.toInt() : item.odds} 倍',
+                              : (item.mode == '连肖复试' || item.fushiLinks.isNotEmpty
+                                  ? '按组合分档（带马/不带马）派彩 ¥${item.payout}'
+                                  : '${item.hitNotes > 0 ? item.hitNotes : item.hitNumbers.length} 注 × ¥${item.stakePerNote} × ${item.odds % 1 == 0 ? item.odds.toInt() : item.odds} 倍'),
                           value: '¥${item.payout}',
                         ),
                         _DetailRow(
