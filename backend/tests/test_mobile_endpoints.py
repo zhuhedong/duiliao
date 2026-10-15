@@ -488,8 +488,8 @@ def test_lianxiao_odds_with_and_without_ma():
     assert lianxiao_odds(4, has_ma=False) == 30.0
     assert lianxiao_odds(5, has_ma=False) == 100.0
 
-    # 带马: 2=3.5, 3=9.0, 4=28.0, 5=80.0
-    assert lianxiao_odds(2, has_ma=True) == 3.5
+    # 带马: 2=3.8, 3=9.0, 4=28.0, 5=80.0
+    assert lianxiao_odds(2, has_ma=True) == 3.8
     assert lianxiao_odds(3, has_ma=True) == 9.0
     assert lianxiao_odds(4, has_ma=True) == 28.0
     assert lianxiao_odds(5, has_ma=True) == 80.0
@@ -498,7 +498,7 @@ def test_lianxiao_odds_with_and_without_ma():
     assert default_odds_for("3连肖", xiaos=["鼠", "虎", "猴"]) == 10.0
     assert default_odds_for("3连肖", xiaos=["鼠", "虎", "马"]) == 9.0
     assert default_odds_for("2连肖", xiaos=["鼠", "虎"]) == 4.0
-    assert default_odds_for("2连肖", xiaos=["鼠", "马"]) == 3.5
+    assert default_odds_for("2连肖", xiaos=["鼠", "马"]) == 3.8
     assert default_odds_for("4连肖", xiaos=["鼠", "虎", "兔", "龙"]) == 30.0
     assert default_odds_for("4连肖", xiaos=["鼠", "虎", "兔", "马"]) == 28.0
     assert default_odds_for("5连肖", xiaos=["鼠", "虎", "兔", "龙", "蛇"]) == 100.0
@@ -674,4 +674,103 @@ def test_lianxiao_settlement_with_ma_5_yuan_yields_45_not_56():
     assert pending_rec.odds == 9.0
 
 
+def test_lianxiao_2_with_ma_odds_is_3_8():
+    """带马 2连赔率应为 3.8（不是旧的 3.5）；不带马 2连仍为 4.0。"""
+    from app.services.betting_records_service import (
+        UserBettingRecord,
+        evaluate_record_against_draw,
+        _sync_record_odds,
+        lianxiao_odds,
+    )
 
+    assert lianxiao_odds(2, has_ma=True) == 3.8
+    assert lianxiao_odds(2, has_ma=False) == 4.0
+
+    # Pending record with legacy wrong odds 3.5 must sync to 3.8
+    pending = UserBettingRecord(
+        user_id="test_user",
+        lottery="macau",
+        period="2026205",
+        mode="连肖复试",
+        play_type="2连肖",
+        xiaos=["马", "猴"],
+        numbers=[],
+        stake_per_note=5,
+        multiplier=1,
+        notes_count=1,
+        total_amount=5,
+        odds=3.5,
+        status="pending",
+        hit_numbers=[],
+        hit_notes=0,
+        payout=0,
+        net_profit=0,
+        raw_input="二连 马 猴 各5块",
+    )
+    assert _sync_record_odds(pending) is True
+    assert pending.odds == 3.8
+
+    # Settlement: ¥5 × 3.8 = ¥19 payout
+    draw = {
+        "lottery": "macau",
+        "period": "2026205",
+        "balls": ["01", "11", "03", "04", "05", "06"],  # 01=马, 11=猴
+        "tema": "45",
+    }
+    rec = UserBettingRecord(
+        user_id="test_user",
+        lottery="macau",
+        period="2026205",
+        mode="连肖复试",
+        play_type="2连肖",
+        xiaos=["马", "猴"],
+        numbers=[],
+        stake_per_note=5,
+        multiplier=1,
+        notes_count=1,
+        total_amount=5,
+        odds=3.5,
+        status="pending",
+        hit_numbers=[],
+        hit_notes=0,
+        payout=0,
+        net_profit=0,
+        raw_input="二连 马 猴 各5块",
+    )
+    assert evaluate_record_against_draw(rec, draw) is True
+    assert rec.status == "won"
+    assert rec.odds == 3.8
+    assert rec.payout == 19
+    assert rec.net_profit == 14
+
+    # 不带马 2连: ¥5 × 4.0 = ¥20
+    rec2 = UserBettingRecord(
+        user_id="test_user",
+        lottery="macau",
+        period="2026205",
+        mode="连肖复试",
+        play_type="2连肖",
+        xiaos=["牛", "猴"],
+        numbers=[],
+        stake_per_note=5,
+        multiplier=1,
+        notes_count=1,
+        total_amount=5,
+        odds=3.5,
+        status="pending",
+        hit_numbers=[],
+        hit_notes=0,
+        payout=0,
+        net_profit=0,
+        raw_input="二连 牛 猴 各5块",
+    )
+    draw2 = {
+        "lottery": "macau",
+        "period": "2026205",
+        "balls": ["06", "11", "03", "04", "05", "07"],  # 06=牛, 11=猴
+        "tema": "45",
+    }
+    assert evaluate_record_against_draw(rec2, draw2) is True
+    assert rec2.odds == 4.0
+    assert rec2.payout == 20
+    assert rec2.net_profit == 15
