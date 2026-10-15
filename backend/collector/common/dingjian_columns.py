@@ -43,6 +43,9 @@ EXTRACTORS = {
     "zhongbang_2x4m": ("all", 6, r""),
     "caishen_6ma": ("num", 6, r""),
     "seven_number_lines": ("num", 7, r""),
+    "gaoguang_2x2m": ("all", 4, r""),
+    "pyy_1x5m": ("all", 6, r""),
+    "fuge_4ma": ("num", 4, r""),
 }
 
 
@@ -481,6 +484,60 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             rows.append(ParsedRow(
                 period_raw=period,
                 preds=[{"kind": "num", "value": n, "text": selected} for n in all_nums],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "gaoguang_2x2m":
+            m = re.search(r"(?m)^\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})\s+([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})\s*$", block)
+            if not m:
+                continue
+            x1, n1, x2, n2 = m.group(1), m.group(2), m.group(3), m.group(4)
+            if x1 == x2 or n1 == n2 or not (1 <= int(n1) <= 49) or not (1 <= int(n2) <= 49):
+                continue
+            selected = f"{x1}-{n1} {x2}-{n2}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": x1, "text": selected},
+                    {"kind": "xiao", "value": x2, "text": selected},
+                    {"kind": "num", "value": n1, "text": selected},
+                    {"kind": "num", "value": n2, "text": selected},
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "pyy_1x5m":
+            m = re.search(r"【\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*】\s*【\s*((?:\d{2}[.\s·\-－]*){5})\s*】", block)
+            if not m:
+                continue
+            xiao = m.group(1)
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(2))))
+            if len(nums) != 5 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"【{xiao}】【{'.'.join(nums)}】"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "fuge_4ma":
+            m = re.search(r"(?m)^\s*((?:\d{2}[.\s·\-－]*){4})\s*$", block)
+            if not m:
+                continue
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(1))))
+            if len(nums) != 4 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = ".".join(nums)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
                 claimed=claimed_from_block(block),
                 raw_text=block,
             ))

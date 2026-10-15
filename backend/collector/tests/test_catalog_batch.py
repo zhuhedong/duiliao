@@ -226,6 +226,26 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(len(rows18), 1)
         self.assertEqual([a["value"] for a in rows18[0].preds], ["18", "30", "17", "29", "11", "23", "35"])
 
+        # 19. gaoguang_2x2m
+        raw_gg = "第284期\n猪-32 兔-28\n开奖: 猪32 中\n第288期\n跟上资料一路中奖\n开奖: 發88 中"
+        rows19 = extract_dingjian_column(raw_gg, "gaoguang_2x2m")
+        self.assertEqual(len(rows19), 1)
+        self.assertEqual([a["value"] for a in rows19[0].preds[:2]], ["猪", "兔"])
+        self.assertEqual([a["value"] for a in rows19[0].preds[2:]], ["32", "28"])
+
+        # 20. pyy_1x5m
+        raw_py = "284期：【龙】【20.32.24.36.48】 澳门玄机\n288期：【發】【快跟彭于晏中大奖】 澳门玄机"
+        rows20 = extract_dingjian_column(raw_py, "pyy_1x5m")
+        self.assertEqual(len(rows20), 1)
+        self.assertEqual(rows20[0].preds[0]["value"], "龙")
+        self.assertEqual([a["value"] for a in rows20[0].preds[1:]], ["20", "32", "24", "36", "48"])
+
+        # 21. fuge_4ma
+        raw_fg = "284期\n32.44.29.41\n开:猪32\n288期\n速速跟上中中中\n开:發88"
+        rows21 = extract_dingjian_column(raw_fg, "fuge_4ma")
+        self.assertEqual(len(rows21), 1)
+        self.assertEqual([a["value"] for a in rows21[0].preds], ["32", "44", "29", "41"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

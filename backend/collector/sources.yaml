@@ -2360,8 +2360,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_xingyun_6ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师幸运之星精选与赠送六码
+  enabled: false
+  remark: 上游栏目 1789202315183 已下线
   extra:
     upstream_id: '1789202315183'
     parser: xingyun_6ma
@@ -2525,8 +2525,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_jinpai_1x3m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师金牌秘报一肖防三码
+  enabled: false
+  remark: 上游栏目 1791806110111 已下线
   extra:
     upstream_id: '1791806110111'
     parser: jinpai_1x3m
@@ -2592,6 +2592,51 @@ sources:
     parser: seven_number_lines
     kind: num
     path: /api/v1/index/config/byid/1791893034357
+- source_id: dj_gaoguang_2x2m
+  source_name: 顶尖一路高光二肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_gaoguang_2x2m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师一路高光奖二肖二码
+  extra:
+    upstream_id: '1791983157261'
+    parser: gaoguang_2x2m
+    kind: mixed
+    path: /api/v1/index/config/byid/1791983157261
+- source_id: dj_pyy_1x5m
+  source_name: 顶尖彭于晏一肖五码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_pyy_1x5m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师彭于晏一肖五码
+  extra:
+    upstream_id: '1789044190234'
+    parser: pyy_1x5m
+    kind: mixed
+    path: /api/v1/index/config/byid/1789044190234
+- source_id: dj_fuge_4ma
+  source_name: 顶尖富哥四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_fuge_4ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师富哥四码
+  extra:
+    upstream_id: '1787141212801'
+    parser: fuge_4ma
+    kind: num
+    path: /api/v1/index/config/byid/1787141212801
 draw:
   macau:
     adapter: getLastLottery
