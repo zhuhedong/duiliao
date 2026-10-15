@@ -35,9 +35,12 @@ def extract(raw: str) -> list[ParsedRow]:
         if match is None:
             continue
         period_raw = match.group("period")
-        numbers = atoms_num(match.group("candidates"))
+        candidates = match.group("candidates")
+        if re.search(r"00|88|[？?]|等待|更新", candidates):
+            continue
+        numbers = atoms_num(candidates)
         if len(numbers) != 5:
-            raise ValueError(f"{period_raw}期五不中必须恰好5个不同号码，实际{len(numbers)}个")
+            continue
         rows.append(
             ParsedRow(
                 period_raw=period_raw,

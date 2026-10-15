@@ -20,6 +20,7 @@ UA = (
 
 _MAX_REDIRECTS = 5
 _ALLOWED_SCHEMES = {"http", "https"}
+_FAKE_IP_NET = ipaddress.ip_network("198.18.0.0/15")
 
 
 def _timeout(timeout: float | httpx.Timeout | None) -> httpx.Timeout:
@@ -40,6 +41,8 @@ def _host_is_blocked(hostname: str, port: int | None = None, *, resolve_dns: boo
 
     def _ip_blocked(address: str) -> bool:
         ip = ipaddress.ip_address(address)
+        if ip in _FAKE_IP_NET:
+            return False
         return (
             ip.is_loopback
             or ip.is_private

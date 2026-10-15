@@ -20,6 +20,7 @@ log = logging.getLogger("duiliao.settings")
 
 _ALLOWED_PROVIDER_SCHEMES = {"http", "https"}
 _MAX_AI_REQUEST_TIMEOUT = 20.0
+_FAKE_IP_NET = ipaddress.ip_network("198.18.0.0/15")
 
 
 def validate_external_url(value: str, *, resolve_dns: bool = True) -> str:
@@ -49,6 +50,8 @@ def validate_external_url(value: str, *, resolve_dns: bool = True) -> str:
 
     def _blocked(address: str) -> bool:
         ip = ipaddress.ip_address(address)
+        if ip in _FAKE_IP_NET:
+            return False
         return (
             ip.is_loopback
             or ip.is_private

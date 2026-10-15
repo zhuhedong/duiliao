@@ -18,6 +18,7 @@ from dingji_catalog import _parse_amtz_records
 from dingjian_shenwei import extract as extract_shenwei
 from dingjian_vip import extract as extract_vip
 from dingjian_wuma import extract as extract_wuma
+import wu_buzhong
 from source_catalog import classify_content
 from tongtian_catalog import analyze_script, compare_inventory, discover_homepage_scripts, extract_iframe_paths, extract_script_paths, reconstruct_script_html
 import tongtian_catalog
@@ -269,6 +270,25 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual([item["value"] for item in rows[1].preds], ["马", "虎"])
         self.assertEqual(rows[1].claimed["xiao"], "马")
         self.assertEqual(rows[2].claimed["status"], "pending")
+
+    def test_wu_buzhong_extract_filters_placeholders(self):
+        raw = """
+        <p>
+        286期:五不中【44-05-18-26-34】准<br>
+        288期:五不中【21-05-43-16-28】准<br>
+        289期:五不中【00-00-00-00-00】准<br>
+        290期:五不中【00-00-00-00-00】准<br>
+        291期:五不中【88-88-88-88-88】准<br>
+        292期:五不中【等待公布】准<br>
+        293期:五不中【01-02-03】准
+        </p>
+        """
+        rows = wu_buzhong.extract(raw)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].period_raw, "286")
+        self.assertEqual([atom["value"] for atom in rows[0].preds], ["44", "05", "18", "26", "34"])
+        self.assertEqual(rows[1].period_raw, "288")
+        self.assertEqual([atom["value"] for atom in rows[1].preds], ["21", "05", "43", "16", "28"])
 
 
 class TestTongtianCatalog(unittest.TestCase):

@@ -109,6 +109,7 @@ def test_http_assert_safe_url_blocks_private() -> None:
     with pytest.raises(ValueError, match="http"):
         assert_safe_url("file:///etc/passwd")
     assert assert_safe_url("https://example.com/path", resolve_dns=False) == "https://example.com/path"
+    assert assert_safe_url("http://198.18.3.171/path", resolve_dns=False) == "http://198.18.3.171/path"
 
 
 def test_http_get_revalidates_redirect_hops(monkeypatch) -> None:
