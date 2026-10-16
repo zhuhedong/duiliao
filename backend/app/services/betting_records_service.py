@@ -55,7 +55,7 @@ DEFAULT_ODDS: dict[str, float] = {
     "平特一肖": 2.05,
     "特肖": 11.5,
     "2连肖": 4.0,
-    "2连肖（带马）": 3.5,
+    "2连肖（带马）": 3.8,
     "2连肖（不带马）": 4.0,
     "2连肖（复试）": 4.0,
     "2 连": 4.0,
@@ -94,7 +94,7 @@ LIANXIAO_ODDS_WITHOUT_MA: dict[int, float] = {
 }
 
 LIANXIAO_ODDS_WITH_MA: dict[int, float] = {
-    2: 3.5,
+    2: 3.8,
     3: 9.0,
     4: 28.0,
     5: 80.0,
@@ -106,10 +106,10 @@ def lianxiao_odds(k: int, has_ma: bool) -> float:
 
     User-configured odds standard:
     - 不带马: 2连=4.0, 3连=10.0, 4连=30.0, 5连=100.0
-    - 带马:   2连=3.5, 3连=9.0,  4连=28.0, 5连=80.0
+    - 带马:   2连=3.8, 3连=9.0,  4连=28.0, 5连=80.0
     """
     if has_ma:
-        return LIANXIAO_ODDS_WITH_MA.get(k, 80.0 if k >= 5 else 3.5)
+        return LIANXIAO_ODDS_WITH_MA.get(k, 80.0 if k >= 5 else 3.8)
     return LIANXIAO_ODDS_WITHOUT_MA.get(k, 100.0 if k >= 5 else 4.0)
 
 
@@ -374,7 +374,7 @@ def compute_notes_count(mode: str, play_type: str, numbers: list[str], xiaos: li
     return max(1, len(numbers))
 
 
-_LEGACY_LIANXIAO_ODDS: set[float] = {4.2, 11.2, 33.0, 95.0, 3.8, 9.8}
+_LEGACY_LIANXIAO_ODDS: set[float] = {4.2, 11.2, 33.0, 95.0, 3.5, 9.8}
 
 
 def _sync_record_odds(record: UserBettingRecord) -> bool:
