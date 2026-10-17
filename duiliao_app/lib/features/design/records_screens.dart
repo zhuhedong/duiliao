@@ -1962,37 +1962,98 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
       '不中码' => '6 不中',
       _ => '特码',
     };
-    _multiplier = _mode == '连肖复试' ? 2 : 1;
+    _multiplier = 1;
     _inputController = TextEditingController(
-      text: widget.initialText ?? _defaultTextForMode(_mode),
+      text: widget.initialText ?? '',
     );
-    _stakeController = TextEditingController(
-      text: _mode == '号码单式' ? '5' : '10',
-    );
+    _stakeController = TextEditingController();
     _noteController = TextEditingController();
-    if (widget.initialText != null) {
-      final parsedStake = _extractStake(widget.initialText!);
-      if (parsedStake != null) {
-        _stakeController.text = '$parsedStake';
-      }
-      if (RegExp(r'复[试式]').hasMatch(widget.initialText!) ||
-          _lianxiaoExprRe.hasMatch(widget.initialText!)) {
-        _mode = '连肖复试';
-        final ks = _parseFushiLinks(widget.initialText!);
-        _selectedPlay = '${ks.join(",")} 连';
-        if (!RegExp(r'(?:倍\s*\d+|\d+\s*倍)').hasMatch(widget.initialText!)) {
-          _multiplier = 1;
-        }
-      }
+    if (widget.initialText != null && widget.initialText!.trim().isNotEmpty) {
+      _applyQuickText(widget.initialText!);
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _autoReadClipboard();
+      });
     }
   }
 
-  String _defaultTextForMode(String mode) {
-    return switch (mode) {
-      '连肖复试' => '龙牛猴鸡兔复试4连个数10',
-      '不中码' => '02.04.06.08.10.12·6不中个数10',
-      _ => '18.42.39.27.28.14.32.11.26.16个数5',
-    };
+  bool _looksLikeBettingInput(String s) {
+    final trimmed = s.trim();
+    if (trimmed.isEmpty) return false;
+    for (final x in Lottery2026Lookup.xiaoList) {
+      if (trimmed.contains(x)) return true;
+    }
+    final matches = RegExp(r'(?<!\d)([0-4]?\d)(?!\d)').allMatches(trimmed);
+    for (final m in matches) {
+      final n = int.tryParse(m.group(1) ?? '');
+      if (n != null && n >= 1 && n <= 49) return true;
+    }
+    return RegExp(
+      r'(?:连|不中|特码|正码|平特|各数|个数|各|每码|单注|复[试式])',
+    ).hasMatch(trimmed);
+  }
+
+  Future<void> _autoReadClipboard({bool showToast = true}) async {
+    try {
+      final data = await Clipboard.getData(Clipboard.kTextPlain);
+      if (!mounted) return;
+      final raw = data?.text?.trim();
+      if (raw == null || raw.isEmpty) return;
+      if (_inputController.text.trim().isNotEmpty) return;
+      if (!_looksLikeBettingInput(raw)) return;
+
+      _applyQuickText(raw);
+
+      if (showToast && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.content_paste_rounded,
+                  size: 16,
+                  color: Colors.white,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '已自动读取剪切板：${raw.length > 24 ? '${raw.substring(0, 24)}…' : raw}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (!mounted) return;
+    final raw = data?.text?.trim();
+    if (raw != null && raw.isNotEmpty) {
+      _applyQuickText(raw);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('已读取剪切板内容'),
+          duration: Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('剪切板为空'),
+          duration: Duration(seconds: 1),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _applyQuickText(String text) {
@@ -2001,20 +2062,33 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     if (parsedS != null) {
       _stakeController.text = '$parsedS';
     }
+    final multMatch = RegExp(r'(?:倍\s*(\d+)|(\d+)\s*倍)').firstMatch(text);
+    if (multMatch != null) {
+      final parsedMult = int.tryParse(
+        multMatch.group(1) ?? multMatch.group(2) ?? '',
+      );
+      if (parsedMult != null && parsedMult >= 1) {
+        _multiplier = parsedMult;
+      }
+    } else {
+      _multiplier = 1;
+    }
     if ((RegExp(r'复[试式]').hasMatch(text) || _lianxiaoExprRe.hasMatch(text)) &&
         _parseXiaos(text).isNotEmpty) {
       _mode = '连肖复试';
       final ks = _parseFushiLinks(text);
       _selectedPlay = '${ks.join(",")} 连';
-      _multiplier = 1;
     } else if (text.contains('不中')) {
       _mode = '不中码';
-      _selectedPlay = '6 不中';
-      _multiplier = 1;
+      final m = RegExp(r'(\d+)\s*不中').firstMatch(text);
+      if (m != null) {
+        _selectedPlay = '${m.group(1)} 不中';
+      } else {
+        _selectedPlay = '6 不中';
+      }
     } else {
       _mode = '号码单式';
       _selectedPlay = text.contains('正码') ? '正码' : '特码';
-      _multiplier = 1;
     }
     setState(() {});
   }
@@ -2198,9 +2272,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
         '不中码' => '6 不中',
         _ => '特码',
       };
-      _multiplier = nextMode == '连肖复试' ? 2 : 1;
-      _inputController.text = _defaultTextForMode(nextMode);
-      _stakeController.text = nextMode == '号码单式' ? '5' : '10';
+      _multiplier = 1;
     });
   }
 
@@ -2371,8 +2443,8 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
 
     final text = _inputController.text;
     final parsedStake = _extractStake(text);
-    final stake =
-        int.tryParse(_stakeController.text.trim()) ?? parsedStake ?? 5;
+    final typedStake = int.tryParse(_stakeController.text.trim());
+    final stake = typedStake ?? parsedStake ?? 5;
 
     final numbers = _parseNumbers(text);
     final xiaos = _parseXiaos(text);
@@ -2388,10 +2460,11 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
         .map((k) => 'C(${xiaos.length},$k)')
         .join('+');
 
+    final hasInput = text.trim().isNotEmpty;
     final notesCount = switch (_mode) {
-      '连肖复试' => fushiCombos.isEmpty ? 1 : fushiCombos.length,
-      '不中码' => 1,
-      _ => numbers.isEmpty ? 1 : numbers.length,
+      '连肖复试' => fushiCombos.length,
+      '不中码' => (!hasInput || numbers.isEmpty) ? 0 : 1,
+      _ => (!hasInput || numbers.isEmpty) ? 0 : numbers.length,
     };
     final totalAmount = notesCount * stake * _multiplier;
 
@@ -2557,22 +2630,49 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 },
                                 style: context.texts.labelSmall,
                               ),
-                              if (text.isNotEmpty)
-                                InkWell(
-                                  onTap: () => setState(() {
-                                    _inputController.clear();
-                                  }),
-                                  child: Text(
-                                    '清空输入',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  InkWell(
+                                    onTap: _pasteFromClipboard,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.content_paste_rounded,
+                                          size: 13,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          '读取剪切板',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ),
+                                  if (text.isNotEmpty) ...[
+                                    const SizedBox(width: 12),
+                                    InkWell(
+                                      onTap: () => setState(() {
+                                        _inputController.clear();
+                                      }),
+                                      child: Text(
+                                        '清空输入',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -2604,7 +2704,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 if (parsedMult != null && parsedMult >= 1) {
                                   _multiplier = parsedMult;
                                 }
-                              } else if (v != _defaultTextForMode('连肖复试')) {
+                              } else {
                                 _multiplier = 1;
                               }
                               setState(() {});
@@ -2649,44 +2749,46 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          Builder(
-                            builder: (context) {
-                              final pk = JumpCodeMatcher.parseExpression(text);
-                              final killLabels = [
-                                ...pk.excludedConditions,
-                                for (final n in pk.excludedNumbers)
-                                  n.toString().padLeft(2, '0'),
-                              ];
-                              return Wrap(
-                                spacing: 8,
-                                runSpacing: 6,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  GlassStatusPill(
-                                    label: switch (_mode) {
-                                      '连肖复试' =>
-                                        '已识别 ${xiaos.length} 个生肖 · 复试 $fushiKLabel 连 · 单注 ¥$stake',
-                                      '不中码' =>
-                                        '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
-                                      _ =>
-                                        killLabels.isNotEmpty
-                                            ? '已杀 [${killLabels.join('、')}] · 保留 ${numbers.length} 码 · 单注 ¥$stake'
-                                            : (xiaos.isNotEmpty
-                                                  ? '已识别 ${xiaos.join('')}转 ${numbers.length} 个号码 · 单注 ¥$stake'
-                                                  : '已识别 ${numbers.length} 个号码 · 单注 ¥$stake'),
-                                    },
-                                    tone: GlassPillTone.success,
-                                  ),
-                                  const GlassStatusPill(
-                                    label: '格式有效',
-                                    tone: GlassPillTone.primary,
-                                    showDot: false,
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
+                          if (text.trim().isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Builder(
+                              builder: (context) {
+                                final pk = JumpCodeMatcher.parseExpression(text);
+                                final killLabels = [
+                                  ...pk.excludedConditions,
+                                  for (final n in pk.excludedNumbers)
+                                    n.toString().padLeft(2, '0'),
+                                ];
+                                return Wrap(
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    GlassStatusPill(
+                                      label: switch (_mode) {
+                                        '连肖复试' =>
+                                          '已识别 ${xiaos.length} 个生肖 · 复试 $fushiKLabel 连 · 单注 ¥$stake',
+                                        '不中码' =>
+                                          '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
+                                        _ =>
+                                          killLabels.isNotEmpty
+                                              ? '已杀 [${killLabels.join('、')}] · 保留 ${numbers.length} 码 · 单注 ¥$stake'
+                                              : (xiaos.isNotEmpty
+                                                    ? '已识别 ${xiaos.join('')}转 ${numbers.length} 个号码 · 单注 ¥$stake'
+                                                    : '已识别 ${numbers.length} 个号码 · 单注 ¥$stake'),
+                                      },
+                                      tone: GlassPillTone.success,
+                                    ),
+                                    const GlassStatusPill(
+                                      label: '格式有效',
+                                      tone: GlassPillTone.primary,
+                                      showDot: false,
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -2712,7 +2814,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                   ZTag(label: x, variant: ZTagVariant.primary),
                                 if (xiaos.isEmpty)
                                   Text(
-                                    '请输入至少 ${fushiKs.first} 个生肖',
+                                    '等待输入生肖内容',
                                     style: context.texts.bodySmall,
                                   ),
                               ],
@@ -2763,6 +2865,13 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                     bose: Lottery2026Lookup.boseForNumber(nStr),
                                     size: 28,
                                     showColorName: false,
+                                  ),
+                                if (numbers.isEmpty)
+                                  Text(
+                                    _mode == '不中码'
+                                        ? '等待输入不中码号码'
+                                        : '等待输入号码或生肖',
+                                    style: context.texts.bodySmall,
                                   ),
                               ],
                             ),
@@ -2821,11 +2930,17 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 child: Text(
                                   switch (_mode) {
                                     '连肖复试' =>
-                                      '复试 $fushiKLabel 连 · $fushiFormulaLabel = $notesCount 注',
+                                      xiaos.isEmpty
+                                          ? '等待录入生肖'
+                                          : '复试 $fushiKLabel 连 · $fushiFormulaLabel = $notesCount 注',
                                     '不中码' =>
-                                      '整组 1 注 × ¥$stake × $_multiplier 倍',
+                                      numbers.isEmpty
+                                          ? '等待录入号码'
+                                          : '整组 1 注 × ¥$stake × $_multiplier 倍',
                                     _ =>
-                                      '共 $notesCount 注 × ¥$stake × $_multiplier 倍',
+                                      numbers.isEmpty
+                                          ? '等待录入号码或生肖'
+                                          : '共 $notesCount 注 × ¥$stake × $_multiplier 倍',
                                   },
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -3102,6 +3217,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                       onChanged: (_) => setState(() {}),
                                       decoration: const InputDecoration(
                                         prefixText: '¥ ',
+                                        hintText: '5',
                                       ),
                                     ),
                                   ],
@@ -3218,7 +3334,8 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                         child: GlassButton(
                           height: 42,
                           onPressed: () {
-                            if (_mode == '连肖复试' && xiaos.isEmpty) {
+                            if (_mode == '连肖复试' &&
+                                (xiaos.isEmpty || fushiCombos.isEmpty)) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('请先输入有效的生肖内容')),
                               );
@@ -3227,6 +3344,12 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             if (_mode != '连肖复试' && numbers.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('请先输入有效的号码或生肖内容')),
+                              );
+                              return;
+                            }
+                            if (stake <= 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('请输入有效的单注金额')),
                               );
                               return;
                             }
