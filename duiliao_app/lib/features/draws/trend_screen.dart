@@ -10,7 +10,6 @@ import '../../domain/models/draw.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/number_ball.dart';
-import '../design/records_screens.dart';
 import 'draws_providers.dart';
 
 enum TrendTab { draw, wei, tou, bose, wuxing, shengxiao }

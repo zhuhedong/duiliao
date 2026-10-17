@@ -10,7 +10,6 @@ import '../../domain/models/draw.dart';
 import '../../ui/glass/glass_widgets.dart';
 import '../../ui/theme.dart';
 import '../../ui/widgets/number_ball.dart';
-import '../design/records_screens.dart';
 import 'draws_providers.dart';
 
 enum RankingTab { zodiac, tail, number, bose, wuxing }
@@ -482,7 +481,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: item.numbers.map((num) {
+                    children: item.numbers.map((n) {
                       return Padding(
                         padding: const EdgeInsets.only(right: 4),
                         child: Container(
@@ -492,7 +491,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            num,
+                            n,
                             style: const TextStyle(
                               fontSize: 10,
                               fontFamily: 'monospace',
@@ -636,7 +635,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: item.numbers.map((num) {
+                    children: item.numbers.map((n) {
                       return Padding(
                         padding: const EdgeInsets.only(right: 4),
                         child: Container(
@@ -646,7 +645,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            num,
+                            n,
                             style: const TextStyle(
                               fontSize: 10,
                               fontFamily: 'monospace',
