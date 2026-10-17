@@ -60,6 +60,16 @@ def _prepare_databases():
     yield
 
 
+@pytest.fixture(autouse=True)
+def _reset_stats_cache():
+    """Ensure in-memory statistics cache does not leak across test boundaries."""
+    from app.services.stats_cache_service import stats_cache
+
+    stats_cache.clear()
+    yield
+    stats_cache.clear()
+
+
 @pytest.fixture(scope="session")
 def seeded_draws():
     """Load the checked-in macau draw fixture so judging has something to judge.

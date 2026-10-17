@@ -83,10 +83,19 @@ async def _safe(label: str, fn, *args, **kwargs) -> Any:
 async def home(
     lottery: str = Query("macau"),
     play_type: str = Query("pingte_xiao"),
+    force_refresh: bool = Query(False),
     user: User = _user,
 ) -> dict[str, Any]:
     """Everything the home screen needs, in one encrypted round-trip."""
     _validate_lottery(lottery)
+    from app.services.stats_cache_service import stats_cache
+
+    cache_key = f"mobile_home:{lottery}:{play_type}"
+    if not force_refresh:
+        cached = stats_cache.get(cache_key)
+        if cached is not None:
+            cached["collect_worker"] = collect_job_worker.get_status()
+            return cached
 
     draws, latest_period_info, overview = await asyncio.gather(
         _safe("draws", cb.list_draws, lottery=lottery, limit=1, offset=0),
@@ -157,7 +166,7 @@ async def home(
             "sources": (ratings.get("sources") or [])[:5],
         }
 
-    return {
+    out = {
         "ok": True,
         "lottery": lottery,
         "play_type": play_type,
@@ -175,6 +184,8 @@ async def home(
         "collect_worker": collect_job_worker.get_status(),
         "rule_version": await _safe("rule_version", _rule_version),
     }
+    stats_cache.set(cache_key, out, ttl=300)
+    return out
 
 
 def _rule_version() -> str | None:

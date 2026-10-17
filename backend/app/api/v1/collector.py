@@ -358,9 +358,10 @@ def list_draws(
 def get_trend_endpoint(
     lottery: str = "macau",
     limit: int = 100,
+    force_refresh: bool = False,
 ) -> dict[str, Any]:
     """Return trend draw data compatible with https://djds-129.dhd1k5.com/api/v1/trend/getTrend."""
-    return cb.get_trend(lottery=lottery, limit=limit)
+    return cb.get_trend(lottery=lottery, limit=limit, force_refresh=force_refresh)
 
 
 @router.get("/pingte-ranking")
@@ -369,10 +370,49 @@ def get_pingte_ranking_endpoint(
     limit: int = 100,
     dimension: str = "all",
     order_by: str = "count_desc",
+    force_refresh: bool = False,
     _: User = _user,
 ) -> dict[str, Any]:
     """Return Pingte appearance rankings (生肖, 尾数, 号码, 波色, 五行)."""
-    return cb.get_pingte_ranking(lottery=lottery, limit=limit, dimension=dimension, order_by=order_by)
+    return cb.get_pingte_ranking(
+        lottery=lottery,
+        limit=limit,
+        dimension=dimension,
+        order_by=order_by,
+        force_refresh=force_refresh,
+    )
+
+
+@router.get("/cache/stats")
+def get_stats_cache_status(_: User = _user) -> dict[str, Any]:
+    """Inspect current server-side statistics cache status and hit rates."""
+    from app.services.stats_cache_service import stats_cache
+
+    return stats_cache.stats()
+
+
+@router.post("/cache/warmup")
+def warmup_stats_cache(lottery: str | None = None, _: User = _staff) -> dict[str, Any]:
+    """Manually trigger background cache pre-warming."""
+    from app.services.stats_cache_service import stats_cache
+
+    if lottery:
+        stats_cache.warmup_lottery(lottery)
+    else:
+        stats_cache.warmup_all()
+    return {"ok": True, "message": "预热完成", "stats": stats_cache.stats()}
+
+
+@router.post("/cache/clear")
+def clear_stats_cache(lottery: str | None = None, _: User = _staff) -> dict[str, Any]:
+    """Purge server-side statistics cache."""
+    from app.services.stats_cache_service import stats_cache
+
+    if lottery:
+        count = stats_cache.invalidate_lottery(lottery)
+        return {"ok": True, "message": f"已清理 {lottery} 的 {count} 个缓存项"}
+    stats_cache.clear()
+    return {"ok": True, "message": "已清空所有缓存"}
 
 
 

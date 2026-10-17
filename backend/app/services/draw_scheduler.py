@@ -101,6 +101,15 @@ class DrawScheduler:
                 msg = f"[{tag}] 成功: 新增 {res.get('inserted', 0)}, 更新 {res.get('updated', 0)}, 对奖 {res.get('judged', 0)} 条"
                 self._add_log(lottery, "success", msg, res)
                 self.last_success_at = _now_str()
+
+                # If new/updated draws or manual trigger, recompute & warm up cache
+                if res.get("inserted", 0) > 0 or res.get("updated", 0) > 0 or manual:
+                    try:
+                        from app.services.stats_cache_service import stats_cache
+                        stats_cache.on_draw_updated(lottery)
+                        asyncio.create_task(stats_cache.warmup_lottery_async(lottery))
+                    except Exception as ce:
+                        logger.warning("Cache recompute trigger failed for %s: %s", lottery, ce)
             except Exception as exc:
                 has_error = True
                 err_msg = str(exc)

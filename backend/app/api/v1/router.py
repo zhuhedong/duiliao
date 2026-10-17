@@ -17,8 +17,8 @@ api_router.include_router(settings.router)
 
 
 @api_router.get("/trend/getTrend", tags=["trend"])
-def get_trend_compatible(lottery: str = "macau", limit: int = 100) -> dict[str, Any]:
-    return cb.get_trend(lottery=lottery, limit=limit)
+def get_trend_compatible(lottery: str = "macau", limit: int = 100, force_refresh: bool = False) -> dict[str, Any]:
+    return cb.get_trend(lottery=lottery, limit=limit, force_refresh=force_refresh)
 
 
 @api_router.get("/health", tags=["meta"])

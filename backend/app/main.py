@@ -101,12 +101,15 @@ async def lifespan(app: FastAPI):
     task_source = asyncio.create_task(source_scheduler.run_loop())
     task_jobs = asyncio.create_task(collect_job_worker.run_loop())
     task_host_pool = asyncio.create_task(host_pool_scheduler.run_loop())
+    from app.services.stats_cache_service import stats_cache
+    task_cache_warmup = asyncio.create_task(stats_cache.warmup_background())
     yield
     task_purge.cancel()
     task_draw.cancel()
     task_source.cancel()
     task_jobs.cancel()
     task_host_pool.cancel()
+    task_cache_warmup.cancel()
 
 
 app = FastAPI(

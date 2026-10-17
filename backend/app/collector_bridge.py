@@ -470,6 +470,14 @@ def sync_draws(
             )
     except Exception:
         pass
+
+    try:
+        if isinstance(res, dict) and (res.get("inserted", 0) > 0 or res.get("updated", 0) > 0):
+            from app.services.stats_cache_service import stats_cache
+            stats_cache.on_draw_updated(lottery)
+    except Exception:
+        pass
+
     return res
 
 
@@ -632,11 +640,24 @@ def ratings(
     windows: tuple[int, ...] = (30, 50, 100),
     period_from: str | None = None,
     period_to: str | None = None,
+    force_refresh: bool = False,
 ) -> dict[str, Any]:
+    from app.services.stats_cache_service import stats_cache
+
+    is_standard = not period_from and not period_to
+    cache_key = f"ratings:{str(lottery).lower()}:{play_type}:{','.join(str(w) for w in windows)}"
+    if is_standard and not force_refresh:
+        cached = stats_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     bootstrap()
     import analytics
 
-    return analytics.ratings(lottery, play_type, windows, period_from, period_to)
+    res = analytics.ratings(lottery, play_type, windows, period_from, period_to)
+    if is_standard:
+        stats_cache.set(cache_key, res, ttl=1800)
+    return res
 
 
 def monitor(lottery: str | None = None) -> dict[str, Any]:
@@ -805,8 +826,17 @@ def list_draws(
     return {"ok": True, "total": int(total), "count": len(items), "items": items}
 
 
-def get_trend(lottery: str = "macau", limit: int = 100) -> dict[str, Any]:
+def get_trend(lottery: str = "macau", limit: int = 100, force_refresh: bool = False) -> dict[str, Any]:
     """Retrieve draws formatted for trend chart, matching https://djds-129.dhd1k5.com/api/v1/trend/getTrend."""
+    from app.services.stats_cache_service import stats_cache
+
+    lottery_key = str(lottery).lower()
+    cache_key = f"trend:{lottery_key}:{limit}"
+    if not force_refresh:
+        cached = stats_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     bootstrap()
     from sqlalchemy import select
     from db import session_scope
@@ -839,13 +869,15 @@ def get_trend(lottery: str = "macau", limit: int = 100) -> dict[str, Any]:
             "code": code,
         })
 
-    return {
+    result = {
         "code": 1,
         "msg": "操作成功",
         "data": data,
         "lottery": lottery,
         "total": len(data),
     }
+    stats_cache.set(cache_key, result, ttl=3600)
+    return result
 
 
 def get_pingte_ranking(
@@ -853,8 +885,18 @@ def get_pingte_ranking(
     limit: int = 100,
     dimension: str = "all",
     order_by: str = "count_desc",
+    force_refresh: bool = False,
 ) -> dict[str, Any]:
     """Calculate Pingte (7 winning balls: 正码 1-6 + 特码) appearance rankings."""
+    from app.services.stats_cache_service import stats_cache
+
+    lottery_key = str(lottery).lower()
+    cache_key = f"pingte_ranking:{lottery_key}:{limit}:{dimension}:{order_by}"
+    if not force_refresh:
+        cached = stats_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     bootstrap()
     from datetime import date
     from sqlalchemy import select
@@ -1152,7 +1194,7 @@ def get_pingte_ranking(
         tail_ranking.sort(key=lambda x: -x["max_consecutive"])
         number_ranking.sort(key=lambda x: -x["max_consecutive"])
 
-    return {
+    result = {
         "ok": True,
         "lottery": lottery,
         "sample_periods": N,
@@ -1164,6 +1206,8 @@ def get_pingte_ranking(
         "bose_ranking": bose_ranking,
         "wuxing_ranking": wuxing_ranking,
     }
+    stats_cache.set(cache_key, result, ttl=3600)
+    return result
 
 
 
@@ -1598,15 +1642,15 @@ def rules_catalog() -> list[dict[str, Any]]:
 # --------------------------------------------------------------------------- #
 # Workbench overview (dashboard aggregation)
 # --------------------------------------------------------------------------- #
-def overview() -> dict[str, Any]:
-    """Aggregate the workbench headline business stats in a single read.
+def overview(force_refresh: bool = False) -> dict[str, Any]:
+    """Aggregate the workbench headline business stats in a single read."""
+    from app.services.stats_cache_service import stats_cache
 
-    One call powers the whole dashboard: headline counters, judge hit-rate
-    (overall / today), a 7-day per-draw-day trend, latest draw per lottery,
-    a source hit-rate leaderboard, play-type distribution, coverage alerts
-    (lag / missing / never-collected) and schedule bookkeeping. Everything is
-    a read; datetimes are naive CN-local like the rest of the collector schema.
-    """
+    if not force_refresh:
+        cached = stats_cache.get("overview")
+        if cached is not None:
+            return cached
+
     bootstrap()
     from bisect import bisect_right
     from datetime import datetime, timedelta, timezone
@@ -1894,6 +1938,8 @@ def overview() -> dict[str, Any]:
         "upcoming_schedules": upcoming,
         "recent_logs": recent_logs,
     }
+    stats_cache.set("overview", result, ttl=300)
+    return result
 
 
 # --------------------------------------------------------------------------- #
