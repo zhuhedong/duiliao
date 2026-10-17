@@ -46,6 +46,8 @@ EXTRACTORS = {
     "gaoguang_2x2m": ("all", 4, r""),
     "pyy_1x5m": ("all", 6, r""),
     "fuge_4ma": ("num", 4, r""),
+    "xiaokapian_1x2m": ("all", 3, r""),
+    "jingxuan_7ma": ("num", 7, r""),
 }
 
 
@@ -533,6 +535,41 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
                 continue
             nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(1))))
             if len(nums) != 4 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = ".".join(nums)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "xiaokapian_1x2m":
+            m = re.search(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})\s*[-－]\s*(\d{2})", block)
+            if not m:
+                continue
+            xiao, n1, n2 = m.group(1), m.group(2), m.group(3)
+            nums = [n1, n2]
+            if any(not 1 <= int(n) <= 49 for n in nums) or len(set(nums)) != 2:
+                continue
+            selected = f"{xiao}-{n1}-{n2}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    {"kind": "num", "value": n1, "text": selected},
+                    {"kind": "num", "value": n2, "text": selected},
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "jingxuan_7ma":
+            m = re.search(r"【\s*((?:\d{2}[.\s·\-－]*){7})\s*】", block)
+            if not m:
+                continue
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(1))))
+            if len(nums) != 7 or any(not 1 <= int(n) <= 49 for n in nums):
                 continue
             selected = ".".join(nums)
             rows.append(ParsedRow(

@@ -2330,8 +2330,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_wangzhe_1x1m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师王者计划一肖一码及防码
+  enabled: false
+  remark: 顶尖大师王者计划一肖一码及防码；上游栏目 1787907688319 已消失，巡检治理自动停用
   extra:
     upstream_id: '1787907688319'
     parser: wangzhe_defense
@@ -2420,8 +2420,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_kaijiang_2xiao.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师开奖二肖密函
+  enabled: false
+  remark: 顶尖大师开奖二肖密函；上游栏目 1788437893291 已消失，巡检治理自动停用
   extra:
     upstream_id: '1788437893291'
     parser: kaijiang_2xiao
@@ -2465,8 +2465,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_zhanggong_2xiao.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师神算张公二肖暴富
+  enabled: false
+  remark: 顶尖大师神算张公二肖暴富；上游栏目 1791716079749 已消失，巡检治理自动停用
   extra:
     upstream_id: '1791716079749'
     parser: zhanggong_2xiao
@@ -2570,8 +2570,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_caishen_6ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师财神送特六码
+  enabled: false
+  remark: 顶尖大师财神送特六码；上游栏目 1785391179670 已消失，巡检治理自动停用
   extra:
     upstream_id: '1785391179670'
     parser: caishen_6ma
@@ -2600,8 +2600,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_gaoguang_2x2m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师一路高光奖二肖二码
+  enabled: false
+  remark: 顶尖大师一路高光奖二肖二码；上游栏目 1791983157261 已消失，巡检治理自动停用
   extra:
     upstream_id: '1791983157261'
     parser: gaoguang_2x2m
@@ -2630,13 +2630,43 @@ sources:
   hit_mode: any
   script_path: sources/dj_fuge_4ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师富哥四码
+  enabled: false
+  remark: 顶尖大师富哥四码；上游栏目 1787141212801 已消失，巡检治理自动停用
   extra:
     upstream_id: '1787141212801'
     parser: fuge_4ma
     kind: num
     path: /api/v1/index/config/byid/1787141212801
+- source_id: dj_xiaokapian_1x2m
+  source_name: 顶尖澳彩小卡片一肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_xiaokapian_1x2m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师澳彩小卡片一肖二码
+  extra:
+    upstream_id: '1792067301601'
+    parser: xiaokapian_1x2m
+    kind: mixed
+    path: /api/v1/index/config/byid/1792067301601
+- source_id: dj_jingxuan_7ma
+  source_name: 顶尖精选七码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_jingxuan_7ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师精选七码
+  extra:
+    upstream_id: '1786796767890'
+    parser: jingxuan_7ma
+    kind: num
+    path: /api/v1/index/config/byid/1786796767890
 draw:
   macau:
     adapter: getLastLottery
