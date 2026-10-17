@@ -13,6 +13,8 @@ import { CollectorMonitorPage } from "./pages/collector/MonitorPage";
 import { CollectorFetchPlatformPage } from "./pages/collector/FetchPlatformPage";
 import { CollectorNumbersPage } from "./pages/collector/NumbersPage";
 import { CollectorAIAnalysisPage } from "./pages/collector/AIAnalysisPage";
+import { TrendPage } from "./pages/collector/TrendPage";
+import { PingteRankingPage } from "./pages/collector/PingteRankingPage";
 import { SystemSettingsPage } from "./pages/SystemSettingsPage";
 
 export function App() {
@@ -34,6 +36,10 @@ export function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/collector/sources" element={<CollectorSourcesPage />} />
         <Route path="/collector/draws" element={<CollectorDrawsPage />} />
+        <Route path="/collector/trend" element={<TrendPage />} />
+        <Route path="/trend" element={<TrendPage />} />
+        <Route path="/collector/pingte-ranking" element={<PingteRankingPage />} />
+        <Route path="/pingte-ranking" element={<PingteRankingPage />} />
         <Route path="/collector/consensus" element={<CollectorConsensusPage />} />
         <Route path="/collector/ai-analysis" element={<CollectorAIAnalysisPage />} />
         <Route path="/collector/ratings" element={<CollectorRatingsPage />} />
@@ -43,6 +49,7 @@ export function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/settings" element={<SystemSettingsPage />} />
       </Route>
+
 
 
       <Route path="*" element={<Navigate to="/" replace />} />

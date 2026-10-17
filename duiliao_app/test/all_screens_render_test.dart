@@ -9,6 +9,8 @@ import 'package:duiliao_app/features/design/ops_design_screens.dart';
 import 'package:duiliao_app/features/design/records_screens.dart';
 import 'package:duiliao_app/features/draws/draw_detail_screen.dart';
 import 'package:duiliao_app/features/draws/draws_screen.dart';
+import 'package:duiliao_app/features/draws/pingte_ranking_screen.dart';
+import 'package:duiliao_app/features/draws/trend_screen.dart';
 import 'package:duiliao_app/features/home/home_screen.dart';
 import 'package:duiliao_app/features/notifications/messages_screen.dart';
 import 'package:duiliao_app/features/numbers/numbers_screen.dart';
@@ -390,6 +392,29 @@ void main() {
     await pumpAndScroll(
       tester,
       const RecordStatsScreen(),
+      logicalSize: const Size(360, 780),
+    );
+  });
+
+  testWidgets('20. TrendScreen & PingteRankingScreen (走势图表与平特排行榜)', (tester) async {
+    await pumpAndScroll(
+      tester,
+      const TrendScreen(),
+      logicalSize: const Size(393, 852),
+    );
+    await pumpAndScroll(
+      tester,
+      const TrendScreen(),
+      logicalSize: const Size(360, 780),
+    );
+    await pumpAndScroll(
+      tester,
+      const PingteRankingScreen(),
+      logicalSize: const Size(393, 852),
+    );
+    await pumpAndScroll(
+      tester,
+      const PingteRankingScreen(),
       logicalSize: const Size(360, 780),
     );
   });

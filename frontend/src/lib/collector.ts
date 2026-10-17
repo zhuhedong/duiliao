@@ -560,6 +560,111 @@ export interface DrawSchedulerStatus {
   recent_logs: DrawSchedulerLog[];
 }
 
+export interface TrendItem {
+  id: number | string;
+  period: string;
+  date: string;
+  code: string[];
+}
+
+export interface TrendResponse {
+  code: number;
+  msg: string;
+  data: TrendItem[];
+  lottery?: string;
+  total?: number;
+}
+
+export interface PingteZodiacRank {
+  name: string;
+  label: string;
+  count: number;
+  periods_count: number;
+  frequency: number;
+  current_omission: number;
+  max_omission: number;
+  max_consecutive: number;
+  current_consecutive: number;
+  numbers: string[];
+  rank: number;
+  is_hot: boolean;
+  is_cold: boolean;
+}
+
+export interface PingteTailRank {
+  name: string;
+  label: string;
+  count: number;
+  periods_count: number;
+  frequency: number;
+  current_omission: number;
+  max_omission: number;
+  max_consecutive: number;
+  current_consecutive: number;
+  numbers: string[];
+  rank: number;
+  is_hot: boolean;
+  is_cold: boolean;
+}
+
+export interface PingteNumberRank {
+  number: string;
+  count: number;
+  ping_count: number;
+  tema_count: number;
+  frequency: number;
+  current_omission: number;
+  max_omission: number;
+  max_consecutive: number;
+  current_consecutive: number;
+  bose: string;
+  xiao: string;
+  wuxing: string;
+  rank: number;
+  is_hot: boolean;
+  is_cold: boolean;
+}
+
+export interface PingteBoseRank {
+  name: string;
+  label: string;
+  count: number;
+  periods_count: number;
+  percentage: number;
+  current_omission: number;
+  max_omission: number;
+  max_consecutive: number;
+  numbers: string[];
+  rank: number;
+}
+
+export interface PingteWuxingRank {
+  name: string;
+  label: string;
+  count: number;
+  periods_count: number;
+  percentage: number;
+  current_omission: number;
+  max_omission: number;
+  max_consecutive: number;
+  numbers: string[];
+  rank: number;
+}
+
+export interface PingteRankingResult {
+  ok: boolean;
+  lottery: string;
+  sample_periods: number;
+  latest_period: string | null;
+  earliest_period: string | null;
+  zodiac_ranking: PingteZodiacRank[];
+  tail_ranking: PingteTailRank[];
+  number_ranking: PingteNumberRank[];
+  bose_ranking: PingteBoseRank[];
+  wuxing_ranking: PingteWuxingRank[];
+}
+
+
 export interface CollectionSchedule {
   id: number;
   name: string;
@@ -987,6 +1092,20 @@ export const collectorApi = {
     if (lottery) q.set("lottery", lottery);
     return api.get<DrawListResult>(`/collector/draws?${q}`);
   },
+  getTrend(lottery: Lottery = "macau", limit = 100) {
+    const q = new URLSearchParams({ lottery, limit: String(limit) });
+    return api.get<TrendResponse>(`/collector/trend?${q}`);
+  },
+  getPingteRanking(lottery: Lottery = "macau", limit = 100, dimension = "all", order_by = "count_desc") {
+    const q = new URLSearchParams({
+      lottery,
+      limit: String(limit),
+      dimension,
+      order_by,
+    });
+    return api.get<PingteRankingResult>(`/collector/pingte-ranking?${q}`);
+  },
+
   confirmMissing(source_id: string, periods: string[]) {
     return api.post("/collector/missing/confirm", { source_id, periods });
   },

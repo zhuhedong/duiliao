@@ -212,3 +212,34 @@ final drawDetailProvider = FutureProvider.family<DrawRow?, ({Lottery lottery, St
     return result.value.items.isEmpty ? null : result.value.items.first;
   },
 );
+
+/// Trend data provider matching getTrend API.
+final trendProvider = FutureProvider.family<TrendResponse, ({Lottery lottery, int limit, bool forceRefresh})>(
+  (ref, args) async {
+    final repo = ref.read(collectorRepositoryProvider);
+    final res = await repo.trend(
+      lottery: args.lottery.code,
+      limit: args.limit,
+      forceRefresh: args.forceRefresh,
+    );
+    return res.value;
+  },
+);
+
+/// Pingte ranking provider.
+final pingteRankingProvider = FutureProvider.family<
+    PingteRankingResult,
+    ({Lottery lottery, int limit, String dimension, String orderBy, bool forceRefresh})>(
+  (ref, args) async {
+    final repo = ref.read(collectorRepositoryProvider);
+    final res = await repo.pingteRanking(
+      lottery: args.lottery.code,
+      limit: args.limit,
+      dimension: args.dimension,
+      orderBy: args.orderBy,
+      forceRefresh: args.forceRefresh,
+    );
+    return res.value;
+  },
+);
+

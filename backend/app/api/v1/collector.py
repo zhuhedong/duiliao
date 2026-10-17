@@ -353,6 +353,29 @@ def list_draws(
     return cb.list_draws(lottery, limit, offset, period_from, period_to)
 
 
+@router.get("/trend")
+@router.get("/trend/getTrend")
+def get_trend_endpoint(
+    lottery: str = "macau",
+    limit: int = 100,
+) -> dict[str, Any]:
+    """Return trend draw data compatible with https://djds-129.dhd1k5.com/api/v1/trend/getTrend."""
+    return cb.get_trend(lottery=lottery, limit=limit)
+
+
+@router.get("/pingte-ranking")
+def get_pingte_ranking_endpoint(
+    lottery: str = "macau",
+    limit: int = 100,
+    dimension: str = "all",
+    order_by: str = "count_desc",
+    _: User = _user,
+) -> dict[str, Any]:
+    """Return Pingte appearance rankings (生肖, 尾数, 号码, 波色, 五行)."""
+    return cb.get_pingte_ranking(lottery=lottery, limit=limit, dimension=dimension, order_by=order_by)
+
+
+
 @router.get("/predictions")
 def list_predictions(
     lottery: Lottery | None = None,

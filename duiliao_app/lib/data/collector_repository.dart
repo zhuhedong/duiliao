@@ -168,6 +168,47 @@ class CollectorRepository {
     );
   }
 
+  Future<Fetched<TrendResponse>> trend({
+    required String lottery,
+    int limit = 100,
+    bool forceRefresh = false,
+  }) {
+    return _cached(
+      key: CacheKeys.trend(lottery, limit),
+      ttl: CacheTtl.draws,
+      forceRefresh: forceRefresh,
+      fetch: () => _client.get<Map<String, dynamic>>(
+        '/collector/trend',
+        query: {'lottery': lottery, 'limit': limit},
+      ),
+      parse: (json) => TrendResponse.fromJson(asMap(json)),
+    );
+  }
+
+  Future<Fetched<PingteRankingResult>> pingteRanking({
+    required String lottery,
+    int limit = 100,
+    String dimension = 'all',
+    String orderBy = 'count_desc',
+    bool forceRefresh = false,
+  }) {
+    return _cached(
+      key: CacheKeys.pingteRanking(lottery, limit, dimension, orderBy),
+      ttl: CacheTtl.draws,
+      forceRefresh: forceRefresh,
+      fetch: () => _client.get<Map<String, dynamic>>(
+        '/collector/pingte-ranking',
+        query: {
+          'lottery': lottery,
+          'limit': limit,
+          'dimension': dimension,
+          'order_by': orderBy,
+        },
+      ),
+      parse: (json) => PingteRankingResult.fromJson(asMap(json)),
+    );
+  }
+
   // ------------------------------------------------------------------ //
   // Consensus / comparison / ratings
   // ------------------------------------------------------------------ //

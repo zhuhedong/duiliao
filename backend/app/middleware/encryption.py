@@ -47,6 +47,8 @@ def _exempt(path: str) -> bool:
         # behind JWT only; wrapping the stream would break the event channel.
         f"{_PREFIX}/ai/analyze-stream",
         f"{_PREFIX}/ai/zodiac-streak-stream",
+        # Compatible open trend endpoint for 1:1 parity with target site
+        f"{_PREFIX}/trend/getTrend",
     }
     if path in exact:
         return True

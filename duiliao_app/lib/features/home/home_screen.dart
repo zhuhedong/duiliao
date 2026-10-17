@@ -16,6 +16,8 @@ import '../auth/auth_providers.dart';
 import '../design/design_screens.dart';
 import '../draws/draw_detail_screen.dart';
 import '../draws/draws_screen.dart';
+import '../draws/pingte_ranking_screen.dart';
+import '../draws/trend_screen.dart';
 import '../profile/profile_screen.dart';
 import '../ratings/ratings_screen.dart';
 
@@ -703,6 +705,115 @@ class HomeScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
+                      ),
+
+                      // Section 3.6: 走势与排行榜快捷入口
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GlassCard(
+                              margin: EdgeInsets.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              onTap: () => _push(
+                                context,
+                                const TrendScreen(),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.14),
+                                    ),
+                                    child: Icon(
+                                      Icons.trending_up_rounded,
+                                      size: 18,
+                                      color: Theme.of(context).colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          '走势图表',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        Text(
+                                          '尾/头/波/五行/肖',
+                                          style: context.texts.labelSmall?.copyWith(fontSize: 9.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: GlassCard(
+                              margin: EdgeInsets.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              onTap: () => _push(
+                                context,
+                                const PingteRankingScreen(),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: DuiliaoColors.boseGold.withValues(alpha: 0.16),
+                                    ),
+                                    child: const Icon(
+                                      Icons.military_tech_rounded,
+                                      size: 18,
+                                      color: DuiliaoColors.boseGold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          '平特排行榜',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        Text(
+                                          '热度频次与遗漏',
+                                          style: context.texts.labelSmall?.copyWith(fontSize: 9.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
 
                       // Section 4: 近 7 日对料趋势

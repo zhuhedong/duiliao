@@ -16,6 +16,9 @@ import '../../ui/widgets/number_ball.dart';
 import '../design/records_screens.dart';
 import 'draw_detail_screen.dart';
 import 'draws_providers.dart';
+import 'trend_screen.dart';
+import 'pingte_ranking_screen.dart';
+
 
 List<DrawRow> _buildFallbackDraws(Lottery lottery, String currentPeriod) {
   final p1 = previousPeriodOf(currentPeriod, 1);
@@ -128,6 +131,24 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                     pulse: true,
                   ),
                   GlassIconButton(
+                    icon: Icons.trending_up_rounded,
+                    tooltip: '走势图表',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const TrendScreen(),
+                      ),
+                    ),
+                  ),
+                  GlassIconButton(
+                    icon: Icons.military_tech_rounded,
+                    tooltip: '平特排行榜',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PingteRankingScreen(),
+                      ),
+                    ),
+                  ),
+                  GlassIconButton(
                     icon: Icons.refresh_rounded,
                     tooltip: '同步开奖',
                     onTap: notifier.refresh,
@@ -154,7 +175,124 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                             .read(selectedLotteryProvider.notifier)
                             .set(next),
                       ),
+                      const SizedBox(height: 10),
+
+                      // Quick Entries: 走势图表 & 平特排行榜
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const TrendScreen(),
+                                ),
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              child: GlassSubtleBox(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: DuiliaoColors.primary.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.trending_up_rounded,
+                                        size: 16,
+                                        color: DuiliaoColors.primaryDark,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '走势图表',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        Text(
+                                          '尾/头/波/五行/肖',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color: Colors.white54,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const PingteRankingScreen(),
+                                ),
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              child: GlassSubtleBox(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: DuiliaoColors.boseGold.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.military_tech_rounded,
+                                        size: 16,
+                                        color: DuiliaoColors.boseGold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '平特排行榜',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        Text(
+                                          '生肖/尾数/号码榜',
+                                          style: TextStyle(
+                                            fontSize: 9,
+                                            color: Colors.white54,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 12),
+
 
                       // Next Draw Countdown Box
                       Builder(

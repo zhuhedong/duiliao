@@ -805,6 +805,368 @@ def list_draws(
     return {"ok": True, "total": int(total), "count": len(items), "items": items}
 
 
+def get_trend(lottery: str = "macau", limit: int = 100) -> dict[str, Any]:
+    """Retrieve draws formatted for trend chart, matching https://djds-129.dhd1k5.com/api/v1/trend/getTrend."""
+    bootstrap()
+    from sqlalchemy import select
+    from db import session_scope
+    from schema import Draw
+    from common.attr import pad_num
+
+    limit = max(1, min(int(limit or 100), 500))
+    with session_scope(guard=False) as s:
+        stmt = select(Draw)
+        if lottery:
+            stmt = stmt.where(Draw.lottery == lottery)
+        rows = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(limit)))
+
+    data = []
+    for d in rows:
+        code = [
+            pad_num(d.z1),
+            pad_num(d.z2),
+            pad_num(d.z3),
+            pad_num(d.z4),
+            pad_num(d.z5),
+            pad_num(d.z6),
+            pad_num(d.tema),
+        ]
+        draw_date_str = d.draw_date.isoformat() if hasattr(d, "draw_date") and d.draw_date else ""
+        data.append({
+            "id": getattr(d, "id", None) or d.period,
+            "period": d.period,
+            "date": draw_date_str,
+            "code": code,
+        })
+
+    return {
+        "code": 1,
+        "msg": "操作成功",
+        "data": data,
+        "lottery": lottery,
+        "total": len(data),
+    }
+
+
+def get_pingte_ranking(
+    lottery: str = "macau",
+    limit: int = 100,
+    dimension: str = "all",
+    order_by: str = "count_desc",
+) -> dict[str, Any]:
+    """Calculate Pingte (7 winning balls: 正码 1-6 + 特码) appearance rankings."""
+    bootstrap()
+    from datetime import date
+    from sqlalchemy import select
+    from db import session_scope
+    from schema import Draw
+    from common.attr import pad_num, bose, wei, head
+    from common.xiao import num_to_xiao, XIAO
+    from common.wuxing import num_to_wuxing
+
+    limit = max(1, min(int(limit or 100), 500)) if limit and int(limit) > 0 else 500
+    with session_scope(guard=False) as s:
+        stmt = select(Draw)
+        if lottery:
+            stmt = stmt.where(Draw.lottery == lottery)
+        draws = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(limit)))
+
+    N = len(draws)
+    if N == 0:
+        return {
+            "ok": True,
+            "lottery": lottery,
+            "sample_periods": 0,
+            "latest_period": None,
+            "earliest_period": None,
+            "zodiac_ranking": [],
+            "tail_ranking": [],
+            "number_ranking": [],
+            "bose_ranking": [],
+            "wuxing_ranking": [],
+        }
+
+    latest_period = draws[0].period
+    earliest_period = draws[-1].period
+
+    chronological = list(reversed(draws))
+    ref_date = draws[0].draw_date if isinstance(draws[0].draw_date, date) else date.today()
+
+    periods_data = []
+    for d in chronological:
+        dd = d.draw_date if isinstance(d.draw_date, date) else ref_date
+        b_list = [pad_num(x) for x in [d.z1, d.z2, d.z3, d.z4, d.z5, d.z6]]
+        tema_num = pad_num(d.tema)
+        all_7 = b_list + [tema_num]
+        xiaos = [num_to_xiao(x, dd) for x in all_7]
+        weis = [wei(x) for x in all_7]
+        boses = [bose(x) for x in all_7]
+        wuxs = [num_to_wuxing(x, dd) or "" for x in all_7]
+        periods_data.append({
+            "period": d.period,
+            "date": dd,
+            "all_7": all_7,
+            "ping_6": b_list,
+            "tema": tema_num,
+            "xiaos": xiaos,
+            "weis": weis,
+            "boses": boses,
+            "wuxings": wuxs,
+        })
+
+    def calc_omissions_and_streaks(hit_series: list[bool]) -> tuple[int, int, int, int]:
+        if not hit_series:
+            return (0, 0, 0, 0)
+        cur_omiss = 0
+        cur_cons = 0
+        if hit_series[-1]:
+            cur_omiss = 0
+            for h in reversed(hit_series):
+                if h:
+                    cur_cons += 1
+                else:
+                    break
+        else:
+            cur_cons = 0
+            for h in reversed(hit_series):
+                if not h:
+                    cur_omiss += 1
+                else:
+                    break
+
+        max_omiss = 0
+        max_cons = 0
+        run_o = 0
+        run_c = 0
+        for h in hit_series:
+            if h:
+                run_c += 1
+                run_o = 0
+                if run_c > max_cons:
+                    max_cons = run_c
+            else:
+                run_o += 1
+                run_c = 0
+                if run_o > max_omiss:
+                    max_omiss = run_o
+        return (cur_omiss, max_omiss, max_cons, cur_cons)
+
+    # 1. Zodiac Ranking
+    zodiac_ranking = []
+    zodiac_nums_map = {z: [] for z in XIAO}
+    for n in range(1, 50):
+        pn = f"{n:02d}"
+        zx = num_to_xiao(pn, ref_date)
+        zodiac_nums_map[zx].append(pn)
+
+    for z in XIAO:
+        hit_series = []
+        total_ball_count = 0
+        periods_count = 0
+        for p in periods_data:
+            c = p["xiaos"].count(z)
+            total_ball_count += c
+            is_hit = (c > 0)
+            if is_hit:
+                periods_count += 1
+            hit_series.append(is_hit)
+        cur_om, max_om, max_cons, cur_cons = calc_omissions_and_streaks(hit_series)
+        freq = round((periods_count / N) * 100, 1)
+        zodiac_ranking.append({
+            "name": z,
+            "label": f"{z}肖",
+            "count": total_ball_count,
+            "periods_count": periods_count,
+            "frequency": freq,
+            "current_omission": cur_om,
+            "max_omission": max_om,
+            "max_consecutive": max_cons,
+            "current_consecutive": cur_cons,
+            "numbers": zodiac_nums_map.get(z, []),
+        })
+
+    zodiac_ranking.sort(key=lambda x: (-x["count"], -x["periods_count"], x["current_omission"]))
+    for i, r in enumerate(zodiac_ranking):
+        r["rank"] = i + 1
+        r["is_hot"] = (i < 3)
+        r["is_cold"] = (i >= len(zodiac_ranking) - 3)
+
+    # 2. Tail Ranking
+    tail_ranking = []
+    for w in [str(i) for i in range(10)]:
+        hit_series = []
+        total_ball_count = 0
+        periods_count = 0
+        for p in periods_data:
+            c = p["weis"].count(w)
+            total_ball_count += c
+            is_hit = (c > 0)
+            if is_hit:
+                periods_count += 1
+            hit_series.append(is_hit)
+        cur_om, max_om, max_cons, cur_cons = calc_omissions_and_streaks(hit_series)
+        freq = round((periods_count / N) * 100, 1)
+        nums = [f"{n:02d}" for n in range(1, 50) if n % 10 == int(w)]
+        tail_ranking.append({
+            "name": w,
+            "label": f"{w}尾",
+            "count": total_ball_count,
+            "periods_count": periods_count,
+            "frequency": freq,
+            "current_omission": cur_om,
+            "max_omission": max_om,
+            "max_consecutive": max_cons,
+            "current_consecutive": cur_cons,
+            "numbers": nums,
+        })
+    tail_ranking.sort(key=lambda x: (-x["count"], -x["periods_count"], x["current_omission"]))
+    for i, r in enumerate(tail_ranking):
+        r["rank"] = i + 1
+        r["is_hot"] = (i < 3)
+        r["is_cold"] = (i >= len(tail_ranking) - 3)
+
+    # 3. Number Ranking
+    number_ranking = []
+    for n in range(1, 50):
+        pn = f"{n:02d}"
+        hit_series = []
+        total_count = 0
+        ping_count = 0
+        tema_count = 0
+        for p in periods_data:
+            in_all = pn in p["all_7"]
+            if in_all:
+                total_count += 1
+                if pn == p["tema"]:
+                    tema_count += 1
+                if pn in p["ping_6"]:
+                    ping_count += 1
+            hit_series.append(in_all)
+        cur_om, max_om, max_cons, cur_cons = calc_omissions_and_streaks(hit_series)
+        freq = round((total_count / N) * 100, 1)
+        bx = bose(pn)
+        zx = num_to_xiao(pn, ref_date)
+        wx = num_to_wuxing(pn, ref_date) or ""
+        number_ranking.append({
+            "number": pn,
+            "count": total_count,
+            "ping_count": ping_count,
+            "tema_count": tema_count,
+            "frequency": freq,
+            "current_omission": cur_om,
+            "max_omission": max_om,
+            "max_consecutive": max_cons,
+            "current_consecutive": cur_cons,
+            "bose": bx,
+            "xiao": zx,
+            "wuxing": wx,
+        })
+    number_ranking.sort(key=lambda x: (-x["count"], -x["tema_count"], x["current_omission"]))
+    for i, r in enumerate(number_ranking):
+        r["rank"] = i + 1
+        r["is_hot"] = (i < 10)
+        r["is_cold"] = (i >= len(number_ranking) - 10)
+
+    # 4. Wave Color Ranking
+    bose_ranking = []
+    bose_nums_map = {"红": [], "蓝": [], "绿": []}
+    for n in range(1, 50):
+        pn = f"{n:02d}"
+        bose_nums_map[bose(pn)].append(pn)
+
+    for b_name in ["红", "蓝", "绿"]:
+        hit_series = []
+        total_count = 0
+        periods_count = 0
+        for p in periods_data:
+            c = p["boses"].count(b_name)
+            total_count += c
+            is_hit = (c > 0)
+            if is_hit:
+                periods_count += 1
+            hit_series.append(is_hit)
+        cur_om, max_om, max_cons, cur_cons = calc_omissions_and_streaks(hit_series)
+        pct = round((total_count / (N * 7)) * 100, 1)
+        bose_ranking.append({
+            "name": b_name,
+            "label": f"{b_name}波",
+            "count": total_count,
+            "periods_count": periods_count,
+            "percentage": pct,
+            "current_omission": cur_om,
+            "max_omission": max_om,
+            "max_consecutive": max_cons,
+            "numbers": bose_nums_map.get(b_name, []),
+        })
+    bose_ranking.sort(key=lambda x: -x["count"])
+    for i, r in enumerate(bose_ranking):
+        r["rank"] = i + 1
+
+    # 5. Five Elements Ranking
+    wuxing_ranking = []
+    wuxing_nums_map = {wx: [] for wx in ["金", "木", "水", "火", "土"]}
+    for n in range(1, 50):
+        pn = f"{n:02d}"
+        wx = num_to_wuxing(pn, ref_date)
+        if wx in wuxing_nums_map:
+            wuxing_nums_map[wx].append(pn)
+
+    for wx_name in ["金", "木", "水", "火", "土"]:
+        hit_series = []
+        total_count = 0
+        periods_count = 0
+        for p in periods_data:
+            c = p["wuxings"].count(wx_name)
+            total_count += c
+            is_hit = (c > 0)
+            if is_hit:
+                periods_count += 1
+            hit_series.append(is_hit)
+        cur_om, max_om, max_cons, cur_cons = calc_omissions_and_streaks(hit_series)
+        pct = round((total_count / (N * 7)) * 100, 1)
+        wuxing_ranking.append({
+            "name": wx_name,
+            "label": f"{wx_name}行",
+            "count": total_count,
+            "periods_count": periods_count,
+            "percentage": pct,
+            "current_omission": cur_om,
+            "max_omission": max_om,
+            "max_consecutive": max_cons,
+            "numbers": wuxing_nums_map.get(wx_name, []),
+        })
+    wuxing_ranking.sort(key=lambda x: -x["count"])
+    for i, r in enumerate(wuxing_ranking):
+        r["rank"] = i + 1
+
+    if order_by == "count_asc":
+        zodiac_ranking.reverse()
+        tail_ranking.reverse()
+        number_ranking.reverse()
+    elif order_by == "omission_desc":
+        zodiac_ranking.sort(key=lambda x: -x["current_omission"])
+        tail_ranking.sort(key=lambda x: -x["current_omission"])
+        number_ranking.sort(key=lambda x: -x["current_omission"])
+    elif order_by == "consecutive_desc":
+        zodiac_ranking.sort(key=lambda x: -x["max_consecutive"])
+        tail_ranking.sort(key=lambda x: -x["max_consecutive"])
+        number_ranking.sort(key=lambda x: -x["max_consecutive"])
+
+    return {
+        "ok": True,
+        "lottery": lottery,
+        "sample_periods": N,
+        "latest_period": latest_period,
+        "earliest_period": earliest_period,
+        "zodiac_ranking": zodiac_ranking,
+        "tail_ranking": tail_ranking,
+        "number_ranking": number_ranking,
+        "bose_ranking": bose_ranking,
+        "wuxing_ranking": wuxing_ranking,
+    }
+
+
+
 def list_predictions(
     lottery: str | None = None,
     period: str | None = None,

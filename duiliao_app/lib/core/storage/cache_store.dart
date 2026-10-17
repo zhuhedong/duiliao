@@ -194,6 +194,10 @@ abstract final class CacheKeys {
       'ratings:$lottery:$playType:$windows';
   static String monitor(String lottery) => 'monitor:$lottery';
   static String home(String lottery, String playType) => 'home:$lottery:$playType';
+  static String trend(String lottery, int limit) => 'trend:$lottery:$limit';
+  static String pingteRanking(String lottery, int limit, String dimension, String orderBy) =>
+      'pingte_ranking:$lottery:$limit:$dimension:$orderBy';
   static const String eventCursor = 'event_cursor';
   static const String messages = 'messages';
 }
+

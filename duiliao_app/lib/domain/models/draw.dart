@@ -388,3 +388,326 @@ class NumbersResult {
             .toList(growable: false),
       );
 }
+
+/// A trend item from the getTrend API.
+class TrendItem {
+  const TrendItem({
+    required this.id,
+    required this.period,
+    required this.date,
+    required this.code,
+  });
+
+  final String id;
+  final String period;
+  final String date;
+  final List<String> code;
+
+  factory TrendItem.fromJson(Map<String, dynamic> json) => TrendItem(
+        id: json['id']?.toString() ?? '',
+        period: asString(json['period']),
+        date: asString(json['date']),
+        code: asStringList(json['code']),
+      );
+}
+
+/// A response from the getTrend API matching djds-129.dhd1k5.com.
+class TrendResponse {
+  const TrendResponse({
+    required this.code,
+    required this.msg,
+    required this.data,
+    this.lottery = '',
+    this.total = 0,
+  });
+
+  final int code;
+  final String msg;
+  final List<TrendItem> data;
+  final String lottery;
+  final int total;
+
+  factory TrendResponse.fromJson(Map<String, dynamic> json) => TrendResponse(
+        code: asInt(json['code']),
+        msg: asString(json['msg']),
+        data: asModelList(json['data'], TrendItem.fromJson),
+        lottery: asString(json['lottery']),
+        total: asInt(json['total']),
+      );
+
+  static const empty = TrendResponse(code: 1, msg: '', data: []);
+}
+
+class PingteZodiacRank {
+  const PingteZodiacRank({
+    required this.name,
+    required this.label,
+    required this.count,
+    required this.periodsCount,
+    required this.frequency,
+    required this.currentOmission,
+    required this.maxOmission,
+    required this.maxConsecutive,
+    required this.currentConsecutive,
+    required this.numbers,
+    required this.rank,
+    this.isHot = false,
+    this.isCold = false,
+  });
+
+  final String name;
+  final String label;
+  final int count;
+  final int periodsCount;
+  final double frequency;
+  final int currentOmission;
+  final int maxOmission;
+  final int maxConsecutive;
+  final int currentConsecutive;
+  final List<String> numbers;
+  final int rank;
+  final bool isHot;
+  final bool isCold;
+
+  factory PingteZodiacRank.fromJson(Map<String, dynamic> json) => PingteZodiacRank(
+        name: asString(json['name']),
+        label: asString(json['label']),
+        count: asInt(json['count']),
+        periodsCount: asInt(json['periods_count']),
+        frequency: asDouble(json['frequency']),
+        currentOmission: asInt(json['current_omission']),
+        maxOmission: asInt(json['max_omission']),
+        maxConsecutive: asInt(json['max_consecutive']),
+        currentConsecutive: asInt(json['current_consecutive']),
+        numbers: asStringList(json['numbers']),
+        rank: asInt(json['rank']),
+        isHot: asBool(json['is_hot']),
+        isCold: asBool(json['is_cold']),
+      );
+}
+
+class PingteTailRank {
+  const PingteTailRank({
+    required this.name,
+    required this.label,
+    required this.count,
+    required this.periodsCount,
+    required this.frequency,
+    required this.currentOmission,
+    required this.maxOmission,
+    required this.maxConsecutive,
+    required this.currentConsecutive,
+    required this.numbers,
+    required this.rank,
+    this.isHot = false,
+    this.isCold = false,
+  });
+
+  final String name;
+  final String label;
+  final int count;
+  final int periodsCount;
+  final double frequency;
+  final int currentOmission;
+  final int maxOmission;
+  final int maxConsecutive;
+  final int currentConsecutive;
+  final List<String> numbers;
+  final int rank;
+  final bool isHot;
+  final bool isCold;
+
+  factory PingteTailRank.fromJson(Map<String, dynamic> json) => PingteTailRank(
+        name: asString(json['name']),
+        label: asString(json['label']),
+        count: asInt(json['count']),
+        periodsCount: asInt(json['periods_count']),
+        frequency: asDouble(json['frequency']),
+        currentOmission: asInt(json['current_omission']),
+        maxOmission: asInt(json['max_omission']),
+        maxConsecutive: asInt(json['max_consecutive']),
+        currentConsecutive: asInt(json['current_consecutive']),
+        numbers: asStringList(json['numbers']),
+        rank: asInt(json['rank']),
+        isHot: asBool(json['is_hot']),
+        isCold: asBool(json['is_cold']),
+      );
+}
+
+class PingteNumberRank {
+  const PingteNumberRank({
+    required this.number,
+    required this.count,
+    required this.pingCount,
+    required this.temaCount,
+    required this.frequency,
+    required this.currentOmission,
+    required this.maxOmission,
+    required this.maxConsecutive,
+    required this.currentConsecutive,
+    required this.bose,
+    required this.xiao,
+    required this.wuxing,
+    required this.rank,
+    this.isHot = false,
+    this.isCold = false,
+  });
+
+  final String number;
+  final int count;
+  final int pingCount;
+  final int temaCount;
+  final double frequency;
+  final int currentOmission;
+  final int maxOmission;
+  final int maxConsecutive;
+  final int currentConsecutive;
+  final String bose;
+  final String xiao;
+  final String wuxing;
+  final int rank;
+  final bool isHot;
+  final bool isCold;
+
+  factory PingteNumberRank.fromJson(Map<String, dynamic> json) => PingteNumberRank(
+        number: asString(json['number']),
+        count: asInt(json['count']),
+        pingCount: asInt(json['ping_count']),
+        temaCount: asInt(json['tema_count']),
+        frequency: asDouble(json['frequency']),
+        currentOmission: asInt(json['current_omission']),
+        maxOmission: asInt(json['max_omission']),
+        maxConsecutive: asInt(json['max_consecutive']),
+        currentConsecutive: asInt(json['current_consecutive']),
+        bose: asString(json['bose']),
+        xiao: asString(json['xiao']),
+        wuxing: asString(json['wuxing']),
+        rank: asInt(json['rank']),
+        isHot: asBool(json['is_hot']),
+        isCold: asBool(json['is_cold']),
+      );
+}
+
+class PingteBoseRank {
+  const PingteBoseRank({
+    required this.name,
+    required this.label,
+    required this.count,
+    required this.periodsCount,
+    required this.percentage,
+    required this.currentOmission,
+    required this.maxOmission,
+    required this.maxConsecutive,
+    required this.numbers,
+    required this.rank,
+  });
+
+  final String name;
+  final String label;
+  final int count;
+  final int periodsCount;
+  final double percentage;
+  final int currentOmission;
+  final int maxOmission;
+  final int maxConsecutive;
+  final List<String> numbers;
+  final int rank;
+
+  factory PingteBoseRank.fromJson(Map<String, dynamic> json) => PingteBoseRank(
+        name: asString(json['name']),
+        label: asString(json['label']),
+        count: asInt(json['count']),
+        periodsCount: asInt(json['periods_count']),
+        percentage: asDouble(json['percentage']),
+        currentOmission: asInt(json['current_omission']),
+        maxOmission: asInt(json['max_omission']),
+        maxConsecutive: asInt(json['max_consecutive']),
+        numbers: asStringList(json['numbers']),
+        rank: asInt(json['rank']),
+      );
+}
+
+class PingteWuxingRank {
+  const PingteWuxingRank({
+    required this.name,
+    required this.label,
+    required this.count,
+    required this.periodsCount,
+    required this.percentage,
+    required this.currentOmission,
+    required this.maxOmission,
+    required this.maxConsecutive,
+    required this.numbers,
+    required this.rank,
+  });
+
+  final String name;
+  final String label;
+  final int count;
+  final int periodsCount;
+  final double percentage;
+  final int currentOmission;
+  final int maxOmission;
+  final int maxConsecutive;
+  final List<String> numbers;
+  final int rank;
+
+  factory PingteWuxingRank.fromJson(Map<String, dynamic> json) => PingteWuxingRank(
+        name: asString(json['name']),
+        label: asString(json['label']),
+        count: asInt(json['count']),
+        periodsCount: asInt(json['periods_count']),
+        percentage: asDouble(json['percentage']),
+        currentOmission: asInt(json['current_omission']),
+        maxOmission: asInt(json['max_omission']),
+        maxConsecutive: asInt(json['max_consecutive']),
+        numbers: asStringList(json['numbers']),
+        rank: asInt(json['rank']),
+      );
+}
+
+class PingteRankingResult {
+  const PingteRankingResult({
+    required this.ok,
+    required this.lottery,
+    required this.samplePeriods,
+    this.latestPeriod,
+    this.earliestPeriod,
+    this.zodiacRanking = const [],
+    this.tailRanking = const [],
+    this.numberRanking = const [],
+    this.boseRanking = const [],
+    this.wuxingRanking = const [],
+  });
+
+  final bool ok;
+  final String lottery;
+  final int samplePeriods;
+  final String? latestPeriod;
+  final String? earliestPeriod;
+  final List<PingteZodiacRank> zodiacRanking;
+  final List<PingteTailRank> tailRanking;
+  final List<PingteNumberRank> numberRanking;
+  final List<PingteBoseRank> boseRanking;
+  final List<PingteWuxingRank> wuxingRanking;
+
+  factory PingteRankingResult.fromJson(Map<String, dynamic> json) => PingteRankingResult(
+        ok: asBool(json['ok'], fallback: true),
+        lottery: asString(json['lottery']),
+        samplePeriods: asInt(json['sample_periods']),
+        latestPeriod: asStringOrNull(json['latest_period']),
+        earliestPeriod: asStringOrNull(json['earliest_period']),
+        zodiacRanking: asModelList(json['zodiac_ranking'], PingteZodiacRank.fromJson),
+        tailRanking: asModelList(json['tail_ranking'], PingteTailRank.fromJson),
+        numberRanking: asModelList(json['number_ranking'], PingteNumberRank.fromJson),
+        boseRanking: asModelList(json['bose_ranking'], PingteBoseRank.fromJson),
+        wuxingRanking: asModelList(json['wuxing_ranking'], PingteWuxingRank.fromJson),
+      );
+
+  static const empty = PingteRankingResult(
+    ok: true,
+    lottery: '',
+    samplePeriods: 0,
+  );
+}
+

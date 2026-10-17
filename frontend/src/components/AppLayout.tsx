@@ -22,6 +22,8 @@ import {
   CloseIcon,
   SparklesIcon,
   SettingsIcon,
+  TrendIcon,
+  TargetIcon,
 } from "./icons";
 
 interface NavItem {
@@ -37,6 +39,8 @@ const NAV: NavItem[] = [
   { to: "/collector/ai-analysis", label: "AI 研判", short: "研判", icon: <SparklesIcon size={16} />, group: "core" },
   { to: "/collector/sources", label: "数据源", short: "采集", icon: <DatabaseIcon size={16} />, group: "core" },
   { to: "/collector/draws", label: "开奖", short: "开奖", icon: <TrophyIcon size={16} />, group: "core" },
+  { to: "/collector/trend", label: "走势", short: "走势", icon: <TrendIcon size={16} />, group: "core" },
+  { to: "/collector/pingte-ranking", label: "平特排行", short: "排行", icon: <TargetIcon size={16} />, group: "core" },
   { to: "/collector/consensus", label: "多源对照", short: "对照", icon: <CompareIcon size={16} />, group: "core" },
   { to: "/collector/numbers", label: "号码", short: "号码", icon: <HashIcon size={16} />, group: "ops" },
   { to: "/collector/ratings", label: "评级", short: "评级", icon: <StarIcon size={16} />, group: "ops" },
