@@ -1345,44 +1345,15 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                       for (final item in (periodItemsMap[period] ?? const []))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
-                          child: Dismissible(
-                            key: ValueKey('record-${item.id}'),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              decoration: BoxDecoration(
-                                color: DuiliaoColors.miss.withValues(
-                                  alpha: 0.22,
-                                ),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: DuiliaoColors.miss.withValues(
-                                    alpha: 0.45,
-                                  ),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: DuiliaoColors.miss,
-                                    size: 18,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '删除',
-                                    style: TextStyle(
-                                      color: DuiliaoColors.miss,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          child: _RecordCard(
+                            item: item,
+                            onCopy: () => _copySingleRecordFlow(
+                              context,
+                              item,
+                              lottery,
+                              periodCtx,
                             ),
-                            onDismissed: (_) {
+                            onDelete: () {
                               ref
                                   .read(bettingRecordsProvider.notifier)
                                   .removeRecord(item.id);
@@ -1390,23 +1361,6 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                                 const SnackBar(content: Text('已删除该条记录')),
                               );
                             },
-                            child: _RecordCard(
-                              item: item,
-                              onCopy: () => _copySingleRecordFlow(
-                                context,
-                                item,
-                                lottery,
-                                periodCtx,
-                              ),
-                              onDelete: () {
-                                ref
-                                    .read(bettingRecordsProvider.notifier)
-                                    .removeRecord(item.id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('已删除该条记录')),
-                                );
-                              },
-                            ),
                           ),
                         ),
                     ],
