@@ -73,12 +73,28 @@ class BettingRecordItem {
   final String specialNumber;
   final String drawTime;
 
-  bool get isLianxiao =>
-      xiaos.isNotEmpty || playType.contains('连') || fushiLinks.isNotEmpty || fushiLink != null;
+  /// Pure-zodiac plays (平特肖 / 特肖 / …) store `xiaos` but are NOT 连肖复试.
+  bool get isPureXiaoPlay {
+    const pure = {'平特肖', '平特一肖', '特肖', '合肖', '正肖', '杀肖'};
+    return pure.contains(playType) || playType.contains('平特');
+  }
 
-  String get mode => isLianxiao
-      ? '连肖复试'
-      : (playType.contains('不中') ? '不中码' : '号码单式');
+  bool get isPingte => playType.contains('平特');
+
+  bool get isLianxiao {
+    if (isPureXiaoPlay || playType.contains('不中')) return false;
+    return playType.contains('连') ||
+        fushiLinks.isNotEmpty ||
+        fushiLink != null ||
+        (xiaos.isNotEmpty && numbers.isEmpty);
+  }
+
+  String get mode {
+    if (isLianxiao) return '连肖复试';
+    if (playType.contains('不中')) return '不中码';
+    if (isPingte) return '平特肖';
+    return '号码单式';
+  }
 
   Map<String, Object?> toJson() => {
     'id': id,
@@ -343,9 +359,7 @@ class BettingRecordsNotifier extends Notifier<List<BettingRecordItem>> {
         body: {
           'lottery': item.lottery.code,
           'period': item.period,
-          'mode': item.xiaos.isNotEmpty
-              ? '连肖复试'
-              : (item.playType.contains('不中') ? '不中码' : '号码单式'),
+          'mode': item.mode,
           'play_type': item.playType,
           'numbers': item.numbers,
           'xiaos': item.xiaos,
@@ -1790,7 +1804,7 @@ class _RecordCard extends StatelessWidget {
       color: Theme.of(context).colorScheme.onSurface,
     );
 
-    if (item.xiaos.isNotEmpty) {
+    if (item.isLianxiao && item.xiaos.isNotEmpty) {
       final ks = item.fushiLinks.isNotEmpty
           ? item.fushiLinks
           : <int>[item.fushiLink ?? 4];
@@ -1806,6 +1820,23 @@ class _RecordCard extends StatelessWidget {
             TextSpan(
               text:
                   '复试 $linkLabel 连 · $combLabel ${item.notesCount} 注 × ¥${item.stakePerNote}$multPart = ',
+            ),
+            TextSpan(text: '¥${item.totalAmount}', style: strongStyle),
+          ],
+        ),
+      );
+    }
+
+    if (item.xiaos.isNotEmpty) {
+      final multPart = item.multiplier > 1 ? ' × ${item.multiplier} 倍' : '';
+      final playLabel = item.isPingte ? '平特' : item.playType;
+      return Text.rich(
+        TextSpan(
+          style: baseStyle,
+          children: [
+            TextSpan(
+              text:
+                  '$playLabel · ${item.xiaos.length} 肖 ${item.notesCount} 注 × ¥${item.stakePerNote}$multPart = ',
             ),
             TextSpan(text: '¥${item.totalAmount}', style: strongStyle),
           ],
@@ -1834,7 +1865,7 @@ class _RecordCard extends StatelessWidget {
   }
 }
 
-/// Add Record Screen supporting 号码单式, 连肖复试, and 不中码 (record-add*.html).
+/// Add Record Screen supporting 号码单式, 连肖复试, 平特肖, and 不中码 (record-add*.html).
 class RecordAddScreen extends ConsumerStatefulWidget {
   const RecordAddScreen({
     super.key,
@@ -1886,6 +1917,29 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
 
   static const _fushiPlays = ['3 连', '4 连', '5 连'];
   static const _nbuzhongPlays = ['5 不中', '6 不中', '7 不中', '8 不中'];
+  static const _pureXiaoPlayLabels = {
+    '平特肖',
+    '平特一肖',
+    '特肖',
+    '合肖',
+    '正肖',
+    '杀肖',
+  };
+
+  bool get _isPureXiaoSelected =>
+      _mode == '平特肖' || _pureXiaoPlayLabels.contains(_selectedPlay);
+
+  bool get _isPingteSelected =>
+      _mode == '平特肖' || _selectedPlay.contains('平特');
+
+  double get _defaultOddsForSelected {
+    if (_mode == '连肖复试') return 30.0;
+    if (_isPingteSelected) return 2.05;
+    if (_selectedPlay == '特肖') return 11.5;
+    if (_selectedPlay == '正码') return 7.0;
+    if (_selectedPlay.contains('不中')) return 2.58;
+    return 47.0;
+  }
 
   static final RegExp _stakePrefixRe = RegExp(
     r'(?:各数|个数|各号|各码|每码|每注|每组|各组|每个|一组|1组|一注|1注|一个|1个|各|×|\*)\s*(\d+)\s*(?:块|元|米|蚊)?',
@@ -1959,6 +2013,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     _mode = widget.mode;
     _selectedPlay = switch (_mode) {
       '连肖复试' => '4 连',
+      '平特肖' => '平特肖',
       '不中码' => '6 不中',
       _ => '特码',
     };
@@ -2086,6 +2141,12 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
       } else {
         _selectedPlay = '6 不中';
       }
+    } else if (text.contains('平特') && _parseXiaos(text).isNotEmpty) {
+      _mode = '平特肖';
+      _selectedPlay = '平特肖';
+    } else if (text.contains('特肖') && _parseXiaos(text).isNotEmpty) {
+      _mode = '号码单式';
+      _selectedPlay = '特肖';
     } else {
       _mode = '号码单式';
       _selectedPlay = text.contains('正码') ? '正码' : '特码';
@@ -2269,6 +2330,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
       _mode = nextMode;
       _selectedPlay = switch (nextMode) {
         '连肖复试' => '4 连',
+        '平特肖' => '平特肖',
         '不中码' => '6 不中',
         _ => '特码',
       };
@@ -2285,6 +2347,10 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
   }
 
   List<String> _parseNumbers(String text) {
+    // 平特肖 / 特肖等纯生肖玩法不把生肖展开成号码
+    if (_isPureXiaoSelected) {
+      return const [];
+    }
     if (_mode != '连肖复试') {
       final parsed = JumpCodeMatcher.parseExpression(text);
       final hasNonXiaoAttr = parsed.includedConditions.any(
@@ -2394,6 +2460,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
 
   String get _headerTitle => switch (_mode) {
     '连肖复试' => '新增记录 · 连肖',
+    '平特肖' => '新增记录 · 平特',
     '不中码' => '新增记录 · 不中码',
     _ => '新增记录',
   };
@@ -2463,8 +2530,11 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     final hasInput = text.trim().isNotEmpty;
     final notesCount = switch (_mode) {
       '连肖复试' => fushiCombos.length,
+      '平特肖' => (!hasInput || xiaos.isEmpty) ? 0 : xiaos.length,
       '不中码' => (!hasInput || numbers.isEmpty) ? 0 : 1,
-      _ => (!hasInput || numbers.isEmpty) ? 0 : numbers.length,
+      _ => _isPureXiaoSelected
+          ? ((!hasInput || xiaos.isEmpty) ? 0 : xiaos.length)
+          : ((!hasInput || numbers.isEmpty) ? 0 : numbers.length),
     };
     final totalAmount = notesCount * stake * _multiplier;
 
@@ -2523,9 +2593,15 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                   children: [
                     // 录入模式切换 (record-add.html lines 39-44)
                     GlassSegmentedControl<String>(
-                      items: const ['号码单式', '连肖复试', '不中码', '全部玩法'],
+                      items: const ['号码单式', '连肖复试', '平特肖', '不中码', '全部玩法'],
                       selected: _mode,
-                      labelBuilder: (m) => m,
+                      labelBuilder: (m) => switch (m) {
+                        '平特肖' => '平特',
+                        '连肖复试' => '连肖',
+                        '号码单式' => '单式',
+                        '全部玩法' => '全部',
+                        _ => m,
+                      },
                       onChanged: _switchMode,
                     ),
 
@@ -2625,6 +2701,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               Text(
                                 switch (_mode) {
                                   '连肖复试' => '粘贴或输入连肖复试文本',
+                                  '平特肖' => '粘贴或输入平特生肖文本',
                                   '不中码' => '粘贴或输入不中码文本',
                                   _ => '粘贴或输入号码/生肖文本',
                                 },
@@ -2691,6 +2768,16 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 _mode = '连肖复试';
                                 final ks = _parseFushiLinks(v);
                                 _selectedPlay = '${ks.join(",")} 连';
+                              } else if (v.contains('平特') &&
+                                  _parseXiaos(v).isNotEmpty) {
+                                _mode = '平特肖';
+                                _selectedPlay = '平特肖';
+                              } else if (v.contains('不中')) {
+                                _mode = '不中码';
+                                final m = RegExp(r'(\d+)\s*不中').firstMatch(v);
+                                if (m != null) {
+                                  _selectedPlay = '${m.group(1)} 不中';
+                                }
                               }
                               final multMatch = RegExp(
                                 r'(?:倍\s*(\d+)|(\d+)\s*倍)',
@@ -2715,7 +2802,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             ),
                             decoration: const InputDecoration(
                               hintText:
-                                  '如：龙兔各数5、鼠虎马猴鸡 给我打复试3，4连一组5块…',
+                                  '如：龙兔各数5、蛇龙鸡平特各5、鼠虎马猴鸡复试3，4连…',
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -2727,6 +2814,11 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 label: '示例：龙兔各数5',
                                 compact: true,
                                 onTap: () => _applyQuickText('龙兔各数5'),
+                              ),
+                              GlassChipTag(
+                                label: '示例：平特蛇龙鸡各5',
+                                compact: true,
+                                onTap: () => _applyQuickText('蛇龙鸡平特各5'),
                               ),
                               GlassChipTag(
                                 label: '示例：杀1头，2尾各5',
@@ -2768,14 +2860,18 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                       label: switch (_mode) {
                                         '连肖复试' =>
                                           '已识别 ${xiaos.length} 个生肖 · 复试 $fushiKLabel 连 · 单注 ¥$stake',
+                                        '平特肖' =>
+                                          '已识别 ${xiaos.length} 个平特生肖 · 单注 ¥$stake · 赔率 1:2.05',
                                         '不中码' =>
                                           '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
                                         _ =>
                                           killLabels.isNotEmpty
                                               ? '已杀 [${killLabels.join('、')}] · 保留 ${numbers.length} 码 · 单注 ¥$stake'
-                                              : (xiaos.isNotEmpty
-                                                    ? '已识别 ${xiaos.join('')}转 ${numbers.length} 个号码 · 单注 ¥$stake'
-                                                    : '已识别 ${numbers.length} 个号码 · 单注 ¥$stake'),
+                                              : (_isPureXiaoSelected && xiaos.isNotEmpty
+                                                    ? '已识别 ${xiaos.length} 个生肖（$_selectedPlay）· 单注 ¥$stake'
+                                                    : (xiaos.isNotEmpty
+                                                          ? '已识别 ${xiaos.join('')}转 ${numbers.length} 个号码 · 单注 ¥$stake'
+                                                          : '已识别 ${numbers.length} 个号码 · 单注 ¥$stake')),
                                       },
                                       tone: GlassPillTone.success,
                                     ),
@@ -2795,7 +2891,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
 
                     // 识别预览 (record-add.html lines 81-101)
                     DesignSectionHeader(
-                      title: _mode == '连肖复试'
+                      title: (_mode == '连肖复试' || _mode == '平特肖')
                           ? '识别预览 · 已选 ${xiaos.length} 肖'
                           : '识别预览',
                     ),
@@ -2805,7 +2901,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (_mode == '连肖复试')
+                          if (_mode == '连肖复试' || _mode == '平特肖' || _isPureXiaoSelected)
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
@@ -2814,7 +2910,9 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                   ZTag(label: x, variant: ZTagVariant.primary),
                                 if (xiaos.isEmpty)
                                   Text(
-                                    '等待输入生肖内容',
+                                    _mode == '平特肖' || _isPingteSelected
+                                        ? '等待输入平特生肖（7 码任一命中）'
+                                        : '等待输入生肖内容',
                                     style: context.texts.bodySmall,
                                   ),
                               ],
@@ -2933,14 +3031,22 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                       xiaos.isEmpty
                                           ? '等待录入生肖'
                                           : '复试 $fushiKLabel 连 · $fushiFormulaLabel = $notesCount 注',
+                                    '平特肖' =>
+                                      xiaos.isEmpty
+                                          ? '等待录入平特生肖'
+                                          : '平特 ${xiaos.length} 肖 · $notesCount 注 × ¥$stake × $_multiplier 倍',
                                     '不中码' =>
                                       numbers.isEmpty
                                           ? '等待录入号码'
                                           : '整组 1 注 × ¥$stake × $_multiplier 倍',
                                     _ =>
-                                      numbers.isEmpty
-                                          ? '等待录入号码或生肖'
-                                          : '共 $notesCount 注 × ¥$stake × $_multiplier 倍',
+                                      (_isPureXiaoSelected
+                                          ? (xiaos.isEmpty
+                                                ? '等待录入生肖'
+                                                : '$_selectedPlay · ${xiaos.length} 肖 · $notesCount 注 × ¥$stake')
+                                          : (numbers.isEmpty
+                                                ? '等待录入号码或生肖'
+                                                : '共 $notesCount 注 × ¥$stake × $_multiplier 倍')),
                                   },
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -3045,6 +3151,12 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             _RuleBullet('④ 示例：鼠虎马猴鸡 给我打复试3，4连一组5块 → C(5,3)+C(5,4)=15 注 × ¥5 = ¥75'),
                             _RuleBullet('⑤ 连肖赔率：不带马 2连=4 / 3连=10 / 4连=30 / 5连=100；带马 2连=3.8 / 3连=9 / 4连=28 / 5连=80'),
                           ],
+                          '平特肖' => const [
+                            _RuleBullet('① 生肖连续书写自动拆分：蛇龙鸡 → 蛇/龙/鸡，每个生肖 1 注'),
+                            _RuleBullet('② 平特命中规则：所选生肖出现在当期 7 码（6 正码 + 1 特码）任一即中'),
+                            _RuleBullet('③ 「各5」「个数5」「一组5块」识别为每注单额；默认赔率 1:2.05'),
+                            _RuleBullet('④ 示例：蛇龙鸡平特各5 → 3 注 × ¥5 = ¥15；开出蛇/龙/鸡任一即按命中肖数派彩'),
+                          ],
                           '不中码' => const [
                             _RuleBullet('① 「不中码」为整组玩法：N 个号码合成 1 注，不逐码拆分'),
                             _RuleBullet('② 号码个数与 N 自动核对，不一致时标红提示'),
@@ -3055,9 +3167,10 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             _RuleBullet('① 号码以「.」「,」「空格」「、」分隔，范围 01–49，自动去重、标注波色'),
                             _RuleBullet('② 「各数5」「个数5」「一组5块」「各5」「×5」「每码5」识别为单注金额'),
                             _RuleBullet('③ 生肖包码：龙兔各数5 → 龙(03·15·27·39)+兔(04·16·28·40)共 8 码 × ¥5 = ¥40'),
-                            _RuleBullet('④ 连肖复试：鼠虎马猴鸡 给我打复试3，4连一组5块 → C(5,3)+C(5,4)=15 注 × ¥5 = ¥75'),
-                            _RuleBullet('⑤ 不中码：02.04.06.08.10.12·6不中个数10 → 整组 1 注，全不开出即中'),
-                            _RuleBullet('⑥ 示例：18.42.39个数5 → 3 注 × ¥5 = ¥15'),
+                            _RuleBullet('④ 平特肖：蛇龙鸡平特各5 → 3 肖 × ¥5 = ¥15，7 码任一命中即中，赔率 1:2.05'),
+                            _RuleBullet('⑤ 连肖复试：鼠虎马猴鸡 给我打复试3，4连一组5块 → C(5,3)+C(5,4)=15 注 × ¥5 = ¥75'),
+                            _RuleBullet('⑥ 不中码：02.04.06.08.10.12·6不中个数10 → 整组 1 注，全不开出即中'),
+                            _RuleBullet('⑦ 示例：18.42.39个数5 → 3 注 × ¥5 = ¥15'),
                           ],
                         },
                       ),
@@ -3127,6 +3240,22 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                       .replaceFirst(_lianxiaoExprRe, '复试$k连');
                                 }
                               }),
+                            ),
+                          ] else if (_mode == '平特肖') ...[
+                            Text(
+                              '玩法 · 平特肖',
+                              style: context.texts.labelSmall,
+                            ),
+                            const SizedBox(height: 8),
+                            GlassSubtleBox(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              child: Text(
+                                '7 码（正码+特码）任一出现所选生肖即中 · 默认赔率 1:2.05',
+                                style: context.texts.labelSmall?.copyWith(fontSize: 11),
+                              ),
                             ),
                           ] else if (_mode == '不中码') ...[
                             Text(
@@ -3285,6 +3414,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             decoration: InputDecoration(
                               hintText: switch (_mode) {
                                 '连肖复试' => '可选，如：四肖防冷，复试求全',
+                                '平特肖' => '可选，如：跟海哥平特一肖',
                                 '不中码' => '可选，如：冷号组合，博全不开',
                                 _ => '可选，如：跟海哥本期主推',
                               },
@@ -3334,6 +3464,10 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                         child: GlassButton(
                           height: 42,
                           onPressed: () {
+                            final usesXiaosOnly =
+                                _mode == '连肖复试' ||
+                                _mode == '平特肖' ||
+                                _isPureXiaoSelected;
                             if (_mode == '连肖复试' &&
                                 (xiaos.isEmpty || fushiCombos.isEmpty)) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -3341,7 +3475,14 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                               );
                               return;
                             }
-                            if (_mode != '连肖复试' && numbers.isEmpty) {
+                            if ((_mode == '平特肖' || _isPureXiaoSelected) &&
+                                xiaos.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('请先输入有效的平特/生肖内容')),
+                              );
+                              return;
+                            }
+                            if (!usesXiaosOnly && numbers.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('请先输入有效的号码或生肖内容')),
                               );
@@ -3356,24 +3497,26 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             final now = TimeOfDay.now();
                             final hh = now.hour.toString().padLeft(2, '0');
                             final mm = now.minute.toString().padLeft(2, '0');
+                            final resolvedPlayType = _mode == '连肖复试'
+                                ? (fushiKs.length > 1
+                                      ? '连肖 $fushiKLabel连'
+                                      : '连肖')
+                                : (_mode == '平特肖' ? '平特肖' : _selectedPlay);
                             final item = BettingRecordItem(
                               id: 'rec-${DateTime.now().millisecondsSinceEpoch}',
                               lottery: _lottery,
                               period: _period,
-                              playType: _mode == '连肖复试'
-                                  ? (fushiKs.length > 1
-                                        ? '连肖 $fushiKLabel连'
-                                        : '连肖')
-                                  : _selectedPlay,
+                              playType: resolvedPlayType,
                               timeLabel: '$hh:$mm',
-                              numbers: _mode == '连肖复试' ? const [] : numbers,
-                              xiaos: _mode == '连肖复试' ? xiaos : const [],
+                              numbers: usesXiaosOnly ? const [] : numbers,
+                              xiaos: usesXiaosOnly ? xiaos : const [],
                               fushiLink: _mode == '连肖复试' ? fushiKs.first : null,
                               fushiLinks: _mode == '连肖复试' ? fushiKs : const [],
                               stakePerNote: stake,
                               multiplier: _multiplier,
                               notesCount: notesCount,
                               totalAmount: totalAmount,
+                              odds: _defaultOddsForSelected,
                               status: 'pending',
                               rawInput: _inputController.text.trim(),
                               note: _noteController.text.trim().isEmpty
@@ -3795,9 +3938,7 @@ class RecordDetailScreen extends ConsumerWidget {
                             Navigator.of(context).pushReplacement(
                               MaterialPageRoute(
                                 builder: (_) => RecordAddScreen(
-                                  mode: item.xiaos.isNotEmpty
-                                      ? '连肖复试'
-                                      : '号码单式',
+                                  mode: item.mode,
                                   initialText: item.rawInput,
                                 ),
                               ),

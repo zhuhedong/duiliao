@@ -774,3 +774,104 @@ def test_lianxiao_2_with_ma_odds_is_3_8():
     assert rec2.odds == 4.0
     assert rec2.payout == 20
     assert rec2.net_profit == 15
+
+
+def test_pingte_xiao_record_keeps_xiaos_and_settles_against_7_balls(user_client):
+    """平特肖：保留生肖不展开号码；7 码任一命中即中，赔率 2.05。"""
+    from app import collector_bridge as cb
+
+    created = user_client.post(
+        "/app/records",
+        {
+            "lottery": "macau",
+            "period": "2026206",
+            "mode": "平特肖",
+            "play_type": "平特肖",
+            "raw_input": "蛇龙鸡平特各5",
+            "xiaos": ["蛇", "龙", "鸡"],
+            "numbers": [],
+            "stake_per_note": 5,
+            "multiplier": 1,
+            "notes_count": 3,
+            "total_amount": 15,
+        },
+    )
+    assert created["ok"] is True
+    rec = created["record"]
+    assert rec["play_type"] == "平特肖"
+    assert rec["mode"] == "号码单式"
+    assert rec["xiaos"] == ["蛇", "龙", "鸡"]
+    assert rec["numbers"] == []
+    assert rec["notes_count"] == 3
+    assert rec["total_amount"] == 15
+    assert rec["odds"] == 2.05
+    assert rec["status"] == "pending"
+    rec_id = rec["id"]
+
+    # 02=蛇, 03=龙 appear in 7 balls; 鸡 misses -> 2 hits × 5 × 2.05 = 20.5 -> 20 or 21
+    sync_res = cb.sync_draws(
+        "macau",
+        draws=[
+            {
+                "lottery": "macau",
+                "period": "2026206",
+                "period_raw": "206",
+                "draw_date": "2026-07-25",
+                "openCode": "02,03,06,11,12,18,45",
+                "source": "fixture:official",
+            }
+        ],
+    )
+    assert sync_res.get("betting_records_settled", 0) >= 1
+
+    listed = user_client.get("/app/records", params={"lottery": "macau"})
+    settled = next(r for r in listed["items"] if r["id"] == rec_id)
+    assert settled["status"] == "won"
+    assert set(settled["hit_numbers"]) == {"蛇", "龙"}
+    assert settled["hit_notes"] == 2
+    assert settled["payout"] == round(2 * 5 * 2.05)
+    assert settled["net_profit"] == settled["payout"] - 15
+    assert "肖" in (settled.get("win_pill_label") or "")
+
+    # Direct evaluate unit check: 不带号码的平特肖不得被当成连肖
+    from app.services.betting_records_service import (
+        UserBettingRecord,
+        evaluate_record_against_draw,
+        parse_smart_bet_input,
+    )
+
+    parsed = parse_smart_bet_input("蛇龙鸡平特各5", mode="号码单式", play_type="正码")
+    assert parsed["xiaos"] == ["蛇", "龙", "鸡"]
+    assert parsed["numbers"] == []
+
+    unit = UserBettingRecord(
+        user_id="test_user",
+        lottery="macau",
+        period="2026206",
+        mode="号码单式",
+        play_type="平特肖",
+        xiaos=["蛇", "龙", "鸡"],
+        numbers=[],
+        stake_per_note=5,
+        multiplier=1,
+        notes_count=3,
+        total_amount=15,
+        odds=2.05,
+        status="pending",
+        hit_numbers=[],
+        hit_notes=0,
+        payout=0,
+        net_profit=0,
+        raw_input="蛇龙鸡平特各5",
+    )
+    draw = {
+        "lottery": "macau",
+        "period": "2026206",
+        "balls": ["02", "03", "06", "11", "12", "18"],
+        "tema": "45",
+    }
+    assert evaluate_record_against_draw(unit, draw) is True
+    assert unit.hit_notes == 2
+    assert unit.payout == round(2 * 5 * 2.05)
+
+    user_client.delete(f"/app/records/{rec_id}")
