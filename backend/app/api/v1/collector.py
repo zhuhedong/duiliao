@@ -367,13 +367,16 @@ def get_trend_endpoint(
 @router.get("/pingte-ranking")
 def get_pingte_ranking_endpoint(
     lottery: str = "macau",
-    limit: int = 100,
+    limit: int = 0,
     dimension: str = "all",
     order_by: str = "count_desc",
     force_refresh: bool = False,
     _: User = _user,
 ) -> dict[str, Any]:
-    """Return Pingte appearance rankings (生肖, 尾数, 号码, 波色, 五行)."""
+    """Return Pingte appearance rankings (生肖, 尾数, 号码, 波色, 五行).
+
+    ``limit<=0`` (default) = 当年全部期数；正整数 = 最近 N 期（上限 500）。
+    """
     return cb.get_pingte_ranking(
         lottery=lottery,
         limit=limit,

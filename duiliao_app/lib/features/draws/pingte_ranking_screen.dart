@@ -24,7 +24,7 @@ class PingteRankingScreen extends ConsumerStatefulWidget {
 
 class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
   RankingTab _tab = RankingTab.zodiac;
-  int _limit = 100;
+  int _limit = 0; // 0 = 当年全部期数
   String _orderBy = 'count_desc';
   String _keyword = '';
   bool _forceRefresh = false;
@@ -67,7 +67,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                   onTap: () => Navigator.of(context).maybePop(),
                 ),
                 title: '平特出现排行榜',
-                subtitle: '7 码全域统计 · 频次与遗漏热度榜',
+                subtitle: '7 码全域统计 · 默认当年全部期数',
                 actions: [
                   GlassIconButton(
                     icon: Icons.refresh_rounded,
@@ -97,12 +97,12 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(
-                              children: [30, 50, 100, 200, 500].map((lim) {
+                              children: [0, 30, 50, 100, 200, 500].map((lim) {
                                 final isSel = _limit == lim;
                                 return Padding(
                                   padding: const EdgeInsets.only(right: 6),
                                   child: ChoiceChip(
-                                    label: Text('$lim期', style: const TextStyle(fontSize: 11)),
+                                    label: Text(lim == 0 ? '当年' : '$lim期', style: const TextStyle(fontSize: 11)),
                                     selected: isSel,
                                     onSelected: (_) => setState(() => _limit = lim),
                                     selectedColor: DuiliaoColors.primary.withValues(alpha: 0.25),
@@ -265,7 +265,9 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '样本: ${data.samplePeriods}期 (${data.earliestPeriod ?? ''}~${data.latestPeriod ?? ''})',
+                              (_limit <= 0
+                                  ? '样本: 当年 ${data.samplePeriods}期 (${data.earliestPeriod ?? ''}~${data.latestPeriod ?? ''})'
+                                  : '样本: ${data.samplePeriods}期 (${data.earliestPeriod ?? ''}~${data.latestPeriod ?? ''})'),
                               style: const TextStyle(fontSize: 11, color: Colors.white70),
                             ),
                             Text(

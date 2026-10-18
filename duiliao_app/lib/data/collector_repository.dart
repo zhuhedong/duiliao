@@ -187,7 +187,7 @@ class CollectorRepository {
 
   Future<Fetched<PingteRankingResult>> pingteRanking({
     required String lottery,
-    int limit = 100,
+    int limit = 0,
     String dimension = 'all',
     String orderBy = 'count_desc',
     bool forceRefresh = false,

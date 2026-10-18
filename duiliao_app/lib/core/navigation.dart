@@ -103,6 +103,9 @@ void openAppDeepLink(String? value) {
     case 'record-add-nbuzhong':
       page = const RecordAddScreen(mode: '不中码');
       break;
+    case 'record-add-pingte':
+      page = const RecordAddScreen(mode: '平特肖');
+      break;
     case 'record-detail':
       page = const RecordDetailScreen();
       break;

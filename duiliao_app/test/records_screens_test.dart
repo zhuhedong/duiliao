@@ -90,7 +90,7 @@ void main() {
     expect(find.text('读取剪切板'), findsOneWidget);
 
     // Switch to 连肖复试 - still clean and empty
-    await tester.tap(find.text('连肖复试'));
+    await tester.tap(find.text('连肖'));
     await tester.pump();
     expect(find.text('新增记录 · 连肖'), findsOneWidget);
     expect(find.text('等待输入生肖内容'), findsOneWidget);
@@ -115,7 +115,7 @@ void main() {
     expect(find.text('¥10'), findsWidgets);
 
     // Switch back to 号码单式 and test "龙兔各数5" -> 8 numbers × ¥5 = ¥40
-    await tester.tap(find.text('号码单式'));
+    await tester.tap(find.text('单式'));
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, '龙兔各数5');
     await tester.pump();
@@ -133,6 +133,56 @@ void main() {
     expect(find.text('已识别 5 个生肖 · 复试 3,4 连 · 单注 ¥5'), findsOneWidget);
     expect(find.text('组合展开 · 15 注'), findsOneWidget);
     expect(find.text('¥75'), findsWidgets);
+  });
+
+
+  testWidgets('RecordAddScreen 平特肖 mode keeps zodiacs and counts notes', (tester) async {
+    tester.view.physicalSize = const Size(393 * 3, 852 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(wrap(const RecordAddScreen()));
+    await tester.pump();
+
+    await tester.tap(find.text('平特'));
+    await tester.pump();
+    expect(find.text('新增记录 · 平特'), findsOneWidget);
+    expect(find.text('等待输入平特生肖（7 码任一命中）'), findsOneWidget);
+
+    await tester.tap(find.text('示例：平特蛇龙鸡各5'));
+    await tester.pump();
+    expect(find.textContaining('已识别 3 个平特生肖'), findsOneWidget);
+    expect(find.text('¥15'), findsWidgets);
+
+    // Save path: provider receives xiaos, not expanded numbers
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: DuiliaoTheme.dark(),
+          home: const RecordAddScreen(mode: '平特肖'),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.enterText(find.byType(TextField).first, '蛇龙鸡平特各5');
+    await tester.pump();
+    await tester.tap(find.text('保存记录'));
+    await tester.pump();
+    final records = container.read(bettingRecordsProvider);
+    expect(records, isNotEmpty);
+    final item = records.first;
+    expect(item.playType, '平特肖');
+    expect(item.xiaos, ['蛇', '龙', '鸡']);
+    expect(item.numbers, isEmpty);
+    expect(item.notesCount, 3);
+    expect(item.totalAmount, 15);
+    expect(item.odds, 2.0);
+    expect(item.isLianxiao, isFalse);
+    expect(item.isPingte, isTrue);
+    expect(item.mode, '平特肖');
   });
 
   testWidgets('RecordAddScreen auto reads clipboard on launch', (tester) async {

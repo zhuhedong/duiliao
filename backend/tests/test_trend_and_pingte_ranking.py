@@ -60,3 +60,24 @@ def test_pingte_ranking_endpoint(user_client, seeded_draws):
     assert "tema_count" in n0
     assert "bose" in n0
     assert "xiao" in n0
+
+
+
+def test_pingte_ranking_year_scope_default(user_client, seeded_draws):
+    """limit=0 / 缺省应统计当年全部期数（sample_scope=year）。"""
+    from datetime import datetime, timezone, timedelta
+
+    year = (datetime.now(timezone.utc) + timedelta(hours=8)).year
+    res = user_client.get("/collector/pingte-ranking?lottery=macau&limit=0")
+    assert res["ok"] is True
+    assert res.get("sample_scope") == "year"
+    assert res.get("sample_year") == year
+    assert res["sample_periods"] > 0
+    # 区间应落在当年 period 前缀内
+    assert str(res["earliest_period"]).startswith(str(year))
+    assert str(res["latest_period"]).startswith(str(year))
+
+    # 显式最近 N 期仍可用
+    res50 = user_client.get("/collector/pingte-ranking?lottery=macau&limit=50")
+    assert res50["ok"] is True
+    assert res50.get("sample_scope") == "limit"

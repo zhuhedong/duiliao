@@ -51,8 +51,8 @@ DEFAULT_ODDS: dict[str, float] = {
     "特码": 47.0,
     "正码": 7.0,
     "平码": 7.0,
-    "平特肖": 2.05,
-    "平特一肖": 2.05,
+    "平特肖": 2.0,
+    "平特一肖": 2.0,
     "特肖": 11.5,
     "2连肖": 4.0,
     "2连肖（带马）": 3.8,
@@ -113,6 +113,23 @@ def lianxiao_odds(k: int, has_ma: bool) -> float:
     return LIANXIAO_ODDS_WITHOUT_MA.get(k, 100.0 if k >= 5 else 4.0)
 
 
+PINGTE_ODDS_WITHOUT_MA = 2.0
+PINGTE_ODDS_WITH_MA = 1.8
+
+
+def pingte_odds(has_ma: bool) -> float:
+    """平特肖赔率：不带马 1:2.0，带马 1:1.8。"""
+    return PINGTE_ODDS_WITH_MA if has_ma else PINGTE_ODDS_WITHOUT_MA
+
+
+PURE_XIAO_PLAYS = frozenset({"特肖", "平特肖", "平特一肖", "合肖", "正肖", "杀肖"})
+
+
+def is_pure_xiao_play(play_type: str) -> bool:
+    pt = play_type or ""
+    return pt in PURE_XIAO_PLAYS or "平特" in pt
+
+
 NBUZHONG_K: dict[str, int] = {
     "五不中": 5,
     "六不中": 6,
@@ -156,12 +173,15 @@ def default_odds_for(
             k = 5
         return lianxiao_odds(k, has_ma)
 
+    if "平特" in play_type:
+        # 单肖按是否含马分档；多肖展示默认不带马档，结算时按肖分档派彩
+        if xiaos and len(list(xiaos)) == 1:
+            return pingte_odds(str(list(xiaos)[0]) == "马")
+        return PINGTE_ODDS_WITHOUT_MA
     if play_type in DEFAULT_ODDS:
         return DEFAULT_ODDS[play_type]
     if "不中" in play_type or mode == "不中码":
         return 2.58
-    if "平特" in play_type:
-        return 2.05
     if "特肖" in play_type:
         return 11.5
     if "正码" in play_type or "平码" in play_type:
@@ -310,9 +330,16 @@ def parse_smart_bet_input(
         or "不中" in text
     )
     has_per_number_keyword = bool(re.search(r"(?:各数|个数|各号|各码|每码)", text))
-    is_pure_xiao_play = (
-        play_type in ("特肖", "平特肖", "平特一肖", "合肖", "正肖", "杀肖")
-        and not has_per_number_keyword
+    # 「平特」/纯生肖玩法：保留生肖，不展开成号码。
+    # 「各数」在正码包码场景才触发展开；平特的「各5」只表示每肖单额。
+    force_pure_xiao = is_pure_xiao_play(play_type) or "平特" in text
+    is_pure_xiao = (
+        not is_fushi
+        and not is_nbuzhong
+        and (
+            force_pure_xiao
+            or ("特肖" in text and not has_per_number_keyword)
+        )
     )
 
     numbers = list(explicit_numbers)
@@ -332,7 +359,7 @@ def parse_smart_bet_input(
                 if num not in numbers:
                     numbers.append(num)
         xiaos = []
-    elif is_pure_xiao_play:
+    elif is_pure_xiao:
         xiaos = extracted_xiaos
     else:
         # 号码单式 or '各数5' / '个数5' / '各5': expand any zodiacs (e.g. 龙兔) into their constituent numbers!
@@ -390,6 +417,19 @@ def _sync_record_odds(record: UserBettingRecord) -> bool:
         or (rec_xiaos and bool(_LIANXIAO_EXPR_RE.search(record.raw_input or "")))
     )
     if not is_lianxiao:
+        if "平特" in play_type:
+            if len(rec_xiaos) == 1:
+                expected = pingte_odds(rec_xiaos[0] == "马")
+            else:
+                # 多肖平特：展示默认 2.0；实际派彩在结算时按肖分档
+                expected = PINGTE_ODDS_WITHOUT_MA
+            if not record.odds or record.odds <= 0 or record.odds in (2.05,) or (
+                len(rec_xiaos) == 1 and record.odds != expected
+            ):
+                if record.odds != expected:
+                    record.odds = expected
+                    return True
+            return False
         if not record.odds or record.odds <= 0:
             record.odds = default_odds_for(play_type, mode, rec_xiaos)
             return True
@@ -470,10 +510,18 @@ def evaluate_record_against_draw(
         hit_items = [n for n in rec_nums if n in all_draw_nums]
         if rec_nums and len(hit_items) == 0:
             hit_notes = record.notes_count or 1
-    elif "平特" in play_type and rec_xiaos and not rec_nums:
+    elif "平特" in play_type and rec_xiaos:
         hit_items = [x for x in rec_xiaos if x in draw_xiaos]
         hit_notes = len(hit_items)
-    elif "特肖" in play_type and rec_xiaos and not rec_nums:
+        payout_accum = 0.0
+        for x in hit_items:
+            payout_accum += record.stake_per_note * record.multiplier * pingte_odds(x == "马")
+        custom_payout = int(round(payout_accum)) if hit_notes > 0 else 0
+        if len(rec_xiaos) == 1:
+            target_odds = pingte_odds(rec_xiaos[0] == "马")
+        elif not record.odds or record.odds in (2.05,):
+            target_odds = PINGTE_ODDS_WITHOUT_MA
+    elif "特肖" in play_type and rec_xiaos:
         hit_items = [x for x in rec_xiaos if x == tema_xiao]
         hit_notes = len(hit_items)
     elif "特码" in play_type:
@@ -620,10 +668,12 @@ def serialize_record(
 
     win_pill_label = None
     if record.status == "won":
-        if "特码" in (record.play_type or ""):
+        if "特码" in (record.play_type or "") and "平特" not in (record.play_type or ""):
             win_pill_label = f"特码中 +¥{record.net_profit}"
         elif "不中" in (record.play_type or "") or record.mode == "不中码":
             win_pill_label = f"全不中 +¥{record.net_profit}"
+        elif "平特" in (record.play_type or ""):
+            win_pill_label = f"中 {record.hit_notes} 肖 +¥{record.net_profit}"
         elif fushi_link is not None:
             win_pill_label = f"中 {record.hit_notes} 注 +¥{record.net_profit}"
         else:
@@ -827,6 +877,12 @@ def create_user_record(
     play_type = str(payload.get("play_type") or "正码").strip()
     raw_input = str(payload.get("raw_input") or "").strip()
 
+    # App 端「平特肖」录入模式：归一为号码单式 + 平特肖玩法，保留生肖列表
+    if mode == "平特肖":
+        mode = "号码单式"
+        if play_type in ("正码", "特码", "平特", ""):
+            play_type = "平特肖"
+
     parsed = parse_smart_bet_input(raw_input, mode=mode, play_type=play_type) if raw_input else {}
     if parsed.get("detected_mode") in ("连肖复试", "不中码"):
         mode = str(parsed["detected_mode"])
@@ -835,6 +891,14 @@ def create_user_record(
             play_type = f"连肖 {','.join(str(k) for k in ks)}连" if len(ks) > 1 else "连肖"
         elif mode == "不中码" and play_type in ("正码", "特码"):
             play_type = f"{_nbuzhong_k(play_type, raw_input)} 不中"
+    elif (
+        raw_input
+        and "平特" in raw_input
+        and play_type in ("正码", "特码", "")
+        and parsed.get("xiaos")
+        and not parsed.get("numbers")
+    ):
+        play_type = "平特肖"
 
     raw_numbers = payload.get("numbers")
     if raw_numbers:
@@ -848,8 +912,14 @@ def create_user_record(
     else:
         xiaos = list(parsed.get("xiaos") or [])
 
-    # If in 号码单式 mode (or 正码/特码) and xiaos were passed without numbers, expand xiaos to numbers!
-    if mode != "连肖复试" and (mode == "号码单式" or play_type in ("正码", "特码")) and xiaos and not numbers:
+    # 号码单式 + 正码/特码：生肖包码展开成号码；平特肖/特肖等纯生肖玩法保留 xiaos
+    if (
+        mode != "连肖复试"
+        and not is_pure_xiao_play(play_type)
+        and (mode == "号码单式" or play_type in ("正码", "特码"))
+        and xiaos
+        and not numbers
+    ):
         for x in xiaos:
             for num in XIAO_NUMBERS_2026.get(x, []):
                 if num not in numbers:
@@ -959,7 +1029,13 @@ def update_user_record(
     elif "xiaos" in parsed:
         rec.xiaos = list(parsed["xiaos"])
 
-    if rec.mode != "连肖复试" and (rec.mode == "号码单式" or rec.play_type in ("正码", "特码")) and rec.xiaos and not rec.numbers:
+    if (
+        rec.mode != "连肖复试"
+        and not is_pure_xiao_play(rec.play_type or "")
+        and (rec.mode == "号码单式" or rec.play_type in ("正码", "特码"))
+        and rec.xiaos
+        and not rec.numbers
+    ):
         expanded: list[str] = []
         for x in rec.xiaos:
             for num in XIAO_NUMBERS_2026.get(x, []):

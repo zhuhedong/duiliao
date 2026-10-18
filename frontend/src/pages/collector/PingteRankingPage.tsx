@@ -17,7 +17,7 @@ type SortOption = "count_desc" | "count_asc" | "omission_desc" | "consecutive_de
 
 export function PingteRankingPage() {
   const [lottery, setLottery] = useState<Lottery>("macau");
-  const [limit, setLimit] = useState<number>(100);
+  const [limit, setLimit] = useState<number>(0); // 0 = 当年全部期数
   const [activeTab, setActiveTab] = useState<RankingTab>("zodiac");
   const [sortBy, setSortBy] = useState<SortOption>("count_desc");
   const [keyword, setKeyword] = useState<string>("");
@@ -82,7 +82,7 @@ export function PingteRankingPage() {
 
   return (
     <PageWorkspace
-      summary="基于官方落球顺序 7 码（6 正码 + 1 特码）平特全域统计，涵盖平特生肖、尾数、号码、波色与五行出现频次、出号率与遗漏榜单"
+      summary="基于官方落球顺序 7 码（6 正码 + 1 特码）平特全域统计；默认统计当年全部开奖期，也可切换最近 N 期窗口"
     >
       {/* Top Controls Card */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs mb-4">
@@ -106,9 +106,9 @@ export function PingteRankingPage() {
               ))}
             </div>
 
-            {/* Sample Periods Selector */}
+            {/* Sample Periods Selector：默认「当年」= 当年全部开奖期 */}
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl text-xs">
-              {[30, 50, 100, 200, 500].map((lim) => (
+              {([0, 30, 50, 100, 200, 500] as const).map((lim) => (
                 <button
                   key={lim}
                   type="button"
@@ -119,7 +119,7 @@ export function PingteRankingPage() {
                       : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
                   }`}
                 >
-                  {lim}期
+                  {lim === 0 ? "当年" : `${lim}期`}
                 </button>
               ))}
             </div>
@@ -208,7 +208,10 @@ export function PingteRankingPage() {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs">
             <div className="text-[11px] text-slate-500 dark:text-slate-400">统计彩种 / 样本期数</div>
             <div className="text-base font-bold text-slate-800 dark:text-slate-100 mt-1">
-              {LOTTERY_LABEL[rankingData.lottery] || rankingData.lottery} · {rankingData.sample_periods} 期
+              {LOTTERY_LABEL[rankingData.lottery] || rankingData.lottery} ·{" "}
+              {rankingData.sample_scope === "year" || limit === 0
+                ? `当年 ${rankingData.sample_periods} 期`
+                : `${rankingData.sample_periods} 期`}
             </div>
           </div>
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs">

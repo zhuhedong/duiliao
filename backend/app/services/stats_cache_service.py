@@ -151,8 +151,8 @@ class StatsCacheService:
             except Exception as e:
                 logger.warning("Failed warming trend for %s (limit=%d): %s", lottery, lim, e)
 
-        # 2. Pingte rankings (100, 50, 30 limit, count_desc default)
-        for lim in (100, 50, 30):
+        # 2. Pingte rankings: 当年全部期数 + common windows
+        for lim in (0, 100, 50, 30):
             try:
                 res = cb.get_pingte_ranking(
                     lottery=lottery,
@@ -161,9 +161,10 @@ class StatsCacheService:
                     order_by="count_desc",
                     force_refresh=True,
                 )
-                self.set(f"pingte_ranking:{lottery}:{lim}:all:count_desc", res, ttl=3600)
+                scope_key = "year" if lim <= 0 else str(lim)
+                self.set(f"pingte_ranking:{lottery}:{scope_key}:all:count_desc", res, ttl=3600)
             except Exception as e:
-                logger.warning("Failed warming pingte-ranking for %s (limit=%d): %s", lottery, lim, e)
+                logger.warning("Failed warming pingte-ranking for %s (limit=%s): %s", lottery, lim, e)
 
         # 3. Ratings (standard windows 30, 50, 100 for top play types)
         for pt in ("pingte_xiao", "texiao", "tema_n"):
