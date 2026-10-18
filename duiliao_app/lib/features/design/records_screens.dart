@@ -1345,44 +1345,15 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                       for (final item in (periodItemsMap[period] ?? const []))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
-                          child: Dismissible(
-                            key: ValueKey('record-${item.id}'),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 20),
-                              decoration: BoxDecoration(
-                                color: DuiliaoColors.miss.withValues(
-                                  alpha: 0.22,
-                                ),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(
-                                  color: DuiliaoColors.miss.withValues(
-                                    alpha: 0.45,
-                                  ),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: DuiliaoColors.miss,
-                                    size: 18,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '删除',
-                                    style: TextStyle(
-                                      color: DuiliaoColors.miss,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                          child: _RecordCard(
+                            item: item,
+                            onCopy: () => _copySingleRecordFlow(
+                              context,
+                              item,
+                              lottery,
+                              periodCtx,
                             ),
-                            onDismissed: (_) {
+                            onDelete: () {
                               ref
                                   .read(bettingRecordsProvider.notifier)
                                   .removeRecord(item.id);
@@ -1390,23 +1361,6 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                                 const SnackBar(content: Text('已删除该条记录')),
                               );
                             },
-                            child: _RecordCard(
-                              item: item,
-                              onCopy: () => _copySingleRecordFlow(
-                                context,
-                                item,
-                                lottery,
-                                periodCtx,
-                              ),
-                              onDelete: () {
-                                ref
-                                    .read(bettingRecordsProvider.notifier)
-                                    .removeRecord(item.id);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('已删除该条记录')),
-                                );
-                              },
-                            ),
                           ),
                         ),
                     ],
@@ -1941,7 +1895,15 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     }
     if (_selectedPlay == '特肖') return 11.5;
     if (_selectedPlay == '正码') return 7.0;
-    if (_selectedPlay.contains('不中')) return 2.58;
+    if (_selectedPlay.contains('不中') || _mode == '不中码') {
+      final n = int.tryParse(_selectedPlay.split(' ').first) ?? 6;
+      return switch (n) {
+        5 => 2.0,
+        7 => 3.15,
+        8 => 3.85,
+        _ => 2.58,
+      };
+    }
     return 47.0;
   }
 
@@ -3166,6 +3128,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             _RuleBullet('② 号码个数与 N 自动核对，不一致时标红提示'),
                             _RuleBullet('③ 「各数10」「个数10」为该整组单额；「倍2」「×2倍」识别为倍数'),
                             _RuleBullet('④ 本例：6 码 6 不中 → 1 注 × ¥10 = ¥10'),
+                            _RuleBullet('⑤ 不中码赔率：5 不中 1:2 / 6 不中 1:2.58 / 7 不中 1:3.15 / 8 不中 1:3.85'),
                           ],
                           _ => const [
                             _RuleBullet('① 号码以「.」「,」「空格」「、」分隔，范围 01–49，自动去重、标注波色'),
