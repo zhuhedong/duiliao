@@ -777,7 +777,7 @@ def test_lianxiao_2_with_ma_odds_is_3_8():
 
 
 def test_pingte_xiao_record_keeps_xiaos_and_settles_against_7_balls(user_client):
-    """平特肖：保留生肖不展开号码；7 码任一命中即中，赔率 2.05。"""
+    """平特肖：保留生肖不展开号码；7 码任一命中即中，赔率不带马 2.0 / 带马 1.8。"""
     from app import collector_bridge as cb
 
     created = user_client.post(
@@ -804,11 +804,11 @@ def test_pingte_xiao_record_keeps_xiaos_and_settles_against_7_balls(user_client)
     assert rec["numbers"] == []
     assert rec["notes_count"] == 3
     assert rec["total_amount"] == 15
-    assert rec["odds"] == 2.05
+    assert rec["odds"] == 2.0
     assert rec["status"] == "pending"
     rec_id = rec["id"]
 
-    # 02=蛇, 03=龙 appear in 7 balls; 鸡 misses -> 2 hits × 5 × 2.05 = 20.5 -> 20 or 21
+    # 02=蛇, 03=龙 appear in 7 balls; 鸡 misses -> 2 hits × 5 × 2.0 = 20
     sync_res = cb.sync_draws(
         "macau",
         draws=[
@@ -829,7 +829,7 @@ def test_pingte_xiao_record_keeps_xiaos_and_settles_against_7_balls(user_client)
     assert settled["status"] == "won"
     assert set(settled["hit_numbers"]) == {"蛇", "龙"}
     assert settled["hit_notes"] == 2
-    assert settled["payout"] == round(2 * 5 * 2.05)
+    assert settled["payout"] == 20
     assert settled["net_profit"] == settled["payout"] - 15
     assert "肖" in (settled.get("win_pill_label") or "")
 
@@ -856,7 +856,7 @@ def test_pingte_xiao_record_keeps_xiaos_and_settles_against_7_balls(user_client)
         multiplier=1,
         notes_count=3,
         total_amount=15,
-        odds=2.05,
+        odds=2.0,
         status="pending",
         hit_numbers=[],
         hit_notes=0,
@@ -872,6 +872,56 @@ def test_pingte_xiao_record_keeps_xiaos_and_settles_against_7_balls(user_client)
     }
     assert evaluate_record_against_draw(unit, draw) is True
     assert unit.hit_notes == 2
-    assert unit.payout == round(2 * 5 * 2.05)
+    assert unit.payout == 20
 
     user_client.delete(f"/app/records/{rec_id}")
+
+
+
+def test_pingte_xiao_with_ma_odds_is_1_8():
+    """平特带马赔率 1.8；不带马 2.0；多肖按肖分档派彩。"""
+    from app.services.betting_records_service import (
+        UserBettingRecord,
+        evaluate_record_against_draw,
+        pingte_odds,
+        default_odds_for,
+    )
+
+    assert pingte_odds(False) == 2.0
+    assert pingte_odds(True) == 1.8
+    assert default_odds_for("平特肖", xiaos=["蛇"]) == 2.0
+    assert default_odds_for("平特肖", xiaos=["马"]) == 1.8
+    assert default_odds_for("平特肖", xiaos=["蛇", "马"]) == 2.0
+
+    # 马 + 蛇 hit: 5*1.8 + 5*2.0 = 19
+    rec = UserBettingRecord(
+        user_id="test_user",
+        lottery="macau",
+        period="2026207",
+        mode="号码单式",
+        play_type="平特肖",
+        xiaos=["马", "蛇", "鸡"],
+        numbers=[],
+        stake_per_note=5,
+        multiplier=1,
+        notes_count=3,
+        total_amount=15,
+        odds=2.0,
+        status="pending",
+        hit_numbers=[],
+        hit_notes=0,
+        payout=0,
+        net_profit=0,
+        raw_input="马蛇鸡平特各5",
+    )
+    draw = {
+        "lottery": "macau",
+        "period": "2026207",
+        "balls": ["01", "02", "06", "11", "12", "18"],  # 01=马, 02=蛇
+        "tema": "45",
+    }
+    assert evaluate_record_against_draw(rec, draw) is True
+    assert set(rec.hit_numbers) == {"马", "蛇"}
+    assert rec.hit_notes == 2
+    assert rec.payout == round(5 * 1.8 + 5 * 2.0)
+    assert rec.net_profit == rec.payout - 15

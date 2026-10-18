@@ -655,6 +655,8 @@ export interface PingteRankingResult {
   ok: boolean;
   lottery: string;
   sample_periods: number;
+  sample_scope?: "year" | "limit";
+  sample_year?: number | null;
   latest_period: string | null;
   earliest_period: string | null;
   zodiac_ranking: PingteZodiacRank[];
@@ -1096,7 +1098,7 @@ export const collectorApi = {
     const q = new URLSearchParams({ lottery, limit: String(limit) });
     return api.get<TrendResponse>(`/collector/trend?${q}`);
   },
-  getPingteRanking(lottery: Lottery = "macau", limit = 100, dimension = "all", order_by = "count_desc") {
+  getPingteRanking(lottery: Lottery = "macau", limit = 0, dimension = "all", order_by = "count_desc") {
     const q = new URLSearchParams({
       lottery,
       limit: String(limit),

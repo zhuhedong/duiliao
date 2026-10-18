@@ -1934,7 +1934,11 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
 
   double get _defaultOddsForSelected {
     if (_mode == '连肖复试') return 30.0;
-    if (_isPingteSelected) return 2.05;
+    if (_isPingteSelected) {
+      final xs = _parseXiaos(_inputController.text);
+      if (xs.length == 1 && xs.first == '马') return 1.8;
+      return 2.0;
+    }
     if (_selectedPlay == '特肖') return 11.5;
     if (_selectedPlay == '正码') return 7.0;
     if (_selectedPlay.contains('不中')) return 2.58;
@@ -2861,7 +2865,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                         '连肖复试' =>
                                           '已识别 ${xiaos.length} 个生肖 · 复试 $fushiKLabel 连 · 单注 ¥$stake',
                                         '平特肖' =>
-                                          '已识别 ${xiaos.length} 个平特生肖 · 单注 ¥$stake · 赔率 1:2.05',
+                                          '已识别 ${xiaos.length} 个平特生肖 · 单注 ¥$stake · 赔率 不带马1:2 / 带马1:1.8',
                                         '不中码' =>
                                           '已识别 ${numbers.length} 个号码 · $nbuzhongN 不中 · 单注 ¥$stake',
                                         _ =>
@@ -3154,7 +3158,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                           '平特肖' => const [
                             _RuleBullet('① 生肖连续书写自动拆分：蛇龙鸡 → 蛇/龙/鸡，每个生肖 1 注'),
                             _RuleBullet('② 平特命中规则：所选生肖出现在当期 7 码（6 正码 + 1 特码）任一即中'),
-                            _RuleBullet('③ 「各5」「个数5」「一组5块」识别为每注单额；默认赔率 1:2.05'),
+                            _RuleBullet('③ 「各5」「个数5」「一组5块」识别为每注单额；赔率：不带马 1:2，带马 1:1.8'),
                             _RuleBullet('④ 示例：蛇龙鸡平特各5 → 3 注 × ¥5 = ¥15；开出蛇/龙/鸡任一即按命中肖数派彩'),
                           ],
                           '不中码' => const [
@@ -3167,7 +3171,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             _RuleBullet('① 号码以「.」「,」「空格」「、」分隔，范围 01–49，自动去重、标注波色'),
                             _RuleBullet('② 「各数5」「个数5」「一组5块」「各5」「×5」「每码5」识别为单注金额'),
                             _RuleBullet('③ 生肖包码：龙兔各数5 → 龙(03·15·27·39)+兔(04·16·28·40)共 8 码 × ¥5 = ¥40'),
-                            _RuleBullet('④ 平特肖：蛇龙鸡平特各5 → 3 肖 × ¥5 = ¥15，7 码任一命中即中，赔率 1:2.05'),
+                            _RuleBullet('④ 平特肖：蛇龙鸡平特各5 → 3 肖 × ¥5 = ¥15，7 码任一命中即中；不带马1:2 / 带马1:1.8'),
                             _RuleBullet('⑤ 连肖复试：鼠虎马猴鸡 给我打复试3，4连一组5块 → C(5,3)+C(5,4)=15 注 × ¥5 = ¥75'),
                             _RuleBullet('⑥ 不中码：02.04.06.08.10.12·6不中个数10 → 整组 1 注，全不开出即中'),
                             _RuleBullet('⑦ 示例：18.42.39个数5 → 3 注 × ¥5 = ¥15'),
@@ -3253,7 +3257,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                                 vertical: 10,
                               ),
                               child: Text(
-                                '7 码（正码+特码）任一出现所选生肖即中 · 默认赔率 1:2.05',
+                                '7 码（正码+特码）任一出现所选生肖即中 · 不带马 1:2 / 带马 1:1.8',
                                 style: context.texts.labelSmall?.copyWith(fontSize: 11),
                               ),
                             ),

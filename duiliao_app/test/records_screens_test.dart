@@ -179,7 +179,7 @@ void main() {
     expect(item.numbers, isEmpty);
     expect(item.notesCount, 3);
     expect(item.totalAmount, 15);
-    expect(item.odds, 2.05);
+    expect(item.odds, 2.0);
     expect(item.isLianxiao, isFalse);
     expect(item.isPingte, isTrue);
     expect(item.mode, '平特肖');

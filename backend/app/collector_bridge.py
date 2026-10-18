@@ -882,23 +882,32 @@ def get_trend(lottery: str = "macau", limit: int = 100, force_refresh: bool = Fa
 
 def get_pingte_ranking(
     lottery: str = "macau",
-    limit: int = 100,
+    limit: int = 0,
     dimension: str = "all",
     order_by: str = "count_desc",
     force_refresh: bool = False,
 ) -> dict[str, Any]:
-    """Calculate Pingte (7 winning balls: 正码 1-6 + 特码) appearance rankings."""
+    """Calculate Pingte (7 winning balls: 正码 1-6 + 特码) appearance rankings.
+
+    ``limit <= 0`` means **当年全部期数** (Beijing calendar year, period prefix YYYY).
+    Positive ``limit`` keeps the recent-N-periods window (capped at 500).
+    """
     from app.services.stats_cache_service import stats_cache
 
     lottery_key = str(lottery).lower()
-    cache_key = f"pingte_ranking:{lottery_key}:{limit}:{dimension}:{order_by}"
+    try:
+        limit_i = int(limit)
+    except (TypeError, ValueError):
+        limit_i = 0
+    scope_key = "year" if limit_i <= 0 else str(limit_i)
+    cache_key = f"pingte_ranking:{lottery_key}:{scope_key}:{dimension}:{order_by}"
     if not force_refresh:
         cached = stats_cache.get(cache_key)
         if cached is not None:
             return cached
 
     bootstrap()
-    from datetime import date
+    from datetime import date, datetime, timezone, timedelta
     from sqlalchemy import select
     from db import session_scope
     from schema import Draw
@@ -906,19 +915,32 @@ def get_pingte_ranking(
     from common.xiao import num_to_xiao, XIAO
     from common.wuxing import num_to_wuxing
 
-    limit = max(1, min(int(limit or 100), 500)) if limit and int(limit) > 0 else 500
+    cn_now = datetime.now(timezone.utc) + timedelta(hours=8)
+    year = cn_now.year
+    year_from = f"{year}001"
+    year_to = f"{year}366"
+    use_year_scope = limit_i <= 0
+    if not use_year_scope:
+        limit_i = max(1, min(limit_i, 500))
+
     with session_scope(guard=False) as s:
         stmt = select(Draw)
         if lottery:
             stmt = stmt.where(Draw.lottery == lottery)
-        draws = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(limit)))
+        if use_year_scope:
+            stmt = stmt.where(Draw.period >= year_from, Draw.period <= year_to)
+            draws = list(s.scalars(stmt.order_by(Draw.period.desc())))
+        else:
+            draws = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(limit_i)))
 
     N = len(draws)
     if N == 0:
-        return {
+        empty = {
             "ok": True,
             "lottery": lottery,
             "sample_periods": 0,
+            "sample_scope": "year" if use_year_scope else "limit",
+            "sample_year": year if use_year_scope else None,
             "latest_period": None,
             "earliest_period": None,
             "zodiac_ranking": [],
@@ -927,6 +949,8 @@ def get_pingte_ranking(
             "bose_ranking": [],
             "wuxing_ranking": [],
         }
+        stats_cache.set(cache_key, empty, ttl=3600)
+        return empty
 
     latest_period = draws[0].period
     earliest_period = draws[-1].period
@@ -1198,6 +1222,8 @@ def get_pingte_ranking(
         "ok": True,
         "lottery": lottery,
         "sample_periods": N,
+        "sample_scope": "year" if use_year_scope else "limit",
+        "sample_year": year if use_year_scope else None,
         "latest_period": latest_period,
         "earliest_period": earliest_period,
         "zodiac_ranking": zodiac_ranking,
