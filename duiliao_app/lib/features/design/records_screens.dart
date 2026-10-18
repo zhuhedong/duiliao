@@ -1941,7 +1941,15 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
     }
     if (_selectedPlay == '特肖') return 11.5;
     if (_selectedPlay == '正码') return 7.0;
-    if (_selectedPlay.contains('不中')) return 2.58;
+    if (_selectedPlay.contains('不中') || _mode == '不中码') {
+      final n = int.tryParse(_selectedPlay.split(' ').first) ?? 6;
+      return switch (n) {
+        5 => 2.0,
+        7 => 3.15,
+        8 => 3.85,
+        _ => 2.58,
+      };
+    }
     return 47.0;
   }
 
@@ -3166,6 +3174,7 @@ class _RecordAddScreenState extends ConsumerState<RecordAddScreen> {
                             _RuleBullet('② 号码个数与 N 自动核对，不一致时标红提示'),
                             _RuleBullet('③ 「各数10」「个数10」为该整组单额；「倍2」「×2倍」识别为倍数'),
                             _RuleBullet('④ 本例：6 码 6 不中 → 1 注 × ¥10 = ¥10'),
+                            _RuleBullet('⑤ 不中码赔率：5 不中 1:2 / 6 不中 1:2.58 / 7 不中 1:3.15 / 8 不中 1:3.85'),
                           ],
                           _ => const [
                             _RuleBullet('① 号码以「.」「,」「空格」「、」分隔，范围 01–49，自动去重、标注波色'),

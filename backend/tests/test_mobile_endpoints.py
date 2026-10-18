@@ -925,3 +925,72 @@ def test_pingte_xiao_with_ma_odds_is_1_8():
     assert rec.hit_notes == 2
     assert rec.payout == round(5 * 1.8 + 5 * 2.0)
     assert rec.net_profit == rec.payout - 15
+
+
+
+def test_nbuzhong_5_odds_is_2_and_legacy_records_resync():
+    """5 不中赔率 1:2（旧 2.12/2.58 统一校正）；6/7/8 不中保持原赔率。"""
+    from app.services.betting_records_service import (
+        UserBettingRecord,
+        _sync_record_odds,
+        default_odds_for,
+        evaluate_record_against_draw,
+    )
+
+    assert default_odds_for("5 不中", "不中码") == 2.0
+    assert default_odds_for("五不中", "不中码") == 2.0
+    assert default_odds_for("6 不中", "不中码") == 2.58
+    assert default_odds_for("7 不中", "不中码") == 3.15
+    assert default_odds_for("8 不中", "不中码") == 3.85
+
+    def make(play_type, odds, nums):
+        return UserBettingRecord(
+            user_id="test_user",
+            lottery="macau",
+            period="2026208",
+            mode="不中码",
+            play_type=play_type,
+            numbers=nums,
+            xiaos=[],
+            stake_per_note=10,
+            multiplier=1,
+            notes_count=1,
+            total_amount=10,
+            odds=odds,
+            status="pending",
+            hit_numbers=[],
+            hit_notes=0,
+            payout=0,
+            net_profit=0,
+            raw_input="",
+        )
+
+    # 历史 5 不中（旧赔率 2.12 / 2.58）同步为 2.0
+    for legacy in (2.12, 2.58):
+        rec = make("5 不中", legacy, ["02", "04", "06", "08", "10"])
+        assert _sync_record_odds(rec) is True
+        assert rec.odds == 2.0
+
+    # 6 不中保持不变
+    rec6 = make("6 不中", 2.58, ["02", "04", "06", "08", "10", "12"])
+    assert _sync_record_odds(rec6) is False
+    assert rec6.odds == 2.58
+
+    # 结算：5 个全不中 -> 10 × 2.0 = 20，净赚 10；旧赔率记录也按 2.0 结算
+    draw = {
+        "lottery": "macau",
+        "period": "2026208",
+        "balls": ["01", "03", "05", "07", "09", "11"],
+        "tema": "13",
+    }
+    rec5 = make("5 不中", 2.12, ["02", "04", "06", "08", "10"])
+    assert evaluate_record_against_draw(rec5, draw) is True
+    assert rec5.status == "won"
+    assert rec5.odds == 2.0
+    assert rec5.payout == 20
+    assert rec5.net_profit == 10
+
+    # 6 不中结算仍按 2.58：10 × 2.58 = 25.8 -> 26
+    rec6b = make("6 不中", 2.58, ["02", "04", "06", "08", "10", "12"])
+    assert evaluate_record_against_draw(rec6b, draw) is True
+    assert rec6b.payout == 26

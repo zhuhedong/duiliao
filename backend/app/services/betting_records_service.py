@@ -74,11 +74,11 @@ DEFAULT_ODDS: dict[str, float] = {
     "5连肖（不带马）": 100.0,
     "5连肖（复试）": 100.0,
     "5 连": 100.0,
-    "5 不中": 2.12,
+    "5 不中": 2.0,
     "6 不中": 2.58,
     "7 不中": 3.15,
     "8 不中": 3.85,
-    "五不中": 2.12,
+    "五不中": 2.0,
     "六不中": 2.58,
     "七不中": 3.15,
     "八不中": 3.85,
@@ -129,6 +129,18 @@ def is_pure_xiao_play(play_type: str) -> bool:
     pt = play_type or ""
     return pt in PURE_XIAO_PLAYS or "平特" in pt
 
+
+# 不中码赔率（按 N）：5 不中 = 1:2；其余档位保持原值
+NBUZHONG_ODDS: dict[int, float] = {
+    5: 2.0,
+    6: 2.58,
+    7: 3.15,
+    8: 3.85,
+    9: 4.70,
+    10: 5.80,
+}
+# 5 不中历史上用过的旧赔率（2.12 为旧表，2.58 为旧兜底值），遇到时统一校正为 2.0
+_LEGACY_NBUZHONG5_ODDS: set[float] = {2.12, 2.58}
 
 NBUZHONG_K: dict[str, int] = {
     "五不中": 5,
@@ -181,6 +193,8 @@ def default_odds_for(
     if play_type in DEFAULT_ODDS:
         return DEFAULT_ODDS[play_type]
     if "不中" in play_type or mode == "不中码":
+        if _nbuzhong_k(play_type) == 5:
+            return NBUZHONG_ODDS[5]
         return 2.58
     if "特肖" in play_type:
         return 11.5
@@ -430,6 +444,14 @@ def _sync_record_odds(record: UserBettingRecord) -> bool:
                     record.odds = expected
                     return True
             return False
+        if mode == "不中码" or "不中" in play_type:
+            if _nbuzhong_k(play_type, record.raw_input or "") == 5 and (
+                not record.odds or record.odds <= 0 or record.odds in _LEGACY_NBUZHONG5_ODDS
+            ):
+                if record.odds != NBUZHONG_ODDS[5]:
+                    record.odds = NBUZHONG_ODDS[5]
+                    return True
+                return False
         if not record.odds or record.odds <= 0:
             record.odds = default_odds_for(play_type, mode, rec_xiaos)
             return True
@@ -510,6 +532,11 @@ def evaluate_record_against_draw(
         hit_items = [n for n in rec_nums if n in all_draw_nums]
         if rec_nums and len(hit_items) == 0:
             hit_notes = record.notes_count or 1
+        if (
+            _nbuzhong_k(play_type, record.raw_input or "") == 5
+            and (not record.odds or record.odds in _LEGACY_NBUZHONG5_ODDS)
+        ):
+            target_odds = NBUZHONG_ODDS[5]
     elif "平特" in play_type and rec_xiaos:
         hit_items = [x for x in rec_xiaos if x in draw_xiaos]
         hit_notes = len(hit_items)
@@ -536,7 +563,10 @@ def evaluate_record_against_draw(
     if custom_payout is not None:
         payout = custom_payout
     else:
-        odds = record.odds if record.odds and record.odds > 0 else default_odds_for(play_type, mode, rec_xiaos)
+        if target_odds is not None and (mode == "不中码" or "不中" in play_type):
+            odds = target_odds
+        else:
+            odds = record.odds if record.odds and record.odds > 0 else default_odds_for(play_type, mode, rec_xiaos)
         payout = int(round(hit_notes * record.stake_per_note * record.multiplier * odds)) if hit_notes > 0 else 0
     net_profit = payout - record.total_amount
 
