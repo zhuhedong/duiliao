@@ -48,6 +48,8 @@ EXTRACTORS = {
     "fuge_4ma": ("num", 4, r""),
     "xiaokapian_1x2m": ("all", 3, r""),
     "jingxuan_7ma": ("num", 7, r""),
+    "yihao_6ma": ("num", 6, r""),
+    "caifu_2x4m": ("all", 6, r""),
 }
 
 
@@ -575,6 +577,47 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             rows.append(ParsedRow(
                 period_raw=period,
                 preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "yihao_6ma":
+            m = re.search(r"\[内幕爆料\]\s*([\s\S]+?)(?:\n\s*顶尖大师|\Z)", block)
+            if not m:
+                continue
+            nums = list(dict.fromkeys(re.findall(r"\d{2}", m.group(1))))
+            if len(nums) != 6 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            m_claim = re.search(r"期\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*(\d{2})", block)
+            if m_claim:
+                claim_xiao, claim_num = m_claim.group(1), m_claim.group(2)
+                claimed = {"status": "hit" if claim_num in nums else "miss", "xiao": claim_xiao, "num": claim_num, "raw": f"{claim_xiao}{claim_num}"}
+            else:
+                claimed = claimed_from_block(block)
+            selected = ".".join(nums)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
+                claimed=claimed,
+                raw_text=block,
+            ))
+            continue
+        if parser == "caifu_2x4m":
+            m_xiao = re.search(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s+([鼠牛虎兔龙蛇马羊猴鸡狗猪])", block)
+            m_num = re.search(r"(\d{2}(?:\s*[-－]\s*\d{2}){3})", block)
+            if not m_xiao or not m_num:
+                continue
+            xiaos = [m_xiao.group(1), m_xiao.group(2)]
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m_num.group(1))))
+            if len(set(xiaos)) != 2 or len(nums) != 4 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"{xiaos[0]} {xiaos[1]} {'.'.join(nums)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    *({"kind": "xiao", "value": x, "text": selected} for x in xiaos),
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
                 claimed=claimed_from_block(block),
                 raw_text=block,
             ))

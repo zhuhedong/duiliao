@@ -260,6 +260,22 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(len(rows23), 1)
         self.assertEqual([a["value"] for a in rows23[0].preds], ["17", "29", "41", "09", "21", "26", "38"])
 
+        # 24. yihao_6ma
+        raw_yh6 = "290\n 期\n 兔40\n \n 🔥 爆料 [内幕爆料]\n 08 20 28 40 09 21\n291\n 期\n 發88\n \n 🔥 爆料 [内幕爆料]\n 88 88 88 88 88 88\n 顶尖大师 058585.com"
+        rows24 = extract_dingjian_column(raw_yh6, "yihao_6ma")
+        self.assertEqual(len(rows24), 1)
+        self.assertEqual([a["value"] for a in rows24[0].preds], ["08", "20", "28", "40", "09", "21"])
+        self.assertEqual(rows24[0].claimed["status"], "hit")
+        self.assertEqual(rows24[0].claimed["num"], "40")
+
+        # 25. caifu_2x4m
+        raw_cf = "第290期\n 兔 狗\n28-40-21-33\n 开奖: 兔40中\n 顶尖大师058585.com\n第291期\n 财富机密\n 跟上发财，准准准\n 开奖: 發88 中\n 顶尖大师058585.com"
+        rows25 = extract_dingjian_column(raw_cf, "caifu_2x4m")
+        self.assertEqual(len(rows25), 1)
+        self.assertEqual([a["value"] for a in rows25[0].preds[:2]], ["兔", "狗"])
+        self.assertEqual([a["value"] for a in rows25[0].preds[2:]], ["28", "40", "21", "33"])
+        self.assertEqual(rows25[0].claimed["status"], "hit")
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

@@ -2667,6 +2667,36 @@ sources:
     parser: jingxuan_7ma
     kind: num
     path: /api/v1/index/config/byid/1786796767890
+- source_id: dj_yihao_6ma
+  source_name: 顶尖一号来料内幕六码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_yihao_6ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师一号来料内幕六码
+  extra:
+    upstream_id: '1788957420145'
+    parser: yihao_6ma
+    kind: num
+    path: /api/v1/index/config/byid/1788957420145
+- source_id: dj_caifu_2x4m
+  source_name: 顶尖大师财富机密二肖四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_caifu_2x4m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师财富机密二肖四码
+  extra:
+    upstream_id: '1792240640660'
+    parser: caifu_2x4m
+    kind: mixed
+    path: /api/v1/index/config/byid/1792240640660
 draw:
   macau:
     adapter: getLastLottery
