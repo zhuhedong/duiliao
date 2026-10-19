@@ -50,6 +50,7 @@ EXTRACTORS = {
     "jingxuan_7ma": ("num", 7, r""),
     "yihao_6ma": ("num", 6, r""),
     "caifu_2x4m": ("all", 6, r""),
+    "maizhong_4ma": ("num", 4, r""),
 }
 
 
@@ -619,6 +620,24 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
                     *({"kind": "num", "value": n, "text": selected} for n in nums),
                 ],
                 claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "maizhong_4ma":
+            m = re.search(r"[《<]\s*((?:\d{2}[.\s·\-－]*){4})\s*[》>]", block)
+            if not m:
+                continue
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(1))))
+            if len(nums) != 4 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            claimed = dict(claimed_from_block(block))
+            if claimed.get("status") == "unknown" and claimed.get("num"):
+                claimed["status"] = "hit" if claimed["num"] in nums else "miss"
+            selected = ".".join(nums)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
+                claimed=claimed,
                 raw_text=block,
             ))
             continue

@@ -2540,8 +2540,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_wangzhe_duijue.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师王者对决二肖
+  enabled: false
+  remark: 顶尖大师王者对决二肖；上游栏目 1785498680644 已消失，巡检治理自动停用
   extra:
     upstream_id: '1785498680644'
     parser: wangzhe_duijue
@@ -2555,8 +2555,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_zhongbang_2x4m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师重磅提炼二肖四码
+  enabled: false
+  remark: 顶尖大师重磅提炼二肖四码；上游栏目 1788784717081 已消失，巡检治理自动停用
   extra:
     upstream_id: '1788784717081'
     parser: zhongbang_2x4m
@@ -2585,8 +2585,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_qima_zhongte.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师七码中特
+  enabled: false
+  remark: 顶尖大师七码中特；上游栏目 1791893034357 已消失，巡检治理自动停用
   extra:
     upstream_id: '1791893034357'
     parser: seven_number_lines
@@ -2697,6 +2697,21 @@ sources:
     parser: caifu_2x4m
     kind: mixed
     path: /api/v1/index/config/byid/1792240640660
+- source_id: dj_maizhong_4ma
+  source_name: 顶尖大师买中四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_maizhong_4ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师买中四码
+  extra:
+    upstream_id: '1786448896495'
+    parser: maizhong_4ma
+    kind: num
+    path: /api/v1/index/config/byid/1786448896495
 draw:
   macau:
     adapter: getLastLottery

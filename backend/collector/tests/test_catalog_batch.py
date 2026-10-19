@@ -276,6 +276,14 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual([a["value"] for a in rows25[0].preds[2:]], ["28", "40", "21", "33"])
         self.assertEqual(rows25[0].claimed["status"], "hit")
 
+        # 26. maizhong_4ma
+        raw_mz4 = "291期 📆买这四码📊\n《20.44.17.41》开:虎17\n292期 📆买这四码📊\n《跟买必发！准准准》开:發88\n顶尖大师 058585.com"
+        rows26 = extract_dingjian_column(raw_mz4, "maizhong_4ma")
+        self.assertEqual(len(rows26), 1)
+        self.assertEqual([a["value"] for a in rows26[0].preds], ["20", "44", "17", "41"])
+        self.assertEqual(rows26[0].claimed["status"], "hit")
+        self.assertEqual(rows26[0].claimed["num"], "17")
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)
