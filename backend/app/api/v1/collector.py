@@ -772,6 +772,7 @@ class SiteDumpRequest(BaseModel):
     timeout: float = 12.0
     include_html: bool = True
     include_modules: bool = False
+    include_raw_html: bool = False
 
 
 def _normalize_site_dump_host(host: str | None) -> str | None:
@@ -814,6 +815,7 @@ def dump_588080(
     result = fetch_588080_full_page(
         host=safe_host,
         timeout=req.timeout,
+        include_raw_html=req.include_raw_html,
     )
     if not result.ok:
         raise HTTPException(status_code=502, detail=f"抓取 588080 失败: {result.error}")

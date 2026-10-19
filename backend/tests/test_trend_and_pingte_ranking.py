@@ -45,12 +45,14 @@ def test_pingte_ranking_endpoint(user_client, seeded_draws):
     assert "current_omission" in z0
     assert "max_omission" in z0
     assert "max_consecutive" in z0
+    assert "current_consecutive" in z0
     assert "numbers" in z0
     assert z0["rank"] == 1
 
     t0 = res["tail_ranking"][0]
     assert "name" in t0
     assert "count" in t0
+    assert "current_consecutive" in t0
     assert "numbers" in t0
 
     n0 = res["number_ranking"][0]
@@ -58,8 +60,22 @@ def test_pingte_ranking_endpoint(user_client, seeded_draws):
     assert "count" in n0
     assert "ping_count" in n0
     assert "tema_count" in n0
+    assert "current_consecutive" in n0
     assert "bose" in n0
     assert "xiao" in n0
+
+    b0 = res["bose_ranking"][0]
+    assert "current_consecutive" in b0
+
+    w0 = res["wuxing_ranking"][0]
+    assert "current_consecutive" in w0
+
+    # Test sorting by current_consecutive_desc
+    res_cons = user_client.get("/collector/pingte-ranking?lottery=macau&limit=50&order_by=current_consecutive_desc")
+    assert res_cons["ok"] is True
+    z_cons = res_cons["zodiac_ranking"]
+    for i in range(len(z_cons) - 1):
+        assert z_cons[i]["current_consecutive"] >= z_cons[i + 1]["current_consecutive"]
 
 
 

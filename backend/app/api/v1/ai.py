@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import threading
 from typing import Any, Literal
 
@@ -21,6 +22,7 @@ from app.services.ai.analyzer import (
 from app.services.ai.prompts import list_prompt_templates
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+log = logging.getLogger("duiliao.ai")
 _user = Depends(get_current_user)
 _staff = Depends(require_roles(UserRole.ADMIN, UserRole.STAFF))
 _AI_CONCURRENCY = threading.BoundedSemaphore(2)
@@ -191,6 +193,7 @@ def analyze_stream_page(
 
     def event_stream():
         try:
+            yield f"data: {json.dumps({'stage': 'status', 'message': '正在建立连接并准备研判环境...'}, ensure_ascii=False)}\n\n"
             for event in analyze_scraped_data_stream(
                 scraped_data=data_source,
                 prompt_id=req.prompt_id,
@@ -202,6 +205,10 @@ def analyze_stream_page(
                 temperature=req.temperature,
             ):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            log.exception("Unhandled error in analyze_stream_page: %s", exc)
+            yield f"data: {json.dumps({'stage': 'error', 'error': f'AI 分析服务异常: {str(exc)}'}, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
         finally:
             _AI_CONCURRENCY.release()
@@ -413,6 +420,7 @@ def zodiac_streak_stream(
 
     def event_stream():
         try:
+            yield f"data: {json.dumps({'stage': 'status', 'message': '正在建立连接并准备连肖分析数据...'}, ensure_ascii=False)}\n\n"
             for event in analyze_zodiac_streaks_stream(
                 lottery=req.lottery,
                 num_periods=req.num_periods,
@@ -424,6 +432,10 @@ def zodiac_streak_stream(
                 temperature=req.temperature,
             ):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            log.exception("Unhandled error in zodiac_streak_stream: %s", exc)
+            yield f"data: {json.dumps({'stage': 'error', 'error': f'连肖分析服务异常: {str(exc)}'}, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
         finally:
             _AI_CONCURRENCY.release()

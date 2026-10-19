@@ -634,6 +634,7 @@ export interface PingteBoseRank {
   current_omission: number;
   max_omission: number;
   max_consecutive: number;
+  current_consecutive: number;
   numbers: string[];
   rank: number;
 }
@@ -647,6 +648,7 @@ export interface PingteWuxingRank {
   current_omission: number;
   max_omission: number;
   max_consecutive: number;
+  current_consecutive: number;
   numbers: string[];
   rank: number;
 }

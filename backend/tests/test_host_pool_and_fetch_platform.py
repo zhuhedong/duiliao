@@ -207,7 +207,10 @@ def test_template_fetch_urls():
     assert urls[0].endswith("/api/v1/index/config/byid/123")
 
 
-def test_site_dump_latest_404_without_cache(user_client):
+def test_site_dump_latest_404_without_cache(user_client, monkeypatch):
+    from app.services.ai import scraped_data as sd
+
+    monkeypatch.setattr(sd, "load_latest_scraped_data", lambda **kw: None)
     with pytest.raises(ApiError) as exc:
         user_client.get("/collector/site-dump/588080/latest")
     assert exc.value.status_code == 404

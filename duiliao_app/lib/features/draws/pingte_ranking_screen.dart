@@ -130,6 +130,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                         children: [
                           (order: 'count_desc', label: '🔥 热号榜'),
                           (order: 'count_asc', label: '❄️ 冷号榜'),
+                          (order: 'current_consecutive_desc', label: '⚡ 连开榜'),
                           (order: 'omission_desc', label: '⚡ 遗漏榜'),
                           (order: 'consecutive_desc', label: '👑 连出王'),
                         ].map((s) {
@@ -271,7 +272,12 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                               style: const TextStyle(fontSize: 11, color: Colors.white70),
                             ),
                             Text(
-                              '热肖: ${data.zodiacRanking.isNotEmpty ? data.zodiacRanking.first.label : ''}',
+                              () {
+                                final streakZ = data.zodiacRanking.where((z) => z.currentConsecutive > 0).toList()
+                                  ..sort((a, b) => b.currentConsecutive.compareTo(a.currentConsecutive));
+                                final streakText = streakZ.isNotEmpty ? ' · 连开: ${streakZ.first.name}${streakZ.first.currentConsecutive}期' : '';
+                                return '热肖: ${data.zodiacRanking.isNotEmpty ? data.zodiacRanking.first.label : ''}$streakText';
+                              }(),
                               style: const TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -458,23 +464,25 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      item.currentOmission == 0
-                          ? '当前: 本期开出'
-                          : '当前遗漏: ${item.currentOmission}期',
+                      item.currentConsecutive > 0
+                          ? '当前: 连开 ${item.currentConsecutive}期'
+                          : (item.currentOmission == 0
+                              ? '当前: 本期开出'
+                              : '当前遗漏: ${item.currentOmission}期'),
                       style: TextStyle(
                         fontSize: 10,
-                        color: item.currentOmission == 0
+                        color: item.currentConsecutive > 0
                             ? DuiliaoColors.hit
                             : (item.currentOmission > 5
                                 ? DuiliaoColors.warning
                                 : Colors.white60),
-                        fontWeight: item.currentOmission == 0
+                        fontWeight: (item.currentConsecutive > 0 || item.currentOmission == 0)
                             ? FontWeight.bold
                             : FontWeight.normal,
                       ),
                     ),
                     Text(
-                      '最大遗漏: ${item.maxOmission}期 · 最大连出: ${item.maxConsecutive}期',
+                      '当前连开: ${item.currentConsecutive}期 · 最大连出: ${item.maxConsecutive}期',
                       style: const TextStyle(fontSize: 10, color: Colors.white38),
                     ),
                   ],
@@ -617,18 +625,23 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      item.currentOmission == 0
-                          ? '当前: 本期开出'
-                          : '当前遗漏: ${item.currentOmission}期',
+                      item.currentConsecutive > 0
+                          ? '当前: 连开 ${item.currentConsecutive}期'
+                          : (item.currentOmission == 0
+                              ? '当前: 本期开出'
+                              : '当前遗漏: ${item.currentOmission}期'),
                       style: TextStyle(
                         fontSize: 10,
-                        color: item.currentOmission == 0
+                        color: item.currentConsecutive > 0
                             ? DuiliaoColors.hit
                             : Colors.white60,
+                        fontWeight: (item.currentConsecutive > 0 || item.currentOmission == 0)
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                     Text(
-                      '最大遗漏: ${item.maxOmission}期 · 最大连出: ${item.maxConsecutive}期',
+                      '当前连开: ${item.currentConsecutive}期 · 最大连出: ${item.maxConsecutive}期',
                       style: const TextStyle(fontSize: 10, color: Colors.white38),
                     ),
                   ],
@@ -732,12 +745,15 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '遗漏: ${item.currentOmission == 0 ? '本期' : '${item.currentOmission}期'} · 连出: ${item.maxConsecutive}期',
+                      item.currentConsecutive > 0
+                          ? '当前: 连开 ${item.currentConsecutive}期 · 连出: ${item.maxConsecutive}期'
+                          : '遗漏: ${item.currentOmission == 0 ? '本期' : '${item.currentOmission}期'} · 连出: ${item.maxConsecutive}期',
                       style: TextStyle(
                         fontSize: 10,
-                        color: item.currentOmission == 0
+                        color: (item.currentConsecutive > 0 || item.currentOmission == 0)
                             ? DuiliaoColors.hit
                             : Colors.white54,
+                        fontWeight: item.currentConsecutive > 0 ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ],
@@ -821,7 +837,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '开出期数: ${b.periodsCount}期 · 当前遗漏: ${b.currentOmission}期 · 最大连出: ${b.maxConsecutive}期',
+                  '开出期数: ${b.periodsCount}期 · 当前: ${b.currentConsecutive > 0 ? '连开 ${b.currentConsecutive}期' : '遗漏 ${b.currentOmission}期'} · 最大连出: ${b.maxConsecutive}期',
                   style: const TextStyle(fontSize: 11, color: Colors.white60),
                 ),
                 const SizedBox(height: 8),
@@ -926,7 +942,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '开出期数: ${w.periodsCount}期 · 当前遗漏: ${w.currentOmission}期 · 最大连出: ${w.maxConsecutive}期',
+                  '开出期数: ${w.periodsCount}期 · 当前: ${w.currentConsecutive > 0 ? '连开 ${w.currentConsecutive}期' : '遗漏 ${w.currentOmission}期'} · 最大连出: ${w.maxConsecutive}期',
                   style: const TextStyle(fontSize: 11, color: Colors.white60),
                 ),
                 const SizedBox(height: 8),

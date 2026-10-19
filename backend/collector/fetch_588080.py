@@ -384,6 +384,7 @@ def fetch_588080_full_page(
     output_json_path: str | Path | None = None,
     timeout: float = 10.0,
     max_workers: int = 10,
+    include_raw_html: bool = False,
 ) -> FetchResult:
     """High-level function: fetch full 588080.com page HTML and structured data."""
     t0 = time.perf_counter()
@@ -405,23 +406,26 @@ def fetch_588080_full_page(
             if item.get("type") == "content" and str(item.get("name") or "").strip()
         ]
 
-        # 2. Scroll the live page while the module bodies download.
+        # 2. Module bodies download. Playwright raw HTML only if explicitly requested.
         raw_html = ""
         raw_html_error = None
-        with ThreadPoolExecutor(max_workers=1) as raw_pool:
-            page_base = resolve_page_base(app_base, timeout=timeout)
-            raw_future = raw_pool.submit(
-                fetch_rendered_html,
-                page_base + "/",
-                timeout=90,
-                required_names=required_names,
-            )
+        if include_raw_html:
+            with ThreadPoolExecutor(max_workers=1) as raw_pool:
+                page_base = resolve_page_base(app_base, timeout=timeout)
+                raw_future = raw_pool.submit(
+                    fetch_rendered_html,
+                    page_base + "/",
+                    timeout=90,
+                    required_names=required_names,
+                )
+                loaded_contents = fetch_lazy_contents(app_base, modules, max_workers=max_workers, timeout=timeout)
+                try:
+                    raw_html = raw_future.result(timeout=120)
+                except Exception as raw_exc:
+                    raw_html_error = str(raw_exc)
+                    log.warning("Playwright raw HTML failed: %s", raw_exc)
+        else:
             loaded_contents = fetch_lazy_contents(app_base, modules, max_workers=max_workers, timeout=timeout)
-            try:
-                raw_html = raw_future.result(timeout=120)
-            except Exception as raw_exc:
-                raw_html_error = str(raw_exc)
-                log.warning("Playwright raw HTML failed: %s", raw_exc)
 
         # 3. Populate content into modules dict for structured output
         content_count = 0
@@ -452,7 +456,7 @@ def fetch_588080_full_page(
             elapsed_sec=round(elapsed, 2),
             html_size_bytes=len(full_html.encode("utf-8")),
             html=full_html,
-            raw_html=raw_html,
+            raw_html=raw_html or full_html,
             raw_html_error=raw_html_error,
             modules=enriched_modules,
             error=None,

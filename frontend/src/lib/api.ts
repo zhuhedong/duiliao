@@ -265,19 +265,32 @@ class ApiClient {
   del<T>(path: string, opts?: RequestOptions) {
     return this.request<T>("DELETE", path, undefined, opts);
   }
+  delete<T>(path: string, opts?: RequestOptions) {
+    return this.del<T>(path, opts);
+  }
 
-  private postPlain(path: string, body: unknown): Promise<Response> {
+  private async postPlain(path: string, body: unknown): Promise<Response> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
     if (this.accessToken) {
       headers["Authorization"] = `Bearer ${this.accessToken}`;
     }
-    return fetch(`${API_BASE}${path}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-    });
+    try {
+      return await fetch(`${API_BASE}${path}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+    } catch (e: any) {
+      const isNetwork = e.name === "TypeError" || e.message?.toLowerCase().includes("fetch");
+      throw new ApiError(
+        isNetwork
+          ? "网络连接失败，无法连接到后端服务器，请检查后端运行状态及网络连接"
+          : (e.message || "网络请求发送失败"),
+        0,
+      );
+    }
   }
 
   async stream(
@@ -290,12 +303,18 @@ class ApiClient {
       onError?: (err: Error) => void;
     },
   ): Promise<void> {
-    let resp = await this.postPlain(path, body);
-    // SSE routes skip the encrypted request() path, so an expired access token
-    // has to be refreshed here or the click looks like a lost login.
-    if (resp.status === 401 && this.refreshToken) {
-      const refreshed = await this.tryRefresh();
-      if (refreshed) resp = await this.postPlain(path, body);
+    let resp: Response;
+    try {
+      resp = await this.postPlain(path, body);
+      // SSE routes skip the encrypted request() path, so an expired access token
+      // has to be refreshed here or the click looks like a lost login.
+      if (resp.status === 401 && this.refreshToken) {
+        const refreshed = await this.tryRefresh();
+        if (refreshed) resp = await this.postPlain(path, body);
+      }
+    } catch (err: any) {
+      callbacks.onError?.(err);
+      throw err;
     }
 
     if (!resp.ok) {
@@ -324,7 +343,17 @@ class ApiClient {
 
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        let readResult: ReadableStreamReadResult<Uint8Array>;
+        try {
+          readResult = await reader.read();
+        } catch (readErr: any) {
+          throw new Error(
+            readErr.message?.toLowerCase().includes("network") || readErr.name === "TypeError"
+              ? "流式连接异常中断，网络连接超时或后端服务断开"
+              : (readErr.message || "读取流式数据失败")
+          );
+        }
+        const { done, value } = readResult;
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
@@ -332,28 +361,27 @@ class ApiClient {
 
         for (const line of lines) {
           const trimmed = line.trim();
-          if (!trimmed) continue;
+          if (!trimmed || trimmed.startsWith(":")) continue;
           if (trimmed.startsWith("data:")) {
             const dataStr = trimmed.slice(5).trim();
             if (dataStr === "[DONE]") {
               return;
             }
+            let data: any;
             try {
-              const data = JSON.parse(dataStr);
-              if (data.stage === "error") {
-                throw new Error(data.error || "大模型分析异常");
-              }
-              if (data.stage === "delta" && data.delta) {
-                callbacks.onChunk?.(data.delta);
-              } else if (data.stage === "done") {
-                callbacks.onDone?.(data);
-              } else if (data.stage) {
-                callbacks.onStatus?.(data);
-              }
-            } catch (e: any) {
-              if (e.message && !e.message.includes("JSON")) {
-                throw e;
-              }
+              data = JSON.parse(dataStr);
+            } catch {
+              continue;
+            }
+            if (data.stage === "error") {
+              throw new Error(data.error || "大模型分析异常");
+            }
+            if (data.stage === "delta" && data.delta) {
+              callbacks.onChunk?.(data.delta);
+            } else if (data.stage === "done") {
+              callbacks.onDone?.(data);
+            } else if (data.stage) {
+              callbacks.onStatus?.(data);
             }
           }
         }

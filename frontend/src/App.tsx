@@ -15,6 +15,7 @@ import { CollectorNumbersPage } from "./pages/collector/NumbersPage";
 import { CollectorAIAnalysisPage } from "./pages/collector/AIAnalysisPage";
 import { TrendPage } from "./pages/collector/TrendPage";
 import { PingteRankingPage } from "./pages/collector/PingteRankingPage";
+import { RecordsPage } from "./pages/records/RecordsPage";
 import { SystemSettingsPage } from "./pages/SystemSettingsPage";
 
 export function App() {
@@ -34,6 +35,7 @@ export function App() {
         }
       >
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/records" element={<RecordsPage />} />
         <Route path="/collector/sources" element={<CollectorSourcesPage />} />
         <Route path="/collector/draws" element={<CollectorDrawsPage />} />
         <Route path="/collector/trend" element={<TrendPage />} />

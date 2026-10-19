@@ -598,6 +598,7 @@ class PingteBoseRank {
     required this.currentOmission,
     required this.maxOmission,
     required this.maxConsecutive,
+    this.currentConsecutive = 0,
     required this.numbers,
     required this.rank,
   });
@@ -610,6 +611,7 @@ class PingteBoseRank {
   final int currentOmission;
   final int maxOmission;
   final int maxConsecutive;
+  final int currentConsecutive;
   final List<String> numbers;
   final int rank;
 
@@ -622,6 +624,7 @@ class PingteBoseRank {
         currentOmission: asInt(json['current_omission']),
         maxOmission: asInt(json['max_omission']),
         maxConsecutive: asInt(json['max_consecutive']),
+        currentConsecutive: asInt(json['current_consecutive']),
         numbers: asStringList(json['numbers']),
         rank: asInt(json['rank']),
       );
@@ -637,6 +640,7 @@ class PingteWuxingRank {
     required this.currentOmission,
     required this.maxOmission,
     required this.maxConsecutive,
+    this.currentConsecutive = 0,
     required this.numbers,
     required this.rank,
   });
@@ -649,6 +653,7 @@ class PingteWuxingRank {
   final int currentOmission;
   final int maxOmission;
   final int maxConsecutive;
+  final int currentConsecutive;
   final List<String> numbers;
   final int rank;
 
@@ -661,6 +666,7 @@ class PingteWuxingRank {
         currentOmission: asInt(json['current_omission']),
         maxOmission: asInt(json['max_omission']),
         maxConsecutive: asInt(json['max_consecutive']),
+        currentConsecutive: asInt(json['current_consecutive']),
         numbers: asStringList(json['numbers']),
         rank: asInt(json['rank']),
       );

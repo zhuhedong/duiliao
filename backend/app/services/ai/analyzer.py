@@ -70,7 +70,7 @@ def analyze_scraped_data(
             scraped_data = None
     if scraped_data is None:
         log.info("未提供抓取数据，正在实时从 588080.com 抓取最新数据...")
-        scraped_data = fetch_588080_full_page()
+        scraped_data = fetch_588080_full_page(include_raw_html=False)
         if not scraped_data.ok:
             return AnalysisResult(
                 ok=False,
@@ -214,10 +214,14 @@ def analyze_scraped_data_stream(
             scraped_data = None
     if scraped_data is None:
         yield {"stage": "status", "message": "未检测到已抓取数据，正在实时抓取最新预测模块..."}
-        scraped_data = fetch_588080_full_page()
+        scraped_data = fetch_588080_full_page(include_raw_html=False)
         if not scraped_data.ok:
             yield {"stage": "error", "error": f"网页数据抓取失败: {scraped_data.error}"}
             return
+        yield {
+            "stage": "status",
+            "message": f"成功获取 {scraped_data.total_modules} 个模块（{scraped_data.loaded_content_count} 个内容卡片）",
+        }
         try:
             from app.services.ai.scraped_data import save_scraped_data
 

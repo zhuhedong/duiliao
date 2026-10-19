@@ -1162,6 +1162,7 @@ def get_pingte_ranking(
             "current_omission": cur_om,
             "max_omission": max_om,
             "max_consecutive": max_cons,
+            "current_consecutive": cur_cons,
             "numbers": bose_nums_map.get(b_name, []),
         })
     bose_ranking.sort(key=lambda x: -x["count"])
@@ -1199,6 +1200,7 @@ def get_pingte_ranking(
             "current_omission": cur_om,
             "max_omission": max_om,
             "max_consecutive": max_cons,
+            "current_consecutive": cur_cons,
             "numbers": wuxing_nums_map.get(wx_name, []),
         })
     wuxing_ranking.sort(key=lambda x: -x["count"])
@@ -1214,9 +1216,13 @@ def get_pingte_ranking(
         tail_ranking.sort(key=lambda x: -x["current_omission"])
         number_ranking.sort(key=lambda x: -x["current_omission"])
     elif order_by == "consecutive_desc":
-        zodiac_ranking.sort(key=lambda x: -x["max_consecutive"])
-        tail_ranking.sort(key=lambda x: -x["max_consecutive"])
-        number_ranking.sort(key=lambda x: -x["max_consecutive"])
+        zodiac_ranking.sort(key=lambda x: (-x["max_consecutive"], -x["current_consecutive"], -x["count"]))
+        tail_ranking.sort(key=lambda x: (-x["max_consecutive"], -x["current_consecutive"], -x["count"]))
+        number_ranking.sort(key=lambda x: (-x["max_consecutive"], -x["current_consecutive"], -x["count"]))
+    elif order_by in ("current_consecutive_desc", "cur_consecutive_desc"):
+        zodiac_ranking.sort(key=lambda x: (-x["current_consecutive"], -x["max_consecutive"], -x["count"]))
+        tail_ranking.sort(key=lambda x: (-x["current_consecutive"], -x["max_consecutive"], -x["count"]))
+        number_ranking.sort(key=lambda x: (-x["current_consecutive"], -x["max_consecutive"], -x["count"]))
 
     result = {
         "ok": True,

@@ -13,7 +13,12 @@ import { BOSE_COLORS, WUXING_COLORS } from "../../lib/lotteryAttr";
 import { LOTTERIES, PageWorkspace } from "./shared";
 
 type RankingTab = "zodiac" | "tail" | "number" | "bose" | "wuxing";
-type SortOption = "count_desc" | "count_asc" | "omission_desc" | "consecutive_desc";
+type SortOption =
+  | "count_desc"
+  | "count_asc"
+  | "current_consecutive_desc"
+  | "omission_desc"
+  | "consecutive_desc";
 
 export function PingteRankingPage() {
   const [lottery, setLottery] = useState<Lottery>("macau");
@@ -80,6 +85,14 @@ export function PingteRankingPage() {
     );
   }, [rankingData, keyword]);
 
+  const topStreakZodiac = useMemo(() => {
+    if (!rankingData?.zodiac_ranking?.length) return null;
+    const sorted = [...rankingData.zodiac_ranking].sort(
+      (a, b) => b.current_consecutive - a.current_consecutive
+    );
+    return sorted[0]?.current_consecutive > 0 ? sorted[0] : null;
+  }, [rankingData]);
+
   return (
     <PageWorkspace
       summary="基于官方落球顺序 7 码（6 正码 + 1 特码）平特全域统计；默认统计当年全部开奖期，也可切换最近 N 期窗口"
@@ -129,6 +142,7 @@ export function PingteRankingPage() {
               {[
                 { value: "count_desc", label: "🔥 热号榜" },
                 { value: "count_asc", label: "❄️ 冷号榜" },
+                { value: "current_consecutive_desc", label: "⚡ 连开榜" },
                 { value: "omission_desc", label: "⚡ 遗漏榜" },
                 { value: "consecutive_desc", label: "👑 连出王" },
               ].map((s) => (
@@ -204,7 +218,7 @@ export function PingteRankingPage() {
 
       {/* Overview Stat Ribbon */}
       {rankingData && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs">
             <div className="text-[11px] text-slate-500 dark:text-slate-400">统计彩种 / 样本期数</div>
             <div className="text-base font-bold text-slate-800 dark:text-slate-100 mt-1">
@@ -232,6 +246,14 @@ export function PingteRankingPage() {
               {rankingData.tail_ranking[0]?.label} ({rankingData.tail_ranking[0]?.count}次 · {rankingData.tail_ranking[0]?.frequency}%)
             </div>
           </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-xs">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">当前连开领跑</div>
+            <div className="text-base font-bold text-emerald-500 mt-1">
+              {topStreakZodiac
+                ? `${topStreakZodiac.label} (连开 ${topStreakZodiac.current_consecutive} 期)`
+                : "当前无连开"}
+            </div>
+          </div>
         </div>
       )}
 
@@ -253,8 +275,9 @@ export function PingteRankingPage() {
                     <th className="py-3 px-4 w-28 text-center">开出期数</th>
                     <th className="py-3 px-4 min-w-[160px]">出号率 (热度)</th>
                     <th className="py-3 px-4 w-24 text-center">当前遗漏</th>
-                    <th className="py-3 px-4 w-24 text-center">最大遗漏</th>
+                    <th className="py-3 px-4 w-24 text-center">当前连开</th>
                     <th className="py-3 px-4 w-24 text-center">最大连出</th>
+                    <th className="py-3 px-4 w-24 text-center">最大遗漏</th>
                     <th className="py-3 px-4 min-w-[200px]">包含号码(2026)</th>
                   </tr>
                 </thead>
@@ -329,11 +352,20 @@ export function PingteRankingPage() {
                             {z.current_omission === 0 ? "本期开出" : `${z.current_omission}期`}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-center text-slate-500 font-mono">
-                          {z.max_omission} 期
+                        <td className="py-3 px-4 text-center font-mono">
+                          {z.current_consecutive > 0 ? (
+                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                              连开 {z.current_consecutive} 期
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500 text-xs">0 期</span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center text-slate-600 dark:text-slate-300 font-semibold font-mono">
                           {z.max_consecutive} 期
+                        </td>
+                        <td className="py-3 px-4 text-center text-slate-500 font-mono">
+                          {z.max_omission} 期
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex flex-wrap items-center gap-1">
@@ -367,8 +399,9 @@ export function PingteRankingPage() {
                     <th className="py-3 px-4 w-28 text-center">开出期数</th>
                     <th className="py-3 px-4 min-w-[160px]">出号率</th>
                     <th className="py-3 px-4 w-24 text-center">当前遗漏</th>
-                    <th className="py-3 px-4 w-24 text-center">最大遗漏</th>
+                    <th className="py-3 px-4 w-24 text-center">当前连开</th>
                     <th className="py-3 px-4 w-24 text-center">最大连出</th>
+                    <th className="py-3 px-4 w-24 text-center">最大遗漏</th>
                     <th className="py-3 px-4 min-w-[200px]">包含号码</th>
                   </tr>
                 </thead>
@@ -443,11 +476,20 @@ export function PingteRankingPage() {
                             {t.current_omission === 0 ? "本期开出" : `${t.current_omission}期`}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-center text-slate-500 font-mono">
-                          {t.max_omission} 期
+                        <td className="py-3 px-4 text-center font-mono">
+                          {t.current_consecutive > 0 ? (
+                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                              连开 {t.current_consecutive} 期
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500 text-xs">0 期</span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center text-slate-600 dark:text-slate-300 font-semibold font-mono">
                           {t.max_consecutive} 期
+                        </td>
+                        <td className="py-3 px-4 text-center text-slate-500 font-mono">
+                          {t.max_omission} 期
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex flex-wrap items-center gap-1 font-mono">
@@ -482,8 +524,9 @@ export function PingteRankingPage() {
                     <th className="py-3 px-4 w-24 text-center">特码次数</th>
                     <th className="py-3 px-4 min-w-[140px]">出号率</th>
                     <th className="py-3 px-4 w-24 text-center">当前遗漏</th>
-                    <th className="py-3 px-4 w-24 text-center">最大遗漏</th>
+                    <th className="py-3 px-4 w-24 text-center">当前连开</th>
                     <th className="py-3 px-4 w-24 text-center">最大连出</th>
+                    <th className="py-3 px-4 w-24 text-center">最大遗漏</th>
                     <th className="py-3 px-4 w-28 text-center">生肖 / 五行</th>
                   </tr>
                 </thead>
@@ -554,11 +597,20 @@ export function PingteRankingPage() {
                             {n.current_omission === 0 ? "本期开出" : `${n.current_omission}期`}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-center text-slate-500 font-mono">
-                          {n.max_omission} 期
+                        <td className="py-3 px-4 text-center font-mono">
+                          {n.current_consecutive > 0 ? (
+                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400">
+                              连开 {n.current_consecutive} 期
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500 text-xs">0 期</span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center text-slate-600 dark:text-slate-300 font-semibold font-mono">
                           {n.max_consecutive} 期
+                        </td>
+                        <td className="py-3 px-4 text-center text-slate-500 font-mono">
+                          {n.max_omission} 期
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className="font-semibold text-slate-700 dark:text-slate-300">
@@ -614,6 +666,18 @@ export function PingteRankingPage() {
                       <div className="flex justify-between text-slate-600 dark:text-slate-300">
                         <span>当前遗漏:</span>
                         <span className="font-bold font-mono">{b.current_omission} 期</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                        <span>当前连开:</span>
+                        <span
+                          className={`font-bold font-mono ${
+                            b.current_consecutive > 0
+                              ? "text-rose-600 dark:text-rose-400"
+                              : "text-slate-400 dark:text-slate-500"
+                          }`}
+                        >
+                          {b.current_consecutive > 0 ? `连开 ${b.current_consecutive} 期` : "0 期"}
+                        </span>
                       </div>
                       <div className="flex justify-between text-slate-600 dark:text-slate-300">
                         <span>最大连出:</span>
@@ -674,6 +738,22 @@ export function PingteRankingPage() {
                       <div className="flex justify-between text-slate-600 dark:text-slate-300">
                         <span>当前遗漏:</span>
                         <span className="font-bold font-mono">{w.current_omission}期</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                        <span>当前连开:</span>
+                        <span
+                          className={`font-bold font-mono ${
+                            w.current_consecutive > 0
+                              ? "text-rose-600 dark:text-rose-400"
+                              : "text-slate-400 dark:text-slate-500"
+                          }`}
+                        >
+                          {w.current_consecutive > 0 ? `连开 ${w.current_consecutive}期` : "0期"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-slate-600 dark:text-slate-300">
+                        <span>最大连出:</span>
+                        <span className="font-bold font-mono">{w.max_consecutive}期</span>
                       </div>
                     </div>
 

@@ -24,6 +24,7 @@ import {
   SettingsIcon,
   TrendIcon,
   TargetIcon,
+  ClipboardListIcon,
 } from "./icons";
 
 interface NavItem {
@@ -36,6 +37,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: "/", label: "工作台", short: "工作台", icon: <DashboardIcon size={16} />, group: "core" },
+  { to: "/records", label: "记录", short: "记录", icon: <ClipboardListIcon size={16} />, group: "core" },
   { to: "/collector/ai-analysis", label: "AI 研判", short: "研判", icon: <SparklesIcon size={16} />, group: "core" },
   { to: "/collector/sources", label: "数据源", short: "采集", icon: <DatabaseIcon size={16} />, group: "core" },
   { to: "/collector/draws", label: "开奖", short: "开奖", icon: <TrophyIcon size={16} />, group: "core" },
