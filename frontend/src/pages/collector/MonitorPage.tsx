@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Spinner } from "../../components/ui/spinner";
 import { Alert, AlertDescription } from "../../components/ui/alert";
+import { toast } from "../../components/ui/toast";
+import { useConfirm } from "../../components/ui/confirm";
+import { TableSkeleton } from "../../components/ui/skeleton";
 import { ApiError } from "../../lib/api";
 import { collectorApi, type CatalogStatus, type Lottery, type MonitorResult } from "../../lib/collector";
 import {
@@ -17,11 +19,13 @@ import {
   tableTdClass,
   tableRowClass,
   StatusPill,
+  EmptyState,
 } from "./shared";
 import { ActivityIcon, RefreshIcon } from "../../components/icons";
 
 export function CollectorMonitorPage() {
   const canWrite = useCanWrite();
+  const confirm = useConfirm();
   const [lottery, setLottery] = useState<Lottery>("macau");
   const [monitor, setMonitor] = useState<MonitorResult | null>(null);
   const [catalog, setCatalog] = useState<CatalogStatus | null>(null);
@@ -30,11 +34,12 @@ export function CollectorMonitorPage() {
   const [reconciling, setReconciling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadMonitor = async (lot: Lottery) => {
+  const loadMonitor = async (lot: Lottery, silent = false) => {
     setLoading(true);
     setError(null);
     try {
       setMonitor(await collectorApi.monitor(lot));
+      if (silent) toast.success("缺期监控已刷新");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "加载缺期监控失败");
     } finally {
@@ -62,9 +67,13 @@ export function CollectorMonitorPage() {
     setScanning(true);
     setError(null);
     try {
-      setCatalog(await collectorApi.catalogScan(true));
+      const next = await collectorApi.catalogScan(true);
+      setCatalog(next);
+      toast.success("上游巡检完成", `共发现 ${next.content_total ?? 0} 个有效栏目`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "巡检失败");
+      const msg = err instanceof ApiError ? err.message : "巡检失败";
+      setError(msg);
+      toast.error("巡检失败", msg);
     } finally {
       setScanning(false);
     }
@@ -72,14 +81,24 @@ export function CollectorMonitorPage() {
 
   const reconcile = async () => {
     const missing = catalog?.missing?.length ?? 0;
-    if (!missing || !window.confirm(`将停用 ${missing} 个上游已消失的数据源，是否继续？`)) return;
+    if (!missing) return;
+    const ok = await confirm({
+      title: "停用已下线数据源",
+      description: `将停用 ${missing} 个上游已消失的数据源，是否继续？`,
+      confirmLabel: "确认停用",
+      variant: "warning",
+    });
+    if (!ok) return;
     setReconciling(true);
     setError(null);
     try {
       await collectorApi.catalogReconcile(true);
       setCatalog(await collectorApi.catalogStatus());
+      toast.success("已停用下线数据源", `共处理 ${missing} 个下架栏目`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "栏目治理失败");
+      const msg = err instanceof ApiError ? err.message : "栏目治理失败";
+      setError(msg);
+      toast.error("栏目治理失败", msg);
     } finally {
       setReconciling(false);
     }
@@ -88,9 +107,12 @@ export function CollectorMonitorPage() {
   const handleConfirmMissing = async (sourceId: string, periods: string[]) => {
     try {
       await collectorApi.confirmMissing(sourceId, periods);
+      toast.success("缺期已确认", `${sourceId} 已标记 ${periods.length} 期缺期`);
       await loadMonitor(lottery);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "确认缺期失败");
+      const msg = err instanceof ApiError ? err.message : "确认缺期失败";
+      setError(msg);
+      toast.error("确认缺期失败", msg);
     }
   };
 
@@ -143,7 +165,7 @@ export function CollectorMonitorPage() {
               type="button"
               onClick={reconcile}
               disabled={!canWrite || reconciling || !(catalog?.missing?.length)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold glass-subtle text-amber-700 dark:text-amber-300 transition-all disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bento-subtle text-amber-700 dark:text-amber-300 transition-all disabled:opacity-50 cursor-pointer"
             >
               <span>{reconciling ? "治理中…" : "停用已下线源"}</span>
             </button>
@@ -153,7 +175,7 @@ export function CollectorMonitorPage() {
         <div className="space-y-3">
           {catalog ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="p-3.5 glass-subtle rounded-2xl">
+              <div className="p-3.5 bento-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">巡检状态</span>
                 <div className="mt-1">
                   {catalog.ok ? (
@@ -164,35 +186,35 @@ export function CollectorMonitorPage() {
                 </div>
               </div>
 
-              <div className="p-3.5 glass-subtle rounded-2xl">
+              <div className="p-3.5 bento-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">自动巡检频率</span>
                 <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block">
                   {catalog.enabled ? `每 ${catalog.interval_minutes ?? 15} 分钟` : "已关闭"}
                 </span>
               </div>
 
-              <div className="p-3.5 glass-subtle rounded-2xl">
+              <div className="p-3.5 bento-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">发现有效栏目</span>
                 <span className="text-sm font-bold mt-1 text-primary block font-mono">
                   {catalog.content_total} 个
                 </span>
               </div>
 
-              <div className="p-3.5 glass-subtle rounded-2xl">
+              <div className="p-3.5 bento-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">新发现待接入</span>
                 <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block font-mono">
                   {catalog.pending?.length ?? 0}
                 </span>
               </div>
 
-              <div className="p-3.5 glass-subtle rounded-2xl">
+              <div className="p-3.5 bento-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">已消失栏目</span>
                 <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block font-mono">
                   {catalog.missing?.length ?? 0}
                 </span>
               </div>
 
-              <div className="p-3.5 glass-subtle rounded-2xl">
+              <div className="p-3.5 bento-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">未处理异常</span>
                 <span className={`text-sm font-bold mt-1 block font-mono ${
                   (catalog.open_issue_count ?? 0) > 0 ? "text-rose-500" : "text-emerald-500"
@@ -214,7 +236,7 @@ export function CollectorMonitorPage() {
           {siteStatuses.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
               {siteStatuses.map((site) => (
-                <div key={site.site_family} className="p-3.5 glass-subtle rounded-2xl">
+                <div key={site.site_family} className="p-3.5 bento-subtle rounded-2xl">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                       {site.site_label || site.site_family}
@@ -253,7 +275,7 @@ export function CollectorMonitorPage() {
         title={
           <div className="flex items-center gap-3">
             <span>各数据源缺期滞后监控</span>
-            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full glass-subtle text-slate-600 dark:text-slate-400">
+            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bento-subtle text-slate-600 dark:text-slate-400">
               共 {items.length} 个来源
             </span>
           </div>
@@ -263,8 +285,8 @@ export function CollectorMonitorPage() {
             <Select value={lottery} onChange={(v) => setLottery(v as Lottery)} options={LOTTERIES} />
             <button
               type="button"
-              onClick={() => loadMonitor(lottery)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              onClick={() => void loadMonitor(lottery, true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bento-subtle hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
             >
               <RefreshIcon size={14} className={loading ? "animate-spin" : ""} />
               <span>刷新</span>
@@ -273,13 +295,13 @@ export function CollectorMonitorPage() {
         }
       >
         {loading ? (
-          <div className="p-12 flex justify-center">
-            <Spinner aria-label="加载中" />
-          </div>
+          <TableSkeleton rows={6} cols={7} />
         ) : items.length === 0 ? (
-          <div className="py-12 text-center text-sm text-slate-400">
-            暂无来源。
-          </div>
+          <EmptyState
+            variant="search"
+            title="暂无来源"
+            description="当前彩种下尚未配置数据源"
+          />
         ) : (
           <TableContainer>
             <thead>
@@ -303,7 +325,7 @@ export function CollectorMonitorPage() {
                     <div className="text-xs font-mono text-slate-400 mt-0.5">{m.source_id}</div>
                   </td>
                   <td className={tableTdClass}>
-                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg glass-subtle text-slate-700 dark:text-slate-300">
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-lg bento-subtle text-slate-700 dark:text-slate-300">
                       {playLabel(m.play_type)}
                     </span>
                   </td>

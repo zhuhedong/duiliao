@@ -1,6 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Spinner } from "../../components/ui/spinner";
-import { Alert, AlertDescription } from "../../components/ui/alert";
+import { Alert, AlertDescription, LotteryBall, TableSkeleton, toast } from "../../components/ui";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -123,9 +122,13 @@ export function CollectorDrawsPage() {
     try {
       const res = await collectorApi.updateDrawScheduler({ enabled: !scheduler.enabled });
       setScheduler(res);
-      setSuccessMsg(res.enabled ? "后台自动开奖更新已开启！" : "后台自动开奖更新已暂停。");
+      const msg = res.enabled ? "后台自动开奖更新已开启" : "后台自动开奖更新已暂停";
+      setSuccessMsg(msg);
+      toast.success(msg);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "更新自动调度器状态失败");
+      const msg = err instanceof ApiError ? err.message : "更新自动调度器状态失败";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSchedulerLoading(false);
     }
@@ -143,9 +146,12 @@ export function CollectorDrawsPage() {
       });
       setScheduler(res);
       setSuccessMsg("开奖时间窗口与轮询参数已更新成功！");
+      toast.success("开奖时间窗口与轮询参数已保存");
       setShowConfig(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "保存调度参数失败");
+      const msg = err instanceof ApiError ? err.message : "保存调度参数失败";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSchedulerLoading(false);
     }
@@ -165,12 +171,15 @@ export function CollectorDrawsPage() {
       const res = await collectorApi.updateDrawScheduler({}, true);
       setScheduler(res);
       setSuccessMsg("已向后台发送立即同步开奖信号！稍后将自动刷新。");
+      toast.info("已触发立即检查开奖，2.5 秒后自动刷新");
       setTimeout(() => {
         void loadScheduler();
         void loadList();
       }, 2500);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "立即同步失败");
+      const msg = err instanceof ApiError ? err.message : "立即同步失败";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSchedulerLoading(false);
     }
@@ -189,11 +198,19 @@ export function CollectorDrawsPage() {
       }
       const res = await collectorApi.syncDraws({ lottery, period: period.trim() || undefined, draws: parsedDraws });
       setSyncRes(res);
-      setSuccessMsg(`开奖同步成功：新增 ${res.inserted} 条，更新 ${res.updated} 条，自动重算对奖 ${res.judged} 条！`);
+      const msg = `开奖同步成功：新增 ${res.inserted} 条，更新 ${res.updated} 条，自动重算对奖 ${res.judged} 条`;
+      setSuccessMsg(msg);
+      toast.success("开奖同步完成", `新增 ${res.inserted} · 更新 ${res.updated} · 对奖 ${res.judged}`);
       await loadList();
     } catch (err) {
-      if (err instanceof SyntaxError) setError("开奖 JSON 解析失败，请检查格式");
-      else setError(err instanceof ApiError ? err.message : "同步失败");
+      const msg =
+        err instanceof SyntaxError
+          ? "开奖 JSON 解析失败，请检查格式"
+          : err instanceof ApiError
+            ? err.message
+            : "同步失败";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setBusy(null);
     }
@@ -207,9 +224,13 @@ export function CollectorDrawsPage() {
     try {
       const res = await collectorApi.judge({ lottery, period: period.trim() });
       setJudgeRes(res);
-      setSuccessMsg(`对奖计算完成：对奖 ${res.judged} 条，命中 ${res.hits} 条，自称不符 ${res.dirty_claimed} 条！`);
+      const msg = `对奖计算完成：对奖 ${res.judged} 条，命中 ${res.hits} 条，自称不符 ${res.dirty_claimed} 条`;
+      setSuccessMsg(msg);
+      toast.success("对奖计算完成", `核验 ${res.judged} 条 · 命中 ${res.hits} 条`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "对奖失败");
+      const msg = err instanceof ApiError ? err.message : "对奖失败";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setBusy(null);
     }
@@ -227,7 +248,6 @@ export function CollectorDrawsPage() {
       }
       actions={canWrite ? null : <ReadOnlyNote />}
     >
-
       {error && (
         <Alert variant="error" className="rounded-2xl border bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-400/40 dark:border-rose-400/25">
           <AlertDescription className="text-sm">{error}</AlertDescription>
@@ -253,9 +273,9 @@ export function CollectorDrawsPage() {
       {/* 开奖自动更新后台调度器卡片 */}
       <SectionCard
         title={
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <ClockIcon size={20} />
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400">
+              <ClockIcon size={18} />
             </div>
             <span>后台开奖自动更新服务 (Auto-Updater)</span>
             {!scheduler?.enabled ? (
@@ -288,7 +308,7 @@ export function CollectorDrawsPage() {
               <button
                 type="button"
                 onClick={() => setShowConfig(!showConfig)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-white/10 hover:bg-indigo-500/8 dark:hover:bg-indigo-400/10 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
               >
                 <SettingsIcon size={13} />
                 <span>{showConfig ? "收起设置" : "设置窗口"}</span>
@@ -296,7 +316,7 @@ export function CollectorDrawsPage() {
               <button
                 type="button"
                 onClick={() => setShowLogs(!showLogs)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-white/10 hover:bg-indigo-500/8 dark:hover:bg-indigo-400/10 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
               >
                 <ActivityIcon size={13} />
                 <span>{showLogs ? "收起日志" : "查看日志"}</span>
@@ -307,8 +327,8 @@ export function CollectorDrawsPage() {
                 disabled={schedulerLoading}
                 className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors cursor-pointer ${
                   scheduler?.enabled
-                    ? "border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 "
-                    : "border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 "
+                    ? "border-amber-400/40 dark:border-amber-400/25 text-amber-700 dark:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
+                    : "border-emerald-400/40 dark:border-emerald-400/25 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20"
                 }`}
               >
                 {schedulerLoading ? "处理中..." : scheduler?.enabled ? "暂停自动更新" : "启动自动更新"}
@@ -319,7 +339,7 @@ export function CollectorDrawsPage() {
       >
         <div className="space-y-4">
           {/* 状态描述提示条 */}
-          <div className="p-3.5 rounded-2xl glass-subtle flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+          <div className="p-3.5 rounded-2xl bento-subtle flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
             <div>
               {!scheduler?.enabled ? (
                 <span>⚠️ 自动更新已手动暂停。后台不会在开奖窗口期拉取新开奖，您可随时点击「启动自动更新」恢复。</span>
@@ -340,7 +360,7 @@ export function CollectorDrawsPage() {
 
           {/* 调度器状态指标卡片网格 */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="p-3.5 rounded-2xl glass-subtle">
+            <div className="p-3.5 rounded-2xl bento-subtle">
               <span className="text-2xs font-semibold text-slate-400 block uppercase">运行状态</span>
               <div className="text-sm font-bold mt-1 text-slate-900 dark:text-white">
                 {!scheduler?.enabled ? (
@@ -348,42 +368,42 @@ export function CollectorDrawsPage() {
                 ) : scheduler.in_window ? (
                   <span className="text-emerald-500">🟢 窗口期同步</span>
                 ) : (
-                  <span className="text-violet-500">🕒 待命待机</span>
+                  <span className="text-indigo-500">🕒 待命待机</span>
                 )}
               </div>
             </div>
 
-            <div className="p-3.5 rounded-2xl glass-subtle">
+            <div className="p-3.5 rounded-2xl bento-subtle">
               <span className="text-2xs font-semibold text-slate-400 block uppercase">每日窗口 (北京时间)</span>
               <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block">
                 {scheduler ? `${scheduler.start_time} ~ ${scheduler.end_time}` : "21:33:30 ~ 21:36:00"}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl glass-subtle">
+            <div className="p-3.5 rounded-2xl bento-subtle">
               <span className="text-2xs font-semibold text-slate-400 block uppercase">窗口期轮询</span>
               <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block">
                 {scheduler ? `每 ${scheduler.interval_seconds} 秒` : "每 30 秒"}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl glass-subtle">
+            <div className="p-3.5 rounded-2xl bento-subtle">
               <span className="text-2xs font-semibold text-slate-400 block uppercase">下次预计同步</span>
               <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block truncate">
                 {scheduler?.in_window ? "窗口内持续轮询" : scheduler?.next_run_at || "—"}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl glass-subtle">
+            <div className="p-3.5 rounded-2xl bento-subtle">
               <span className="text-2xs font-semibold text-slate-400 block uppercase">上次检查时间</span>
               <span className="text-sm font-bold mt-1 text-slate-900 dark:text-white block truncate">
                 {scheduler?.last_run_at || "尚未运行"}
               </span>
             </div>
 
-            <div className="p-3.5 rounded-2xl glass-subtle">
+            <div className="p-3.5 rounded-2xl bento-subtle">
               <span className="text-2xs font-semibold text-slate-400 block uppercase">累计成功同步</span>
-              <span className="text-sm font-bold mt-1 text-primary block">
+              <span className="text-sm font-bold mt-1 text-indigo-600 dark:text-indigo-400 block">
                 {scheduler?.sync_count ?? 0} 次
               </span>
             </div>
@@ -391,7 +411,7 @@ export function CollectorDrawsPage() {
 
           {/* 窗口参数设置微调面板 */}
           {showConfig && canWrite && (
-            <div className="p-4 rounded-2xl glass-subtle space-y-3.5 animate-fadeIn">
+            <div className="p-4 rounded-2xl bento-subtle space-y-3.5 animate-fadeIn">
               <div className="flex justify-between items-center flex-wrap gap-2">
                 <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                   ⚙️ 开奖同步时间窗口与频率配置 (北京时间 UTC+8)
@@ -399,7 +419,7 @@ export function CollectorDrawsPage() {
                 <button
                   type="button"
                   onClick={() => void resetToDefaultConfig()}
-                  className="text-xs text-primary hover:underline cursor-pointer"
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >
                   恢复默认 (21:33:30 ~ 21:36:00, 30秒)
                 </button>
@@ -445,7 +465,7 @@ export function CollectorDrawsPage() {
                 <button
                   type="button"
                   onClick={() => setShowConfig(false)}
-                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-white/10 hover:bg-indigo-500/8 dark:hover:bg-indigo-400/10 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                 >
                   取消
                 </button>
@@ -463,7 +483,7 @@ export function CollectorDrawsPage() {
 
           {/* 展开最近轮询日志 */}
           {showLogs && (
-            <div className="p-4 rounded-2xl glass-subtle space-y-2.5 animate-fadeIn">
+            <div className="p-4 rounded-2xl bento-subtle space-y-2.5 animate-fadeIn">
               <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 最近后台自动同步日志:
               </div>
@@ -474,7 +494,7 @@ export function CollectorDrawsPage() {
                   {scheduler?.recent_logs.map((log, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-2.5 p-2 rounded-lg glass-subtle"
+                      className="flex items-center gap-2.5 p-2 rounded-lg bg-white/70 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06]"
                     >
                       <span className="text-slate-400 text-2xs">{log.timestamp}</span>
                       <StatusPill variant="neutral" dot={false}>
@@ -524,14 +544,14 @@ export function CollectorDrawsPage() {
               type="button"
               onClick={judge}
               disabled={!canWrite || busy != null || !period.trim()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/70 dark:border-white/10 hover:bg-indigo-500/8 dark:hover:bg-indigo-400/10 text-slate-700 dark:text-slate-300 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
             >
               {busy === "judge" ? "计算中…" : "手动触发对奖"}
             </button>
           </div>
 
           <details className="text-xs text-slate-500 dark:text-slate-400">
-            <summary className="cursor-pointer hover:text-primary font-medium select-none">
+            <summary className="cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 font-medium select-none">
               ▶ 高级选项：直接粘贴官方开奖 JSON 数组手动录入
             </summary>
             <div className="mt-2 space-y-2">
@@ -540,7 +560,7 @@ export function CollectorDrawsPage() {
                 onChange={(e) => setDrawsText(e.target.value)}
                 placeholder='[{"period":"248","draw_date":"2026-04-18","numbers":["01","02","03","04","05","06"],"tema":"07"}]'
                 rows={4}
-                className="w-full font-mono text-xs p-3 rounded-xl bg-slate-950/90 text-emerald-300 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-inner"
+                className="w-full font-mono text-xs p-3 rounded-xl bg-slate-950/90 text-emerald-300 border border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 shadow-inner"
               />
             </div>
           </details>
@@ -578,7 +598,7 @@ export function CollectorDrawsPage() {
         title={
           <div className="flex items-center gap-3">
             <span>{LOTTERY_LABEL[lottery]}历史开奖记录</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full glass-subtle text-slate-600 dark:text-slate-300 font-semibold">
+            <span className="text-xs px-2.5 py-0.5 rounded-full bento-subtle text-slate-600 dark:text-slate-300 font-semibold">
               共 {total} 期
             </span>
           </div>
@@ -604,9 +624,7 @@ export function CollectorDrawsPage() {
         }
       >
         {loadingList ? (
-          <div className="p-12 flex justify-center">
-            <Spinner aria-label="加载中" />
-          </div>
+          <TableSkeleton rows={6} cols={7} />
         ) : draws.length === 0 ? (
           <div className="py-12 text-center text-sm text-slate-400">
             该彩种暂无开奖记录。
@@ -635,7 +653,7 @@ export function CollectorDrawsPage() {
 
                   return (
                     <Fragment key={d.period}>
-                      <tr className={`${tableRowClass} ${isExpanded ? "bg-primary/5 dark:bg-primary/10" : ""}`}>
+                      <tr className={`${tableRowClass} ${isExpanded ? "bg-indigo-500/5 dark:bg-indigo-500/10" : ""}`}>
                         <td className={tableTdClass}>
                           <span className="font-mono font-bold text-slate-900 dark:text-white">
                             第 {d.period} 期
@@ -677,25 +695,25 @@ export function CollectorDrawsPage() {
                         <td className={tableTdClass}>
                           {summary.has_lianxiao ? (
                             <div className="flex flex-col gap-1 items-start">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                                 <span>🔗 连肖:</span>
                                 <span>{summary.lianxiao_text}</span>
                               </span>
                               {summary.has_adjacent_lianxiao && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/20">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                   ⚡ 顺位紧邻
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="text-xs text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md glass-subtle">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-md bento-subtle">
                               7肖各异
                             </span>
                           )}
                         </td>
                         <td className={tableTdClass}>
                           <div className="flex items-center gap-1.5 flex-wrap max-w-xs">
-                            <span className="text-xs font-semibold px-2 py-0.5 rounded-md glass-subtle text-slate-700 dark:text-slate-300">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bento-subtle text-slate-700 dark:text-slate-300">
                               {temaDetail.xiao} · {temaDetail.jiaye}
                             </span>
                             <span
@@ -706,16 +724,16 @@ export function CollectorDrawsPage() {
                             </span>
                             {temaDetail.wuxing && (
                               <span
-                                className="text-xs font-semibold px-2 py-0.5 rounded-md glass-subtle"
+                                className="text-xs font-semibold px-2 py-0.5 rounded-md bento-subtle"
                                 style={{ color: WUXING_COLORS[temaDetail.wuxing] }}
                               >
                                 {temaDetail.wuxing}
                               </span>
                             )}
-                            <span className="text-xs px-2 py-0.5 rounded-md glass-subtle text-slate-600 dark:text-slate-400">
+                            <span className="text-xs px-2 py-0.5 rounded-md bento-subtle text-slate-600 dark:text-slate-400">
                               {temaDetail.size} · {temaDetail.odd}
                             </span>
-                            <span className="text-xs px-2 py-0.5 rounded-md glass-subtle text-slate-600 dark:text-slate-400">
+                            <span className="text-xs px-2 py-0.5 rounded-md bento-subtle text-slate-600 dark:text-slate-400">
                               合{temaDetail.sum}
                             </span>
                           </div>
@@ -739,7 +757,7 @@ export function CollectorDrawsPage() {
                           <button
                             type="button"
                             onClick={() => setExpandedPeriod(isExpanded ? null : d.period)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-indigo-500/8 dark:hover:bg-indigo-400/10 transition-colors cursor-pointer"
                           >
                             <span>{isExpanded ? "收起" : "属性明细"}</span>
                             <ChevronDownIcon size={13} className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
@@ -758,28 +776,28 @@ export function CollectorDrawsPage() {
                                 </h4>
                                 <div className="flex gap-2 flex-wrap">
                                   {summary.has_lianxiao ? (
-                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
                                       🔗 连肖形态: {summary.lianxiao_text}
                                     </span>
                                   ) : (
-                                    <span className="px-2.5 py-0.5 rounded-full text-xs glass-subtle text-slate-500 dark:text-slate-400">
+                                    <span className="px-2.5 py-0.5 rounded-full text-xs bento-subtle text-slate-500 dark:text-slate-400">
                                       7肖各异
                                     </span>
                                   )}
-                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium glass-subtle text-slate-700 dark:text-slate-300">
+                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bento-subtle text-slate-700 dark:text-slate-300">
                                     特码: {temaDetail.num} ({temaDetail.bose}波 · {temaDetail.xiao} · {temaDetail.wuxing || "无五行"})
                                   </span>
-                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium glass-subtle text-slate-700 dark:text-slate-300">
+                                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bento-subtle text-slate-700 dark:text-slate-300">
                                     七球总数: {summary.sum7} ({summary.sum7_size} · {summary.sum7_odd})
                                   </span>
                                 </div>
                               </div>
 
                               {/* 7球详细属性对照表 */}
-                              <div className="overflow-x-auto rounded-2xl glass-subtle shadow-xs">
+                              <div className="overflow-x-auto rounded-2xl bento-subtle shadow-xs">
                                 <table className="w-full text-left text-xs border-collapse">
                                   <thead>
-                                    <tr className="glass-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8 font-semibold">
+                                    <tr className="bg-slate-100/80 dark:bg-white/[0.04] text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8 font-semibold">
                                       <th className="py-2.5 px-3">落球位置</th>
                                       <th className="py-2.5 px-3">开奖号码</th>
                                       <th className="py-2.5 px-3">波色</th>
@@ -823,12 +841,12 @@ export function CollectorDrawsPage() {
                                           <td className="py-2 px-3 font-semibold" style={{ color: BOSE_COLORS[b.bose]?.bg }}>
                                             {b.bose}波
                                           </td>
-                                          <td className={`py-2 px-3 font-semibold ${b.is_lianxiao ? "text-purple-500" : ""}`}>
+                                          <td className={`py-2 px-3 font-semibold ${b.is_lianxiao ? "text-indigo-500" : ""}`}>
                                             {b.xiao}
                                           </td>
                                           <td className="py-2 px-3">
                                             {b.is_lianxiao ? (
-                                              <span className="px-1.5 py-0.5 rounded text-2xs bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 font-bold">
+                                              <span className="px-1.5 py-0.5 rounded text-2xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-bold">
                                                 🔗 {b.lianxiao_count}码同肖
                                               </span>
                                             ) : (
@@ -858,7 +876,7 @@ export function CollectorDrawsPage() {
 
                               {/* 综合分布统计卡片 */}
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                <div className="p-3 rounded-2xl glass-subtle">
+                                <div className="p-3 rounded-2xl bento-subtle">
                                   <span className="text-2xs font-semibold text-slate-400 uppercase block">波色分布 (7码)</span>
                                   <div className="flex gap-3 mt-1.5 text-xs font-bold">
                                     <span className="text-rose-500">红波: {all7.filter((x) => x.bose === "红").length}</span>
@@ -867,7 +885,7 @@ export function CollectorDrawsPage() {
                                   </div>
                                 </div>
 
-                                <div className="p-3 rounded-2xl glass-subtle">
+                                <div className="p-3 rounded-2xl bento-subtle">
                                   <span className="text-2xs font-semibold text-slate-400 uppercase block">家野分布 (7码)</span>
                                   <div className="flex gap-4 mt-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                                     <span>家禽: {all7.filter((x) => x.jiaye === "家").length} 码</span>
@@ -875,7 +893,7 @@ export function CollectorDrawsPage() {
                                   </div>
                                 </div>
 
-                                <div className="p-3 rounded-2xl glass-subtle">
+                                <div className="p-3 rounded-2xl bento-subtle">
                                   <span className="text-2xs font-semibold text-slate-400 uppercase block">大小与单双分布 (7码)</span>
                                   <div className="flex gap-3 mt-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
                                     <span>大 {all7.filter((x) => x.size === "大").length} / 小 {all7.filter((x) => x.size === "小").length}</span>
@@ -883,9 +901,9 @@ export function CollectorDrawsPage() {
                                   </div>
                                 </div>
 
-                                <div className="p-3 rounded-2xl glass-subtle">
+                                <div className="p-3 rounded-2xl bento-subtle">
                                   <span className="text-2xs font-semibold text-slate-400 uppercase block">特码形态总结</span>
-                                  <div className="mt-1.5 text-xs font-bold text-primary">
+                                  <div className="mt-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400">
                                     {temaDetail.num} ({temaDetail.bose}波 · {temaDetail.xiao} · {temaDetail.size}{temaDetail.odd} · 合{temaDetail.sum})
                                   </div>
                                 </div>
@@ -910,7 +928,7 @@ export function CollectorDrawsPage() {
                     type="button"
                     onClick={() => setOffset(Math.max(0, offset - limit))}
                     disabled={offset === 0}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-white/10 hover:bg-indigo-500/8 dark:hover:bg-indigo-400/10 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
                   >
                     上一页
                   </button>
@@ -918,7 +936,7 @@ export function CollectorDrawsPage() {
                     type="button"
                     onClick={() => setOffset(offset + limit)}
                     disabled={offset + limit >= total}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-slate-200/70 dark:border-white/10 hover:bg-indigo-500/8 dark:hover:bg-indigo-400/10 text-slate-700 dark:text-slate-300 disabled:opacity-40 transition-colors cursor-pointer"
                   >
                     下一页
                   </button>
@@ -952,59 +970,29 @@ function DrawBallItem({
   isAdjacent?: boolean;
 }) {
   const b = bose || getBose(num);
-  const colorCfg = BOSE_COLORS[b] || BOSE_COLORS["红"];
-
-  let ringStyle = "";
-  if (isTema) {
-    ringStyle = isLianxiao
-      ? "ring-2 ring-amber-400 ring-offset-1 ring-offset-purple-500 shadow-md shadow-amber-500/20"
-      : "ring-2 ring-amber-400 ring-offset-1 shadow-md shadow-amber-500/20";
-  } else if (isLianxiao) {
-    ringStyle = isAdjacent
-      ? "ring-2 ring-pink-500 shadow-sm shadow-pink-500/30"
-      : "ring-2 ring-purple-500 shadow-sm shadow-purple-500/30";
-  }
-
   const ballTitle = [
     `${num}号 (${b}波 · ${xiao || getXiao(num)}${wuxing ? " · " + wuxing : ""})`,
-    isAdjacent ? `[⚡ 顺位紧邻连肖 - 共${lianxiaoCount || 2}码]` : isLianxiao ? `[🔗 连肖 - 共${lianxiaoCount}码]` : "",
-  ].filter(Boolean).join(" ");
+    isAdjacent
+      ? `[⚡ 顺位紧邻连肖 - 共${lianxiaoCount || 2}码]`
+      : isLianxiao
+        ? `[🔗 连肖 - 共${lianxiaoCount}码]`
+        : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className="inline-flex flex-col items-center gap-1">
-      <div
-        className={`relative flex items-center justify-center font-bold font-mono text-white select-none transition-transform hover:scale-110 cursor-default ${ringStyle} ${
-          isTema ? "w-8 h-8 rounded-full text-xs font-extrabold" : "w-7 h-7 rounded-full text-[11px]"
-        }`}
-        style={{ backgroundColor: colorCfg.bg }}
-        title={ballTitle}
-      >
-        {num}
-
-        {/* 连肖/紧邻角标 (左上方) */}
-        {isLianxiao && (
-          <span
-            className={`absolute -top-1.5 -left-1.5 text-[8px] font-extrabold px-1 py-0 rounded text-white shadow-xs ${
-              isAdjacent ? "bg-pink-600" : "bg-purple-600"
-            }`}
-            title={isAdjacent ? `⚡ 顺位紧邻连肖(${xiao}·共${lianxiaoCount}码)` : `🔗 连肖(${xiao}·共${lianxiaoCount}码)`}
-          >
-            {isAdjacent ? "⚡" : "🔗"}
-          </span>
-        )}
-      </div>
-
-      {/* 球号下方生肖与五行标记 */}
-      <div className="flex items-center gap-0.5 text-[10px] leading-tight">
-        <span className={`font-semibold ${isLianxiao ? "text-purple-600 dark:text-purple-400 font-bold" : "text-slate-600 dark:text-slate-300"}`}>
-          {xiao || getXiao(num)}
-        </span>
-        {wuxing && (
-          <span className="font-medium text-[9px]" style={{ color: WUXING_COLORS[wuxing] || "#94a3b8" }}>
-            {wuxing}
-          </span>
-        )}
-      </div>
+    <div title={ballTitle}>
+      <LotteryBall
+        number={num}
+        colorHint={b}
+        zodiac={xiao || getXiao(num)}
+        wuxing={wuxing}
+        size={isTema ? "md" : "sm"}
+        isSpecial={isTema}
+        isHit={isLianxiao}
+        badge={isAdjacent ? "⚡" : isLianxiao ? "连" : isTema ? "特" : null}
+      />
     </div>
   );
 }

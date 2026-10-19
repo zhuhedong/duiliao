@@ -1,7 +1,7 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 import { cx } from "./utils";
 
-type Variant = "default" | "primary" | "secondary" | "outline" | "ghost" | "danger";
+type Variant = "default" | "primary" | "secondary" | "outline" | "ghost" | "danger" | "destructive";
 type Size = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 const variants: Record<Variant, string> = {
@@ -15,6 +15,8 @@ const variants: Record<Variant, string> = {
     "bg-transparent text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-slate-100 border border-transparent",
   danger:
     "bg-rose-600 text-white hover:bg-rose-500 border border-rose-500/20 shadow-[0_1px_2px_rgba(225,29,72,0.25),0_4px_12px_-2px_rgba(225,29,72,0.2)]",
+  destructive:
+    "bg-rose-600 text-white hover:bg-rose-500 border border-rose-500/20 shadow-[0_1px_2px_rgba(225,29,72,0.25),0_4px_12px_-2px_rgba(225,29,72,0.2)]",
 };
 
 const sizes: Record<Size, string> = {
@@ -26,18 +28,21 @@ const sizes: Record<Size, string> = {
 };
 
 export function Button({
+  ref,
   className,
   variant = "default",
   size = "md",
   children,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
+  ref?: Ref<HTMLButtonElement>;
   variant?: Variant;
   size?: Size;
   children?: ReactNode;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       className={cx(
         "inline-flex items-center justify-center font-medium transition-all active:scale-[0.985] disabled:opacity-50 disabled:pointer-events-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30",

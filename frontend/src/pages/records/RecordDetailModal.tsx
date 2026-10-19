@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Portal } from "../../components/Portal";
-import { Button } from "../../components/ui/button";
-import { Spinner } from "../../components/ui/spinner";
+import { Button, LotteryBall, Spinner, toast, useConfirm } from "../../components/ui";
 import {
   CloseIcon,
   CopyIcon,
@@ -9,7 +8,7 @@ import {
   CheckIcon,
 } from "../../components/icons";
 import { LOTTERY_LABEL, type Lottery } from "../../lib/collector";
-import { BOSE_COLORS, getBose, getXiao } from "../../lib/lotteryAttr";
+import { getBose, getXiao } from "../../lib/lotteryAttr";
 import { recordsApi, type BettingRecord } from "../../lib/records";
 
 interface RecordDetailModalProps {
@@ -27,6 +26,7 @@ export function RecordDetailModal({
   onDeleted,
   onCopyRequested,
 }: RecordDetailModalProps) {
+  const confirm = useConfirm();
   const [deleting, setDeleting] = useState(false);
 
   if (!isOpen || !record) return null;
@@ -39,16 +39,23 @@ export function RecordDetailModal({
   const drawTema = record.draw?.tema || record.special_number || "";
 
   const handleDelete = async () => {
-    if (!window.confirm("确定要删除此条投注记录吗？删除后不可恢复。")) return;
+    const ok = await confirm({
+      title: "删除投注记录",
+      description: "确定要删除此条投注记录吗？删除后不可恢复。",
+      confirmText: "确认删除",
+      variant: "danger",
+    });
+    if (!ok) return;
     setDeleting(true);
     try {
       const res = await recordsApi.delete(record.id);
       if (res.ok) {
         onDeleted(record.id);
+        toast.success("已删除该条投注记录");
         onClose();
       }
     } catch (err: any) {
-      alert(err?.message || "删除失败");
+      toast.error(err?.message || "删除失败");
     } finally {
       setDeleting(false);
     }
@@ -56,26 +63,28 @@ export function RecordDetailModal({
 
   return (
     <Portal onClose={onClose}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/50 dark:bg-black/70 animate-fadeIn backdrop-blur-sm">
-        <div className="w-full max-w-xl max-h-[92vh] glass-card rounded-3xl animate-fadeIn flex flex-col overflow-hidden shadow-2xl border border-slate-200/50 dark:border-white/10 bg-white dark:bg-slate-900">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/50 dark:bg-black/70 animate-overlay backdrop-blur-xs">
+        <div className="w-full max-w-xl max-h-[92vh] bento-card rounded-3xl animate-scale-in flex flex-col overflow-hidden shadow-2xl">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-white/10 px-6 py-4 shrink-0">
+          <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/[0.07] px-6 py-4 shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300 font-bold">
                 {LOTTERY_LABEL[record.lottery as Lottery] || record.lottery}
               </span>
               <span className="text-sm font-bold text-slate-900 dark:text-white font-mono">
                 第 {record.period} 期
               </span>
-              <span className="text-xs px-2 py-0.5 rounded-md glass-subtle text-slate-600 dark:text-slate-400">
+              <span className="text-xs px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-400">
                 {record.play_type}
               </span>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+              aria-label="关闭弹窗"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
             >
-              <CloseIcon size={20} />
+              <CloseIcon size={18} />
             </button>
           </div>
 
@@ -83,7 +92,7 @@ export function RecordDetailModal({
           <div className="overflow-y-auto px-6 py-5 space-y-6 flex-1">
             {/* Hero Settle Status */}
             <div
-              className={`p-6 rounded-3xl text-center space-y-2 border transition-all ${
+              className={`p-6 rounded-2xl text-center space-y-2 border transition-all ${
                 isWon
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
                   : isLost
@@ -91,14 +100,14 @@ export function RecordDetailModal({
                   : "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
               }`}
             >
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/60 dark:bg-black/30 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/70 dark:bg-black/30 backdrop-blur-xs">
                 <span
                   className={`w-2 h-2 rounded-full ${
                     isWon
-                      ? "bg-emerald-500 animate-pulse"
+                      ? "bg-emerald-500 pulse-dot"
                       : isLost
                       ? "bg-rose-500"
-                      : "bg-amber-500 animate-pulse"
+                      : "bg-amber-500 pulse-dot"
                   }`}
                 />
                 <span>
@@ -144,35 +153,22 @@ export function RecordDetailModal({
 
               {/* Balls Grid */}
               {record.numbers?.length > 0 && (
-                <div className="p-4 rounded-2xl glass-card flex flex-wrap gap-3 justify-center">
+                <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] flex flex-wrap gap-3 justify-center">
                   {record.numbers.map((n) => {
                     const isHit = record.hit_numbers?.includes(n);
-                    const bColor = BOSE_COLORS[getBose(n)] || { bg: "#64748b" };
                     return (
                       <div
                         key={n}
-                        className="flex flex-col items-center gap-1"
                         style={{ opacity: !isPending && !isHit ? 0.45 : 1 }}
                       >
-                        <div
-                          className={`relative flex items-center justify-center w-11 h-11 rounded-full text-sm font-bold text-white shadow-md transition-all select-none ${
-                            isHit
-                              ? "ring-4 ring-emerald-500 shadow-[0_0_16px_rgba(16,185,129,0.55)] scale-110"
-                              : ""
-                          }`}
-                          style={{ backgroundColor: bColor.bg }}
-                        >
-                          {n}
-                        </div>
-                        <span
-                          className={`text-[11px] font-semibold ${
-                            isHit
-                              ? "text-emerald-500 font-bold"
-                              : "text-slate-400 dark:text-slate-500"
-                          }`}
-                        >
-                          {isHit ? "中" : getXiao(n)}
-                        </span>
+                        <LotteryBall
+                          number={n}
+                          colorHint={getBose(n)}
+                          zodiac={isHit ? "中" : getXiao(n)}
+                          size="lg"
+                          isHit={isHit}
+                          badge={isHit ? "中" : null}
+                        />
                       </div>
                     );
                   })}
@@ -181,7 +177,7 @@ export function RecordDetailModal({
 
               {/* Zodiacs */}
               {record.xiaos?.length > 0 && (
-                <div className="p-4 rounded-2xl glass-card flex flex-wrap gap-2.5 justify-center">
+                <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] flex flex-wrap gap-2.5 justify-center">
                   {record.xiaos.map((x) => {
                     const isHit = record.hit_numbers?.includes(x);
                     return (
@@ -190,7 +186,7 @@ export function RecordDetailModal({
                         className={`px-4 py-2 rounded-2xl text-sm font-bold flex items-center gap-1.5 transition-all ${
                           isHit
                             ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/50 shadow-md"
-                            : "bg-primary/10 text-primary border border-primary/20"
+                            : "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/25"
                         }`}
                       >
                         <span>{x}</span>
@@ -213,49 +209,34 @@ export function RecordDetailModal({
                 </span>
               </div>
 
-              <div className="p-4 rounded-2xl glass-card space-y-3">
+              <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] space-y-3">
                 {drawBalls.length > 0 ? (
                   <>
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
+                    <div className="flex items-end justify-center gap-2.5 flex-wrap">
                       {drawBalls.slice(0, 6).map((b, i) => {
-                        const bColor = BOSE_COLORS[getBose(b)] || { bg: "#64748b" };
                         const isMyHit = record.numbers?.includes(b);
                         return (
-                          <div key={i} className="flex flex-col items-center gap-1">
-                            <span
-                              className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white shadow-sm ${
-                                isMyHit ? "ring-2 ring-emerald-400 shadow-md" : ""
-                              }`}
-                              style={{ backgroundColor: bColor.bg }}
-                            >
-                              {b}
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              {getXiao(b)}
-                            </span>
-                          </div>
+                          <LotteryBall
+                            key={i}
+                            number={b}
+                            colorHint={getBose(b)}
+                            zodiac={getXiao(b)}
+                            size="md"
+                            isHit={isMyHit}
+                          />
                         );
                       })}
-                      <span className="text-slate-400 font-bold px-1">+</span>
+                      <span className="text-slate-400 font-bold px-1 mb-5">+</span>
                       {drawTema && (
-                        <div className="flex flex-col items-center gap-1">
-                          <span
-                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold text-white shadow-sm ring-2 ring-amber-400 ${
-                              record.numbers?.includes(drawTema)
-                                ? "shadow-[0_0_12px_rgba(251,191,36,0.6)]"
-                                : ""
-                            }`}
-                            style={{
-                              backgroundColor:
-                                BOSE_COLORS[getBose(drawTema)]?.bg || "#ef4444",
-                            }}
-                          >
-                            {drawTema}
-                          </span>
-                          <span className="text-[10px] text-amber-500 font-bold">
-                            特·{getXiao(drawTema)}
-                          </span>
-                        </div>
+                        <LotteryBall
+                          number={drawTema}
+                          colorHint={getBose(drawTema)}
+                          zodiac={getXiao(drawTema)}
+                          size="md"
+                          isSpecial
+                          isHit={record.numbers?.includes(drawTema)}
+                          badge="特"
+                        />
                       )}
                     </div>
 
@@ -290,7 +271,7 @@ export function RecordDetailModal({
                 结算明细
               </span>
 
-              <div className="rounded-2xl glass-card divide-y divide-slate-200/50 dark:divide-white/10 text-xs">
+              <div className="rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] divide-y divide-slate-200/50 dark:divide-white/10 text-xs">
                 <div className="flex items-center justify-between px-4 py-3">
                   <div>
                     <div className="font-semibold text-slate-900 dark:text-white">投入金额</div>
@@ -327,7 +308,7 @@ export function RecordDetailModal({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between px-4 py-3 bg-slate-50/50 dark:bg-white/[0.02] rounded-b-2xl">
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-100/60 dark:bg-white/[0.02] rounded-b-2xl">
                   <div>
                     <div className="font-bold text-slate-900 dark:text-white">净盈亏</div>
                     <div className="text-slate-400 mt-0.5">派彩 ¥{record.payout} − 投入 ¥{record.total_amount}</div>
@@ -353,7 +334,7 @@ export function RecordDetailModal({
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   原始录入与备注
                 </span>
-                <div className="p-4 rounded-2xl glass-subtle space-y-2">
+                <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] space-y-2">
                   {record.raw_input && (
                     <div className="font-mono text-xs text-slate-800 dark:text-slate-200 bg-black/5 dark:bg-white/5 p-2.5 rounded-xl break-all">
                       {record.raw_input}

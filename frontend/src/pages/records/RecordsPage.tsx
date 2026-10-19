@@ -1,7 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Button } from "../../components/ui/button";
-import { Spinner } from "../../components/ui/spinner";
-import { Alert, AlertDescription } from "../../components/ui/alert";
+import {
+  Button,
+  Spinner,
+  Alert,
+  AlertDescription,
+  CardSkeleton,
+  DonutRing,
+  LotteryBall,
+  Sparkline,
+  toast,
+  useConfirm,
+} from "../../components/ui";
 import {
   ClipboardListIcon,
   PlusIcon,
@@ -12,9 +21,15 @@ import {
   SparklesIcon,
   SearchIcon,
 } from "../../components/icons";
-import { LOTTERIES, PageWorkspace, SegmentedTabs, StatusPill } from "../collector/shared";
+import {
+  FilterChips,
+  LOTTERIES,
+  PageWorkspace,
+  SegmentedTabs,
+  StatusPill,
+} from "../collector/shared";
 import { LOTTERY_LABEL, type Lottery } from "../../lib/collector";
-import { BOSE_COLORS, getBose, getXiao } from "../../lib/lotteryAttr";
+import { getBose, getXiao } from "../../lib/lotteryAttr";
 import {
   recordsApi,
   type BettingRecord,
@@ -25,7 +40,14 @@ import { RecordDetailModal } from "./RecordDetailModal";
 import { RecordStatsModal } from "./RecordStatsModal";
 import { RecordCopyModal } from "./RecordCopyModal";
 
+const STATUS_NAME_MAP: Record<string, string> = {
+  pending: "待开奖",
+  won: "已中奖",
+  lost: "未中",
+};
+
 export function RecordsPage() {
+  const confirm = useConfirm();
   const [lottery, setLottery] = useState<string>("macau");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -72,8 +94,9 @@ export function RecordsPage() {
     try {
       await recordsApi.settle(lottery !== "all" ? lottery : undefined);
       await fetchRecords();
+      toast.success("已完成官方开奖比对结算");
     } catch (err: any) {
-      alert(err?.message || "对奖结算失败");
+      toast.error(err?.message || "对奖结算失败");
     } finally {
       setSettling(false);
     }
@@ -82,29 +105,41 @@ export function RecordsPage() {
   // Clear records with confirmation
   const handleClear = async () => {
     const lotLabel = LOTTERY_LABEL[lottery as Lottery] || (lottery === "all" ? "全部" : lottery);
-    if (!window.confirm(`确定要清空 ${lotLabel} 彩种下的所有投注记录吗？操作不可恢复。`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: `清空 ${lotLabel} 投注记录`,
+      description: `确定要清空 ${lotLabel} 彩种下符合当前筛选条件的所有投注记录吗？该操作不可恢复。`,
+      confirmText: "确认清空",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await recordsApi.clear({
         lottery: lottery !== "all" ? lottery : undefined,
         status: statusFilter !== "all" ? statusFilter : undefined,
       });
       await fetchRecords();
+      toast.success("已清空符合筛选条件的记录");
     } catch (err: any) {
-      alert(err?.message || "清空失败");
+      toast.error(err?.message || "清空失败");
     }
   };
 
   // Single record delete
   const handleDeleteRecord = async (recordId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm("确定删除该记录吗？")) return;
+    const ok = await confirm({
+      title: "删除投注记录",
+      description: "确定要删除这条投注单吗？删除后不可恢复。",
+      confirmText: "删除记录",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await recordsApi.delete(recordId);
       setRecords((prev) => prev.filter((r) => r.id !== recordId));
+      toast.success("记录已删除");
     } catch (err: any) {
-      alert(err?.message || "删除失败");
+      toast.error(err?.message || "删除失败");
     }
   };
 
@@ -154,6 +189,32 @@ export function RecordsPage() {
     [stats],
   );
 
+  const activeChips = useMemo(() => {
+    const list: { key: string; label: string; value: string; onRemove: () => void }[] = [];
+    if (statusFilter !== "all") {
+      list.push({
+        key: "status",
+        label: "状态",
+        value: STATUS_NAME_MAP[statusFilter] ?? statusFilter,
+        onRemove: () => setStatusFilter("all"),
+      });
+    }
+    if (searchQuery.trim()) {
+      list.push({
+        key: "q",
+        label: "关键词",
+        value: searchQuery.trim(),
+        onRemove: () => setSearchQuery(""),
+      });
+    }
+    return list;
+  }, [statusFilter, searchQuery]);
+
+  const profitSeries = useMemo(
+    () => (stats?.period_bars ?? []).map((p) => p.net_profit),
+    [stats],
+  );
+
   return (
     <PageWorkspace
       summary="支持智能文本速录、生肖一键包码、官方开奖自动比对结算与多期盈亏复盘。"
@@ -189,13 +250,13 @@ export function RecordsPage() {
       }
     >
       {/* Bento 4-Column KPI Summary */}
-      <div className="bento-grid">
+      <div className="bento-grid stagger">
         <div className="bento-span-3 bento-card rounded-2xl p-5 flex flex-col justify-between gap-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
               待开奖投入
             </span>
-            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span className="w-2 h-2 rounded-full bg-amber-500 pulse-dot" />
           </div>
           <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
             ¥{stats?.pending_stake ?? 0}
@@ -214,19 +275,31 @@ export function RecordsPage() {
               ROI {stats?.roi_pct ?? 0}%
             </span>
           </div>
-          <div
-            className={`text-2xl sm:text-3xl font-bold font-mono tabular-nums ${
-              (stats?.net_profit ?? 0) >= 0
-                ? "text-emerald-600 dark:text-emerald-400"
-                : "text-rose-600 dark:text-rose-400"
-            }`}
-          >
-            {(stats?.net_profit ?? 0) >= 0
-              ? `+¥${stats?.net_profit ?? 0}`
-              : `¥${stats?.net_profit ?? 0}`}
-          </div>
-          <div className="text-[11px] text-slate-400 dark:text-slate-500">
-            已结清记录净收益汇总
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              <div
+                className={`text-2xl sm:text-3xl font-bold font-mono tabular-nums ${
+                  (stats?.net_profit ?? 0) >= 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-rose-600 dark:text-rose-400"
+                }`}
+              >
+                {(stats?.net_profit ?? 0) >= 0
+                  ? `+¥${stats?.net_profit ?? 0}`
+                  : `¥${stats?.net_profit ?? 0}`}
+              </div>
+              <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                已结清记录净收益汇总
+              </div>
+            </div>
+            {profitSeries.length > 1 && (
+              <Sparkline
+                data={profitSeries}
+                width={80}
+                height={30}
+                tone={(stats?.net_profit ?? 0) >= 0 ? "emerald" : "rose"}
+              />
+            )}
           </div>
         </div>
 
@@ -256,12 +329,17 @@ export function RecordsPage() {
               官方核验
             </span>
           </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-indigo-600 dark:text-indigo-400">
-            {stats?.win_rate ?? 0}%
-          </div>
-          <div className="text-[11px] text-slate-400 dark:text-slate-500">
-            胜单 <b className="text-slate-700 dark:text-slate-200">{stats?.won_count ?? 0}</b> /{" "}
-            {stats?.settled_orders ?? 0} 已结单
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-indigo-600 dark:text-indigo-400">
+                {stats?.win_rate ?? 0}%
+              </div>
+              <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                胜单 <b className="text-slate-700 dark:text-slate-200">{stats?.won_count ?? 0}</b> /{" "}
+                {stats?.settled_orders ?? 0} 已结单
+              </div>
+            </div>
+            <DonutRing value={stats?.win_rate ?? 0} size={44} tone="indigo" />
           </div>
         </div>
       </div>
@@ -308,6 +386,14 @@ export function RecordsPage() {
         </div>
       </div>
 
+      <FilterChips
+        items={activeChips}
+        onClearAll={() => {
+          setStatusFilter("all");
+          setSearchQuery("");
+        }}
+      />
+
       {error && (
         <Alert variant="error">
           <AlertDescription>{error}</AlertDescription>
@@ -316,9 +402,11 @@ export function RecordsPage() {
 
       {/* Main Content: Period Groups */}
       {loading ? (
-        <div className="bento-card rounded-2xl flex flex-col items-center justify-center py-20 gap-3">
-          <Spinner className="size-6 text-indigo-600" />
-          <span className="text-xs text-slate-400">正在加载投注对奖数据...</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={3} />
         </div>
       ) : groupedPeriods.length === 0 ? (
         <div className="bento-card rounded-2xl p-12 text-center space-y-3">
@@ -387,7 +475,7 @@ export function RecordsPage() {
                 </div>
 
                 {/* Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 stagger">
                   {periodRecords.map((r) => {
                     const isWon = r.status === "won";
                     const isLost = r.status === "lost";
@@ -397,30 +485,26 @@ export function RecordsPage() {
                       <div
                         key={r.id}
                         onClick={() => setDetailRecord(r)}
-                        className="group p-4 sm:p-5 rounded-2xl bento-card hover:border-indigo-500/35 dark:hover:border-indigo-400/35 transition-all cursor-pointer flex flex-col justify-between gap-3.5"
+                        className="group p-4 sm:p-5 rounded-2xl bento-card is-interactive cursor-pointer flex flex-col justify-between gap-3.5"
                       >
                         <div className="flex items-start justify-between gap-3">
                           {r.numbers && r.numbers.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
                               {r.numbers.map((n) => {
                                 const isHit = r.hit_numbers?.includes(n);
-                                const bColor = BOSE_COLORS[getBose(n)] || { bg: "#64748b" };
                                 return (
-                                  <span
+                                  <div
                                     key={n}
-                                    className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold font-mono text-white shadow-2xs select-none transition-all ${
-                                      isHit
-                                        ? "ring-2 ring-emerald-400 ring-offset-1 ring-offset-white dark:ring-offset-[#13161d] scale-105"
-                                        : ""
-                                    }`}
-                                    style={{
-                                      backgroundColor: bColor.bg,
-                                      opacity: !isPend && !isHit ? 0.45 : 1,
-                                    }}
+                                    style={{ opacity: !isPend && !isHit ? 0.48 : 1 }}
                                     title={`${n} (${getXiao(n)})`}
                                   >
-                                    {n}
-                                  </span>
+                                    <LotteryBall
+                                      number={n}
+                                      colorHint={getBose(n)}
+                                      size="sm"
+                                      isHit={isHit}
+                                    />
+                                  </div>
                                 );
                               })}
                             </div>

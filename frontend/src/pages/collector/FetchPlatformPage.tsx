@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Spinner } from "../../components/ui/spinner";
 import { Alert, AlertDescription } from "../../components/ui/alert";
+import { toast } from "../../components/ui/toast";
+import { useConfirm } from "../../components/ui/confirm";
+import { CardSkeleton } from "../../components/ui/skeleton";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -39,6 +41,7 @@ function shortHost(url: string): string {
 
 export function CollectorFetchPlatformPage() {
   const canWrite = useCanWrite();
+  const confirm = useConfirm();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -55,7 +58,7 @@ export function CollectorFetchPlatformPage() {
   const [selectedEnable, setSelectedEnable] = useState<Set<string>>(new Set());
   const [batchMsg, setBatchMsg] = useState<string | null>(null);
 
-  const loadCore = useCallback(async () => {
+  const loadCore = useCallback(async (silent = false) => {
     setError(null);
     try {
       const [poolBody, schedBody, suggestBody, obsBody] = await Promise.all([
@@ -68,6 +71,7 @@ export function CollectorFetchPlatformPage() {
       setScheduler(schedBody);
       setSuggestions(suggestBody);
       setObservations(obsBody.items || []);
+      if (silent) toast.success("采集平台状态已刷新");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "加载采集平台状态失败");
     }
@@ -129,12 +133,16 @@ export function CollectorFetchPlatformPage() {
     try {
       if (forceRefresh) {
         await collectorApi.refreshHostPool();
+        toast.success("已重新发现 API 集群");
       } else {
         await collectorApi.probeHostPool(false);
+        toast.success("Host 池探测完成");
       }
       await loadCore();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Host 池操作失败");
+      const msg = err instanceof ApiError ? err.message : "Host 池操作失败";
+      setError(msg);
+      toast.error("Host 池操作失败", msg);
     } finally {
       setBusy(null);
     }
@@ -142,14 +150,22 @@ export function CollectorFetchPlatformPage() {
 
   const runDump = async () => {
     if (!canWrite) return;
-    if (!window.confirm("将抓取 588080 全页并刷新 TTL 缓存，确认继续？")) return;
+    const ok = await confirm({
+      title: "刷新 588080 全页缓存",
+      description: "将抓取 588080 全页并刷新 TTL 缓存，确认继续？",
+      confirmLabel: "立即刷新",
+    });
+    if (!ok) return;
     setBusy("dump");
     setError(null);
     try {
       await collectorApi.siteDump588080();
+      toast.success("全页 Dump 缓存已刷新");
       await loadCore();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "全页 dump 失败");
+      const msg = err instanceof ApiError ? err.message : "全页 dump 失败";
+      setError(msg);
+      toast.error("全页 dump 失败", msg);
     } finally {
       setBusy(null);
     }
@@ -159,9 +175,13 @@ export function CollectorFetchPlatformPage() {
     setBusy("preview");
     setError(null);
     try {
-      setPreview(await collectorApi.previewBackfill(lottery, period.trim() || undefined));
+      const res = await collectorApi.previewBackfill(lottery, period.trim() || undefined);
+      setPreview(res);
+      toast.info("缺期预览就绪", `检测到 ${res.missing_count ?? 0} 个缺期数据源`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "缺期预览失败");
+      const msg = err instanceof ApiError ? err.message : "缺期预览失败";
+      setError(msg);
+      toast.error("缺期预览失败", msg);
     } finally {
       setBusy(null);
     }
@@ -169,13 +189,12 @@ export function CollectorFetchPlatformPage() {
 
   const runBackfill = async () => {
     if (!canWrite || !preview?.missing_count) return;
-    if (
-      !window.confirm(
-        `将为 ${preview.lottery} 第 ${preview.period} 期补采 ${preview.missing_count} 个源，确认提交？`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "提交缺期补采任务",
+      description: `将为 ${preview.lottery} 第 ${preview.period} 期补采 ${preview.missing_count} 个源，确认提交？`,
+      confirmLabel: "确认提交",
+    });
+    if (!ok) return;
     setBusy("backfill");
     setError(null);
     try {
@@ -185,13 +204,19 @@ export function CollectorFetchPlatformPage() {
         concurrency: 8,
       });
       if (result.job?.id) {
-        setBatchMsg(`已提交补采任务 #${result.job.id}（状态 ${result.job.status}）`);
+        const msg = `已提交补采任务 #${result.job.id}（状态 ${result.job.status}）`;
+        setBatchMsg(msg);
+        toast.success("补采任务已提交", msg);
       } else {
-        setBatchMsg(result.note || "无需补采或未提交任务");
+        const msg = result.note || "无需补采或未提交任务";
+        setBatchMsg(msg);
+        toast.info(msg);
       }
       setPreview(result);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "提交补采失败");
+      const msg = err instanceof ApiError ? err.message : "提交补采失败";
+      setError(msg);
+      toast.error("提交补采失败", msg);
     } finally {
       setBusy(null);
     }
@@ -202,9 +227,17 @@ export function CollectorFetchPlatformPage() {
     const items = enableCandidates.filter((c) => selectedEnable.has(c.key)).map((c) => c.item);
     if (!items.length) {
       setError("请先勾选要启用的源");
+      toast.warning("请先勾选要启用的源");
       return;
     }
-    if (!dryRun && !window.confirm(`确认启用 ${items.length} 个源？`)) return;
+    if (!dryRun) {
+      const ok = await confirm({
+        title: "批量启用数据源",
+        description: `确认启用已勾选的 ${items.length} 个数据源？`,
+        confirmLabel: "确认启用",
+      });
+      if (!ok) return;
+    }
     setBusy(dryRun ? "batch-dry" : "batch");
     setError(null);
     setBatchMsg(null);
@@ -215,19 +248,21 @@ export function CollectorFetchPlatformPage() {
         confirm: !dryRun,
       });
       const counts = result.counts || {};
-      setBatchMsg(
-        dryRun
-          ? `干跑：将启用 ${counts.enable ?? counts.create ?? items.length} 项` +
-              (counts.rejected ? `，拒绝 ${counts.rejected}` : "")
-          : `已应用：启用 ${counts.enable ?? 0}，创建 ${counts.create ?? 0}` +
-              (counts.rejected ? `，拒绝 ${counts.rejected}` : ""),
-      );
+      const msg = dryRun
+        ? `干跑：将启用 ${counts.enable ?? counts.create ?? items.length} 项` +
+          (counts.rejected ? `，拒绝 ${counts.rejected}` : "")
+        : `已应用：启用 ${counts.enable ?? 0}，创建 ${counts.create ?? 0}` +
+          (counts.rejected ? `，拒绝 ${counts.rejected}` : "");
+      setBatchMsg(msg);
+      toast.success(dryRun ? "干跑预览完成" : "批量启用成功", msg);
       if (!dryRun) {
         setSelectedEnable(new Set());
         await loadCore();
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "批量启用失败");
+      const msg = err instanceof ApiError ? err.message : "批量启用失败";
+      setError(msg);
+      toast.error("批量启用失败", msg);
     } finally {
       setBusy(null);
     }
@@ -243,8 +278,8 @@ export function CollectorFetchPlatformPage() {
           {!canWrite && <ReadOnlyNote />}
           <button
             type="button"
-            onClick={() => void loadCore()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium glass-subtle cursor-pointer"
+            onClick={() => void loadCore(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bento-subtle cursor-pointer"
           >
             <RefreshIcon size={14} />
             刷新
@@ -281,7 +316,7 @@ export function CollectorFetchPlatformPage() {
                 type="button"
                 disabled={!!busy}
                 onClick={() => void runProbe(false)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold glass-subtle cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bento-subtle cursor-pointer disabled:opacity-50"
               >
                 {busy === "probe" ? "探测中…" : "立即探测"}
               </button>
@@ -298,13 +333,11 @@ export function CollectorFetchPlatformPage() {
         }
       >
         {!pool ? (
-          <div className="p-8 flex justify-center">
-            <Spinner aria-label="加载中" />
-          </div>
+          <CardSkeleton lines={3} />
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3.5 glass-subtle rounded-2xl">
+              <div className="p-3.5 bento-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">状态</span>
                 <div className="mt-1">
                   {pool.ok ? (
@@ -314,11 +347,11 @@ export function CollectorFetchPlatformPage() {
                   )}
                 </div>
               </div>
-              <div className="p-3.5 glass-subtle rounded-2xl">
+              <div className="p-3.5 bento-subtle rounded-2xl">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">主机数</span>
                 <div className="mt-1 text-lg font-bold">{pool.host_count ?? pool.hosts?.length ?? 0}</div>
               </div>
-              <div className="p-3.5 glass-subtle rounded-2xl col-span-2">
+              <div className="p-3.5 bento-subtle rounded-2xl col-span-2">
                 <span className="text-2xs font-semibold text-slate-400 block uppercase">主用</span>
                 <div className="mt-1 text-sm font-mono truncate">{pool.primary || "—"}</div>
               </div>
@@ -401,9 +434,7 @@ export function CollectorFetchPlatformPage() {
         }
       >
         {!suggestions ? (
-          <div className="p-8 flex justify-center">
-            <Spinner aria-label="加载中" />
-          </div>
+          <CardSkeleton lines={3} />
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -415,7 +446,7 @@ export function CollectorFetchPlatformPage() {
                   ["改名", suggestions.counts?.renamed ?? 0],
                 ] as const
               ).map(([label, n]) => (
-                <div key={label} className="p-3.5 glass-subtle rounded-2xl">
+                <div key={label} className="p-3.5 bento-subtle rounded-2xl">
                   <span className="text-2xs font-semibold text-slate-400 block uppercase">
                     {label}
                   </span>
@@ -430,7 +461,7 @@ export function CollectorFetchPlatformPage() {
                   {enableCandidates.map((c) => (
                     <label
                       key={c.key}
-                      className="flex items-start gap-2 p-2.5 rounded-xl glass-subtle cursor-pointer"
+                      className="flex items-start gap-2 p-2.5 rounded-xl bento-subtle cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -456,7 +487,7 @@ export function CollectorFetchPlatformPage() {
                       type="button"
                       disabled={!!busy || selectedEnable.size === 0}
                       onClick={() => void runBatchEnable(true)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-semibold glass-subtle disabled:opacity-50 cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl text-xs font-semibold bento-subtle disabled:opacity-50 cursor-pointer"
                     >
                       {busy === "batch-dry" ? "干跑中…" : "干跑预览"}
                     </button>
@@ -520,14 +551,14 @@ export function CollectorFetchPlatformPage() {
               value={period}
               onChange={(e) => setPeriod(e.target.value)}
               placeholder="例如 2026286"
-              className="px-3 py-2 rounded-xl text-sm glass-subtle border-0 outline-none w-40 font-mono"
+              className="px-3 py-2 rounded-xl text-sm bento-subtle border-0 outline-none w-40 font-mono"
             />
           </div>
           <button
             type="button"
             disabled={!!busy}
             onClick={() => void runPreview()}
-            className="px-4 py-2 rounded-xl text-xs font-semibold glass-subtle cursor-pointer disabled:opacity-50"
+            className="px-4 py-2 rounded-xl text-xs font-semibold bento-subtle cursor-pointer disabled:opacity-50"
           >
             {busy === "preview" ? "预览中…" : "预览缺期"}
           </button>
@@ -619,9 +650,7 @@ export function CollectorFetchPlatformPage() {
             </div>
           </div>
         ) : (
-          <div className="p-8 flex justify-center">
-            <Spinner aria-label="加载中" />
-          </div>
+          <CardSkeleton lines={2} />
         )}
       </SectionCard>
 

@@ -500,3 +500,506 @@ body {
 .dark textarea::placeholder {
   color: #64748b;
 }
+
+/* ============================================================
+   v2 · 交互与视觉深度优化层
+   - 统一尺度令牌（圆角 / 间距 / 字号 / 动效）
+   - 焦点环、悬停抬升、按压反馈、进场错峰动画
+   - 骨架屏、Toast、对话框、页面过渡
+   - 移动端表格自动转卡片（.table-stack + td[data-label]）
+   - 全部动效尊重 prefers-reduced-motion
+   ============================================================ */
+:root {
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 360ms;
+
+  --focus-ring: 0 0 0 2px var(--background), 0 0 0 4px var(--primary);
+
+  --success: #059669;
+  --success-soft: rgba(5, 150, 105, 0.1);
+  --danger: #e11d48;
+  --danger-soft: rgba(225, 29, 72, 0.1);
+  --warning: #d97706;
+  --warning-soft: rgba(217, 119, 6, 0.1);
+
+  --skeleton-base: #eceef3;
+  --skeleton-shine: #f7f8fa;
+}
+.dark {
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.14);
+  --danger: #fb7185;
+  --danger-soft: rgba(251, 113, 133, 0.14);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.14);
+
+  --skeleton-base: #1a1e27;
+  --skeleton-shine: #232834;
+}
+
+/* —— 字号阶梯（语义化） —— */
+.t-display {
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  color: var(--foreground-strong);
+  font-variant-numeric: tabular-nums;
+}
+.t-title {
+  font-size: 1.0625rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--foreground-strong);
+}
+.t-section {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  color: var(--foreground-strong);
+}
+.t-body {
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--foreground-subtle);
+}
+.t-caption {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  color: var(--foreground-muted);
+}
+.t-overline {
+  font-size: 0.65625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--foreground-muted);
+}
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* —— 焦点环（键盘可达性） —— */
+:where(a, button, [role="button"], [role="tab"], [role="option"], input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+.bento-input:focus-visible,
+.glass-input:focus-visible {
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* 跳到主内容 */
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: top var(--dur-base) var(--ease-out);
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* —— 卡片交互：悬停抬升 / 按压 —— */
+.bento-card.is-interactive,
+.lift {
+  cursor: pointer;
+  transition: transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+.bento-card.is-interactive:hover,
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--bento-shadow-lg);
+  border-color: var(--border-strong);
+}
+.bento-card.is-interactive:active,
+.lift:active {
+  transform: translateY(0) scale(0.995);
+}
+.press {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* 卡片顶部高光描边（更精致的层次感） */
+.bento-card {
+  position: relative;
+}
+.bento-card.has-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--bento-highlight), transparent 40%);
+  opacity: 0.8;
+}
+
+/* 强调卡片（品牌渐变底） */
+.bento-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  color: #fff;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(129, 140, 248, 0.55), transparent 55%),
+    radial-gradient(120% 120% at 100% 100%, rgba(14, 165, 233, 0.35), transparent 50%),
+    linear-gradient(135deg, #312e81 0%, #4338ca 45%, #4f46e5 100%);
+  box-shadow: 0 10px 30px -10px rgba(67, 56, 202, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.bento-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 14px 14px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.6), transparent 80%);
+}
+
+/* —— 进场动画与错峰 —— */
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes toastOut {
+  to {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+@keyframes pulseRing {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes drawStroke {
+  from {
+    stroke-dashoffset: var(--dash, 1000);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes growBar {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes growX {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-rise {
+  animation: riseIn var(--dur-slow) var(--ease-out) both;
+}
+.animate-scale-in {
+  animation: scaleIn var(--dur-base) var(--ease-out) both;
+}
+.animate-overlay {
+  animation: overlayIn var(--dur-base) ease-out both;
+}
+.animate-sheet {
+  animation: sheetUp var(--dur-slow) var(--ease-out) both;
+}
+.animate-slide-right {
+  animation: slideInRight var(--dur-slow) var(--ease-out) both;
+}
+.animate-grow-bar {
+  transform-origin: bottom;
+  animation: growBar 0.6s var(--ease-out) both;
+}
+.animate-grow-x {
+  transform-origin: left;
+  animation: growX 0.7s var(--ease-out) both;
+}
+.pulse-dot {
+  animation: pulseRing 1.8s ease-out infinite;
+}
+
+/* 子元素错峰进场：给容器加 .stagger */
+.stagger > * {
+  animation: riseIn 0.42s var(--ease-out) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > *:nth-child(7) { animation-delay: 240ms; }
+.stagger > *:nth-child(8) { animation-delay: 280ms; }
+.stagger > *:nth-child(n + 9) { animation-delay: 320ms; }
+
+/* 页面切换过渡 */
+.page-enter {
+  animation: riseIn 0.38s var(--ease-out) both;
+}
+
+/* —— 骨架屏 —— */
+.skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shine) 37%,
+    var(--skeleton-base) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+/* —— 分段控制器滑块 —— */
+.seg-root {
+  position: relative;
+  isolation: isolate;
+}
+.seg-indicator {
+  position: absolute;
+  z-index: -1;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 2px 6px -2px rgba(15, 23, 42, 0.08);
+  transition: transform 0.32s var(--ease-out), width 0.32s var(--ease-out), opacity 0.2s;
+}
+.dark .seg-indicator {
+  background: #232835;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* —— 表格增强 —— */
+.table-sticky thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.table-sticky {
+  max-height: var(--table-max-h, 70vh);
+  overflow: auto;
+}
+
+/* 移动端表格自动转卡片：<table class="table-stack"> + <td data-label="字段"> */
+@media (max-width: 640px) {
+  .table-stack thead {
+    display: none;
+  }
+  .table-stack,
+  .table-stack tbody,
+  .table-stack tr,
+  .table-stack td {
+    display: block;
+    width: 100%;
+  }
+  .table-stack tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 0.625rem;
+  }
+  .table-stack tr {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-card);
+    padding: 0.375rem 0.25rem;
+    box-shadow: var(--bento-shadow);
+  }
+  .table-stack td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 0 !important;
+    padding: 0.4rem 0.75rem !important;
+    text-align: right;
+  }
+  .table-stack td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--foreground-muted);
+    text-align: left;
+  }
+  .table-stack td[data-label=""]::before,
+  .table-stack td:not([data-label])::before {
+    content: none;
+  }
+  .table-stack td.stack-full {
+    display: block;
+    text-align: left;
+  }
+  .table-stack td.stack-hide {
+    display: none;
+  }
+}
+
+/* —— 键盘提示 —— */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--foreground-muted);
+  background: var(--surface-card);
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 0.3rem;
+}
+
+/* —— 号码球 —— */
+.ball {
+  --ball-size: 2rem;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: var(--ball-size);
+  height: var(--ball-size);
+  border-radius: 9999px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.42), transparent 42%),
+    var(--ball-color, #64748b);
+  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+.ball:hover {
+  transform: translateY(-1px) scale(1.06);
+}
+.ball.is-muted {
+  opacity: 0.38;
+  filter: saturate(0.6);
+}
+
+/* —— 减少动效 —— */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton {
+    animation: none;
+  }
+}

@@ -1,6 +1,14 @@
-import type { CSSProperties, ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { useAuth } from "../../auth/AuthContext";
 import type { Lottery } from "../../lib/collector";
+import { CloseIcon } from "../../components/icons";
 
 export const LOTTERIES: { value: Lottery; label: string }[] = [
   { value: "macau", label: "澳门" },
@@ -82,7 +90,7 @@ export function SectionCard({
   );
 }
 
-/** 统一 Apple / Notion 风格分段切换选项卡 */
+/** 统一 Apple / Linear 风格带滑动指示器的分段切换选项卡 */
 export function SegmentedTabs<T extends string>({
   tabs,
   options,
@@ -110,6 +118,31 @@ export function SegmentedTabs<T extends string>({
       count: opt.count,
     }));
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
+
+  const measure = () => {
+    const root = rootRef.current;
+    const activeBtn = btnRefs.current[String(current)];
+    if (!root || !activeBtn) {
+      setIndicator(null);
+      return;
+    }
+    const left = activeBtn.offsetLeft;
+    const width = activeBtn.offsetWidth;
+    setIndicator({ left, width });
+  };
+
+  useLayoutEffect(() => {
+    measure();
+  }, [current, items.length, size]);
+
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [current]);
+
   const btnPadding =
     size === "sm"
       ? "px-2.5 py-1 text-xs rounded-lg"
@@ -117,30 +150,55 @@ export function SegmentedTabs<T extends string>({
 
   return (
     <div
-      className={`inline-flex items-center gap-1 p-1 rounded-xl bg-slate-100/90 dark:bg-white/[0.05] border border-slate-200/70 dark:border-white/[0.07] max-w-full overflow-x-auto no-scrollbar ${className}`}
+      ref={rootRef}
+      role="tablist"
+      className={`seg-root max-w-full overflow-x-auto no-scrollbar ${className}`}
     >
+      {indicator && indicator.width > 0 && (
+        <span
+          aria-hidden="true"
+          className="seg-indicator"
+          style={{
+            width: `${indicator.width}px`,
+            transform: `translate3d(${indicator.left - 4}px, 0, 0)`,
+          }}
+        />
+      )}
       {items.map((tab) => {
         const active = current === tab.id;
         return (
           <button
             key={tab.id}
+            ref={(el) => {
+              btnRefs.current[String(tab.id)] = el;
+            }}
+            role="tab"
+            aria-selected={active}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`inline-flex items-center gap-1.5 font-medium transition-all cursor-pointer whitespace-nowrap ${btnPadding} ${
+            className={`relative z-10 inline-flex items-center gap-1.5 font-medium transition-colors cursor-pointer whitespace-nowrap ${btnPadding} ${
               active
-                ? "text-slate-900 dark:text-white bg-white dark:bg-[#1e232e] shadow-xs border border-slate-200/60 dark:border-white/10 font-semibold"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-transparent"
+                ? indicator
+                  ? "text-slate-900 dark:text-white font-semibold"
+                  : "text-slate-900 dark:text-white bg-white dark:bg-[#1e232e] shadow-xs border border-slate-200/60 dark:border-white/10 font-semibold"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
             }`}
           >
             {tab.icon && (
-              <span className={active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"}>
+              <span
+                className={
+                  active
+                    ? "text-indigo-600 dark:text-indigo-400"
+                    : "text-slate-400 dark:text-slate-500"
+                }
+              >
                 {tab.icon}
               </span>
             )}
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span
-                className={`ml-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums ${
+                className={`ml-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold tabular-nums transition-colors ${
                   active
                     ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300"
                     : "bg-slate-200/70 text-slate-600 dark:bg-white/10 dark:text-slate-400"
@@ -319,17 +377,73 @@ export function Toolbar({
   );
 }
 
-/** 统一 Bento 表格容器 */
+/** 活跃筛选条件胶囊条 (FilterChips) */
+export function FilterChips({
+  items,
+  onClearAll,
+  className = "",
+}: {
+  items: { key: string; label: string; value: string; onRemove: () => void }[];
+  onClearAll?: () => void;
+  className?: string;
+}) {
+  if (!items.length) return null;
+  return (
+    <div className={`flex items-center gap-2 flex-wrap ${className}`}>
+      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+        当前筛选
+      </span>
+      {items.map((item) => (
+        <span
+          key={item.key}
+          className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium bg-indigo-50/90 text-indigo-700 border border-indigo-200/80 dark:bg-indigo-500/12 dark:text-indigo-300 dark:border-indigo-500/25"
+        >
+          <span className="text-indigo-400 dark:text-indigo-400/80">{item.label}:</span>
+          <span className="font-semibold">{item.value}</span>
+          <button
+            type="button"
+            onClick={item.onRemove}
+            aria-label={`移除 ${item.label} 筛选`}
+            className="w-4 h-4 rounded-full inline-flex items-center justify-center hover:bg-indigo-200/70 dark:hover:bg-indigo-500/30 transition-colors cursor-pointer"
+          >
+            <CloseIcon size={10} />
+          </button>
+        </span>
+      ))}
+      {onClearAll && items.length > 1 && (
+        <button
+          type="button"
+          onClick={onClearAll}
+          className="text-xs font-medium text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 px-2 py-0.5 transition-colors cursor-pointer"
+        >
+          清空全部
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** 统一 Bento 表格容器（支持表头吸顶 + 移动端卡片化） */
 export function TableContainer({
   children,
   className = "",
+  stickyHeader = true,
+  mobileStack = false,
 }: {
   children: ReactNode;
   className?: string;
+  stickyHeader?: boolean;
+  mobileStack?: boolean;
 }) {
   return (
     <div className={`w-full overflow-x-auto rounded-2xl bento-card ${className}`}>
-      <table className="w-full text-left text-sm border-collapse [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-slate-50/80 dark:[&_tbody_tr:hover]:bg-white/[0.03]">
+      <table
+        className={`w-full text-left text-sm border-collapse ${
+          stickyHeader ? "table-sticky" : ""
+        } ${
+          mobileStack ? "table-stack" : ""
+        } [&_tbody_tr]:transition-colors [&_tbody_tr:hover]:bg-slate-50/80 dark:[&_tbody_tr:hover]:bg-white/[0.03]`}
+      >
         {children}
       </table>
     </div>
@@ -388,15 +502,51 @@ export function EmptyState({
   title,
   description,
   action,
+  icon,
+  variant = "default",
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  icon?: ReactNode;
+  variant?: "default" | "search" | "error";
 }) {
   return (
     <div className="bento-card rounded-2xl px-6 py-12 flex flex-col items-center text-center gap-2.5">
-      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/[0.06] border border-slate-200/70 dark:border-white/10 flex items-center justify-center text-slate-400 dark:text-slate-500 text-lg font-semibold">
-        ∅
+      <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500/10 via-slate-100 to-cyan-500/10 dark:from-indigo-500/15 dark:via-white/[0.04] dark:to-cyan-500/15 border border-slate-200/80 dark:border-white/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs">
+        {icon ??
+          (variant === "search" ? (
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" />
+              <path d="M8.5 11h5" />
+            </svg>
+          ) : (
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect x="3" y="4" width="18" height="16" rx="3" />
+              <path d="M3 10h18" />
+              <path d="M8 15h4" />
+              <circle cx="16.5" cy="15" r="1.2" fill="currentColor" stroke="none" />
+            </svg>
+          ))}
       </div>
       <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 mt-1">{title}</div>
       {description ? (

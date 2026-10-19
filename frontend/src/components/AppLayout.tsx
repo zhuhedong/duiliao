@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { Button } from "./ui/button";
+import { Button, toast } from "./ui";
 import { useTheme } from "../theme/ThemeProvider";
 import { useAuth } from "../auth/AuthContext";
 import { UserAvatar } from "./UserAvatar";
@@ -28,6 +28,7 @@ import {
   ClipboardListIcon,
   SearchIcon,
   SidebarIcon,
+  PlusIcon,
 } from "./icons";
 
 type NavGroup = "overview" | "intel" | "ops" | "account";
@@ -39,6 +40,7 @@ interface NavItem {
   short: string;
   icon: ReactNode;
   group: NavGroup;
+  keywords?: string;
 }
 
 const GROUP_LABELS: Record<NavGroup, string> = {
@@ -49,12 +51,12 @@ const GROUP_LABELS: Record<NavGroup, string> = {
 };
 
 const NAV: NavItem[] = [
-  { to: "/", label: "工作台", short: "工作台", icon: <DashboardIcon size={16} />, group: "overview" },
-  { to: "/records", label: "投注记录", short: "记录", icon: <ClipboardListIcon size={16} />, group: "overview" },
-  { to: "/collector/ai-analysis", label: "AI 研判", short: "AI 研判", icon: <SparklesIcon size={16} />, group: "overview" },
+  { to: "/", label: "工作台", short: "工作台", icon: <DashboardIcon size={16} />, group: "overview", keywords: "dashboard home 首页 概览" },
+  { to: "/records", label: "投注记录", short: "记录", icon: <ClipboardListIcon size={16} />, group: "overview", keywords: "records bet 记账 账本 盈亏" },
+  { to: "/collector/ai-analysis", label: "AI 研判", short: "AI 研判", icon: <SparklesIcon size={16} />, group: "overview", keywords: "ai llm 研判 预测 分析" },
 
-  { to: "/collector/draws", label: "开奖管理", short: "开奖", icon: <TrophyIcon size={16} />, group: "intel" },
-  { to: "/collector/consensus", label: "多源对照", short: "对照", icon: <CompareIcon size={16} />, group: "intel" },
+  { to: "/collector/draws", label: "开奖管理", short: "开奖", icon: <TrophyIcon size={16} />, group: "intel", keywords: "draws lottery 开奖 期号 特码" },
+  { to: "/collector/consensus", label: "多源对照", short: "对照", icon: <CompareIcon size={16} />, group: "intel", keywords: "consensus compare 对照 共识" },
   {
     to: "/collector/pingte-ranking",
     aliases: ["/pingte-ranking"],
@@ -62,6 +64,7 @@ const NAV: NavItem[] = [
     short: "排行",
     icon: <TargetIcon size={16} />,
     group: "intel",
+    keywords: "pingte ranking 平特 连肖 命中率",
   },
   {
     to: "/collector/trend",
@@ -70,22 +73,34 @@ const NAV: NavItem[] = [
     short: "走势",
     icon: <TrendIcon size={16} />,
     group: "intel",
+    keywords: "trend chart 走势 冷热 遗漏",
   },
-  { to: "/collector/numbers", label: "号码属性", short: "号码", icon: <HashIcon size={16} />, group: "intel" },
+  { to: "/collector/numbers", label: "号码属性", short: "号码", icon: <HashIcon size={16} />, group: "intel", keywords: "numbers zodiac 波色 生肖 五行" },
 
-  { to: "/collector/sources", label: "数据源与调度", short: "数据源", icon: <DatabaseIcon size={16} />, group: "ops" },
-  { to: "/collector/ratings", label: "源可信评级", short: "评级", icon: <StarIcon size={16} />, group: "ops" },
-  { to: "/collector/monitor", label: "缺期与巡检", short: "监控", icon: <ActivityIcon size={16} />, group: "ops" },
-  { to: "/collector/platform", label: "采集平台", short: "平台", icon: <GlobeIcon size={16} />, group: "ops" },
+  { to: "/collector/sources", label: "数据源与调度", short: "数据源", icon: <DatabaseIcon size={16} />, group: "ops", keywords: "sources cron schedule 数据源 定时" },
+  { to: "/collector/ratings", label: "源可信评级", short: "评级", icon: <StarIcon size={16} />, group: "ops", keywords: "ratings trust 评级 权重" },
+  { to: "/collector/monitor", label: "缺期与巡检", short: "监控", icon: <ActivityIcon size={16} />, group: "ops", keywords: "monitor health 缺期 巡检 监控" },
+  { to: "/collector/platform", label: "采集平台", short: "平台", icon: <GlobeIcon size={16} />, group: "ops", keywords: "platform spider 爬虫 采集" },
 
-  { to: "/profile", label: "个人中心", short: "账户", icon: <UserIcon size={16} />, group: "account" },
-  { to: "/settings", label: "系统设置", short: "设置", icon: <SettingsIcon size={16} />, group: "account" },
+  { to: "/profile", label: "个人中心", short: "账户", icon: <UserIcon size={16} />, group: "account", keywords: "profile user 账户 密码" },
+  { to: "/settings", label: "系统设置", short: "设置", icon: <SettingsIcon size={16} />, group: "account", keywords: "settings config 设置 备份 数据库" },
 ];
 
 function isNavActive(pathname: string, item: NavItem): boolean {
   if (pathname === item.to) return true;
   if (item.aliases?.includes(pathname)) return true;
   return false;
+}
+
+interface CommandEntry {
+  id: string;
+  section: "action" | "nav";
+  label: string;
+  hint: string;
+  shortcut?: string;
+  icon: ReactNode;
+  active?: boolean;
+  run: () => void;
 }
 
 export function AppLayout() {
@@ -104,11 +119,12 @@ export function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpQuery, setJumpQuery] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const [sessionStatus, setSessionStatus] = useState(api.getSessionStatus());
 
   useEffect(() => api.subscribeStatus(setSessionStatus), []);
 
-  const toggleCollapsed = () => {
+  const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => {
       const next = !prev;
       try {
@@ -118,38 +134,110 @@ export function AppLayout() {
       }
       return next;
     });
-  };
+  }, []);
+
+  const toggleThemeMode = useCallback(() => {
+    const next = resolvedTheme === "dark" ? "light" : "dark";
+    setTheme(next);
+    toast.info(`已切换至${next === "dark" ? "暗色" : "亮色"}外观`);
+  }, [resolvedTheme, setTheme]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setJumpOpen((prev) => !prev);
-      }
-      if (e.key === "Escape") {
+        setJumpOpen((prev) => {
+          const next = !prev;
+          if (next) {
+            setJumpQuery("");
+            setSelectedIndex(0);
+          }
+          return next;
+        });
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        toggleCollapsed();
+      } else if (e.key === "Escape") {
         setJumpOpen(false);
         setMobileOpen(false);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [toggleCollapsed]);
 
   const currentNav = useMemo(
     () => NAV.find((n) => isNavActive(location.pathname, n)) ?? NAV[0]!,
     [location.pathname],
   );
 
-  const filteredJump = useMemo(() => {
+  const commandEntries = useMemo<CommandEntry[]>(() => {
     const q = jumpQuery.trim().toLowerCase();
-    if (!q) return NAV;
-    return NAV.filter(
-      (n) =>
-        n.label.toLowerCase().includes(q) ||
-        n.short.toLowerCase().includes(q) ||
-        n.to.toLowerCase().includes(q) ||
-        GROUP_LABELS[n.group].toLowerCase().includes(q),
-    );
+
+    const quickActions: CommandEntry[] = [
+      {
+        id: "act-new-record",
+        section: "action",
+        label: "前往投注记录并记一笔",
+        hint: "快捷操作",
+        icon: <PlusIcon size={15} />,
+        run: () => navigate("/records"),
+      },
+      {
+        id: "act-ai",
+        section: "action",
+        label: "启动 AI 综合研判工作台",
+        hint: "快捷操作",
+        icon: <SparklesIcon size={15} />,
+        run: () => navigate("/collector/ai-analysis"),
+      },
+      {
+        id: "act-theme",
+        section: "action",
+        label: resolvedTheme === "dark" ? "切换为亮色模式 (Light)" : "切换为暗色模式 (Dark)",
+        hint: "外观偏好",
+        icon: resolvedTheme === "dark" ? <SunIcon size={15} /> : <MoonIcon size={15} />,
+        run: toggleThemeMode,
+      },
+      {
+        id: "act-sidebar",
+        section: "action",
+        label: collapsed ? "展开左侧导航栏" : "收起左侧导航栏",
+        hint: "布局控制",
+        shortcut: "⌘B",
+        icon: <SidebarIcon size={15} />,
+        run: toggleCollapsed,
+      },
+    ];
+
+    const navEntries: CommandEntry[] = NAV.map((n) => ({
+      id: `nav-${n.to}`,
+      section: "nav" as const,
+      label: n.label,
+      hint: GROUP_LABELS[n.group],
+      shortcut: n.to,
+      icon: n.icon,
+      active: isNavActive(location.pathname, n),
+      run: () => navigate(n.to),
+    }));
+
+    const all = [...quickActions, ...navEntries];
+    if (!q) return all;
+
+    return all.filter((item) => {
+      const navMatch = NAV.find((n) => `nav-${n.to}` === item.id);
+      const kw = navMatch?.keywords ?? "";
+      return (
+        item.label.toLowerCase().includes(q) ||
+        item.hint.toLowerCase().includes(q) ||
+        (item.shortcut?.toLowerCase().includes(q) ?? false) ||
+        kw.toLowerCase().includes(q)
+      );
+    });
+  }, [jumpQuery, resolvedTheme, collapsed, location.pathname, navigate, toggleThemeMode, toggleCollapsed]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
   }, [jumpQuery]);
 
   const statusText =
@@ -169,13 +257,20 @@ export function AppLayout() {
   const groups: NavGroup[] = ["overview", "intel", "ops", "account"];
   const mobileDockItems = [NAV[0]!, NAV[1]!, NAV[2]!, NAV[4]!]; // 工作台, 记录, AI 研判, 多源对照
 
+  const actionItems = commandEntries.filter((e) => e.section === "action");
+  const navItems = commandEntries.filter((e) => e.section === "nav");
+
   return (
     <div className="min-h-screen relative text-slate-900 dark:text-slate-100">
+      <a href="#main-workspace" className="skip-link">
+        跳转到主工作区
+      </a>
       <div className="app-aurora" />
 
       <div className="mx-auto max-w-[1600px] px-3 sm:px-4 lg:px-5 py-3 flex items-start gap-4">
         {/* —— Desktop Left Bento Sidebar —— */}
         <aside
+          aria-label="主导航侧栏"
           className={`hidden lg:flex flex-col justify-between shrink-0 sticky top-3 h-[calc(100vh-1.5rem)] bento-card rounded-2xl transition-all duration-200 overflow-hidden ${
             collapsed ? "w-[68px] p-2.5" : "w-60 p-3.5"
           }`}
@@ -220,7 +315,8 @@ export function AppLayout() {
                           key={item.to}
                           to={item.to}
                           title={collapsed ? item.label : undefined}
-                          className={`group flex items-center ${
+                          aria-current={active ? "page" : undefined}
+                          className={`group relative flex items-center ${
                             collapsed ? "justify-center px-0 h-10" : "gap-2.5 px-2.5 h-9"
                           } rounded-xl text-[13px] no-underline transition-all ${
                             active
@@ -228,8 +324,14 @@ export function AppLayout() {
                               : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-white/[0.05] hover:text-slate-900 dark:hover:text-slate-100 font-medium"
                           }`}
                         >
+                          {active && !collapsed && (
+                            <span
+                              aria-hidden="true"
+                              className="w-1 h-4 rounded-full bg-indigo-600 dark:bg-indigo-400 -ml-1 mr-0.5"
+                            />
+                          )}
                           <span
-                            className={`shrink-0 transition-colors ${
+                            className={`shrink-0 transition-transform duration-150 group-hover:scale-105 ${
                               active
                                 ? "text-indigo-600 dark:text-indigo-400"
                                 : "text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300"
@@ -262,6 +364,7 @@ export function AppLayout() {
                   type="button"
                   onClick={handleLogout}
                   title="退出登录"
+                  aria-label="退出登录"
                   className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer"
                 >
                   <LogOutIcon size={15} />
@@ -288,6 +391,7 @@ export function AppLayout() {
                   type="button"
                   onClick={handleLogout}
                   title="退出登录"
+                  aria-label="退出登录"
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0"
                 >
                   <LogOutIcon size={14} />
@@ -306,7 +410,8 @@ export function AppLayout() {
               <button
                 type="button"
                 onClick={toggleCollapsed}
-                title={collapsed ? "展开侧边栏" : "收起侧边栏"}
+                title={collapsed ? "展开侧边栏 (⌘B)" : "收起侧边栏 (⌘B)"}
+                aria-label={collapsed ? "展开侧边栏" : "收起侧边栏"}
                 className="hidden lg:inline-flex items-center justify-center w-8 h-8 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors cursor-pointer shrink-0"
               >
                 <SidebarIcon size={16} />
@@ -337,21 +442,28 @@ export function AppLayout() {
               {/* Quick Search / Command Palette */}
               <button
                 type="button"
-                onClick={() => setJumpOpen(true)}
-                className="hidden sm:inline-flex items-center gap-2 h-8.5 px-3 rounded-xl bg-slate-100/90 hover:bg-slate-200/70 dark:bg-white/[0.05] dark:hover:bg-white/[0.09] border border-slate-200/70 dark:border-white/[0.07] text-xs text-slate-500 dark:text-slate-400 transition-colors cursor-pointer min-w-[160px]"
+                onClick={() => {
+                  setJumpQuery("");
+                  setSelectedIndex(0);
+                  setJumpOpen(true);
+                }}
+                aria-label="打开命令面板 (⌘K)"
+                className="inline-flex items-center gap-2 h-8.5 px-2.5 sm:px-3 rounded-xl bg-slate-100/90 hover:bg-slate-200/70 dark:bg-white/[0.05] dark:hover:bg-white/[0.09] border border-slate-200/70 dark:border-white/[0.07] text-xs text-slate-500 dark:text-slate-400 transition-colors cursor-pointer sm:min-w-[172px]"
               >
-                <SearchIcon size={13} className="text-slate-400" />
-                <span className="flex-1 text-left">快速跳转…</span>
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white dark:bg-white/10 text-slate-500 dark:text-slate-300 border border-slate-200/70 dark:border-white/10">
-                  ⌘K
-                </kbd>
+                <SearchIcon size={13} className="text-slate-400 shrink-0" />
+                <span className="hidden sm:inline flex-1 text-left">搜索或执行命令…</span>
+                <kbd className="kbd">⌘K</kbd>
               </button>
 
               {/* E2EE Status Pill */}
               <div
                 className={`hidden md:inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full text-[11px] font-medium border ${statusClass}`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                <span
+                  className={`w-1.5 h-1.5 rounded-full bg-current ${
+                    sessionStatus === "connected" ? "pulse-dot" : ""
+                  }`}
+                />
                 {statusText}
               </div>
 
@@ -361,7 +473,7 @@ export function AppLayout() {
                 size="icon-sm"
                 aria-label="切换主题"
                 title={resolvedTheme === "dark" ? "切换到亮色模式" : "切换到暗色模式"}
-                onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                onClick={toggleThemeMode}
               >
                 {resolvedTheme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
               </Button>
@@ -387,8 +499,8 @@ export function AppLayout() {
           </header>
 
           {/* Main Content Outlet */}
-          <main className="relative z-10 flex-1 min-w-0 pb-24 lg:pb-8">
-            <div className="workspace-fill animate-fadeIn">
+          <main id="main-workspace" className="relative z-10 flex-1 min-w-0 pb-24 lg:pb-8">
+            <div key={location.pathname} className="workspace-fill page-enter">
               <Outlet />
             </div>
           </main>
@@ -430,10 +542,10 @@ export function AppLayout() {
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs"
+            className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs animate-overlay"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute left-3 right-3 bottom-20 max-h-[75vh] overflow-y-auto bento-card rounded-3xl p-4 sm:p-5 animate-glassPop shadow-2xl">
+          <div className="absolute left-3 right-3 bottom-20 max-h-[75vh] overflow-y-auto bento-card rounded-3xl p-4 sm:p-5 animate-sheet shadow-2xl">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-white/[0.06]">
               <div className="flex items-center gap-2.5">
                 <UserAvatar
@@ -503,59 +615,176 @@ export function AppLayout() {
 
       {/* —— ⌘K Command Palette Modal —— */}
       {jumpOpen && (
-        <div className="fixed inset-0 z-[60] flex items-start justify-center pt-[12vh] px-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="全局命令与跳转面板"
+          className="fixed inset-0 z-[60] flex items-start justify-center pt-[10vh] px-4"
+        >
           <div
-            className="absolute inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-xs"
+            className="absolute inset-0 bg-slate-900/45 dark:bg-black/65 backdrop-blur-xs animate-overlay"
             onClick={() => setJumpOpen(false)}
           />
-          <div className="relative w-full max-w-lg bento-card rounded-2xl p-3 animate-glassPop shadow-2xl">
-            <div className="flex items-center gap-2.5 px-3 h-11 rounded-xl bg-slate-100/80 dark:bg-white/[0.05] border border-slate-200/70 dark:border-white/10">
-              <SearchIcon size={16} className="text-slate-400 shrink-0" />
+          <div className="relative w-full max-w-xl bento-card rounded-2xl p-3 animate-scale-in shadow-2xl">
+            <div className="flex items-center gap-2.5 px-3.5 h-11 rounded-xl bg-slate-100/80 dark:bg-white/[0.05] border border-slate-200/70 dark:border-white/10">
+              <SearchIcon size={16} className="text-indigo-500 shrink-0" />
               <input
                 autoFocus
                 value={jumpQuery}
                 onChange={(e) => setJumpQuery(e.target.value)}
-                placeholder="搜索模块名称、分类或路径…"
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                      commandEntries.length ? (prev + 1) % commandEntries.length : 0,
+                    );
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                      commandEntries.length
+                        ? (prev - 1 + commandEntries.length) % commandEntries.length
+                        : 0,
+                    );
+                  } else if (e.key === "Enter" && commandEntries[selectedIndex]) {
+                    e.preventDefault();
+                    commandEntries[selectedIndex].run();
+                    setJumpOpen(false);
+                    setJumpQuery("");
+                  }
+                }}
+                placeholder="输入模块名称、拼音关键字或快捷指令…"
                 className="w-full bg-transparent text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none"
               />
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white dark:bg-white/10 text-slate-400 border border-slate-200 dark:border-white/10">
-                ESC
-              </kbd>
+              <kbd className="kbd">ESC</kbd>
             </div>
-            <div className="mt-2 max-h-80 overflow-y-auto flex flex-col gap-0.5">
-              {filteredJump.map((item) => {
-                const active = isNavActive(location.pathname, item);
-                return (
-                  <button
-                    key={item.to}
-                    type="button"
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
-                      active
-                        ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300"
-                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.05]"
-                    }`}
-                    onClick={() => {
-                      navigate(item.to);
-                      setJumpOpen(false);
-                      setJumpQuery("");
-                    }}
-                  >
-                    <span className={active ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}>
-                      {item.icon}
-                    </span>
-                    <span className="flex-1 text-sm font-medium">{item.label}</span>
-                    <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                      {GROUP_LABELS[item.group]}
-                    </span>
-                    <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/[0.05] px-1.5 py-0.5 rounded">
-                      {item.to}
-                    </span>
-                  </button>
-                );
-              })}
-              {filteredJump.length === 0 && (
-                <div className="px-3 py-10 text-center text-xs text-slate-400">没有匹配的模块或页面</div>
+
+            <div className="mt-2.5 max-h-88 overflow-y-auto flex flex-col gap-3 pr-0.5">
+              {actionItems.length > 0 && (
+                <div>
+                  <div className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    快捷指令 Actions
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {actionItems.map((item) => {
+                      const idx = commandEntries.indexOf(item);
+                      const highlighted = idx === selectedIndex;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onMouseEnter={() => setSelectedIndex(idx)}
+                          onClick={() => {
+                            item.run();
+                            setJumpOpen(false);
+                            setJumpQuery("");
+                          }}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
+                            highlighted
+                              ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/18 dark:text-indigo-200"
+                              : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <span
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                              highlighted
+                                ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
+                                : "bg-slate-100 dark:bg-white/[0.05] text-slate-500 dark:text-slate-400"
+                            }`}
+                          >
+                            {item.icon}
+                          </span>
+                          <span className="flex-1 text-xs sm:text-[13px] font-medium truncate">
+                            {item.label}
+                          </span>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                            {item.hint}
+                          </span>
+                          {item.shortcut && <kbd className="kbd">{item.shortcut}</kbd>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
+
+              {navItems.length > 0 && (
+                <div>
+                  <div className="px-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    模块导航 Pages
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    {navItems.map((item) => {
+                      const idx = commandEntries.indexOf(item);
+                      const highlighted = idx === selectedIndex;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onMouseEnter={() => setSelectedIndex(idx)}
+                          onClick={() => {
+                            item.run();
+                            setJumpOpen(false);
+                            setJumpQuery("");
+                          }}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
+                            highlighted
+                              ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-500/18 dark:text-indigo-200"
+                              : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          <span
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                              highlighted || item.active
+                                ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
+                                : "bg-slate-100 dark:bg-white/[0.05] text-slate-500 dark:text-slate-400"
+                            }`}
+                          >
+                            {item.icon}
+                          </span>
+                          <span className="flex-1 text-xs sm:text-[13px] font-medium truncate">
+                            {item.label}
+                            {item.active && (
+                              <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">
+                                当前页
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                            {item.hint}
+                          </span>
+                          {item.shortcut && (
+                            <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/[0.05] px-1.5 py-0.5 rounded">
+                              {item.shortcut}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {commandEntries.length === 0 && (
+                <div className="px-3 py-10 text-center text-xs text-slate-400">
+                  没有匹配的模块或命令
+                </div>
+              )}
+            </div>
+
+            <div className="mt-2.5 pt-2.5 border-t border-slate-100 dark:border-white/[0.06] px-2 flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="kbd">↑</kbd>
+                  <kbd className="kbd">↓</kbd> 选择
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="kbd">↵</kbd> 执行
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <kbd className="kbd">⌘B</kbd> 侧栏
+                </span>
+              </div>
+              <span>Bento Command Center</span>
             </div>
           </div>
         </div>

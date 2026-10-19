@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { PageWorkspace, SegmentedTabs } from "./collector/shared";
+import { toast } from "../components/ui/toast";
+import { CardSkeleton } from "../components/ui/skeleton";
 import {
   SparklesIcon,
   EyeIcon,
@@ -207,9 +209,12 @@ export function SystemSettingsPage() {
       setAnthropicKey(updated.anthropic.api_key || "");
 
       setSaveSuccess(true);
+      toast.success("AI 配置已保存", "默认服务商与密钥已全局生效");
       setTimeout(() => setSaveSuccess(false), 3500);
     } catch (err: any) {
-      setSaveError(err?.message || "保存配置失败，请检查网络");
+      const msg = err?.message || "保存配置失败，请检查网络";
+      setSaveError(msg);
+      toast.error("保存配置失败", msg);
     } finally {
       setSaving(false);
     }
@@ -246,12 +251,19 @@ export function SystemSettingsPage() {
       });
 
       setTestResult((prev) => ({ ...prev, [provider]: res }));
+      if (res.ok) {
+        toast.success(`${provider.toUpperCase()} 连通性测试成功`, `耗时 ${res.elapsed_ms} ms`);
+      } else {
+        toast.warning(`${provider.toUpperCase()} 连通性测试未通过`, res.message);
+      }
     } catch (err: any) {
+      const msg = err?.message || "网络请求异常";
+      toast.error(`${provider.toUpperCase()} 测试异常`, msg);
       setTestResult((prev) => ({
         ...prev,
         [provider]: {
           ok: false,
-          message: err?.message || "网络请求异常",
+          message: msg,
           elapsed_ms: 0,
           error: String(err),
         },
@@ -300,10 +312,13 @@ export function SystemSettingsPage() {
       const res = await databaseApi.repairSchema({ scope: "all", seed: true });
       setRepairResult(res);
       setSchemaReport(res.after);
+      toast.success("数据表结构已补齐并初始化");
       // Row counts change once reference data is reseeded.
       loadDbStatus();
     } catch (err: any) {
-      setSchemaError(err?.message || "补齐缺失表失败");
+      const msg = err?.message || "补齐缺失表失败";
+      setSchemaError(msg);
+      toast.error("补齐缺失表失败", msg);
     } finally {
       setRepairingSchema(false);
     }
@@ -316,8 +331,15 @@ export function SystemSettingsPage() {
     try {
       const res = await databaseApi.testConnection(pgUrl.trim());
       setPgTestResult(res);
+      if (res.ok) {
+        toast.success("PostgreSQL 连接测试成功");
+      } else {
+        toast.warning("PostgreSQL 连接失败", res.error);
+      }
     } catch (err: any) {
-      setPgTestResult({ ok: false, error: err?.message || "网络请求异常" });
+      const msg = err?.message || "网络请求异常";
+      setPgTestResult({ ok: false, error: msg });
+      toast.error("PostgreSQL 测试异常", msg);
     } finally {
       setTestingPg(false);
     }
@@ -334,9 +356,12 @@ export function SystemSettingsPage() {
       });
       setDbStatus(res);
       setDbSaveSuccess(true);
+      toast.success("数据库配置已应用", "已重新建立连接池");
       setTimeout(() => setDbSaveSuccess(false), 4000);
     } catch (err: any) {
-      setDbError(err?.message || "保存数据库配置失败");
+      const msg = err?.message || "保存数据库配置失败";
+      setDbError(msg);
+      toast.error("保存数据库配置失败", msg);
     } finally {
       setSavingDb(false);
     }
@@ -345,6 +370,7 @@ export function SystemSettingsPage() {
   const handleFileSelected = (file: File) => {
     if (!file.name.match(/\.(db|sqlite|sqlite3)$/i)) {
       setImportError("请选择有效的 SQLite 文件 (.db, .sqlite, .sqlite3)");
+      toast.warning("请选择有效的 SQLite 文件 (.db, .sqlite, .sqlite3)");
       return;
     }
     setSqliteFile(file);
@@ -361,8 +387,11 @@ export function SystemSettingsPage() {
         const insp = await databaseApi.inspectSqlite(file.name, b64);
         setInspectResult(insp);
         setSelectedTables(insp.tables.map((t) => t.name));
+        toast.info(`已识别 ${insp.tables.length} 张数据表`, file.name);
       } catch (err: any) {
-        setImportError(err?.message || "解析 SQLite 文件失败");
+        const msg = err?.message || "解析 SQLite 文件失败";
+        setImportError(msg);
+        toast.error("解析 SQLite 文件失败", msg);
       } finally {
         setInspecting(false);
       }
@@ -386,9 +415,12 @@ export function SystemSettingsPage() {
         tables: selectedTables.length > 0 ? selectedTables : undefined,
       });
       setImportResult(res);
+      toast.success("SQLite 数据导入完成");
       loadDbStatus();
     } catch (err: any) {
-      setImportError(err?.message || "数据导入发生异常");
+      const msg = err?.message || "数据导入发生异常";
+      setImportError(msg);
+      toast.error("数据导入异常", msg);
     } finally {
       setImporting(false);
     }
@@ -397,6 +429,7 @@ export function SystemSettingsPage() {
   const applyPreset = (preset: PresetConfig) => {
     setOpenaiBaseUrl(preset.base_url);
     setOpenaiModel(preset.model);
+    toast.info(`已填入预设：${preset.name}`, preset.model);
   };
 
   return (
@@ -497,12 +530,10 @@ export function SystemSettingsPage() {
       )}
 
       {/* Tabs */}
-
-
       {loading ? (
-        <div className="py-24 flex flex-col items-center justify-center space-y-3 text-slate-400 dark:text-slate-500">
-          <div className="w-10 h-10 border-4 border-violet-500/20 border-t-violet-500 rounded-full animate-spin" />
-          <p className="text-sm">正在加载系统配置...</p>
+        <div className="space-y-4">
+          <CardSkeleton lines={4} />
+          <CardSkeleton lines={4} />
         </div>
       ) : (
         <>
@@ -545,7 +576,7 @@ export function SystemSettingsPage() {
                     <div
                       key={item.id}
                       onClick={() => setDefaultProvider(item.id)}
-                      className={`p-4 rounded-2xl glass-subtle transition-all cursor-pointer flex flex-col justify-between ${
+                      className={`p-4 rounded-2xl bento-subtle transition-all cursor-pointer flex flex-col justify-between ${
                         defaultProvider === item.id
                           ? "border-violet-400/50 dark:border-violet-400/35 shadow-[0_8px_24px_-8px_rgba(139,92,246,0.35)] ring-1 ring-violet-400/30"
                           : "hover:border-violet-400/40 dark:hover:border-violet-400/30"
@@ -613,7 +644,7 @@ export function SystemSettingsPage() {
                   <button
                     onClick={() => handleTestConnection("openai")}
                     disabled={testing["openai"]}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bento-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <ActivityIcon size={14} />
                     {testing["openai"] ? "正在测试连通性..." : "测试连接"}
@@ -630,7 +661,7 @@ export function SystemSettingsPage() {
                       <button
                         key={preset.name}
                         onClick={() => applyPreset(preset)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium glass-subtle hover:bg-violet-500/10 hover:text-violet-700 dark:hover:bg-violet-400/10 dark:hover:text-violet-300 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bento-subtle hover:bg-violet-500/10 hover:text-violet-700 dark:hover:bg-violet-400/10 dark:hover:text-violet-300 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
                       >
                         <span>{preset.name}</span>
                         <span className="text-2xs text-slate-400 dark:text-slate-500 font-mono">({preset.badge})</span>
@@ -650,7 +681,7 @@ export function SystemSettingsPage() {
                       value={openaiBaseUrl}
                       onChange={(e) => setOpenaiBaseUrl(e.target.value)}
                       placeholder="例如：https://api.deepseek.com/v1 或 https://api.openai.com/v1"
-                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                      className="w-full h-10 px-3.5 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
@@ -667,7 +698,7 @@ export function SystemSettingsPage() {
                         value={openaiKey}
                         onChange={(e) => setOpenaiKey(e.target.value)}
                         placeholder="sk-..."
-                        className="w-full h-10 pl-3.5 pr-10 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                        className="w-full h-10 pl-3.5 pr-10 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                       />
                       <button
                         type="button"
@@ -690,7 +721,7 @@ export function SystemSettingsPage() {
                       value={openaiModel}
                       onChange={(e) => setOpenaiModel(e.target.value)}
                       placeholder="deepseek-chat, gpt-4o, qwen-plus..."
-                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                      className="w-full h-10 px-3.5 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
                 </div>
@@ -738,7 +769,7 @@ export function SystemSettingsPage() {
                   <button
                     onClick={() => handleTestConnection("gemini")}
                     disabled={testing["gemini"]}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bento-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <ActivityIcon size={14} />
                     {testing["gemini"] ? "正在测试连通性..." : "测试连接"}
@@ -755,7 +786,7 @@ export function SystemSettingsPage() {
                       value={geminiBaseUrl}
                       onChange={(e) => setGeminiBaseUrl(e.target.value)}
                       placeholder="https://generativelanguage.googleapis.com"
-                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                      className="w-full h-10 px-3.5 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
@@ -772,7 +803,7 @@ export function SystemSettingsPage() {
                         value={geminiKey}
                         onChange={(e) => setGeminiKey(e.target.value)}
                         placeholder="AIzaSy..."
-                        className="w-full h-10 pl-3.5 pr-10 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                        className="w-full h-10 pl-3.5 pr-10 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                       />
                       <button
                         type="button"
@@ -795,7 +826,7 @@ export function SystemSettingsPage() {
                       value={geminiModel}
                       onChange={(e) => setGeminiModel(e.target.value)}
                       placeholder="gemini-2.5-flash, gemini-1.5-pro..."
-                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                      className="w-full h-10 px-3.5 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
                 </div>
@@ -842,7 +873,7 @@ export function SystemSettingsPage() {
                   <button
                     onClick={() => handleTestConnection("anthropic")}
                     disabled={testing["anthropic"]}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bento-subtle hover:bg-violet-500/10 dark:hover:bg-violet-400/10 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <ActivityIcon size={14} />
                     {testing["anthropic"] ? "正在测试连通性..." : "测试连接"}
@@ -859,7 +890,7 @@ export function SystemSettingsPage() {
                       value={anthropicBaseUrl}
                       onChange={(e) => setAnthropicBaseUrl(e.target.value)}
                       placeholder="https://api.anthropic.com"
-                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                      className="w-full h-10 px-3.5 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
@@ -876,7 +907,7 @@ export function SystemSettingsPage() {
                         value={anthropicKey}
                         onChange={(e) => setAnthropicKey(e.target.value)}
                         placeholder="sk-ant-..."
-                        className="w-full h-10 pl-3.5 pr-10 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                        className="w-full h-10 pl-3.5 pr-10 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                       />
                       <button
                         type="button"
@@ -903,7 +934,7 @@ export function SystemSettingsPage() {
                       value={anthropicModel}
                       onChange={(e) => setAnthropicModel(e.target.value)}
                       placeholder="claude-3-5-sonnet-20241022..."
-                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                      className="w-full h-10 px-3.5 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
                 </div>
@@ -985,7 +1016,7 @@ export function SystemSettingsPage() {
                 {/* DB Connection Indicators */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* App DB */}
-                  <div className="p-4 rounded-2xl glass-subtle space-y-2">
+                  <div className="p-4 rounded-2xl bento-subtle space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                         主数据库 (App Database)
@@ -1011,7 +1042,7 @@ export function SystemSettingsPage() {
                   </div>
 
                   {/* Collector DB */}
-                  <div className="p-4 rounded-2xl glass-subtle space-y-2">
+                  <div className="p-4 rounded-2xl bento-subtle space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                         采集业务库 (Collector Database)
@@ -1063,7 +1094,7 @@ export function SystemSettingsPage() {
                     ].map((item, idx) => (
                       <div
                         key={idx}
-                        className="p-3 rounded-xl glass-subtle flex flex-col justify-between"
+                        className="p-3 rounded-xl bento-subtle flex flex-col justify-between"
                       >
                         <span className="text-2xs text-slate-500 dark:text-slate-400 truncate" title={item.label}>
                           {item.label}
@@ -1119,7 +1150,7 @@ export function SystemSettingsPage() {
                   ] as const).map((item, idx) => (
                     <div
                       key={idx}
-                      className="p-4 rounded-2xl glass-subtle space-y-2"
+                      className="p-4 rounded-2xl bento-subtle space-y-2"
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -1178,7 +1209,7 @@ export function SystemSettingsPage() {
                 </div>
 
                 {schemaReport?.shared_database && (
-                  <div className="text-2xs text-slate-500 dark:text-slate-400 px-3 py-2 rounded-lg glass-subtle">
+                  <div className="text-2xs text-slate-500 dark:text-slate-400 px-3 py-2 rounded-lg bento-subtle">
                     当前主库与采集库指向同一个数据库，两套表共存于其中。
                   </div>
                 )}
@@ -1203,7 +1234,7 @@ export function SystemSettingsPage() {
                         {[...repairResult.created.app, ...repairResult.created.collector].map((name) => (
                           <span
                             key={name}
-                            className="px-2 py-0.5 rounded-md text-2xs font-mono glass-subtle"
+                            className="px-2 py-0.5 rounded-md text-2xs font-mono bento-subtle"
                           >
                             {name}
                           </span>
@@ -1241,7 +1272,7 @@ export function SystemSettingsPage() {
                       type="button"
                       onClick={loadSchemaReport}
                       disabled={checkingSchema || repairingSchema}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bento-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       <RefreshIcon size={16} className={checkingSchema ? "animate-spin" : ""} />
                       {checkingSchema ? "正在检测..." : "重新检测"}
@@ -1314,7 +1345,7 @@ export function SystemSettingsPage() {
                       value={pgUrl}
                       onChange={(e) => setPgUrl(e.target.value)}
                       placeholder="postgresql://user:password@localhost:5432/duiliao 或 sqlite:///./duiliao.db"
-                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                      className="w-full h-10 px-3.5 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
@@ -1328,7 +1359,7 @@ export function SystemSettingsPage() {
                       value={collectorPgUrl}
                       onChange={(e) => setCollectorPgUrl(e.target.value)}
                       placeholder="可选：若采集表存放在独立数据库则填写，否则留空"
-                      className="w-full h-10 px-3.5 rounded-xl glass-input text-sm font-mono text-slate-800 dark:text-slate-200"
+                      className="w-full h-10 px-3.5 rounded-xl bento-input text-sm font-mono text-slate-800 dark:text-slate-200"
                     />
                   </div>
 
@@ -1361,7 +1392,7 @@ export function SystemSettingsPage() {
                       type="button"
                       onClick={handleTestPg}
                       disabled={testingPg || !pgUrl.trim()}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bento-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
                     >
                       {testingPg ? "正在测试连通性..." : "测试数据库连接"}
                     </button>
@@ -1406,7 +1437,7 @@ export function SystemSettingsPage() {
                       const file = e.dataTransfer.files?.[0];
                       if (file) handleFileSelected(file);
                     }}
-                    className={`p-8 rounded-2xl glass-subtle border-dashed! flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                    className={`p-8 rounded-2xl bento-subtle border-dashed! flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
                       isDragOver
                         ? "border-violet-400/70 dark:border-violet-400/50"
                         : "hover:border-violet-400/50 dark:hover:border-violet-400/35"
@@ -1440,7 +1471,7 @@ export function SystemSettingsPage() {
 
                 {/* File Inspection Result */}
                 {inspectResult && (
-                  <div className="space-y-4 p-4 rounded-2xl glass-subtle">
+                  <div className="space-y-4 p-4 rounded-2xl bento-subtle">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200/50 dark:border-white/8">
                       <div>
                         <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1472,7 +1503,7 @@ export function SystemSettingsPage() {
                       </label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <label
-                          className={`p-3 rounded-2xl glass-subtle transition-all cursor-pointer flex items-center justify-between ${
+                          className={`p-3 rounded-2xl bento-subtle transition-all cursor-pointer flex items-center justify-between ${
                             importMode === "skip"
                               ? "border-violet-400/50 dark:border-violet-400/35 shadow-[0_8px_24px_-8px_rgba(139,92,246,0.35)] ring-1 ring-violet-400/30"
                               : "hover:border-violet-400/40 dark:hover:border-violet-400/30"
@@ -1497,7 +1528,7 @@ export function SystemSettingsPage() {
                         </label>
 
                         <label
-                          className={`p-3 rounded-2xl glass-subtle transition-all cursor-pointer flex items-center justify-between ${
+                          className={`p-3 rounded-2xl bento-subtle transition-all cursor-pointer flex items-center justify-between ${
                             importMode === "overwrite"
                               ? "border-violet-400/50 dark:border-violet-400/35 shadow-[0_8px_24px_-8px_rgba(139,92,246,0.35)] ring-1 ring-violet-400/30"
                               : "hover:border-violet-400/40 dark:hover:border-violet-400/30"
@@ -1548,7 +1579,7 @@ export function SystemSettingsPage() {
                         </div>
                       </div>
 
-                      <div className="max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2 rounded-xl glass-subtle">
+                      <div className="max-h-56 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 p-2 rounded-xl bento-subtle">
                         {inspectResult.tables.map((tbl) => {
                           const isSelected = selectedTables.includes(tbl.name);
                           return (
@@ -1646,7 +1677,7 @@ export function SystemSettingsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl glass-subtle space-y-1">
+                  <div className="p-4 rounded-2xl bento-subtle space-y-1">
                     <div className="text-xs text-slate-400 dark:text-slate-500">应用层加密通道</div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -1654,7 +1685,7 @@ export function SystemSettingsPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl glass-subtle space-y-1">
+                  <div className="p-4 rounded-2xl bento-subtle space-y-1">
                     <div className="text-xs text-slate-400 dark:text-slate-500">防重放与请求验签</div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -1662,14 +1693,14 @@ export function SystemSettingsPage() {
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl glass-subtle space-y-1">
+                  <div className="p-4 rounded-2xl bento-subtle space-y-1">
                     <div className="text-xs text-slate-400 dark:text-slate-500">动态配置存储</div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       SQLite / PostgreSQL 数据库（system_settings）
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl glass-subtle space-y-1">
+                  <div className="p-4 rounded-2xl bento-subtle space-y-1">
                     <div className="text-xs text-slate-400 dark:text-slate-500">API 服务网关</div>
                     <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                       FastAPI v1 (/api/v1)

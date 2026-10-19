@@ -1,7 +1,7 @@
 import { Portal } from "../../components/Portal";
-import { Button } from "../../components/ui/button";
+import { Button, DonutRing, LotteryBall, Sparkline } from "../../components/ui";
 import { CloseIcon, BarChartIcon } from "../../components/icons";
-import { BOSE_COLORS, getBose } from "../../lib/lotteryAttr";
+import { getBose, getXiao } from "../../lib/lotteryAttr";
 import type { RecordStats } from "../../lib/records";
 
 interface RecordStatsModalProps {
@@ -21,18 +21,18 @@ export function RecordStatsModal({
 
   const maxAbsProfit = Math.max(
     ...stats.period_bars.map((p) => Math.abs(p.net_profit)),
-    50
+    50,
   );
 
   return (
     <Portal onClose={onClose}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/50 dark:bg-black/70 animate-fadeIn backdrop-blur-sm">
-        <div className="w-full max-w-2xl max-h-[92vh] glass-card rounded-3xl animate-fadeIn flex flex-col overflow-hidden shadow-2xl border border-slate-200/50 dark:border-white/10 bg-white dark:bg-slate-900">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/50 dark:bg-black/70 animate-overlay backdrop-blur-xs">
+        <div className="w-full max-w-2xl max-h-[92vh] bento-card rounded-3xl animate-scale-in flex flex-col overflow-hidden shadow-2xl">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-white/10 px-6 py-4 shrink-0">
+          <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-white/[0.07] px-6 py-4 shrink-0">
             <div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <BarChartIcon size={20} className="text-primary" />
+                <BarChartIcon size={20} className="text-indigo-600 dark:text-indigo-400" />
                 <span>投注盈亏与命中率统计</span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -40,18 +40,20 @@ export function RecordStatsModal({
               </p>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+              aria-label="关闭统计报表"
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
             >
-              <CloseIcon size={20} />
+              <CloseIcon size={18} />
             </button>
           </div>
 
           {/* Body */}
-          <div className="overflow-y-auto px-6 py-5 space-y-6 flex-1">
+          <div className="overflow-y-auto px-6 py-5 space-y-5 flex-1">
             {/* KPI Overview Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-4 rounded-2xl glass-card text-center space-y-1">
+              <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] text-center space-y-1">
                 <div className="text-[11px] text-slate-500 dark:text-slate-400">总投入</div>
                 <div className="text-xl font-bold font-mono text-slate-900 dark:text-white">
                   ¥{stats.total_stake}
@@ -61,9 +63,9 @@ export function RecordStatsModal({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl glass-card text-center space-y-1">
+              <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] text-center space-y-1">
                 <div className="text-[11px] text-slate-500 dark:text-slate-400">总派彩</div>
-                <div className="text-xl font-bold font-mono text-emerald-500">
+                <div className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
                   ¥{stats.total_payout}
                 </div>
                 <div className="text-[10px] text-slate-400">
@@ -71,11 +73,13 @@ export function RecordStatsModal({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl glass-card text-center space-y-1">
+              <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] text-center space-y-1">
                 <div className="text-[11px] text-slate-500 dark:text-slate-400">净盈亏</div>
                 <div
                   className={`text-xl font-extrabold font-mono ${
-                    stats.net_profit >= 0 ? "text-emerald-500" : "text-rose-500"
+                    stats.net_profit >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
                   {stats.net_profit >= 0 ? `+¥${stats.net_profit}` : `¥${stats.net_profit}`}
@@ -85,27 +89,40 @@ export function RecordStatsModal({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl glass-card text-center space-y-1">
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">中单率</div>
-                <div className="text-xl font-bold font-mono text-primary">
-                  {stats.win_rate}%
+              <div className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] flex items-center justify-between gap-2">
+                <div className="text-left space-y-0.5">
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400">中单率</div>
+                  <div className="text-lg font-bold font-mono text-indigo-600 dark:text-indigo-400">
+                    {stats.win_rate}%
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    {stats.won_count}/{stats.settled_orders} 胜
+                  </div>
                 </div>
-                <div className="text-[10px] text-slate-400">
-                  {stats.won_count}/{stats.settled_orders} 胜单
-                </div>
+                <DonutRing value={stats.win_rate} size={46} tone="indigo" />
               </div>
             </div>
 
             {/* Period P&L Bar Chart */}
             {stats.period_bars.length > 0 && (
-              <div className="p-5 rounded-2xl glass-card space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                    近 {stats.period_bars.length} 期盈亏走势
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    柱高代表当期净盈亏金额
-                  </span>
+              <div className="p-5 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                      近 {stats.period_bars.length} 期盈亏走势
+                    </span>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      零轴上方为盈利期，下方为亏损期
+                    </p>
+                  </div>
+                  {stats.period_bars.length > 1 && (
+                    <Sparkline
+                      data={stats.period_bars.map((p) => p.net_profit)}
+                      width={96}
+                      height={28}
+                      tone={stats.net_profit >= 0 ? "emerald" : "rose"}
+                    />
+                  )}
                 </div>
 
                 <div className="pt-6 pb-2">
@@ -117,7 +134,7 @@ export function RecordStatsModal({
                       const isPos = p.net_profit >= 0;
                       const heightPercent = Math.min(
                         100,
-                        Math.round((Math.abs(p.net_profit) / maxAbsProfit) * 50)
+                        Math.round((Math.abs(p.net_profit) / maxAbsProfit) * 50),
                       );
 
                       return (
@@ -134,7 +151,7 @@ export function RecordStatsModal({
                           <div className="w-full flex-1 flex items-end justify-center">
                             {isPos && (
                               <div
-                                className="w-3/4 max-w-[28px] rounded-t-md bg-emerald-500 hover:bg-emerald-400 transition-all shadow-sm"
+                                className="w-3/4 max-w-[28px] rounded-t-md bg-emerald-500 hover:bg-emerald-400 animate-grow-bar transition-all shadow-xs"
                                 style={{ height: `${heightPercent * 2}%` }}
                                 title={`第 ${p.period} 期: +¥${p.net_profit}`}
                               />
@@ -145,7 +162,7 @@ export function RecordStatsModal({
                           <div className="w-full flex-1 flex items-start justify-center">
                             {!isPos && (
                               <div
-                                className="w-3/4 max-w-[28px] rounded-b-md bg-rose-500 hover:bg-rose-400 transition-all shadow-sm"
+                                className="w-3/4 max-w-[28px] rounded-b-md bg-rose-500 hover:bg-rose-400 transition-all shadow-xs"
                                 style={{ height: `${heightPercent * 2}%` }}
                                 title={`第 ${p.period} 期: ¥${p.net_profit}`}
                               />
@@ -173,7 +190,7 @@ export function RecordStatsModal({
 
             {/* Play Type Breakdown */}
             {stats.play_breakdown.length > 0 && (
-              <div className="p-5 rounded-2xl glass-card space-y-3">
+              <div className="p-5 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] space-y-3">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   各玩法资金分布与回报
                 </span>
@@ -196,7 +213,9 @@ export function RecordStatsModal({
                           </span>
                           <span
                             className={`font-bold ${
-                              pb.net_profit >= 0 ? "text-emerald-500" : "text-rose-500"
+                              pb.net_profit >= 0
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-rose-600 dark:text-rose-400"
                             }`}
                           >
                             {pb.net_profit >= 0 ? `+¥${pb.net_profit}` : `¥${pb.net_profit}`}
@@ -205,9 +224,9 @@ export function RecordStatsModal({
                       </div>
 
                       {/* Progress bar */}
-                      <div className="h-1.5 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-slate-200/70 dark:bg-white/5 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-primary rounded-full"
+                          className="h-full bg-indigo-500 animate-grow-x rounded-full"
                           style={{ width: `${Math.min(100, pb.share_pct)}%` }}
                         />
                       </div>
@@ -219,41 +238,39 @@ export function RecordStatsModal({
 
             {/* Frequent Winning Numbers */}
             {stats.frequent_hits.length > 0 && (
-              <div className="p-5 rounded-2xl glass-card space-y-3">
+              <div className="p-5 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] space-y-3">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                   常中高频幸运号码 TOP 5
                 </span>
 
                 <div className="grid grid-cols-5 gap-2 pt-1">
-                  {stats.frequent_hits.map((h) => {
-                    const bColor = BOSE_COLORS[getBose(h.number)] || { bg: "#64748b" };
-                    return (
-                      <div
-                        key={h.number}
-                        className="p-3 rounded-2xl bg-slate-50/70 dark:bg-white/[0.03] border border-slate-200/50 dark:border-white/5 text-center flex flex-col items-center gap-1.5"
-                      >
-                        <span
-                          className="inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold text-white shadow-md ring-2 ring-white/20"
-                          style={{ backgroundColor: bColor.bg }}
-                        >
-                          {h.number}
-                        </span>
-                        <div className="text-[11px] font-semibold text-slate-900 dark:text-white">
-                          中 {h.count} 次
-                        </div>
-                        <div className="text-[10px] font-mono text-emerald-500 font-bold">
-                          +¥{h.profit}
-                        </div>
+                  {stats.frequent_hits.map((h) => (
+                    <div
+                      key={h.number}
+                      className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] text-center flex flex-col items-center gap-1.5"
+                    >
+                      <LotteryBall
+                        number={h.number}
+                        colorHint={getBose(h.number)}
+                        zodiac={getXiao(h.number)}
+                        size="md"
+                        isHit
+                      />
+                      <div className="text-[11px] font-semibold text-slate-900 dark:text-white mt-0.5">
+                        中 {h.count} 次
                       </div>
-                    );
-                  })}
+                      <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                        +¥{h.profit}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end border-t border-slate-200/50 dark:border-white/10 px-6 py-4 bg-slate-50/50 dark:bg-white/[0.02] shrink-0">
+          <div className="flex items-center justify-end border-t border-slate-200/60 dark:border-white/[0.07] px-6 py-4 bg-slate-50/50 dark:bg-white/[0.02] shrink-0">
             <Button type="button" onClick={onClose}>
               完成
             </Button>

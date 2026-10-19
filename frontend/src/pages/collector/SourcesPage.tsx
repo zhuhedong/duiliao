@@ -2,6 +2,9 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Spinner } from "../../components/ui/spinner";
 import { Alert, AlertDescription } from "../../components/ui/alert";
+import { toast } from "../../components/ui/toast";
+import { useConfirm } from "../../components/ui/confirm";
+import { TableSkeleton } from "../../components/ui/skeleton";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -31,6 +34,7 @@ import {
   tableThClass,
   tableTdClass,
   tableRowClass,
+  EmptyState,
 } from "./shared";
 import { ScheduleManager } from "./ScheduleManager";
 import { SourceHistoryModal } from "./SourceHistoryModal";
@@ -50,6 +54,7 @@ import { Portal } from "../../components/Portal";
 
 export function CollectorSourcesPage() {
   const canWrite = useCanWrite();
+  const confirm = useConfirm();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = searchParams.get("tab") === "schedules" ? "schedules" : "sources";
   const [activeTab, setActiveTab] = useState<"sources" | "schedules">(initialTab);
@@ -189,7 +194,9 @@ export function CollectorSourcesPage() {
         script_path: createForm.script_path || `sources/${createForm.source_id}.py`,
       });
       setShowCreate(false);
-      setSuccessMsg(`数据源 ${createForm.source_id} 及其脚本已成功录入！`);
+      const msg = `数据源 ${createForm.source_id} 及其脚本已成功录入！`;
+      setSuccessMsg(msg);
+      toast.success("数据源已录入", msg);
       setCreateForm({
         source_id: "",
         source_name: "",
@@ -203,7 +210,9 @@ export function CollectorSourcesPage() {
       });
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "创建失败");
+      const msg = err instanceof ApiError ? err.message : "创建失败";
+      setError(msg);
+      toast.error("创建数据源失败", msg);
     } finally {
       setCreating(false);
     }
@@ -239,11 +248,15 @@ export function CollectorSourcesPage() {
     setScriptModal((prev) => (prev ? { ...prev, saving: true } : null));
     try {
       await collectorApi.writeScript(scriptModal.scriptName, scriptModal.content);
-      setSuccessMsg(`脚本 sources/${scriptModal.scriptName} 保存成功！`);
+      const msg = `脚本 sources/${scriptModal.scriptName} 保存成功！`;
+      setSuccessMsg(msg);
+      toast.success("脚本保存成功", msg);
       setScriptModal(null);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "保存脚本失败");
+      const msg = err instanceof ApiError ? err.message : "保存脚本失败";
+      setError(msg);
+      toast.error("保存脚本失败", msg);
       setScriptModal((prev) => (prev ? { ...prev, saving: false } : null));
     }
   };
@@ -273,11 +286,18 @@ export function CollectorSourcesPage() {
         ingest: testModal.ingest,
       });
       setTestModal((prev) => (prev ? { ...prev, running: false, result: res } : null));
+      if (res.ok) {
+        toast.success("脚本测试运行成功", `提取 ${res.item_count} 条预测项 (${res.elapsed_ms} ms)`);
+      } else {
+        toast.warning("脚本执行返回异常", res.error_msg || `Exit ${res.exit_code}`);
+      }
       if (testModal.ingest && res.ok) {
         setSuccessMsg(`脚本测试执行成功，预测数据已成功入库！`);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "执行测试失败");
+      const msg = err instanceof ApiError ? err.message : "执行测试失败";
+      setError(msg);
+      toast.error("执行测试失败", msg);
       setTestModal((prev) => (prev ? { ...prev, running: false } : null));
     }
   };
@@ -286,9 +306,13 @@ export function CollectorSourcesPage() {
     if (!activeJob) return;
     try {
       await collectorApi.cancelCollectJob(activeJob.id);
-      setSuccessMsg("已发送取消请求，剩余未执行的来源将被跳过…");
+      const msg = "已发送取消请求，剩余未执行的来源将被跳过…";
+      setSuccessMsg(msg);
+      toast.info("取消请求已发送", msg);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "取消任务失败");
+      const msg = err instanceof ApiError ? err.message : "取消任务失败";
+      setError(msg);
+      toast.error("取消任务失败", msg);
     }
   };
 
@@ -310,10 +334,14 @@ export function CollectorSourcesPage() {
           ingest: true,
         });
         setResult(res);
-        setSuccessMsg(`离线样例采集完成：${res.source_ok}/${res.source_total} 个来源执行成功！`);
+        const msg = `离线样例采集完成：${res.source_ok}/${res.source_total} 个来源执行成功！`;
+        setSuccessMsg(msg);
+        toast.success("离线样例采集完成", msg);
         await load();
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "采集失败");
+        const msg = err instanceof ApiError ? err.message : "采集失败";
+        setError(msg);
+        toast.error("采集失败", msg);
       } finally {
         setRunning(false);
       }
@@ -347,13 +375,15 @@ export function CollectorSourcesPage() {
               setResult(current.result);
             }
             if (current.status === "done") {
-              setSuccessMsg(
-                `批量采集完成：${current.source_ok}/${current.source_total} 个来源执行成功！已自动完成校验、入库与对奖。`
-              );
+              const msg = `批量采集完成：${current.source_ok}/${current.source_total} 个来源执行成功！已自动完成校验、入库与对奖。`;
+              setSuccessMsg(msg);
+              toast.success("批量采集完成", `${current.source_ok}/${current.source_total} 个来源成功`);
             } else if (current.status === "cancelled") {
               setError("采集任务已取消");
             } else {
-              setError(current.error || "采集任务结束，部分来源失败");
+              const msg = current.error || "采集任务结束，部分来源失败";
+              setError(msg);
+              toast.warning("采集任务存在异常", msg);
             }
             await load();
             return;
@@ -367,7 +397,9 @@ export function CollectorSourcesPage() {
 
       setTimeout(poll, 1000);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "提交采集任务失败");
+      const msg = err instanceof ApiError ? err.message : "提交采集任务失败";
+      setError(msg);
+      toast.error("提交采集任务失败", msg);
       setRunning(false);
     }
   };
@@ -375,23 +407,39 @@ export function CollectorSourcesPage() {
   const toggleEnabled = async (s: CollectorSource) => {
     try {
       await collectorApi.updateSource(s.source_id, { enabled: !s.enabled });
+      toast.success(
+        s.enabled ? "数据源已暂停" : "数据源已启用",
+        `${s.source_name} (${s.source_id})`
+      );
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "更新失败");
+      const msg = err instanceof ApiError ? err.message : "更新失败";
+      setError(msg);
+      toast.error("切换状态失败", msg);
     }
   };
 
   const handleDelete = async (sourceId: string) => {
-    if (!window.confirm(`确认删除数据源 ${sourceId} 吗？此操作不可恢复。`)) return;
+    const ok = await confirm({
+      title: "删除数据源",
+      description: `确认删除数据源 ${sourceId} 吗？此操作不可恢复。`,
+      confirmLabel: "确认删除",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await collectorApi.deleteSource(sourceId);
-      setSuccessMsg(`数据源 ${sourceId} 已成功删除。`);
+      const msg = `数据源 ${sourceId} 已成功删除。`;
+      setSuccessMsg(msg);
+      toast.success("数据源已删除", sourceId);
       await load();
       if (expanded === sourceId) {
         setExpanded(null);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "删除失败");
+      const msg = err instanceof ApiError ? err.message : "删除失败";
+      setError(msg);
+      toast.error("删除数据源失败", msg);
     }
   };
 
@@ -465,7 +513,7 @@ export function CollectorSourcesPage() {
               type="button"
               onClick={load}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
             >
               <RefreshIcon size={14} className={loading ? "animate-spin" : ""} />
               <span>刷新列表</span>
@@ -654,7 +702,7 @@ export function CollectorSourcesPage() {
                   <button
                     type="button"
                     onClick={() => setShowCreate(false)}
-                    className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                   >
                     取消
                   </button>
@@ -722,7 +770,7 @@ export function CollectorSourcesPage() {
               </div>
 
               {activeJob && running && (
-                <div className="p-4 rounded-2xl border border-violet-400/30 dark:border-violet-400/20 bg-violet-500/5 dark:bg-violet-400/5 space-y-2.5">
+                <div className="p-4 rounded-2xl border border-primary/30 bg-primary/5 space-y-2.5">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
                       <span className="relative flex h-2.5 w-2.5">
@@ -806,7 +854,7 @@ export function CollectorSourcesPage() {
             title={
               <div className="flex items-center gap-3">
                 <span>{LOTTERY_LABEL[lottery]}数据源列表</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full glass-subtle text-slate-600 dark:text-slate-300 font-semibold">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bento-subtle text-slate-600 dark:text-slate-300 font-semibold">
                   共 {visible.length} 个
                 </span>
                 {selected.size > 0 && (
@@ -838,13 +886,13 @@ export function CollectorSourcesPage() {
             }
           >
             {loading ? (
-              <div className="p-12 flex justify-center">
-                <Spinner aria-label="加载中" />
-              </div>
+              <TableSkeleton rows={6} cols={7} />
             ) : visible.length === 0 ? (
-              <div className="py-12 text-center text-sm text-slate-400">
-                该彩种暂无已配置来源。点击右上角录入新脚本与数据源。
-              </div>
+              <EmptyState
+                variant="search"
+                title="该彩种暂无已配置来源"
+                description="点击右上角录入新脚本与数据源"
+              />
             ) : (
               <TableContainer>
                 <thead>
@@ -900,7 +948,7 @@ export function CollectorSourcesPage() {
                             <div className="text-xs font-mono text-slate-400 mt-0.5">{s.source_id}</div>
                           </td>
                           <td className={tableTdClass}>
-                            <span className="text-xs font-medium px-2 py-0.5 rounded-lg glass-subtle text-slate-700 dark:text-slate-300">
+                            <span className="text-xs font-medium px-2 py-0.5 rounded-lg bento-subtle text-slate-700 dark:text-slate-300">
                               {playLabel(s.play_type)}
                             </span>
                           </td>
@@ -959,7 +1007,7 @@ export function CollectorSourcesPage() {
                               <button
                                 type="button"
                                 onClick={() => openScriptEditor(s)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 border border-slate-200/50 dark:border-white/8 transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-primary/5 border border-slate-200/50 dark:border-white/8 transition-colors cursor-pointer"
                                 title="编辑 Python 脚本"
                               >
                                 <EditIcon size={13} />
@@ -1010,7 +1058,7 @@ export function CollectorSourcesPage() {
                                       <button
                                         type="button"
                                         onClick={() => void openScriptEditor(s)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                                       >
                                         <EditIcon size={13} />
                                         <span>查看/编辑源文件</span>
@@ -1050,7 +1098,7 @@ export function CollectorSourcesPage() {
               <button
                 type="button"
                 onClick={() => setScriptModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-primary/5 cursor-pointer"
               >
                 <CloseIcon size={20} />
               </button>
@@ -1077,7 +1125,7 @@ export function CollectorSourcesPage() {
                 <button
                   type="button"
                   onClick={() => setScriptModal(null)}
-                  className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                 >
                   取消
                 </button>
@@ -1112,14 +1160,14 @@ export function CollectorSourcesPage() {
               <button
                 type="button"
                 onClick={() => setTestModal(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-primary/5 cursor-pointer"
               >
                 <CloseIcon size={20} />
               </button>
             </div>
 
             {/* 控制参数条 */}
-            <div className="p-3.5 rounded-2xl glass-subtle flex items-center gap-4 flex-wrap">
+            <div className="p-3.5 rounded-2xl bento-subtle flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">彩种:</span>
                 <Select

@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Alert, AlertDescription } from "../../components/ui/alert";
+import { toast } from "../../components/ui/toast";
+import { useConfirm } from "../../components/ui/confirm";
+import { LotteryBall } from "../../components/ui/data-viz";
 import { ApiError } from "../../lib/api";
 import {
   collectorApi,
@@ -160,7 +163,7 @@ function PredAtomsBadgeList({ item }: { item: ComparisonItem }) {
             className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold transition-all ${
               isHitVal
                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-500 shadow-xs ring-2 ring-emerald-500/20"
-                : "glass-subtle text-slate-700 dark:text-slate-300"
+                : "bento-subtle text-slate-700 dark:text-slate-300"
             }`}
             title={isHitVal ? "🎯 该预测项命中官方开奖！" : undefined}
           >
@@ -194,7 +197,7 @@ function ConsensusAtomDisplay({ atoms }: { atoms: PredAtom[] }) {
         return (
           <span
             key={i}
-            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold glass-subtle text-slate-800 dark:text-slate-200 shadow-2xs"
+            className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold bento-subtle text-slate-800 dark:text-slate-200 shadow-2xs"
           >
             {isNum && bColor && (
               <span
@@ -222,7 +225,7 @@ function VotersChipList({ sources }: { sources: string[] }) {
       {visible.map((src, i) => (
         <span
           key={i}
-          className="inline-flex items-center px-2 py-0.5 rounded-md text-xs glass-subtle text-slate-600 dark:text-slate-300"
+          className="inline-flex items-center px-2 py-0.5 rounded-md text-xs bento-subtle text-slate-600 dark:text-slate-300"
         >
           {src}
         </span>
@@ -265,7 +268,7 @@ function RankBadge({ rank }: { rank: number }) {
   }
   if (rank === 2) {
     return (
-      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold glass-subtle text-slate-700 dark:text-slate-200 shadow-2xs">
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-extrabold bento-subtle text-slate-700 dark:text-slate-200 shadow-2xs">
         🥈 2nd
       </span>
     );
@@ -285,14 +288,10 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 function TemaBall({ num, bose }: { num: string; bose?: "红" | "蓝" | "绿" }) {
-  const colorCfg = BOSE_COLORS[bose || "红"] || BOSE_COLORS["红"];
+  const wave = bose === "蓝" ? "blue" : bose === "绿" ? "green" : "red";
   return (
-    <span
-      className="inline-grid place-items-center w-8 h-8 rounded-full text-white text-sm font-black font-mono shadow-xs transition-transform hover:scale-110 shrink-0"
-      style={{ backgroundColor: colorCfg.bg }}
-      title={`${num} (${bose || ""}波)`}
-    >
-      {num}
+    <span className="inline-flex shrink-0" title={`${num} (${bose || ""}波)`}>
+      <LotteryBall num={num} wave={wave} size="sm" />
     </span>
   );
 }
@@ -301,7 +300,7 @@ function TexiaoBadge({ xiao, jiaye }: { xiao: string; jiaye?: "家" | "野" }) {
   return (
     <div className="flex items-center gap-2 shrink-0">
       <span
-        className="inline-grid place-items-center w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-base font-black shadow-xs"
+        className="inline-grid place-items-center w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-amber-500 text-white text-base font-black shadow-xs"
         title={`特肖 · ${xiao}`}
       >
         {xiao}
@@ -394,6 +393,7 @@ function HitStatusBadge({
 
 export function CollectorConsensusPage() {
   const canWrite = useCanWrite();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<"frequency" | "comparison" | "consensus">("frequency");
   const [lottery, setLottery] = useState<Lottery>("macau");
   const [period, setPeriod] = useState<string>(() => getPeriodForDate());
@@ -527,24 +527,32 @@ export function CollectorConsensusPage() {
   const handleFreezeSnapshot = async (rebuild = false) => {
     const targetPeriod = period.trim();
     if (!canWrite || !targetPeriod || snapshotBusy) return;
-    if (rebuild && !window.confirm(`确定要重建 ${targetPeriod} 期的历史频次快照吗？现有快照将被覆盖。`)) {
-      return;
+    if (rebuild) {
+      const ok = await confirm({
+        title: "重建历史频次快照",
+        description: `确定要重建 ${targetPeriod} 期的历史频次快照吗？现有快照将被覆盖。`,
+        confirmLabel: "确认重建",
+        variant: "warning",
+      });
+      if (!ok) return;
     }
     setSnapshotBusy(rebuild ? "rebuild" : "freeze");
     setError(null);
     setSuccessMsg(null);
     try {
       const result = await collectorApi.freezeConsensus(lottery, targetPeriod, rebuild);
-      setSuccessMsg(
-        rebuild
-          ? `第 ${targetPeriod} 期频次榜快照已重建。`
-          : result.snapshot.frozen
-            ? `第 ${targetPeriod} 期频次榜已冻结。`
-            : `第 ${targetPeriod} 期暂无可冻结的频次数据。`,
-      );
+      const msg = rebuild
+        ? `第 ${targetPeriod} 期频次榜快照已重建。`
+        : result.snapshot.frozen
+          ? `第 ${targetPeriod} 期频次榜已冻结。`
+          : `第 ${targetPeriod} 期暂无可冻结的频次数据。`;
+      setSuccessMsg(msg);
+      toast.success(rebuild ? "频次榜快照已重建" : "频次榜已冻结", msg);
       await executeQuery(lottery, targetPeriod);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "冻结频次快照失败");
+      const msg = err instanceof ApiError ? err.message : "冻结频次快照失败";
+      setError(msg);
+      toast.error("冻结频次快照失败", msg);
     } finally {
       setSnapshotBusy(null);
     }
@@ -560,8 +568,11 @@ export function CollectorConsensusPage() {
       // Also refresh consensus to reflect newly judged status
       const cons = await collectorApi.consensus(lottery, period.trim(), playFilter || undefined);
       setConsensusData(cons);
+      toast.success("已重新完成对奖比对", `第 ${period.trim()} 期命中 ${res.summary.hits} 条`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "重新对奖计算失败");
+      const msg = err instanceof ApiError ? err.message : "重新对奖计算失败";
+      setError(msg);
+      toast.error("重新对奖计算失败", msg);
     } finally {
       setRejudging(false);
     }
@@ -945,7 +956,7 @@ export function CollectorConsensusPage() {
                 onClick={handlePrevPeriod}
                 title="上一期"
                 disabled={loading || !period.trim()}
-                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
               >
                 ◀
               </button>
@@ -954,7 +965,7 @@ export function CollectorConsensusPage() {
                 onClick={handleNextPeriod}
                 title="下一期"
                 disabled={loading || !period.trim()}
-                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-sm font-medium border border-slate-200/50 dark:border-white/8 hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
               >
                 ▶
               </button>
@@ -963,7 +974,7 @@ export function CollectorConsensusPage() {
                 onClick={handleLatestPeriod}
                 title="载入最新预测/开奖期号"
                 disabled={loading}
-                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center justify-center h-10 px-3 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer disabled:opacity-50"
               >
                 ⚡ 最新期
               </button>
@@ -1027,7 +1038,7 @@ export function CollectorConsensusPage() {
                 type="button"
                 onClick={handleRejudge}
                 disabled={rejudging || !!snapshotBusy || !period.trim()}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-slate-200/50 dark:border-white/8 hover:bg-primary/5 text-slate-700 dark:text-slate-300 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {rejudging ? "计算中…" : "🔄 重新触发对奖比对"}
               </button>
@@ -1261,7 +1272,7 @@ export function CollectorConsensusPage() {
             {/* KPI 概览卡片 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* 领跑特码 */}
-              <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1.5">
+              <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1.5">
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center justify-between">
                   <span>🏆 最热特码 (领跑第1)</span>
                   {frequencyStats.temaList[0]?.isHit && (
@@ -1292,7 +1303,7 @@ export function CollectorConsensusPage() {
               </div>
 
               {/* 领跑特肖 */}
-              <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1.5">
+              <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1.5">
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center justify-between">
                   <span>🏆 最热特肖 (领跑第1)</span>
                   {frequencyStats.texiaoList[0]?.isHit && (
@@ -1303,7 +1314,7 @@ export function CollectorConsensusPage() {
                 </span>
                 {frequencyStats.texiaoList.length > 0 ? (
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="inline-grid place-items-center w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-base font-black shadow-xs shrink-0">
+                    <span className="inline-grid place-items-center w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-amber-500 text-white text-base font-black shadow-xs shrink-0">
                       {frequencyStats.texiaoList[0].value}
                     </span>
                     <div className="flex flex-col">
@@ -1323,7 +1334,7 @@ export function CollectorConsensusPage() {
               </div>
 
               {/* 预测覆盖样本 */}
-              <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1">
+              <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1">
                 <span className="text-xs text-primary font-medium">📊 参评预测来源</span>
                 <span className="text-xl font-bold font-mono text-primary">
                   {frequencyStats.totalTemaSources} 特码 / {frequencyStats.totalTexiaoSources} 特肖
@@ -1338,7 +1349,7 @@ export function CollectorConsensusPage() {
                 className={`p-3.5 rounded-2xl border flex flex-col gap-1 ${
                   officialDraw
                     ? "bg-emerald-500/10 border-emerald-400/40 dark:border-emerald-400/25 "
-                    : "glass-subtle"
+                    : "bento-subtle"
                 }`}
               >
                 <span
@@ -1411,7 +1422,7 @@ export function CollectorConsensusPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs sm:text-sm">
                       <thead>
-                        <tr className="glass-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8 text-xs">
+                        <tr className="bento-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8 text-xs">
                           <th style={{ ...th, width: 70 }}>排名</th>
                           <th style={{ ...th, minWidth: 130 }}>特码号码</th>
                           <th style={{ ...th, minWidth: 160 }}>出现频次与支持率</th>
@@ -1428,7 +1439,7 @@ export function CollectorConsensusPage() {
                                 ? "bg-emerald-500/10 dark:bg-emerald-950/20 font-medium"
                                 : i === 0
                                 ? "bg-amber-500/5 dark:bg-amber-950/10"
-                                : "hover:bg-violet-500/5 dark:hover:bg-violet-400/5"
+                                : "hover:bg-primary/5"
                             }`}
                           >
                             <td style={td}>
@@ -1523,7 +1534,7 @@ export function CollectorConsensusPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs sm:text-sm">
                       <thead>
-                        <tr className="glass-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8 text-xs">
+                        <tr className="bento-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8 text-xs">
                           <th style={{ ...th, width: 70 }}>排名</th>
                           <th style={{ ...th, minWidth: 130 }}>特肖生肖</th>
                           <th style={{ ...th, minWidth: 160 }}>出现频次与支持率</th>
@@ -1540,7 +1551,7 @@ export function CollectorConsensusPage() {
                                 ? "bg-emerald-500/10 dark:bg-emerald-950/20 font-medium"
                                 : i === 0
                                 ? "bg-amber-500/5 dark:bg-amber-950/10"
-                                : "hover:bg-violet-500/5 dark:hover:bg-violet-400/5"
+                                : "hover:bg-primary/5"
                             }`}
                           >
                             <td style={td}>
@@ -1554,7 +1565,7 @@ export function CollectorConsensusPage() {
                                     {item.sampleNums.map((num) => (
                                       <span
                                         key={num}
-                                        className="text-[10px] font-mono px-1 py-0.5 rounded glass-subtle text-slate-500 dark:text-slate-400"
+                                        className="text-[10px] font-mono px-1 py-0.5 rounded bento-subtle text-slate-500 dark:text-slate-400"
                                       >
                                         {num}
                                       </span>
@@ -1599,13 +1610,13 @@ export function CollectorConsensusPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             {/* 统计指标卡片网格 */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1">
+              <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1">
                 <span className="text-xs text-slate-500 dark:text-slate-400">已入库预测</span>
                 <span className="text-xl font-bold font-mono text-slate-900 dark:text-white">
                   {comparison.summary.total}
                 </span>
               </div>
-              <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1">
+              <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1">
                 <span className="text-xs text-slate-500 dark:text-slate-400">已完成对奖</span>
                 <span className="text-xl font-bold font-mono text-slate-900 dark:text-white">
                   {comparison.summary.judged}
@@ -1619,7 +1630,7 @@ export function CollectorConsensusPage() {
                   {comparison.summary.hits}
                 </span>
               </div>
-              <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1">
+              <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1">
                 <span className="text-xs text-primary font-medium">📈 综合命中率</span>
                 <span className="text-xl font-bold font-mono text-primary">
                   {comparison.summary.hit_rate}%
@@ -1629,7 +1640,7 @@ export function CollectorConsensusPage() {
                 className={`p-3.5 rounded-2xl border flex flex-col gap-1 ${
                   comparison.summary.conflicts > 0
                     ? "bg-rose-500/10 border-rose-400/40 dark:border-rose-400/25 "
-                    : "glass-subtle"
+                    : "bento-subtle"
                 }`}
               >
                 <span
@@ -1683,7 +1694,7 @@ export function CollectorConsensusPage() {
               <div className="overflow-x-auto admin-card">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
                   <thead>
-                    <tr className="glass-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8">
+                    <tr className="bento-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8">
                       <th style={th}>预测来源</th>
                       <th style={th}>玩法</th>
                       <th style={th}>预测内容（命中高亮）</th>
@@ -1700,7 +1711,7 @@ export function CollectorConsensusPage() {
                       return (
                         <tr
                           key={item.id}
-                          className="hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors"
+                          className="hover:bg-primary/5 transition-colors"
                         >
                           <td style={td}>
                             <div className="font-semibold text-slate-900 dark:text-white">
@@ -1798,19 +1809,19 @@ export function CollectorConsensusPage() {
             {/* 共识概览 KPI */}
             {consensusStats && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1">
+                <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1">
                   <span className="text-xs text-slate-500 dark:text-slate-400">共识涵盖玩法</span>
                   <span className="text-xl font-bold font-mono text-slate-900 dark:text-white">
                     {consensusStats.totalGroups} 类
                   </span>
                 </div>
-                <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1">
+                <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1">
                   <span className="text-xs text-slate-500 dark:text-slate-400">参评来源总数</span>
                   <span className="text-xl font-bold font-mono text-slate-900 dark:text-white">
                     {consensusStats.totalSources} 条预测
                   </span>
                 </div>
-                <div className="p-3.5 rounded-2xl glass-subtle flex flex-col gap-1">
+                <div className="p-3.5 rounded-2xl bento-subtle flex flex-col gap-1">
                   <span className="text-xs text-primary font-medium">有效去重选票</span>
                   <span className="text-xl font-bold font-mono text-primary">
                     {consensusStats.totalVotes} 票
@@ -1887,7 +1898,7 @@ export function CollectorConsensusPage() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs sm:text-sm">
                           <thead>
-                            <tr className="glass-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8 text-xs">
+                            <tr className="bento-subtle text-slate-500 dark:text-slate-400 border-b border-slate-200/50 dark:border-white/8 text-xs">
                               <th style={{ ...th, width: 80 }}>排名</th>
                               <th style={th}>预测内容</th>
                               <th style={{ ...th, minWidth: 180 }}>得票与支持率</th>
@@ -1901,7 +1912,7 @@ export function CollectorConsensusPage() {
                               return (
                                 <tr
                                   key={i}
-                                  className="hover:bg-violet-500/5 dark:hover:bg-violet-400/5 transition-colors"
+                                  className="hover:bg-primary/5 transition-colors"
                                 >
                                   {/* 排名奖章 */}
                                   <td style={td}>
@@ -1910,7 +1921,7 @@ export function CollectorConsensusPage() {
                                         🥇 1st
                                       </span>
                                     ) : i === 1 ? (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold glass-subtle text-slate-700 dark:text-slate-200">
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bento-subtle text-slate-700 dark:text-slate-200">
                                         🥈 2nd
                                       </span>
                                     ) : i === 2 ? (
