@@ -305,9 +305,9 @@ export function RecordAddModal({
                     key={m}
                     type="button"
                     onClick={() => handleModeChange(m)}
-                    className={`py-2 px-3 text-xs font-semibold rounded-xl transition-all ${
+                    className={`py-2 px-3 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                       mode === m
-                        ? "bg-white dark:bg-violet-600 text-slate-900 dark:text-white shadow-sm"
+                        ? "bg-white dark:bg-primary text-slate-900 dark:text-white shadow-sm"
                         : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                     }`}
                   >

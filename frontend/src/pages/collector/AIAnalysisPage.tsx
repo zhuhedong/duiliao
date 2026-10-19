@@ -430,7 +430,7 @@ export function CollectorAIAnalysisPage() {
   return (
     <PageWorkspace summary="选定模式与期号，一键启动大模型研判；报告流式呈现，历史自动沉淀。高级参数收在右侧抽屉。">
       {/* ═══ 指挥条 ═══ */}
-      <div className="sticky top-[5rem] z-20 flex flex-wrap items-center gap-x-3 gap-y-2.5 admin-card p-3.5">
+      <div className="sticky top-16 z-20 flex flex-wrap items-center gap-x-3 gap-y-2.5 bento-card p-3">
         <SegmentedTabs
           tabs={[
             { id: "post" as const, label: "帖文研判", icon: <SparklesIcon size={15} /> },
@@ -444,7 +444,7 @@ export function CollectorAIAnalysisPage() {
         />
 
         {isPost && (
-          <div className="flex items-center gap-1 rounded-xl glass-subtle px-2.5 py-1.5">
+          <div className="flex items-center gap-1 rounded-xl bento-subtle px-2.5 py-1.5">
             <span className="text-2xs font-medium text-slate-400">第</span>
             <input
               type="text"
@@ -472,7 +472,7 @@ export function CollectorAIAnalysisPage() {
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {/* 服务商快切 */}
-          <div className="flex items-center gap-1 rounded-xl glass-subtle p-1">
+          <div className="flex items-center gap-1 rounded-xl bento-subtle p-1">
             {PROVIDERS.map((p) => {
               const active = provider === p.id;
               const noKey = aiSettings ? !aiSettings[p.id]?.is_configured : false;
@@ -484,9 +484,9 @@ export function CollectorAIAnalysisPage() {
                     setModel("");
                   }}
                   title={noKey ? `${p.label} · 未配置密钥` : p.label}
-                  className={`relative cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                  className={`relative cursor-pointer rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
                     active
-                      ? "glow-button border-0 shadow-xs"
+                      ? "bg-white dark:bg-white/[0.12] text-slate-900 dark:text-white shadow-xs"
                       : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                   }`}
                 >

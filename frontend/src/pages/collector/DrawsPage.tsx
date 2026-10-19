@@ -25,6 +25,7 @@ import {
   ReadOnlyNote,
   ResultJson,
   Select,
+  SegmentedTabs,
   Stats,
   TextInput,
   useCanWrite,
@@ -216,7 +217,14 @@ export function CollectorDrawsPage() {
 
   return (
     <PageWorkspace
-      summary="定时轮询官方开奖并自动对奖，也可以按期号手动导入。"
+      summary="定时轮询官方开奖并自动对奖，也可以按期号手动导入与查看各球全景属性。"
+      nav={
+        <SegmentedTabs
+          value={lottery}
+          onChange={setLottery}
+          options={LOTTERIES.map((l) => ({ value: l.value, label: l.label }))}
+        />
+      }
       actions={canWrite ? null : <ReadOnlyNote />}
     >
 
@@ -576,15 +584,23 @@ export function CollectorDrawsPage() {
           </div>
         }
         action={
-          <button
-            type="button"
-            onClick={loadList}
-            disabled={loadingList}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-          >
-            <RefreshIcon size={14} className={loadingList ? "animate-spin" : ""} />
-            <span>刷新列表</span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <SegmentedTabs
+              value={lottery}
+              onChange={setLottery}
+              options={LOTTERIES.map((l) => ({ value: l.value, label: l.label }))}
+              size="sm"
+            />
+            <button
+              type="button"
+              onClick={loadList}
+              disabled={loadingList}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bento-subtle hover:bg-slate-200/60 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+            >
+              <RefreshIcon size={14} className={loadingList ? "animate-spin" : ""} />
+              <span>刷新列表</span>
+            </button>
+          </div>
         }
       >
         {loadingList ? (

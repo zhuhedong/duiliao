@@ -96,11 +96,11 @@ export function LoginPage() {
   return (
     <AuthShell
       title="欢迎回来"
-      description="进入 Aurora Command — 加密采集、对照与研判的统一玻璃工作台"
+      description="进入对料工作台 — 采集、对照、记账与 AI 研判的统一空间"
     >
-      <form onSubmit={onSubmit} className="flex flex-col gap-3.5 mt-1">
+      <form onSubmit={onSubmit} className="flex flex-col gap-4 mt-1">
         {error && (
-          <Alert variant="error" className="rounded-xl border border-rose-400/40 dark:border-rose-400/25 bg-rose-500/10 text-rose-700 dark:text-rose-300 py-2.5 px-3">
+          <Alert variant="error">
             <AlertDescription className="text-xs leading-relaxed">{error}</AlertDescription>
           </Alert>
         )}

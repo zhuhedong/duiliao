@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PageWorkspace } from "./collector/shared";
+import { PageWorkspace, SegmentedTabs } from "./collector/shared";
 import {
   SparklesIcon,
   EyeIcon,
@@ -399,24 +399,17 @@ export function SystemSettingsPage() {
     setOpenaiModel(preset.model);
   };
 
-  const tabClass = (id: "ai" | "database" | "system") =>
-    `flex items-center gap-2 w-full px-3 py-2.5 rounded-2xl text-sm text-left cursor-pointer ${
-      activeTab === id
-        ? "bg-violet-500/15 text-violet-700 dark:text-violet-200 font-semibold"
-        : "text-slate-600 dark:text-slate-300 hover:bg-white/40 dark:hover:bg-white/5"
-    }`;
-
   return (
     <PageWorkspace
-      summary="模型地址和密钥、数据库连接、导入，以及当前环境的安全说明。"
+      summary="模型地址和密钥、数据库连接、SQLite 数据导入，以及当前环境的安全说明。"
       actions={
         activeTab === "ai" ? (
           <button
             onClick={handleSave}
             disabled={saving || loading}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
           >
-            <CheckBadgeIcon size={18} />
+            <CheckBadgeIcon size={17} />
             {saving ? "正在保存..." : "保存 AI 配置"}
           </button>
         ) : activeTab === "database" ? (
@@ -426,35 +419,29 @@ export function SystemSettingsPage() {
               loadSchemaReport();
             }}
             disabled={loadingDb || checkingSchema}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium glass-subtle hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bento-subtle hover:bg-slate-200/60 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-all cursor-pointer"
           >
-            <RefreshIcon size={16} className={loadingDb || checkingSchema ? "animate-spin" : ""} />
+            <RefreshIcon size={15} className={loadingDb || checkingSchema ? "animate-spin" : ""} />
             刷新数据库状态
           </button>
         ) : undefined
       }
       nav={
-        <div className="admin-card p-2 flex flex-col gap-1">
-          <button onClick={() => setActiveTab("ai")} className={tabClass("ai")}>
-            <SparklesIcon size={16} />
-            模型与密钥
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("database");
+        <SegmentedTabs
+          value={activeTab}
+          onChange={(next) => {
+            setActiveTab(next);
+            if (next === "database") {
               loadDbStatus();
               loadSchemaReport();
-            }}
-            className={tabClass("database")}
-          >
-            <DatabaseIcon size={16} />
-            数据库与导入
-          </button>
-          <button onClick={() => setActiveTab("system")} className={tabClass("system")}>
-            <ActivityIcon size={16} />
-            环境与安全
-          </button>
-        </div>
+            }
+          }}
+          options={[
+            { value: "ai" as const, label: "模型与密钥" },
+            { value: "database" as const, label: "数据库与导入" },
+            { value: "system" as const, label: "环境与安全" },
+          ]}
+        />
       }
     >
 

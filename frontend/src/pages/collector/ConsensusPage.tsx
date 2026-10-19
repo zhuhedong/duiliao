@@ -922,10 +922,11 @@ export function CollectorConsensusPage() {
                 {consensusData.snapshot.frozen_at ? ` · ${consensusData.snapshot.frozen_at.slice(0, 16).replace("T", " ")}` : ""}
               </Badge>
             )}
-            <Select
+            <SegmentedTabs
               value={lottery}
               onChange={(v) => setLottery(v as Lottery)}
-              options={LOTTERIES}
+              options={LOTTERIES.map((l) => ({ value: l.value, label: l.label }))}
+              size="sm"
             />
 
             <div className="flex items-center gap-1">
@@ -1655,28 +1656,18 @@ export function CollectorConsensusPage() {
             {/* 状态筛选切换条 */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
               <div className="flex gap-2 items-center flex-wrap">
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                  状态筛选:
-                </span>
-                {[
-                  { key: "all", label: `全部 (${comparison.items.length})` },
-                  { key: "hit", label: `🎯 官方命中 (${comparison.summary.hits})` },
-                  { key: "miss", label: `❌ 官方未中 (${comparison.summary.misses})` },
-                  { key: "pending", label: `⏳ 待开奖 (${comparison.summary.pending})` },
-                  { key: "conflict", label: `⚠️ 自称不符 (${comparison.summary.conflicts})` },
-                ].map((f) => (
-                  <button
-                    key={f.key}
-                    onClick={() => setStatusFilter(f.key)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-all ${
-                      statusFilter === f.key
-                        ? "glow-button border-0"
-                        : "glass-subtle text-slate-700 dark:text-slate-300 hover:border-violet-400/40"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+                <SegmentedTabs
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  size="sm"
+                  options={[
+                    { value: "all", label: "全部", count: comparison.items.length },
+                    { value: "hit", label: "🎯 命中", count: comparison.summary.hits },
+                    { value: "miss", label: "❌ 未中", count: comparison.summary.misses },
+                    { value: "pending", label: "⏳ 待开奖", count: comparison.summary.pending },
+                    { value: "conflict", label: "⚠️ 存疑", count: comparison.summary.conflicts },
+                  ]}
+                />
               </div>
               <div className="text-xs text-slate-400">
                 显示 {filteredComparisonItems.length} / {comparison.items.length} 条记录

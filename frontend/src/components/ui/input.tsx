@@ -5,8 +5,8 @@ type InputSize = "sm" | "md" | "lg";
 
 const sizeMap: Record<InputSize, string> = {
   sm: "h-8 text-xs",
-  md: "h-9 text-sm",
-  lg: "h-10 text-sm",
+  md: "h-9.5 text-sm",
+  lg: "h-10.5 text-sm",
 };
 
 export function Input({
@@ -36,13 +36,13 @@ export function Input({
   return (
     <div
       className={cx(
-        "admin-input-wrap flex items-center gap-2 px-3",
+        "bento-input flex items-center gap-2 px-3",
         sizeMap[inputSize],
-        focused && "ring-2 ring-brand-500/25 border-brand-400",
+        focused && "border-indigo-500 ring-3 ring-indigo-500/15",
         className,
       )}
     >
-      {startSlot ? <span className="shrink-0 text-slate-400">{startSlot}</span> : null}
+      {startSlot ? <span className="shrink-0 text-slate-400 dark:text-slate-500">{startSlot}</span> : null}
       <input
         className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-slate-100 disabled:cursor-not-allowed"
         value={value}
@@ -63,7 +63,7 @@ export function Input({
       {showClear ? (
         <button
           type="button"
-          className="shrink-0 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs"
+          className="shrink-0 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xs cursor-pointer"
           onClick={onClear}
           tabIndex={-1}
         >

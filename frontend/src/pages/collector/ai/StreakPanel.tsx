@@ -1,4 +1,5 @@
 import { DatabaseIcon } from "../../../components/icons";
+import { SegmentedTabs } from "../shared";
 import type { StreakRow } from "./types";
 
 const STREAK_KINDS = ["三连", "四连", "五连", "N连"] as const;
@@ -21,21 +22,15 @@ function ChipGroup<T extends number | string>({
   return (
     <div className="flex items-center gap-2">
       <span className="shrink-0 text-2xs font-semibold text-slate-500 dark:text-slate-400">{label}</span>
-      <div className="flex gap-1">
-        {options.map((o) => (
-          <button
-            key={String(o.value)}
-            onClick={() => onChange(o.value)}
-            className={`cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-              value === o.value
-                ? "glow-button border-0 shadow-xs"
-                : "glass-subtle text-slate-600 dark:text-slate-400"
-            }`}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedTabs
+        size="sm"
+        value={String(value)}
+        onChange={(next) => {
+          const found = options.find((o) => String(o.value) === next);
+          if (found) onChange(found.value);
+        }}
+        options={options.map((o) => ({ value: String(o.value), label: o.label }))}
+      />
     </div>
   );
 }

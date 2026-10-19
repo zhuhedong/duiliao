@@ -15,7 +15,7 @@ export function Checkbox({
       checked={!!checked}
       onChange={(e) => onCheckedChange?.(e.target.checked)}
       className={cx(
-        "size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500/30 dark:border-slate-600 dark:bg-slate-900",
+        "size-4 rounded-md border-slate-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500/30 dark:border-slate-600 dark:bg-slate-900 cursor-pointer",
         className,
       )}
       {...props}

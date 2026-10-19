@@ -1,5 +1,5 @@
 /**
- * 工作台 — 业务数据总览。
+ * 工作台 — Bento Studio 业务数据总览。
  *
  * 数据来自 GET /collector/overview（单次请求聚合）：头部 KPI、最新开奖、
  * 近 7 日对料趋势、源命中率排行、玩法分布、采集告警与调度动态。
@@ -23,10 +23,10 @@ import {
   ArrowRightIcon,
   CalendarIcon,
   CheckIcon,
+  ClipboardListIcon,
   ClockIcon,
   CompareIcon,
   DatabaseIcon,
-  HashIcon,
   RefreshIcon,
   SettingsIcon,
   SparklesIcon,
@@ -49,17 +49,17 @@ function pct(v: number | null | undefined, digits = 1): string {
 
 /** 命中率配色：≥60 优，≥45 良，≥35 中，否则偏弱。 */
 function rateTone(v: number | null | undefined): string {
-  if (v === null || v === undefined) return "text-slate-400";
-  if (v >= 0.6) return "text-emerald-600 dark:text-emerald-300";
-  if (v >= 0.45) return "text-violet-600 dark:text-violet-300";
-  if (v >= 0.35) return "text-amber-600 dark:text-amber-300";
-  return "text-rose-600 dark:text-rose-300";
+  if (v === null || v === undefined) return "text-slate-400 dark:text-slate-500";
+  if (v >= 0.6) return "text-emerald-600 dark:text-emerald-400";
+  if (v >= 0.45) return "text-indigo-600 dark:text-indigo-400";
+  if (v >= 0.35) return "text-amber-600 dark:text-amber-400";
+  return "text-rose-600 dark:text-rose-400";
 }
 
 function rateBar(v: number | null | undefined): string {
-  if (v === null || v === undefined) return "bg-slate-400/40";
+  if (v === null || v === undefined) return "bg-slate-300 dark:bg-slate-700";
   if (v >= 0.6) return "bg-emerald-500";
-  if (v >= 0.45) return "bg-violet-500";
+  if (v >= 0.45) return "bg-indigo-500";
   if (v >= 0.35) return "bg-amber-500";
   return "bg-rose-500";
 }
@@ -127,38 +127,65 @@ export function DashboardPage() {
   if (!user) return null;
 
   return (
-    <div className="workspace-fill w-full flex flex-col gap-3 content-start">
-      {/* Bento hero */}
-      <header className="glass-panel rounded-[26px] px-5 sm:px-7 py-6 relative overflow-hidden">
-        <div className="pointer-events-none absolute -right-10 -top-16 w-72 h-72 rounded-full bg-violet-500/25 blur-3xl" />
-        <div className="pointer-events-none absolute right-24 -bottom-20 w-56 h-56 rounded-full bg-fuchsia-500/20 blur-3xl" />
-        <div className="relative flex flex-col lg:flex-row lg:items-end gap-5">
+    <div className="workspace-fill w-full flex flex-col gap-4 content-start">
+      {/* Bento Hero Card */}
+      <header className="bento-card rounded-2xl px-5 sm:px-6 py-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="display-kicker">Mission Control · {data?.today.date ?? new Date().toISOString().slice(0, 10)}</div>
-            <h2 className="display-title mt-2 truncate">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="display-kicker">
+                Overview · {data?.today.date ?? new Date().toISOString().slice(0, 10)}
+              </span>
+              {data && (
+                <span className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                  更新于 {data.generated_at.slice(11)}
+                </span>
+              )}
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white mt-1 truncate">
               {greet()}，{user.display_name || user.email}
             </h2>
-            <p className="mt-2 text-sm text-slate-300/80 max-w-2xl leading-relaxed">
-              采集、对料、判定与调度的实时经营总览
-              {data ? ` · 数据更新于 ${data.generated_at.slice(11)}` : ""}
+            <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+              实时汇总多源采集进度、全站开奖对料命中率、连中榜单与后台定时任务动态。
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => void load(true)}
-            disabled={loading || refreshing}
-            className="inline-flex items-center gap-2 h-10 px-4 rounded-2xl text-xs font-semibold glow-button cursor-pointer disabled:opacity-60 shrink-0"
-          >
-            <RefreshIcon size={14} className={refreshing ? "animate-spin" : ""} />
-            刷新数据
-          </button>
+
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <Link
+              to="/records"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200/80 text-slate-700 dark:bg-white/[0.06] dark:hover:bg-white/[0.1] dark:text-slate-200 border border-slate-200/70 dark:border-white/10 no-underline transition-colors"
+            >
+              <ClipboardListIcon size={14} />
+              <span>投注记账</span>
+            </Link>
+            <Link
+              to="/collector/ai-analysis"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl text-xs font-semibold bg-indigo-50 hover:bg-indigo-100/80 text-indigo-700 dark:bg-indigo-500/15 dark:hover:bg-indigo-500/25 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-500/30 no-underline transition-colors"
+            >
+              <SparklesIcon size={14} />
+              <span>AI 研判</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => void load(true)}
+              disabled={loading || refreshing}
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl text-xs font-semibold glow-button cursor-pointer disabled:opacity-60"
+            >
+              <RefreshIcon size={14} className={refreshing ? "animate-spin" : ""} />
+              <span>刷新数据</span>
+            </button>
+          </div>
         </div>
       </header>
 
       {error && (
-        <div className="rounded-2xl border border-rose-400/40 bg-rose-500/10 text-rose-200 px-4 py-3 text-sm flex items-center justify-between gap-3">
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/25 dark:bg-rose-500/10 dark:text-rose-300 px-4 py-3 text-sm flex items-center justify-between gap-3">
           <span>{error}</span>
-          <button type="button" onClick={() => void load()} className="shrink-0 text-xs font-semibold underline underline-offset-2 cursor-pointer">
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="shrink-0 text-xs font-semibold underline underline-offset-2 cursor-pointer"
+          >
             重试
           </button>
         </div>
@@ -168,17 +195,48 @@ export function DashboardPage() {
         <DashboardSkeleton />
       ) : data ? (
         <div className="bento-grid">
-          <section className="bento-span-4"><KpiTile data={data} index={0} /></section>
-          <section className="bento-span-4"><KpiTile data={data} index={1} /></section>
-          <section className="bento-span-4"><KpiTile data={data} index={2} /></section>
-          <section className="bento-span-8 bento-tall"><LatestDrawsPanel draws={data.latest_draws} /></section>
-          <section className="bento-span-4 bento-tall"><AlertsPanel data={data} /></section>
-          <section className="bento-span-5"><TrendPanel data={data} /></section>
-          <section className="bento-span-7"><LeaderboardPanel data={data} /></section>
-          <section className="bento-span-4"><KpiTile data={data} index={3} /></section>
-          <section className="bento-span-8"><PlayTypePanel data={data} /></section>
-          <section className="bento-span-12"><SchedulePanel data={data} /></section>
-          <section className="bento-span-12"><QuickNav /></section>
+          {/* Row 1: 4 Symmetrical KPI Bento Cards */}
+          <section className="bento-span-3">
+            <KpiTile data={data} index={0} />
+          </section>
+          <section className="bento-span-3">
+            <KpiTile data={data} index={1} />
+          </section>
+          <section className="bento-span-3">
+            <KpiTile data={data} index={2} />
+          </section>
+          <section className="bento-span-3">
+            <KpiTile data={data} index={3} />
+          </section>
+
+          {/* Row 2: Latest Draws + Alerts */}
+          <section className="bento-span-7">
+            <LatestDrawsPanel draws={data.latest_draws} />
+          </section>
+          <section className="bento-span-5">
+            <AlertsPanel data={data} />
+          </section>
+
+          {/* Row 3: 7-Day Trend + Leaderboard */}
+          <section className="bento-span-5">
+            <TrendPanel data={data} />
+          </section>
+          <section className="bento-span-7">
+            <LeaderboardPanel data={data} />
+          </section>
+
+          {/* Row 4: Play Type Distribution + Scheduler */}
+          <section className="bento-span-6">
+            <PlayTypePanel data={data} />
+          </section>
+          <section className="bento-span-6">
+            <SchedulePanel data={data} />
+          </section>
+
+          {/* Row 5: Quick Navigation */}
+          <section className="bento-span-12">
+            <QuickNav />
+          </section>
         </div>
       ) : null}
     </div>
@@ -191,74 +249,106 @@ export function DashboardPage() {
 function DashboardSkeleton() {
   return (
     <div className="bento-grid animate-pulse">
-      {[4, 4, 4, 8, 4, 5, 7, 12].map((span, i) => (
-        <div key={i} className={`bento-span-${span} glass-card rounded-[22px] ${span >= 8 ? "h-64" : "h-32"}`} />
+      {[3, 3, 3, 3, 7, 5, 5, 7, 6, 6].map((span, i) => (
+        <div
+          key={i}
+          className={`bento-span-${span} bento-card rounded-2xl ${span >= 5 ? "h-64" : "h-32"}`}
+        />
       ))}
     </div>
   );
 }
-
 
 function KpiTile({ data, index }: { data: OverviewResult; index: number }) {
   const { judge, today, totals, alerts } = data;
   const collectRate = today.source_total > 0 ? today.source_ok / today.source_total : null;
   const coverageRate = totals.sources > 0 ? totals.sources_enabled / totals.sources : null;
   const alertTotal = alerts.lagging_sources + judge.pending_judge;
+
   const cards = [
     {
-      icon: <TargetIcon size={18} />,
+      icon: <TargetIcon size={16} />,
+      iconBg: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400",
       label: "综合命中率",
       value: pct(judge.hit_rate),
       valueClass: rateTone(judge.hit_rate),
-      sub: `中 ${judge.hits.toLocaleString()} / 判定 ${judge.judged.toLocaleString()}`,
+      sub: `命中 ${judge.hits.toLocaleString()} / 判定 ${judge.judged.toLocaleString()}`,
       bar: judge.hit_rate,
       to: "/collector/ratings",
     },
     {
-      icon: <DatabaseIcon size={18} />,
-      label: "数据覆盖",
+      icon: <DatabaseIcon size={16} />,
+      iconBg: "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
+      label: "启用数据源",
       value: `${totals.sources_enabled}/${totals.sources}`,
-      valueClass: "text-violet-300",
-      sub: `${totals.predictions.toLocaleString()} 条预测 · ${totals.draws.toLocaleString()} 期开奖`,
+      valueClass: "text-slate-900 dark:text-white",
+      sub: `${totals.predictions.toLocaleString()} 预测 · ${totals.draws.toLocaleString()} 期开奖`,
       bar: coverageRate,
       to: "/collector/sources",
     },
     {
-      icon: <ActivityIcon size={18} />,
-      label: "今日采集",
-      value: today.source_total > 0 ? `${today.source_ok}/${today.source_total}` : "未采集",
-      valueClass: today.source_total === 0 ? "text-slate-400" : collectRate !== null && collectRate >= 0.95 ? "text-emerald-300" : "text-amber-300",
-      sub: `${today.crawl_runs} 轮 · 新增 ${today.new_predictions.toLocaleString()}`,
+      icon: <ActivityIcon size={16} />,
+      iconBg: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
+      label: "今日采集覆盖",
+      value: today.source_total > 0 ? `${today.source_ok}/${today.source_total}` : "待采集",
+      valueClass:
+        today.source_total === 0
+          ? "text-slate-400 dark:text-slate-500"
+          : collectRate !== null && collectRate >= 0.95
+            ? "text-emerald-600 dark:text-emerald-400"
+            : "text-amber-600 dark:text-amber-400",
+      sub: `今日 ${today.crawl_runs} 轮 · 新增 ${today.new_predictions.toLocaleString()} 条`,
       bar: collectRate,
       to: "/collector/sources",
     },
     {
-      icon: <AlertIcon size={18} />,
-      label: "待办告警",
+      icon: <AlertIcon size={16} />,
+      iconBg:
+        alertTotal > 0
+          ? "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"
+          : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
+      label: "待办与缺期告警",
       value: alertTotal > 0 ? String(alertTotal) : "全部同步",
-      valueClass: alertTotal > 0 ? "text-amber-300" : "text-emerald-300",
-      sub: `缺期 ${alerts.lagging_sources} · 待判定 ${judge.pending_judge}`,
-      bar: null as number | null,
+      valueClass:
+        alertTotal > 0
+          ? "text-amber-600 dark:text-amber-400"
+          : "text-emerald-600 dark:text-emerald-400",
+      sub: `缺期源 ${alerts.lagging_sources} · 待判定 ${judge.pending_judge}`,
+      bar: alertTotal > 0 ? Math.max(0.1, 1 - alertTotal / Math.max(10, totals.sources_enabled)) : 1,
       to: "/collector/monitor",
     },
   ];
   const c = cards[index]!;
+
   return (
-    <Link to={c.to} className="glass-card rounded-[22px] p-5 h-full flex flex-col justify-between gap-4 no-underline text-inherit hover:bg-violet-500/10 transition-colors group relative overflow-hidden">
-      <div className="pointer-events-none absolute -right-6 -top-6 w-24 h-24 rounded-full bg-violet-500/15 blur-2xl group-hover:bg-violet-400/25 transition-colors" />
-      <div className="relative flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
-          <span className="text-violet-300">{c.icon}</span>
+    <Link
+      to={c.to}
+      className="bento-card rounded-2xl p-5 h-full flex flex-col justify-between gap-3.5 no-underline text-inherit hover:border-indigo-500/30 dark:hover:border-indigo-400/30 transition-all group"
+    >
+      <div className="flex items-center justify-between">
+        <span className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+          <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${c.iconBg}`}>
+            {c.icon}
+          </span>
           {c.label}
         </span>
-        <ArrowRightIcon size={14} className="text-slate-500 group-hover:text-violet-300 transition-colors" />
+        <ArrowRightIcon
+          size={14}
+          className="text-slate-300 dark:text-slate-600 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all"
+        />
       </div>
-      <div className="relative">
-        <div className={`text-3xl font-bold tracking-tight ${c.valueClass}`}>{c.value}</div>
-        <div className="mt-1 text-[11px] text-slate-400 leading-relaxed">{c.sub}</div>
+
+      <div>
+        <div className={`text-2xl sm:text-3xl font-bold tracking-tight tabular-nums ${c.valueClass}`}>
+          {c.value}
+        </div>
+        <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 truncate">{c.sub}</div>
         {c.bar != null ? (
-          <div className="mt-3 h-1.5 rounded-full bg-white/5 overflow-hidden">
-            <div className={`h-full rounded-full ${rateBar(c.bar)}`} style={{ width: `${Math.max(4, Math.min(100, c.bar * 100))}%` }} />
+          <div className="mt-3 h-1.5 rounded-full bg-slate-100 dark:bg-white/[0.06] overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${rateBar(c.bar)}`}
+              style={{ width: `${Math.max(5, Math.min(100, c.bar * 100))}%` }}
+            />
           </div>
         ) : null}
       </div>
@@ -273,31 +363,35 @@ function LatestDrawsPanel({ draws }: { draws: DrawRow[] }) {
   const [active, setActive] = useState(0);
   if (draws.length === 0) {
     return (
-      <PanelShell title="最新开奖" icon={<TrophyIcon size={16} />} more={{ to: "/collector/draws", label: "开奖管理" }}>
+      <PanelShell
+        title="最新开奖"
+        icon={<TrophyIcon size={16} />}
+        more={{ to: "/collector/draws", label: "开奖管理" }}
+      >
         <EmptyHint text="暂无开奖数据，请先执行开奖同步" />
       </PanelShell>
     );
   }
   const idx = Math.min(active, draws.length - 1);
-  const draw = draws[idx];
+  const draw = draws[idx]!;
   const { ballsDetail, temaDetail, summary } = ensureDrawDetails(draw);
 
   return (
     <PanelShell
-      title="最新开奖"
+      title="最新开奖实况"
       icon={<TrophyIcon size={16} />}
       more={{ to: "/collector/draws", label: "开奖管理" }}
       tabs={
-        <div className="inline-flex items-center gap-1 p-0.5 rounded-xl glass-subtle">
+        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-slate-100 dark:bg-white/[0.05] border border-slate-200/60 dark:border-white/[0.07]">
           {draws.map((d, i) => (
             <button
               key={d.lottery}
               type="button"
               onClick={() => setActive(i)}
-              className={`px-2.5 py-1 rounded-[10px] text-[11px] font-semibold transition-colors cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                 i === idx
-                  ? "bg-white/80 dark:bg-white/10 text-violet-700 dark:text-violet-200 shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                  ? "bg-white dark:bg-[#1e232e] text-slate-900 dark:text-white font-semibold shadow-2xs"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
               }`}
             >
               {LOTTERY_LABEL[d.lottery] ?? d.lottery}
@@ -306,39 +400,62 @@ function LatestDrawsPanel({ draws }: { draws: DrawRow[] }) {
         </div>
       }
     >
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
-          第 {draw.period} 期
-        </span>
-        <span className="text-xs text-slate-400">{draw.draw_date ?? "日期待定"}</span>
-      </div>
+      <div className="flex flex-col justify-between h-full gap-4">
+        <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-white/[0.025] border border-slate-100 dark:border-white/[0.05]">
+          <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white tabular-nums">
+                第 {draw.period} 期
+              </span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+                {draw.draw_date ?? "日期待定"}
+              </span>
+            </div>
+            <span className="text-[11px] px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-500/12 dark:text-emerald-300 font-medium">
+              官方已开奖
+            </span>
+          </div>
 
-      {/* 号码球 */}
-      <div className="mt-4 flex items-end gap-2 sm:gap-2.5 flex-wrap">
-        {ballsDetail.map((b) => (
-          <MiniBall key={b.num} num={b.num} xiao={b.xiao} bose={b.bose} lianxiao={b.is_lianxiao} />
-        ))}
-        <span className="self-center text-slate-300 dark:text-slate-600 font-light text-xl px-0.5">+</span>
-        <MiniBall
-          num={temaDetail.num}
-          xiao={temaDetail.xiao}
-          bose={temaDetail.bose}
-          lianxiao={temaDetail.is_lianxiao}
-          tema
-        />
-      </div>
+          {/* 号码球 */}
+          <div className="flex items-end gap-2 sm:gap-3 flex-wrap">
+            {ballsDetail.map((b, i) => (
+              <MiniBall
+                key={`${b.num}-${i}`}
+                num={b.num}
+                xiao={b.xiao}
+                bose={b.bose}
+                lianxiao={b.is_lianxiao}
+              />
+            ))}
+            <span className="self-center text-slate-300 dark:text-slate-600 font-light text-xl px-0.5 mb-4">
+              +
+            </span>
+            <MiniBall
+              num={temaDetail.num}
+              xiao={temaDetail.xiao}
+              bose={temaDetail.bose}
+              lianxiao={temaDetail.is_lianxiao}
+              tema
+            />
+          </div>
+        </div>
 
-      {/* 汇总标签 */}
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        <SummaryChip>
-          总分 {summary.sum7} · {summary.sum7_size}
-          {summary.sum7_odd}
-        </SummaryChip>
-        <SummaryChip>
-          特码 {summary.tema_xiao} · {summary.tema_bose}波 · {summary.tema_size}
-          {summary.tema_odd}
-        </SummaryChip>
-        <SummaryChip accent={summary.has_lianxiao}>{summary.lianxiao_text ?? "7肖各异"}</SummaryChip>
+        {/* 汇总标签 */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <SummaryStat
+            label="总分与单双"
+            value={`${summary.sum7} 分 · ${summary.sum7_size}${summary.sum7_odd}`}
+          />
+          <SummaryStat
+            label="特码特征"
+            value={`${summary.tema_xiao} · ${summary.tema_bose}波 · ${summary.tema_size}${summary.tema_odd}`}
+          />
+          <SummaryStat
+            label="平特连肖"
+            value={summary.lianxiao_text ?? "7 肖各异"}
+            accent={summary.has_lianxiao}
+          />
+        </div>
       </div>
     </PanelShell>
   );
@@ -359,21 +476,29 @@ function MiniBall({
 }) {
   const cfg = BOSE_COLORS[bose ?? "红"] ?? BOSE_COLORS["红"];
   return (
-    <div className="inline-flex flex-col items-center gap-1">
+    <div className="inline-flex flex-col items-center gap-1.5">
       <div
-        className={`flex items-center justify-center rounded-full font-bold font-mono text-white select-none ${
+        className={`flex items-center justify-center rounded-full font-bold font-mono text-white select-none shadow-xs ${
           tema
-            ? "w-9 h-9 text-sm ring-2 ring-amber-400 ring-offset-1 ring-offset-transparent shadow-md shadow-amber-500/25"
-            : "w-8 h-8 text-xs"
-        } ${lianxiao && !tema ? "ring-2 ring-purple-500/70" : ""}`}
+            ? "w-10 h-10 text-sm ring-2 ring-amber-400 ring-offset-2 ring-offset-white dark:ring-offset-[#13161d]"
+            : "w-9 h-9 text-xs"
+        } ${
+          lianxiao && !tema
+            ? "ring-2 ring-indigo-500/80 ring-offset-1 ring-offset-white dark:ring-offset-[#13161d]"
+            : ""
+        }`}
         style={{ backgroundColor: cfg.bg }}
         title={`${num}号 ${xiao ?? ""}`}
       >
         {num}
       </div>
       <span
-        className={`text-[10px] leading-none ${
-          lianxiao ? "text-purple-600 dark:text-purple-400 font-bold" : "text-slate-500 dark:text-slate-400"
+        className={`text-[11px] leading-none ${
+          tema
+            ? "text-amber-600 dark:text-amber-400 font-bold"
+            : lianxiao
+              ? "text-indigo-600 dark:text-indigo-400 font-bold"
+              : "text-slate-500 dark:text-slate-400 font-medium"
         }`}
       >
         {xiao ?? "—"}
@@ -382,17 +507,32 @@ function MiniBall({
   );
 }
 
-function SummaryChip({ children, accent = false }: { children: ReactNode; accent?: boolean }) {
+function SummaryStat({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: ReactNode;
+  accent?: boolean;
+}) {
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-medium border ${
+    <div
+      className={`px-3.5 py-2.5 rounded-xl border ${
         accent
-          ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-400/30"
-          : "glass-subtle text-slate-600 dark:text-slate-300 border-transparent"
+          ? "bg-indigo-50/70 border-indigo-200/80 dark:bg-indigo-500/10 dark:border-indigo-500/25"
+          : "bg-slate-50/80 border-slate-200/60 dark:bg-white/[0.025] dark:border-white/[0.06]"
       }`}
     >
-      {children}
-    </span>
+      <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500">{label}</div>
+      <div
+        className={`text-xs font-semibold mt-0.5 truncate ${
+          accent ? "text-indigo-700 dark:text-indigo-300" : "text-slate-800 dark:text-slate-200"
+        }`}
+      >
+        {value}
+      </div>
+    </div>
   );
 }
 
@@ -404,47 +544,52 @@ function TrendPanel({ data }: { data: OverviewResult }) {
   const judgedDays = trend.filter((t) => t.judged > 0);
   const avg =
     judgedDays.length > 0
-      ? judgedDays.reduce((a, t) => a + t.hits, 0) / judgedDays.reduce((a, t) => a + t.judged, 0)
+      ? judgedDays.reduce((a, t) => a + t.hits, 0) /
+        judgedDays.reduce((a, t) => a + t.judged, 0)
       : null;
 
   return (
     <PanelShell
       title="近 7 日对料趋势"
       icon={<TrendIcon size={16} />}
-      subtitle={avg !== null ? `日均命中率 ${pct(avg)}` : "近 7 日暂无判定记录"}
+      subtitle={avg !== null ? `7 日平均命中率 ${pct(avg)}` : "近 7 日暂无判定记录"}
     >
-      <div className="mt-2 flex items-end gap-2 sm:gap-3 h-44">
+      <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05] flex items-end gap-2 sm:gap-3 h-52">
         {trend.map((t) => {
           const isToday = t.date === data.today.date;
-          const h = t.hit_rate !== null ? Math.max(t.hit_rate * 100, 6) : 0;
+          const h = t.hit_rate !== null ? Math.max(t.hit_rate * 100, 8) : 0;
           return (
             <div key={t.date} className="flex-1 min-w-0 flex flex-col items-center gap-1.5 h-full">
               <div
-                className={`text-[10px] font-bold leading-none ${t.hit_rate !== null ? rateTone(t.hit_rate) : "text-slate-300 dark:text-slate-600"}`}
+                className={`text-[10px] font-bold tabular-nums leading-none ${
+                  t.hit_rate !== null ? rateTone(t.hit_rate) : "text-slate-300 dark:text-slate-600"
+                }`}
               >
                 {t.hit_rate !== null ? pct(t.hit_rate, 0) : "—"}
               </div>
-              <div className="flex-1 w-full flex items-end">
+              <div className="flex-1 w-full flex items-end bg-slate-200/40 dark:bg-white/[0.04] rounded-lg overflow-hidden p-0.5">
                 {t.hit_rate !== null ? (
                   <div
-                    className={`w-full rounded-t-lg ${rateBar(t.hit_rate)} ${isToday ? "" : "opacity-70"}`}
+                    className={`w-full rounded-md transition-all ${rateBar(t.hit_rate)} ${
+                      isToday ? "" : "opacity-80"
+                    }`}
                     style={{ height: `${h}%` }}
-                    title={`${t.date}：中 ${t.hits} / 判定 ${t.judged}`}
+                    title={`${t.date}：命中 ${t.hits} / 判定 ${t.judged}`}
                   />
                 ) : (
-                  <div className="w-full rounded-t-lg bg-slate-200/50 dark:bg-white/5" style={{ height: "4%" }} />
+                  <div className="w-full rounded-md bg-slate-200 dark:bg-white/10" style={{ height: "4%" }} />
                 )}
               </div>
               <div
-                className={`text-[10px] leading-none ${
+                className={`text-[11px] leading-none tabular-nums ${
                   isToday
-                    ? "font-bold text-violet-600 dark:text-violet-300"
-                    : "text-slate-400 dark:text-slate-500"
+                    ? "font-bold text-indigo-600 dark:text-indigo-400"
+                    : "text-slate-500 dark:text-slate-400"
                 }`}
               >
                 {isToday ? "今天" : fmtDay(t.date)}
               </div>
-              <div className="text-[9px] leading-none text-slate-300 dark:text-slate-600">
+              <div className="text-[10px] leading-none text-slate-400 dark:text-slate-500 tabular-nums">
                 {t.judged > 0 ? `${t.hits}/${t.judged}` : "·"}
               </div>
             </div>
@@ -462,26 +607,26 @@ function LeaderboardPanel({ data }: { data: OverviewResult }) {
   const rows = data.leaderboard;
   return (
     <PanelShell
-      title="源命中率排行"
+      title="数据源命中率排行"
       icon={<StarIcon size={16} />}
-      subtitle="判定 ≥10 期的数据源，按命中率排序"
+      subtitle="统计样本 ≥10 期的数据源，按实测命中率降序"
       more={{ to: "/collector/ratings", label: "完整评级" }}
     >
       {rows.length === 0 ? (
         <EmptyHint text="暂无足够的判定数据生成排行" />
       ) : (
-        <ol className="flex flex-col divide-y divide-slate-200/50 dark:divide-white/6">
+        <ol className="flex flex-col divide-y divide-slate-100 dark:divide-white/[0.05]">
           {rows.map((r, i) => (
-            <li key={r.source_id} className="flex items-center gap-3 py-2.5">
+            <li key={r.source_id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
               <span
-                className={`w-6 h-6 shrink-0 rounded-lg flex items-center justify-center text-[11px] font-extrabold ${
+                className={`w-6 h-6 shrink-0 rounded-lg flex items-center justify-center text-xs font-bold tabular-nums ${
                   i === 0
-                    ? "bg-amber-500/15 text-amber-600 dark:text-amber-300"
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
                     : i === 1
-                      ? "bg-slate-400/15 text-slate-500 dark:text-slate-300"
+                      ? "bg-slate-200/80 text-slate-700 dark:bg-slate-400/20 dark:text-slate-200"
                       : i === 2
-                        ? "bg-orange-500/15 text-orange-600 dark:text-orange-300"
-                        : "text-slate-400"
+                        ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300"
+                        : "bg-slate-100 text-slate-500 dark:bg-white/[0.04] dark:text-slate-400"
                 }`}
               >
                 {i + 1}
@@ -491,42 +636,44 @@ function LeaderboardPanel({ data }: { data: OverviewResult }) {
                   <span className="text-sm font-semibold truncate text-slate-800 dark:text-slate-100">
                     {r.source_name}
                   </span>
-                  <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-md glass-subtle text-slate-500 dark:text-slate-400">
+                  <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 font-medium">
                     {r.play_type ? playLabel(r.play_type) : "—"}
                   </span>
                   {r.streak_hit !== null && r.current_streak >= 2 && (
                     <span
-                      className={`shrink-0 text-[10px] font-bold ${
+                      className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
                         r.streak_hit
-                          ? "text-emerald-600 dark:text-emerald-300"
-                          : "text-rose-600 dark:text-rose-300"
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                          : "bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300"
                       }`}
                     >
-                      {r.streak_hit ? `连中${r.current_streak}` : `连挂${r.current_streak}`}
+                      {r.streak_hit ? `连中 ${r.current_streak}` : `连挂 ${r.current_streak}`}
                     </span>
                   )}
                 </div>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 rounded-full bg-slate-200/60 dark:bg-white/8 overflow-hidden">
+                <div className="mt-1.5 flex items-center gap-2.5">
+                  <div className="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-white/[0.06] overflow-hidden">
                     <div
                       className={`h-full rounded-full ${rateBar(r.hit_rate)}`}
                       style={{ width: `${Math.round((r.hit_rate ?? 0) * 100)}%` }}
                     />
                   </div>
                   {/* 近期战绩点 */}
-                  <span className="hidden sm:inline-flex items-center gap-[3px] shrink-0">
+                  <span className="hidden sm:inline-flex items-center gap-1 shrink-0">
                     {r.recent.slice(0, 8).map((hit, j) => (
                       <span
                         key={j}
-                        className={`w-1.5 h-1.5 rounded-full ${hit ? "bg-emerald-500" : "bg-rose-400"}`}
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          hit ? "bg-emerald-500" : "bg-rose-400/80"
+                        }`}
                       />
                     ))}
                   </span>
                 </div>
               </div>
-              <div className="shrink-0 text-right">
-                <div className={`text-sm font-extrabold ${rateTone(r.hit_rate)}`}>{pct(r.hit_rate)}</div>
-                <div className="text-[10px] text-slate-400">
+              <div className="shrink-0 text-right tabular-nums">
+                <div className={`text-sm font-bold ${rateTone(r.hit_rate)}`}>{pct(r.hit_rate)}</div>
+                <div className="text-[10px] text-slate-400 dark:text-slate-500">
                   {r.hits}/{r.judged} 期
                 </div>
               </div>
@@ -548,38 +695,39 @@ function PlayTypePanel({ data }: { data: OverviewResult }) {
     <PanelShell
       title="玩法命中率分布"
       icon={<CompareIcon size={16} />}
-      subtitle={`共 ${data.totals.judge_results.toLocaleString()} 条判定记录`}
+      subtitle={`累计 ${data.totals.judge_results.toLocaleString()} 条对奖判定样本`}
     >
       {rows.length === 0 ? (
         <EmptyHint text="暂无判定数据" />
       ) : (
-        <div className="flex flex-col gap-2.5 mt-1">
+        <div className="flex flex-col gap-2.5">
           {rows.map((r) => (
             <div key={r.play_type} className="flex items-center gap-3">
-              <span className="w-14 shrink-0 text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">
+              <span className="w-16 shrink-0 text-xs font-medium text-slate-700 dark:text-slate-300 truncate">
                 {playLabel(r.play_type)}
               </span>
               <div className="flex-1 min-w-0">
-                <div className="h-4 rounded-lg bg-slate-200/50 dark:bg-white/6 overflow-hidden relative">
+                <div className="h-5 rounded-lg bg-slate-100 dark:bg-white/[0.05] overflow-hidden relative">
                   <div
-                    className={`h-full rounded-lg ${rateBar(r.hit_rate)} opacity-80`}
-                    style={{ width: `${(r.judged / maxJudged) * 100}%` }}
+                    className={`h-full rounded-lg ${rateBar(r.hit_rate)} opacity-25 dark:opacity-30`}
+                    style={{ width: `${Math.max(6, (r.judged / maxJudged) * 100)}%` }}
                   />
-                  <span className="absolute inset-0 flex items-center px-2 text-[10px] font-medium text-slate-600 dark:text-slate-300">
-                    {r.judged.toLocaleString()} 期
+                  <span className="absolute inset-0 flex items-center px-2.5 text-[11px] font-medium text-slate-600 dark:text-slate-300 tabular-nums">
+                    {r.judged.toLocaleString()} 期样本
                   </span>
                 </div>
               </div>
-              <span className={`w-14 shrink-0 text-right text-xs font-extrabold ${rateTone(r.hit_rate)}`}>
+              <span
+                className={`w-14 shrink-0 text-right text-xs font-bold tabular-nums ${rateTone(
+                  r.hit_rate,
+                )}`}
+              >
                 {pct(r.hit_rate)}
               </span>
             </div>
           ))}
         </div>
       )}
-      <p className="mt-3 text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed">
-        条形长度代表判定样本量，颜色代表命中率水平。
-      </p>
     </PanelShell>
   );
 }
@@ -589,38 +737,41 @@ function PlayTypePanel({ data }: { data: OverviewResult }) {
 // --------------------------------------------------------------------------- //
 function AlertsPanel({ data }: { data: OverviewResult }) {
   const { alerts, judge } = data;
-  const ok = alerts.lagging_sources === 0 && judge.pending_judge === 0 && alerts.never_collected === 0;
+  const ok =
+    alerts.lagging_sources === 0 && judge.pending_judge === 0 && alerts.never_collected === 0;
   return (
     <PanelShell
-      title="采集告警"
+      title="采集与同步告警"
       icon={<AlertIcon size={16} />}
       more={{ to: "/collector/monitor", label: "缺期监控" }}
-      subtitle={ok ? "所有启用源均已同步到最新期" : undefined}
+      subtitle={ok ? "所有启用源均已同步至最新期" : undefined}
     >
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <AlertStat label="缺期源" value={alerts.lagging_sources} danger={alerts.lagging_sources > 0} />
-        <AlertStat label="待判定" value={judge.pending_judge} danger={judge.pending_judge > 0} />
+      <div className="grid grid-cols-3 gap-2.5 mb-3.5">
         <AlertStat
-          label="确认缺期"
-          value={alerts.confirmed_missing_total}
-          danger={false}
+          label="缺期源"
+          value={alerts.lagging_sources}
+          danger={alerts.lagging_sources > 0}
         />
+        <AlertStat label="待判定" value={judge.pending_judge} danger={judge.pending_judge > 0} />
+        <AlertStat label="确认缺期" value={alerts.confirmed_missing_total} danger={false} />
       </div>
+
       {ok && alerts.items.length === 0 ? (
-        <div className="flex items-center gap-2 rounded-2xl bg-emerald-500/8 border border-emerald-400/25 px-4 py-3 text-xs text-emerald-700 dark:text-emerald-300">
-          <CheckIcon size={14} />
-          数据覆盖完整，无需处理
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200/80 dark:bg-emerald-500/10 dark:border-emerald-500/25 px-4 py-3.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+          <CheckIcon size={15} />
+          <span>全站启用数据源覆盖完整，当前无需人工干预</span>
         </div>
       ) : (
-        <ul className="flex flex-col divide-y divide-slate-200/50 dark:divide-white/6">
+        <ul className="flex flex-col divide-y divide-slate-100 dark:divide-white/[0.05] max-h-48 overflow-y-auto pr-1">
           {alerts.items.map((a) => (
-            <li key={a.source_id} className="flex items-center gap-3 py-2.5">
+            <li key={a.source_id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold truncate text-slate-800 dark:text-slate-100">
+                <div className="text-xs sm:text-sm font-semibold truncate text-slate-800 dark:text-slate-100">
                   {a.source_name}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-0.5">
-                  {LOTTERY_LABEL[a.lottery] ?? a.lottery} · {playLabel(a.play_type)} · 最新 {a.latest_period}
+                <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                  {LOTTERY_LABEL[a.lottery] ?? a.lottery} · {playLabel(a.play_type)} · 停留在{" "}
+                  {a.latest_period}
                 </div>
               </div>
               {a.lag > 0 && <StatusPill variant="warning">缺 {a.lag} 期</StatusPill>}
@@ -629,32 +780,35 @@ function AlertsPanel({ data }: { data: OverviewResult }) {
           ))}
         </ul>
       )}
-      {alerts.items.length > 0 && (
-        <p className="mt-3 text-[10px] text-slate-400 dark:text-slate-500">
-          缺期 = 已开奖但该源尚未采集入库的期数，前往缺期监控可批量确认。
-        </p>
-      )}
     </PanelShell>
   );
 }
 
-function AlertStat({ label, value, danger }: { label: string; value: number; danger: boolean }) {
+function AlertStat({
+  label,
+  value,
+  danger,
+}: {
+  label: string;
+  value: number;
+  danger: boolean;
+}) {
   return (
     <div
-      className={`rounded-2xl px-3 py-2.5 text-center border ${
+      className={`rounded-xl px-3 py-2.5 text-center border ${
         danger
-          ? "bg-amber-500/8 border-amber-400/25"
-          : "bg-slate-500/5 border-slate-300/20 dark:border-white/6"
+          ? "bg-amber-50/80 border-amber-200/80 dark:bg-amber-500/10 dark:border-amber-500/25"
+          : "bg-slate-50/80 border-slate-200/60 dark:bg-white/[0.025] dark:border-white/[0.06]"
       }`}
     >
       <div
-        className={`text-lg font-extrabold leading-none ${
-          danger ? "text-amber-600 dark:text-amber-300" : "text-slate-700 dark:text-slate-200"
+        className={`text-lg font-bold leading-none tabular-nums ${
+          danger ? "text-amber-600 dark:text-amber-400" : "text-slate-800 dark:text-slate-100"
         }`}
       >
         {value.toLocaleString()}
       </div>
-      <div className="mt-1 text-[10px] text-slate-400">{label}</div>
+      <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{label}</div>
     </div>
   );
 }
@@ -669,14 +823,14 @@ function SchedulePanel({ data }: { data: OverviewResult }) {
 
   return (
     <PanelShell
-      title="调度与最近采集"
+      title="调度与最近执行"
       icon={<ClockIcon size={16} />}
-      more={{ to: "/collector/sources", label: "任务管理" }}
+      more={{ to: "/collector/sources?tab=schedules", label: "任务管理" }}
     >
-      {/* 开奖同步 + 采集调度状态行 */}
       <div className="flex flex-wrap gap-2">
         <StatusPill variant={draw?.enabled ? (draw.in_window ? "success" : "info") : "neutral"}>
-          开奖自动同步{draw?.enabled ? (draw.in_window ? " · 窗口内运行中" : " · 已启用") : " · 已停用"}
+          开奖自动同步
+          {draw?.enabled ? (draw.in_window ? " · 窗口运行中" : " · 已启用") : " · 已停用"}
         </StatusPill>
         {draw?.next_run_at && (
           <StatusPill variant="neutral" dot={false}>
@@ -686,60 +840,64 @@ function SchedulePanel({ data }: { data: OverviewResult }) {
         {sched?.source && (
           <StatusPill variant={sched.source.active_tasks_count > 0 ? "warning" : "success"}>
             {sched.source.active_tasks_count > 0
-              ? `${sched.source.active_tasks_count} 个采集任务进行中`
+              ? `${sched.source.active_tasks_count} 个采集任务运行中`
               : "采集调度空闲"}
           </StatusPill>
         )}
       </div>
 
-      {/* 下一个定时任务 */}
       {next && (
-        <div className="mt-3 rounded-2xl bg-violet-500/6 border border-violet-400/20 px-4 py-3 flex items-center gap-3">
-          <CalendarIcon size={16} className="text-violet-500 dark:text-violet-300 shrink-0" />
+        <div className="mt-3 rounded-xl bg-indigo-50/60 border border-indigo-200/60 dark:bg-indigo-500/10 dark:border-indigo-500/20 px-3.5 py-2.5 flex items-center gap-3">
+          <CalendarIcon size={16} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">{next.name}</div>
-            <div className="text-[11px] text-slate-400 mt-0.5">
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
+              {next.name}
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
               {LOTTERY_LABEL[next.lottery] ?? next.lottery}
               {next.cron ? ` · ${next.cron}` : ""}
             </div>
           </div>
           <div className="shrink-0 text-right">
-            <div className="text-[10px] text-slate-400">下次执行</div>
-            <div className="text-xs font-bold text-violet-600 dark:text-violet-300">
+            <div className="text-[10px] text-slate-400 dark:text-slate-500">下次执行</div>
+            <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-300 tabular-nums">
               {fmtMinute(next.next_run_at)}
             </div>
           </div>
         </div>
       )}
 
-      {/* 最近采集日志 */}
       <div className="mt-4">
-        <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">最近执行</div>
+        <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">
+          最近调度日志
+        </div>
         {data.recent_logs.length === 0 ? (
           <EmptyHint text="暂无采集执行记录" />
         ) : (
-          <ol className="relative space-y-3 pl-4 border-l border-violet-400/25">
-            {data.recent_logs.slice(0, 5).map((log) => (
+          <ol className="relative space-y-2.5 pl-4 border-l border-slate-200 dark:border-white/10">
+            {data.recent_logs.slice(0, 4).map((log) => (
               <li key={log.id} className="relative">
                 <span
-                  className={`absolute -left-[21px] top-1.5 w-2 h-2 rounded-full ${
+                  className={`absolute -left-[20.5px] top-1.5 w-2 h-2 rounded-full ${
                     log.status === "success"
-                      ? "bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.6)]"
+                      ? "bg-emerald-500"
                       : log.status === "running"
-                        ? "bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.6)]"
-                        : "bg-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.6)]"
+                        ? "bg-amber-500"
+                        : "bg-rose-500"
                   }`}
                 />
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">
                     {log.schedule_name}
                   </span>
-                  <span className="text-[10px] text-slate-400">{log.action}</span>
-                  <span className="ml-auto text-[10px] text-slate-400 shrink-0">
+                  <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                    {log.action}
+                  </span>
+                  <span className="ml-auto text-[11px] text-slate-400 dark:text-slate-500 tabular-nums shrink-0">
                     {fmtMinute(log.created_at)}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
                   {log.status === "success" ? "成功" : log.status === "running" ? "执行中" : "失败"}
                   {log.source_total > 0 && ` · 源 ${log.source_ok}/${log.source_total}`}
                   {log.duration_sec !== null && ` · 耗时 ${log.duration_sec.toFixed(1)}s`}
@@ -755,33 +913,43 @@ function SchedulePanel({ data }: { data: OverviewResult }) {
 }
 
 // --------------------------------------------------------------------------- //
-// 业务入口
+// 快捷业务矩阵
 // --------------------------------------------------------------------------- //
 function QuickNav() {
   const items = [
-    { to: "/collector/ai-analysis", label: "AI 研判", icon: <SparklesIcon size={18} /> },
-    { to: "/collector/sources", label: "数据源采集", icon: <DatabaseIcon size={18} /> },
-    { to: "/collector/draws", label: "开奖管理", icon: <TrophyIcon size={18} /> },
-    { to: "/collector/consensus", label: "多源对照", icon: <CompareIcon size={18} /> },
-    { to: "/collector/ratings", label: "源可信评级", icon: <StarIcon size={18} /> },
-    { to: "/collector/monitor", label: "服务监控", icon: <ActivityIcon size={18} /> },
-    { to: "/collector/numbers", label: "号码分析", icon: <HashIcon size={18} /> },
-    { to: "/settings", label: "系统设置", icon: <SettingsIcon size={18} /> },
+    { to: "/records", label: "投注记账", desc: "智能速录与结算", icon: <ClipboardListIcon size={18} /> },
+    { to: "/collector/ai-analysis", label: "AI 研判", desc: "帖文与连肖推理", icon: <SparklesIcon size={18} /> },
+    { to: "/collector/consensus", label: "多源对照", desc: "单期与共识聚合", icon: <CompareIcon size={18} /> },
+    { to: "/collector/draws", label: "开奖管理", desc: "同步与自动对奖", icon: <TrophyIcon size={18} /> },
+    { to: "/collector/pingte-ranking", label: "平特排行", desc: "热冷连开统计", icon: <TargetIcon size={18} /> },
+    { to: "/collector/ratings", label: "源可信评级", desc: "多窗口命中核算", icon: <StarIcon size={18} /> },
+    { to: "/collector/monitor", label: "缺期巡检", desc: "上游监控与治理", icon: <ActivityIcon size={18} /> },
+    { to: "/settings", label: "系统设置", desc: "模型与数据库", icon: <SettingsIcon size={18} /> },
   ];
   return (
-    <nav className="rounded-[28px] admin-card p-4">
-      <div className="px-1 pb-3 text-sm font-semibold text-slate-900 dark:text-white">业务入口</div>
-      <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+    <nav className="bento-card rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-3.5">
+        <span className="text-sm font-semibold text-slate-900 dark:text-white">核心模块直达</span>
+        <span className="text-[11px] text-slate-400 dark:text-slate-500">支持快捷键 ⌘K 全局搜索</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
         {items.map((it) => (
           <Link
             key={it.to}
             to={it.to}
-            className="flex flex-col items-center gap-2 py-3 rounded-2xl no-underline text-inherit hover:bg-violet-500/8 transition-colors group"
+            className="flex flex-col items-start gap-2 p-3.5 rounded-xl bg-slate-50/80 hover:bg-indigo-50/60 dark:bg-white/[0.025] dark:hover:bg-indigo-500/10 border border-slate-200/60 hover:border-indigo-200 dark:border-white/[0.06] dark:hover:border-indigo-500/30 no-underline text-inherit transition-all group"
           >
-            <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-violet-500/15 to-fuchsia-500/10 border border-violet-400/25 flex items-center justify-center text-violet-600 dark:text-violet-300 group-hover:scale-105 transition-transform">
+            <span className="w-9 h-9 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200/70 dark:border-white/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-2xs group-hover:scale-105 transition-transform">
               {it.icon}
             </span>
-            <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">{it.label}</span>
+            <div className="min-w-0 w-full">
+              <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
+                {it.label}
+              </div>
+              <div className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                {it.desc}
+              </div>
+            </div>
           </Link>
         ))}
       </div>
@@ -808,21 +976,23 @@ function PanelShell({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[28px] admin-card p-5 h-full flex flex-col">
-      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+    <div className="bento-card rounded-2xl p-5 sm:p-6 h-full flex flex-col">
+      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-white/[0.06] flex-wrap">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            {icon && <span className="text-violet-500 dark:text-violet-300">{icon}</span>}
+          <h3 className="text-[15px] font-semibold text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
+            {icon && <span className="text-indigo-600 dark:text-indigo-400">{icon}</span>}
             {title}
           </h3>
-          {subtitle && <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{subtitle}</p>}
+          {subtitle && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {tabs}
           {more && (
             <Link
               to={more.to}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-600 dark:text-violet-300 hover:underline underline-offset-2 no-underline"
+              className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 no-underline"
             >
               {more.label}
               <ArrowRightIcon size={12} />
@@ -837,7 +1007,7 @@ function PanelShell({
 
 function EmptyHint({ text }: { text: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300/50 dark:border-white/10 px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+    <div className="rounded-xl border border-dashed border-slate-200 dark:border-white/10 px-4 py-8 text-center text-xs text-slate-400 dark:text-slate-500">
       {text}
     </div>
   );

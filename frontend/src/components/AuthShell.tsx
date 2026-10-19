@@ -1,10 +1,27 @@
 import type { ReactNode } from "react";
-import { ShieldIcon } from "./icons";
+import { ShieldIcon, SparklesIcon, CompareIcon, DatabaseIcon } from "./icons";
 
-const POINTS = [
-  { title: "端到端信封加密", desc: "RSA 握手 + AES-256-GCM" },
-  { title: "请求签名防重放", desc: "HMAC · 时间戳 · nonce" },
-  { title: "多设备可吊销", desc: "会话随时踢除" },
+const BENTO_FEATURES = [
+  {
+    icon: <ShieldIcon size={16} />,
+    title: "端到端信封加密",
+    desc: "RSA-4096 握手 + AES-256-GCM 载荷保护",
+  },
+  {
+    icon: <DatabaseIcon size={16} />,
+    title: "全自动多源采集",
+    desc: "定时巡检、缺期监控与智能补采",
+  },
+  {
+    icon: <CompareIcon size={16} />,
+    title: "全站共识与评级",
+    desc: "多窗口真实命中率核算与虚假报喜识别",
+  },
+  {
+    icon: <SparklesIcon size={16} />,
+    title: "AI 深度研判与复盘",
+    desc: "智能文本速录、自动对奖与多模型研判",
+  },
 ];
 
 export function AuthShell({
@@ -19,84 +36,101 @@ export function AuthShell({
   footer?: ReactNode;
 }) {
   return (
-    <div className="min-h-screen w-full relative overflow-hidden font-sans text-slate-100">
+    <div className="min-h-screen w-full relative overflow-hidden font-sans text-slate-900 dark:text-slate-100 bg-[var(--background)]">
       <div className="app-aurora" />
-      <div className="app-aurora-grid" />
-      <div
-        className="auth-glow-orb w-[36rem] h-[36rem] -top-32 -left-24"
-        style={{ background: "radial-gradient(circle, oklch(0.62 0.26 283 / 55%), transparent 70%)" }}
-      />
-      <div
-        className="auth-glow-orb w-[30rem] h-[30rem] top-[15%] -right-20"
-        style={{ background: "radial-gradient(circle, oklch(0.58 0.28 320 / 45%), transparent 70%)" }}
-      />
-      <div
-        className="auth-glow-orb w-[28rem] h-[28rem] bottom-[-10%] left-[35%]"
-        style={{ background: "radial-gradient(circle, oklch(0.55 0.22 250 / 40%), transparent 70%)" }}
-      />
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-5xl grid lg:grid-cols-[1.05fr_0.95fr] gap-4 lg:gap-5 items-stretch">
-          <aside className="hidden lg:flex flex-col justify-between glass-panel rounded-[28px] p-8 xl:p-10 relative overflow-hidden">
-            <div className="pointer-events-none absolute -right-10 -top-10 w-56 h-56 rounded-full bg-fuchsia-500/20 blur-3xl" />
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-10">
+        <div className="w-full max-w-5xl grid lg:grid-cols-[1.08fr_0.92fr] gap-5 items-stretch">
+          {/* Left Bento Brand & Capabilities Showcase */}
+          <aside className="hidden lg:flex flex-col justify-between bento-card rounded-3xl p-8 xl:p-10 relative overflow-hidden">
             <div>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl brand-gradient flex items-center justify-center text-white font-bold text-xl shadow-[0_12px_30px_-10px_rgba(139,92,246,0.85)]">
-                  对
-                </div>
+                <div className="w-11 h-11 rounded-2xl brand-mark text-lg">对</div>
                 <div>
-                  <div className="text-xl font-bold text-gradient tracking-[0.2em]">对料</div>
-                  <div className="text-[11px] text-slate-400">Aurora Command Console</div>
+                  <div className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+                    对料工作台
+                  </div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">
+                    Bento Intelligence Studio
+                  </div>
                 </div>
               </div>
-              <div className="display-kicker mt-10">Glass Mission Control</div>
-              <h2 className="display-title mt-3 max-w-md">
-                采集 · 对照 · 研判
-                <span className="text-gradient"> 一张玻璃台完成</span>
+
+              <div className="display-kicker mt-10">Data & Consensus Workspace</div>
+              <h2 className="text-2xl xl:text-3xl font-bold tracking-tight text-slate-900 dark:text-white mt-2.5 leading-snug">
+                采集、对照、记账与 AI 研判，
+                <br />
+                <span className="text-indigo-600 dark:text-indigo-400">尽在清爽有序的卡片工作台。</span>
               </h2>
-              <p className="mt-4 text-sm text-slate-300/80 leading-relaxed max-w-md">
-                登录后使用顶部 Command Bar 跳转模块。数据链路全程信封加密，不在页面留下明文密钥。
+              <p className="mt-3.5 text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-md">
+                全链路零明文信封加密传输，自动同步官方开奖并核算各数据源真实命中率。
               </p>
             </div>
-            <ul className="space-y-2.5 mt-8">
-              {POINTS.map((point) => (
-                <li key={point.title} className="flex items-center gap-3 p-3 rounded-2xl glass-subtle">
-                  <span className="w-9 h-9 rounded-xl brand-gradient flex items-center justify-center text-white shrink-0">
-                    <ShieldIcon size={14} />
+
+            <div className="grid grid-cols-2 gap-3 my-8">
+              {BENTO_FEATURES.map((feat) => (
+                <div
+                  key={feat.title}
+                  className="p-4 rounded-2xl bg-slate-50/90 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] flex flex-col gap-2"
+                >
+                  <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300 flex items-center justify-center">
+                    {feat.icon}
                   </span>
                   <div>
-                    <div className="text-sm font-semibold">{point.title}</div>
-                    <div className="text-[11px] text-slate-400">{point.desc}</div>
+                    <div className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                      {feat.title}
+                    </div>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                      {feat.desc}
+                    </div>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
-            <div className="flex gap-2 mt-8 text-[10px] text-slate-400">
-              <span className="px-2 py-1 rounded-lg glass-subtle">RSA-4096</span>
-              <span className="px-2 py-1 rounded-lg glass-subtle">AES-256-GCM</span>
-              <span className="px-2 py-1 rounded-lg glass-subtle">HMAC</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400">
+                RSA-4096
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400">
+                AES-256-GCM
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400">
+                HMAC-SHA256
+              </span>
             </div>
           </aside>
 
-          <section className="glass-panel rounded-[28px] p-6 sm:p-8 animate-glassPop relative overflow-hidden flex flex-col justify-center">
-            <div
-              className="pointer-events-none absolute -top-20 -right-12 w-48 h-48 rounded-full opacity-50"
-              style={{ background: "radial-gradient(circle, oklch(0.7 0.22 296 / 55%), transparent 70%)" }}
-            />
-            <div className="relative">
-              <div className="lg:hidden flex items-center gap-2.5 mb-5">
-                <div className="w-9 h-9 rounded-xl brand-gradient flex items-center justify-center text-white font-bold">对</div>
-                <span className="font-bold text-gradient tracking-[0.18em]">对料</span>
+          {/* Right Login / Bootstrap Card */}
+          <section className="bento-card rounded-3xl p-6 sm:p-9 animate-glassPop flex flex-col justify-center">
+            <div>
+              <div className="lg:hidden flex items-center gap-2.5 mb-6">
+                <div className="w-9 h-9 rounded-xl brand-mark text-sm">对</div>
+                <span className="font-bold text-base text-slate-900 dark:text-white tracking-tight">
+                  对料工作台
+                </span>
               </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-200 border border-emerald-400/30 mb-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                E2EE 端到端加密
+
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-500/12 dark:text-emerald-300 dark:border-emerald-500/25 mb-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                E2EE 端到端加密通道
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{title}</h1>
-              {description ? <p className="mt-2 text-xs sm:text-sm text-slate-400 leading-relaxed">{description}</p> : null}
+
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                {title}
+              </h1>
+              {description ? (
+                <p className="mt-1.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  {description}
+                </p>
+              ) : null}
+
               <div className="mt-6">{children}</div>
+
               {footer ? (
-                <div className="mt-6 pt-4 border-t border-white/8 text-center text-xs text-slate-500">{footer}</div>
+                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.06] text-center text-xs text-slate-500 dark:text-slate-400">
+                  {footer}
+                </div>
               ) : null}
             </div>
           </section>

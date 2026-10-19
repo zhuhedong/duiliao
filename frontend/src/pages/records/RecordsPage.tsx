@@ -10,8 +10,9 @@ import {
   CopyIcon,
   TrashIcon,
   SparklesIcon,
+  SearchIcon,
 } from "../../components/icons";
-import { LOTTERIES } from "../collector/shared";
+import { LOTTERIES, PageWorkspace, SegmentedTabs, StatusPill } from "../collector/shared";
 import { LOTTERY_LABEL, type Lottery } from "../../lib/collector";
 import { BOSE_COLORS, getBose, getXiao } from "../../lib/lotteryAttr";
 import {
@@ -62,7 +63,7 @@ export function RecordsPage() {
   }, [lottery, statusFilter]);
 
   useEffect(() => {
-    fetchRecords();
+    void fetchRecords();
   }, [fetchRecords]);
 
   // One-click settle
@@ -130,223 +131,183 @@ export function RecordsPage() {
       arr.push(r);
       map.set(r.period, arr);
     }
-    // Return sorted periods descending
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [filteredRecords]);
 
-  // Latest active period for suggestions
   const latestPeriod = records[0]?.period || "";
 
-  return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-4 animate-fadeIn">
-      {/* Top Banner / Hero Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-              <ClipboardListIcon size={26} className="text-primary" />
-              <span>投注记录 · 智能对奖</span>
-            </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-              自动识别 · 官方核算
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            支持智能文本速录、生肖一键包码、开奖全自动化比对与盈亏复盘
-          </p>
-        </div>
+  const lotteryTabs = useMemo(
+    () => [
+      { id: "all", label: "全部彩种" },
+      ...LOTTERIES.map((l) => ({ id: l.value, label: l.label })),
+    ],
+    [],
+  );
 
-        {/* Action Buttons Toolbar */}
+  const statusTabs = useMemo(
+    () => [
+      { id: "all", label: "全部", count: stats?.total_records },
+      { id: "pending", label: "待开奖", count: stats?.pending_count },
+      { id: "won", label: "已中奖", count: stats?.won_count },
+      { id: "lost", label: "未中", count: stats?.lost_count },
+    ],
+    [stats],
+  );
+
+  return (
+    <PageWorkspace
+      summary="支持智能文本速录、生肖一键包码、官方开奖自动比对结算与多期盈亏复盘。"
+      actions={
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => setStatsModalOpen(true)}
-            className="gap-1.5 text-xs shadow-sm"
           >
             <BarChartIcon size={14} />
-            <span>统计分析</span>
+            <span>统计报表</span>
           </Button>
 
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={handleSettle}
             disabled={settling}
-            className="gap-1.5 text-xs shadow-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700"
+            className="text-emerald-700 dark:text-emerald-300"
           >
-            {settling ? <Spinner className="size-4" /> : <RefreshIcon size={14} />}
+            {settling ? <Spinner className="size-3.5" /> : <RefreshIcon size={14} />}
             <span>一键对奖</span>
           </Button>
 
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => setAddModalOpen(true)}
-            className="gap-1.5 text-xs shadow-md shadow-primary/20"
-          >
-            <PlusIcon size={16} />
+          <Button type="button" size="sm" onClick={() => setAddModalOpen(true)}>
+            <PlusIcon size={15} />
             <span>新增记录</span>
           </Button>
         </div>
-      </div>
-
-      {/* KPI Overview Summary Banner */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {/* Card 1: Pending Stake */}
-        <div className="p-4 sm:p-5 rounded-3xl glass-card relative overflow-hidden">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            待开奖投入
+      }
+    >
+      {/* Bento 4-Column KPI Summary */}
+      <div className="bento-grid">
+        <div className="bento-span-3 bento-card rounded-2xl p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              待开奖投入
+            </span>
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold font-mono text-slate-900 dark:text-white mt-2">
+          <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">
             ¥{stats?.pending_stake ?? 0}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5">
-            <span className="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>
-              {stats?.pending_count ?? 0} 单 · {stats?.pending_notes ?? 0} 注待开
+          <div className="text-[11px] text-slate-400 dark:text-slate-500">
+            {stats?.pending_count ?? 0} 单 · {stats?.pending_notes ?? 0} 注待结算
+          </div>
+        </div>
+
+        <div className="bento-span-3 bento-card rounded-2xl p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              累计净盈亏
+            </span>
+            <span className="text-[11px] font-mono font-semibold text-slate-400 dark:text-slate-500">
+              ROI {stats?.roi_pct ?? 0}%
             </span>
           </div>
-        </div>
-
-        {/* Card 2: Net Profit / Loss */}
-        <div className="p-4 sm:p-5 rounded-3xl glass-card relative overflow-hidden">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            累计净盈亏
-          </div>
           <div
-            className={`text-2xl sm:text-3xl font-extrabold font-mono mt-2 ${
-              (stats?.net_profit ?? 0) >= 0 ? "text-emerald-500" : "text-rose-500"
+            className={`text-2xl sm:text-3xl font-bold font-mono tabular-nums ${
+              (stats?.net_profit ?? 0) >= 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-rose-600 dark:text-rose-400"
             }`}
           >
-            {(stats?.net_profit ?? 0) >= 0 ? `+¥${stats?.net_profit ?? 0}` : `¥${stats?.net_profit ?? 0}`}
+            {(stats?.net_profit ?? 0) >= 0
+              ? `+¥${stats?.net_profit ?? 0}`
+              : `¥${stats?.net_profit ?? 0}`}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
-            投资回报率 (ROI): <span className="font-mono font-bold">{stats?.roi_pct ?? 0}%</span>
+          <div className="text-[11px] text-slate-400 dark:text-slate-500">
+            已结清记录净收益汇总
           </div>
         </div>
 
-        {/* Card 3: Total Payout vs Stake */}
-        <div className="p-4 sm:p-5 rounded-3xl glass-card relative overflow-hidden">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            已结算派彩
+        <div className="bento-span-3 bento-card rounded-2xl p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              已结算派彩
+            </span>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+              中 {stats?.hit_notes ?? 0} 注
+            </span>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-500 mt-2">
+          <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
             ¥{stats?.total_payout ?? 0}
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
-            总投入: <span className="font-mono">¥{stats?.total_stake ?? 0}</span> · 中 {stats?.hit_notes ?? 0} 注
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+            累计总投入 ¥{stats?.total_stake ?? 0}
           </div>
         </div>
 
-        {/* Card 4: Win Rate */}
-        <div className="p-4 sm:p-5 rounded-3xl glass-card relative overflow-hidden">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            中单胜率
+        <div className="bento-span-3 bento-card rounded-2xl p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              中单胜率
+            </span>
+            <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
+              官方核验
+            </span>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold font-mono text-primary mt-2">
+          <div className="text-2xl sm:text-3xl font-bold font-mono tabular-nums text-indigo-600 dark:text-indigo-400">
             {stats?.win_rate ?? 0}%
           </div>
-          <div className="text-[11px] text-slate-400 mt-1">
-            胜单: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{stats?.won_count ?? 0}</span> / {stats?.settled_orders ?? 0} 单
+          <div className="text-[11px] text-slate-400 dark:text-slate-500">
+            胜单 <b className="text-slate-700 dark:text-slate-200">{stats?.won_count ?? 0}</b> /{" "}
+            {stats?.settled_orders ?? 0} 已结单
           </div>
         </div>
       </div>
 
-      {/* Lottery & Filter Tabs & Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-2xl glass-card">
-        {/* Left: Lottery Pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setLottery("all")}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${
-              lottery === "all"
-                ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"
-            }`}
-          >
-            全部彩种
-          </button>
-          {LOTTERIES.map((l) => (
-            <button
-              key={l.value}
-              type="button"
-              onClick={() => setLottery(l.value)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-xl transition-all ${
-                lottery === l.value
-                  ? "bg-primary text-white shadow-md shadow-primary/25"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"
-              }`}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
+      {/* Filter & Search Bento Toolbar */}
+      <div className="bento-card rounded-2xl p-3.5 sm:p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <SegmentedTabs
+          tabs={lotteryTabs}
+          activeTab={lottery}
+          onChange={setLottery}
+        />
 
-        {/* Right: Status Tabs + Search */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 p-1 rounded-xl text-xs">
-            {(
-              [
-                { id: "all", label: "全部", count: stats?.total_records },
-                { id: "pending", label: "待开奖", count: stats?.pending_count },
-                { id: "won", label: "已中奖", count: stats?.won_count },
-                { id: "lost", label: "未中", count: stats?.lost_count },
-              ] as const
-            ).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setStatusFilter(t.id)}
-                className={`px-2.5 py-1 rounded-lg font-medium transition-all flex items-center gap-1 ${
-                  statusFilter === t.id
-                    ? "bg-white dark:bg-violet-600 text-slate-900 dark:text-white shadow-sm font-bold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <span>{t.label}</span>
-                {typeof t.count === "number" && t.count > 0 && (
-                  <span
-                    className={`text-[10px] px-1.5 rounded-full font-mono ${
-                      t.id === "won"
-                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                        : t.id === "pending"
-                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                        : "bg-slate-200 dark:bg-white/10"
-                    }`}
-                  >
-                    {t.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索期号/号码/备注..."
-            className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-primary w-40 sm:w-48"
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <SegmentedTabs
+            tabs={statusTabs}
+            activeTab={statusFilter}
+            onChange={setStatusFilter}
           />
+
+          <div className="relative flex items-center">
+            <SearchIcon
+              size={14}
+              className="absolute left-3 text-slate-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="搜索期号 / 号码 / 备注…"
+              className="h-9 pl-8 pr-3 text-xs rounded-xl bento-input w-44 sm:w-52"
+            />
+          </div>
 
           {records.length > 0 && (
             <button
               type="button"
               onClick={handleClear}
               title="清空当前筛选记录"
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+              className="inline-flex items-center justify-center h-9 w-9 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-slate-200/70 dark:border-white/10 transition-colors cursor-pointer"
             >
-              <TrashIcon size={16} />
+              <TrashIcon size={15} />
             </button>
           )}
         </div>
       </div>
 
-      {/* Error alert */}
       {error && (
         <Alert variant="error">
           <AlertDescription>{error}</AlertDescription>
@@ -355,77 +316,60 @@ export function RecordsPage() {
 
       {/* Main Content: Period Groups */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-24 space-y-3">
-          <Spinner className="size-8 text-primary" />
+        <div className="bento-card rounded-2xl flex flex-col items-center justify-center py-20 gap-3">
+          <Spinner className="size-6 text-indigo-600" />
           <span className="text-xs text-slate-400">正在加载投注对奖数据...</span>
         </div>
       ) : groupedPeriods.length === 0 ? (
-        /* Empty State */
-        <div className="p-12 rounded-3xl glass-card text-center space-y-4 max-w-lg mx-auto my-8">
-          <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary flex items-center justify-center mx-auto shadow-inner">
-            <ClipboardListIcon size={32} />
+        <div className="bento-card rounded-2xl p-12 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400 flex items-center justify-center mx-auto">
+            <ClipboardListIcon size={24} />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              暂无投注记录
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+              暂无符合条件的投注记录
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xs mx-auto">
-              通过智能文本或号码选板快速添加投注单，开奖后系统将全自动进行中奖计算与盈亏复盘。
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
+              通过智能文本或号码选板快速添加投注单，官方开奖后系统将自动计算中奖结果与盈亏。
             </p>
           </div>
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <Button
-              type="button"
-              onClick={() => setAddModalOpen(true)}
-              className="gap-1.5 shadow-md shadow-primary/25"
-            >
-              <PlusIcon size={16} />
+          <div className="pt-2">
+            <Button type="button" size="sm" onClick={() => setAddModalOpen(true)}>
+              <PlusIcon size={15} />
               <span>立即录入第一单</span>
             </Button>
           </div>
         </div>
       ) : (
-        /* Period Sections */
-        <div className="space-y-6">
+        <div className="space-y-5">
           {groupedPeriods.map(([periodStr, periodRecords]) => {
             const hasPending = periodRecords.some((r) => r.status === "pending");
             const periodNet = periodRecords.reduce((acc, r) => acc + (r.net_profit || 0), 0);
             const periodStake = periodRecords.reduce((acc, r) => acc + (r.total_amount || 0), 0);
 
             return (
-              <section key={periodStr} className="space-y-3">
+              <section key={periodStr} className="space-y-2.5">
                 {/* Period Group Header */}
-                <div className="flex items-center justify-between px-2">
+                <div className="flex items-center justify-between px-1 flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full bg-primary shadow-sm" />
-                    <h2 className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white font-mono tabular-nums">
                       第 {periodStr} 期
                     </h2>
-                    <span className="text-xs text-slate-400">
-                      ({periodRecords.length} 单 · 投入 ¥{periodStake})
+                    <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                      {periodRecords.length} 单 · 投入 ¥{periodStake}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* Period Status Badge */}
                     {hasPending ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        待开奖
-                      </span>
+                      <StatusPill variant="warning">待开奖</StatusPill>
                     ) : (
-                      <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold font-mono ${
-                          periodNet >= 0
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
-                            : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
-                        }`}
-                      >
+                      <StatusPill variant={periodNet >= 0 ? "success" : "danger"} dot={false}>
                         本期盈亏 {periodNet >= 0 ? `+¥${periodNet}` : `¥${periodNet}`}
-                      </span>
+                      </StatusPill>
                     )}
 
-                    {/* Copy Period Button */}
                     <button
                       type="button"
                       onClick={() => {
@@ -433,7 +377,7 @@ export function RecordsPage() {
                         setCopySourcePeriod(periodStr);
                         setCopyModalOpen(true);
                       }}
-                      className="text-xs px-2.5 py-1 rounded-xl glass-subtle text-slate-600 dark:text-slate-300 hover:text-primary hover:bg-primary/10 transition-colors flex items-center gap-1"
+                      className="text-xs px-2.5 py-1 rounded-lg bg-white dark:bg-white/[0.05] border border-slate-200/70 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer"
                       title="复制本期所有单到下一期"
                     >
                       <CopyIcon size={12} />
@@ -442,7 +386,7 @@ export function RecordsPage() {
                   </div>
                 </div>
 
-                {/* Cards Grid / List */}
+                {/* Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   {periodRecords.map((r) => {
                     const isWon = r.status === "won";
@@ -453,9 +397,8 @@ export function RecordsPage() {
                       <div
                         key={r.id}
                         onClick={() => setDetailRecord(r)}
-                        className="group p-4 sm:p-5 rounded-3xl glass-card hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer flex flex-col justify-between space-y-3 relative overflow-hidden"
+                        className="group p-4 sm:p-5 rounded-2xl bento-card hover:border-indigo-500/35 dark:hover:border-indigo-400/35 transition-all cursor-pointer flex flex-col justify-between gap-3.5"
                       >
-                        {/* Top row: Balls or Zodiacs */}
                         <div className="flex items-start justify-between gap-3">
                           {r.numbers && r.numbers.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
@@ -465,9 +408,9 @@ export function RecordsPage() {
                                 return (
                                   <span
                                     key={n}
-                                    className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white shadow-sm select-none transition-all ${
+                                    className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold font-mono text-white shadow-2xs select-none transition-all ${
                                       isHit
-                                        ? "ring-2 ring-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] scale-105"
+                                        ? "ring-2 ring-emerald-400 ring-offset-1 ring-offset-white dark:ring-offset-[#13161d] scale-105"
                                         : ""
                                     }`}
                                     style={{
@@ -486,54 +429,52 @@ export function RecordsPage() {
                               {r.xiaos.map((x) => (
                                 <span
                                   key={x}
-                                  className="px-2.5 py-1 rounded-xl text-xs font-bold bg-primary/10 text-primary border border-primary/20"
+                                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/70 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-indigo-500/25"
                                 >
                                   {x}
                                 </span>
                               ))}
                             </div>
                           ) : (
-                            <div className="text-xs text-slate-400">
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
                               {r.raw_input || "单式投注"}
                             </div>
                           )}
 
-                          {/* Status Pill on Card */}
                           <div className="shrink-0">
                             {isWon ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                              <StatusPill variant="success" dot={false}>
                                 {r.win_pill_label || `已中奖 +¥${r.net_profit}`}
-                              </span>
+                              </StatusPill>
                             ) : isLost ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                              <StatusPill variant="danger" dot={false}>
                                 未中 −¥{r.total_amount}
-                              </span>
+                              </StatusPill>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                                待开奖
-                              </span>
+                              <StatusPill variant="warning">待开奖</StatusPill>
                             )}
                           </div>
                         </div>
 
-                        {/* Bottom Row: Bet Details, Tag Badges, Actions */}
-                        <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-200/40 dark:border-white/5 flex-wrap gap-2">
+                        <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100 dark:border-white/[0.05] flex-wrap gap-2">
                           <div className="flex items-center gap-2 flex-wrap text-slate-500 dark:text-slate-400">
-                            <span>
-                              单注 <b className="text-slate-900 dark:text-white font-mono">¥{r.stake_per_note}</b> ×
-                              <span className="font-mono"> {r.notes_count}</span> 注 =
-                              <b className="text-slate-900 dark:text-white font-mono ml-0.5">
+                            <span className="tabular-nums">
+                              单注{" "}
+                              <b className="text-slate-900 dark:text-white font-mono">
+                                ¥{r.stake_per_note}
+                              </b>{" "}
+                              × <span className="font-mono">{r.notes_count}</span> 注 ={" "}
+                              <b className="text-slate-900 dark:text-white font-mono">
                                 ¥{r.total_amount}
                               </b>
                             </span>
 
-                            <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300">
+                            <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300">
                               {r.play_type}
                             </span>
 
                             {r.source_badge && (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] bg-primary/10 text-primary flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300 flex items-center gap-1">
                                 <SparklesIcon size={10} />
                                 {r.source_badge}
                               </span>
@@ -546,8 +487,7 @@ export function RecordsPage() {
                             )}
                           </div>
 
-                          {/* Quick Card Hover Actions */}
-                          <div className="flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 opacity-75 group-hover:opacity-100 transition-opacity">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -556,7 +496,7 @@ export function RecordsPage() {
                                 setCopyModalOpen(true);
                               }}
                               title="复制到新期"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors cursor-pointer"
                             >
                               <CopyIcon size={14} />
                             </button>
@@ -564,7 +504,7 @@ export function RecordsPage() {
                               type="button"
                               onClick={(e) => handleDeleteRecord(r.id, e)}
                               title="删除记录"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors cursor-pointer"
                             >
                               <TrashIcon size={14} />
                             </button>
@@ -580,18 +520,16 @@ export function RecordsPage() {
         </div>
       )}
 
-      {/* Add Modal */}
       <RecordAddModal
         isOpen={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         onSuccess={() => {
-          fetchRecords();
+          void fetchRecords();
         }}
         defaultLottery={lottery !== "all" ? lottery : "macau"}
         defaultPeriod={latestPeriod}
       />
 
-      {/* Detail Modal */}
       <RecordDetailModal
         record={detailRecord}
         isOpen={detailRecord !== null}
@@ -605,15 +543,15 @@ export function RecordsPage() {
         }}
       />
 
-      {/* Stats Modal */}
       <RecordStatsModal
         stats={stats}
         isOpen={statsModalOpen}
         onClose={() => setStatsModalOpen(false)}
-        lotteryLabel={LOTTERY_LABEL[lottery as Lottery] || (lottery === "all" ? "全部彩种" : lottery)}
+        lotteryLabel={
+          LOTTERY_LABEL[lottery as Lottery] || (lottery === "all" ? "全部彩种" : lottery)
+        }
       />
 
-      {/* Copy Modal */}
       <RecordCopyModal
         isOpen={copyModalOpen}
         onClose={() => {
@@ -621,12 +559,12 @@ export function RecordsPage() {
           setCopySourceRecord(null);
         }}
         onSuccess={() => {
-          fetchRecords();
+          void fetchRecords();
         }}
         sourceRecord={copySourceRecord}
         sourcePeriod={copySourcePeriod}
         lottery={lottery !== "all" ? lottery : "macau"}
       />
-    </div>
+    </PageWorkspace>
   );
 }

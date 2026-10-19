@@ -817,14 +817,20 @@ export function CollectorSourcesPage() {
               </div>
             }
             action={
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <SegmentedTabs
+                  value={lottery}
+                  onChange={(v) => setLottery(v as Lottery)}
+                  options={LOTTERIES.map((l) => ({ value: l.value, label: l.label }))}
+                  size="sm"
+                />
                 <button
                   type="button"
                   onClick={() => {
                     if (selected.size === visible.length) setSelected(new Set());
                     else setSelected(new Set(visible.map((s) => s.source_id)));
                   }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium border border-slate-200/50 dark:border-white/8 hover:bg-violet-500/5 dark:hover:bg-violet-400/5 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bento-subtle hover:bg-slate-200/60 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
                 >
                   {selected.size === visible.length ? "取消全选" : "全选当前"}
                 </button>
