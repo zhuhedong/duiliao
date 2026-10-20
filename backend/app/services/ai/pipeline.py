@@ -46,9 +46,15 @@ def run_ai_judgment_pipeline(
     if fetch_fresh:
         logger.info("Pipeline Step 1: Fetching fresh scraped data from 588080.com...")
         try:
-            fetch_res = fetch_588080_full_page(format_mode="modules_summary")
+            fetch_res = fetch_588080_full_page(include_raw_html=False)
             if fetch_res.ok:
                 data_source = fetch_res
+                try:
+                    from app.services.ai.scraped_data import save_scraped_data
+
+                    save_scraped_data(fetch_res)
+                except Exception as save_err:
+                    logger.warning("Failed to save scraped cache: %s", save_err)
             else:
                 logger.warning("Fresh scrape returned not ok: %s, falling back to cached dump", fetch_res.error)
                 data_source = load_latest_scraped_data(max_age_sec=3600 * 24)
@@ -59,8 +65,23 @@ def run_ai_judgment_pipeline(
     if data_source is None:
         data_source = load_latest_scraped_data(max_age_sec=3600 * 24)
 
+    # If still None (e.g. fetch_fresh was false or cache empty), force live scrape
     if data_source is None:
-        raise ValueError("未能获取到抓取数据（在线抓取与本地缓存均为空），请检查网络连接或先执行采集")
+        logger.info("No cache available, performing live scrape from 588080.com...")
+        try:
+            fetch_res = fetch_588080_full_page(include_raw_html=False)
+            if fetch_res.ok:
+                data_source = fetch_res
+                try:
+                    from app.services.ai.scraped_data import save_scraped_data
+
+                    save_scraped_data(fetch_res)
+                except Exception:
+                    pass
+            else:
+                raise ValueError(f"在线抓取网页数据失败: {fetch_res.error or '连接超时或页面异常'}")
+        except Exception as exc:
+            raise ValueError(f"自动抓取网页发生异常: {exc}") from exc
 
     # Step 2 & 3: Run AI Analysis
     logger.info("Pipeline Step 2 & 3: Running AI analysis with prompt_id=%s, model=%s...", prompt_id, model or "default")
