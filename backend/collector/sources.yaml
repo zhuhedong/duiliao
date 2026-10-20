@@ -2645,8 +2645,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_xiaokapian_1x2m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师澳彩小卡片一肖二码
+  enabled: false
+  remark: 顶尖大师澳彩小卡片一肖二码；上游栏目 1792067301601 已消失，巡检治理自动停用
   extra:
     upstream_id: '1792067301601'
     parser: xiaokapian_1x2m
@@ -2660,8 +2660,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_jingxuan_7ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师精选七码
+  enabled: false
+  remark: 顶尖大师精选七码；上游栏目 1786796767890 已消失，巡检治理自动停用
   extra:
     upstream_id: '1786796767890'
     parser: jingxuan_7ma
@@ -2675,8 +2675,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_yihao_6ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师一号来料内幕六码
+  enabled: false
+  remark: 顶尖大师一号来料内幕六码；上游栏目 1788957420145 已消失，巡检治理自动停用
   extra:
     upstream_id: '1788957420145'
     parser: yihao_6ma

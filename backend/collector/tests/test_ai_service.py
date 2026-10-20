@@ -212,6 +212,8 @@ class TestAIService(unittest.TestCase):
         import httpx
 
         class BrokenStream:
+            status_code = 200
+
             def __enter__(self):
                 return self
 
