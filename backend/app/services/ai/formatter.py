@@ -135,20 +135,20 @@ def _format_period_extraction(
 def format_scraped_data_for_ai(
     data: dict[str, Any] | Any,
     *,
-    mode: str = "modules_summary",
+    mode: str = "raw_html",
     period: str | None = None,
 ) -> str:
     """Format scraped 588080.com data without a local character limit.
 
     Args:
         data: FetchResult object or dict containing 'modules', 'site_title', 'html'.
-        mode: 'modules_summary' (denoised text, recommended) or 'raw_html'.
+        mode: 'raw_html' (original html, default) or 'modules_summary' (denoised text).
         period: target period for modules_summary extraction; raw_html stays intact.
     """
     if mode == "raw_html":
         if isinstance(data, dict):
-            return data.get("html") or ""
-        return getattr(data, "html", None) or str(data)
+            return data.get("raw_html") or data.get("html") or ""
+        return getattr(data, "raw_html", None) or getattr(data, "html", None) or str(data)
 
     if period:
         extracted = _format_period_extraction(data, period=str(period).strip())

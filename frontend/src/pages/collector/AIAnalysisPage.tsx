@@ -64,7 +64,7 @@ export function CollectorAIAnalysisPage() {
   });
   const [model, setModel] = useState<string>(() => localStorage.getItem("duiliao_model_override") || "");
   const [formatMode, setFormatMode] = useState<"modules_summary" | "raw_html">(() => {
-    return (localStorage.getItem("duiliao_format_mode") as any) || "modules_summary";
+    return (localStorage.getItem("duiliao_format_mode") as any) || "raw_html";
   });
   const [temperature, setTemperature] = useState(0.7);
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null);

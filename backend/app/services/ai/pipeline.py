@@ -24,7 +24,7 @@ def run_ai_judgment_pipeline(
     period: str | None = None,
     provider: str | None = None,
     model: str | None = None,
-    format_mode: str = "modules_summary",
+    format_mode: str = "raw_html",
     temperature: float = 0.7,
     fetch_fresh: bool = True,
     recipients: list[str] | str | None = None,

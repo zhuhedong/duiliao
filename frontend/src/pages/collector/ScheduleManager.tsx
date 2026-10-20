@@ -302,6 +302,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
         payload.spec = {
           task_type: "ai_judgment_email",
           prompt_id: formPromptId.trim() || "macau_analyst_expert",
+          format_mode: "raw_html",
           recipients: formRecipients.trim() || undefined,
         };
       }

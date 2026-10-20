@@ -53,8 +53,8 @@ class AIAnalyzeRequest(BaseModel):
         description="Optional model override (e.g. deepseek-chat, gemini-2.5-flash, claude-3-5-sonnet)",
     )
     format_mode: str = Field(
-        default="modules_summary",
-        description="Context formatting mode: 'modules_summary' (denoised text, recommended) or 'raw_html'",
+        default="raw_html",
+        description="Context formatting mode: 'raw_html' (original html, default) or 'modules_summary'",
     )
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     fetch_fresh: bool = Field(
@@ -460,7 +460,7 @@ class AIPipelineRunRequest(BaseModel):
     custom_prompt: str | None = Field(default=None)
     provider: str | None = Field(default=None)
     model: str | None = Field(default=None)
-    format_mode: str = Field(default="modules_summary")
+    format_mode: str = Field(default="raw_html")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     fetch_fresh: bool = Field(default=True)
     recipients: str | list[str] | None = Field(default=None)
