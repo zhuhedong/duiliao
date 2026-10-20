@@ -24,6 +24,7 @@ def run_ai_judgment_pipeline(
     period: str | None = None,
     provider: str | None = None,
     model: str | None = None,
+    format_mode: str = "modules_summary",
     temperature: float = 0.7,
     fetch_fresh: bool = True,
     recipients: list[str] | str | None = None,
@@ -84,7 +85,7 @@ def run_ai_judgment_pipeline(
             raise ValueError(f"自动抓取网页发生异常: {exc}") from exc
 
     # Step 2 & 3: Run AI Analysis
-    logger.info("Pipeline Step 2 & 3: Running AI analysis with prompt_id=%s, model=%s...", prompt_id, model or "default")
+    logger.info("Pipeline Step 2 & 3: Running AI analysis with prompt_id=%s, model=%s, format_mode=%s...", prompt_id, model or "default", format_mode)
     analysis_result: AnalysisResult = analyze_scraped_data(
         scraped_data=data_source,
         prompt_id=prompt_id,
@@ -92,7 +93,7 @@ def run_ai_judgment_pipeline(
         custom_prompt=custom_prompt,
         provider=provider,
         model=model,
-        format_mode="modules_summary",
+        format_mode=format_mode,
         temperature=temperature,
     )
 

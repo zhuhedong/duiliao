@@ -460,6 +460,7 @@ class AIPipelineRunRequest(BaseModel):
     custom_prompt: str | None = Field(default=None)
     provider: str | None = Field(default=None)
     model: str | None = Field(default=None)
+    format_mode: str = Field(default="modules_summary")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     fetch_fresh: bool = Field(default=True)
     recipients: str | list[str] | None = Field(default=None)
@@ -494,6 +495,7 @@ def execute_pipeline(
             period=req.period,
             provider=req.provider,
             model=req.model,
+            format_mode=req.format_mode,
             temperature=req.temperature,
             fetch_fresh=req.fetch_fresh,
             recipients=req.recipients,

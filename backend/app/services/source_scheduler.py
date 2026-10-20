@@ -133,6 +133,7 @@ class SourceScheduler:
                     period=period,
                     provider=spec.get("provider"),
                     model=spec.get("model"),
+                    format_mode=spec.get("format_mode", "modules_summary"),
                     temperature=float(spec.get("temperature", 0.7)),
                     fetch_fresh=bool(spec.get("fetch_fresh", True)),
                     recipients=spec.get("recipients"),
