@@ -491,3 +491,136 @@ def test_ai_connection(
             "elapsed_ms": elapsed_ms,
             "error": str(e),
         }
+
+
+# ==============================================================================
+# Email Service (Resend SMTP) Settings
+# ==============================================================================
+
+
+def get_all_email_settings(db: Session | None = None, mask: bool = True) -> dict[str, Any]:
+    """Retrieve email settings from DB with fallback to Resend defaults."""
+    from app.services.email_service import get_email_config
+
+    return get_email_config(db=db, mask=mask)
+
+
+def save_email_settings(db: Session, data: dict[str, Any]) -> dict[str, Any]:
+    """Save email configuration to DB. Ignores masked or unchanged passwords."""
+    if "smtp_host" in data and data["smtp_host"] is not None:
+        set_setting_value(db, "email_smtp_host", str(data["smtp_host"]).strip(), "SMTP 主机名")
+
+    if "smtp_port" in data and data["smtp_port"] is not None:
+        try:
+            port = int(data["smtp_port"])
+            set_setting_value(db, "email_smtp_port", str(port), "SMTP 端口")
+        except (ValueError, TypeError):
+            pass
+
+    if "smtp_user" in data and data["smtp_user"] is not None:
+        set_setting_value(db, "email_smtp_user", str(data["smtp_user"]).strip(), "SMTP 用户名")
+
+    if "smtp_password" in data and data["smtp_password"] is not None:
+        pwd = str(data["smtp_password"]).strip()
+        if pwd and not is_masked_key(pwd):
+            set_setting_value(db, "email_smtp_password", pwd, "SMTP 密码或 API Key")
+
+    if "from_email" in data and data["from_email"] is not None:
+        set_setting_value(db, "email_from_addr", str(data["from_email"]).strip(), "默认发件人邮箱")
+
+    if "from_name" in data and data["from_name"] is not None:
+        set_setting_value(db, "email_from_name", str(data["from_name"]).strip(), "默认发件人名称")
+
+    if "default_recipients" in data and data["default_recipients"] is not None:
+        set_setting_value(db, "email_default_recipients", str(data["default_recipients"]).strip(), "默认接收人邮箱")
+
+    db.commit()
+    return get_all_email_settings(db, mask=True)
+
+
+def test_email_connection(
+    *,
+    recipient: str,
+    host: str | None = None,
+    port: int | None = None,
+    user: str | None = None,
+    password: str | None = None,
+    from_email: str | None = None,
+    from_name: str | None = None,
+) -> dict[str, Any]:
+    """Test SMTP connection and deliver a verified test message to `recipient`."""
+    from app.services.email_service import get_email_config, send_smtp_email
+
+    stored_cfg = get_email_config(mask=False)
+
+    target_host = (host or stored_cfg.get("smtp_host") or "smtp.resend.com").strip()
+    target_port = int(port or stored_cfg.get("smtp_port") or 465)
+    target_user = (user or stored_cfg.get("smtp_user") or "resend").strip()
+
+    if password and not is_masked_key(password):
+        target_password = password.strip()
+    else:
+        target_password = stored_cfg.get("smtp_password") or ""
+
+    if not target_password:
+        return {
+            "ok": False,
+            "message": "未配置 SMTP 密码或 Resend API Key",
+            "elapsed_ms": 0,
+            "error": "Password / API key is empty",
+        }
+
+    target_from = (from_email or stored_cfg.get("from_email") or "onboarding@resend.dev").strip()
+    target_name = (from_name or stored_cfg.get("from_name") or "对撩 AI 研判中心").strip()
+
+    test_html = f"""<!DOCTYPE html>
+<html>
+<body style="font-family: -apple-system, sans-serif; background: #f8fafc; padding: 24px; color: #1e293b;">
+  <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 28px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <h2 style="color: #4f46e5; margin-top: 0;">🎉 Resend SMTP 连通性测试成功！</h2>
+    <p style="font-size: 14px; line-height: 1.6;">
+      您好！这是一封由 <strong>对撩 AI 研判系统</strong> 发送的测试邮件。
+    </p>
+    <div style="background: #f1f5f9; border-radius: 8px; padding: 12px 16px; font-size: 13px; margin: 16px 0;">
+      <div><strong>SMTP 服务商：</strong>{target_host}:{target_port}</div>
+      <div><strong>发信账号：</strong>{target_user}</div>
+      <div><strong>发件邮箱：</strong>{target_from}</div>
+      <div><strong>测试时间：</strong>{time.strftime("%Y-%m-%d %H:%M:%S")}</div>
+    </div>
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 0;">
+      系统已成功接入 Resend 邮件服务，后续「定时抓取 -> 自定义提示词 -> AI 研判 -> 邮件推送」流水线将通过此通道向您发送精算研判报告。
+    </p>
+  </div>
+</body>
+</html>"""
+
+    t0 = time.perf_counter()
+    try:
+        res = send_smtp_email(
+            to_emails=[recipient],
+            subject="【对撩】Resend 邮件服务连通性测试成功",
+            html_content=test_html,
+            config={
+                "smtp_host": target_host,
+                "smtp_port": target_port,
+                "smtp_user": target_user,
+                "smtp_password": target_password,
+                "from_email": target_from,
+                "from_name": target_name,
+            },
+        )
+        return {
+            "ok": True,
+            "message": f"测试邮件已成功发送至 {recipient}（耗时 {res['elapsed_ms']}ms）",
+            "elapsed_ms": res["elapsed_ms"],
+            "error": None,
+        }
+    except Exception as exc:
+        elapsed_ms = int((time.perf_counter() - t0) * 1000)
+        return {
+            "ok": False,
+            "message": f"邮件发送失败: {str(exc)}",
+            "elapsed_ms": elapsed_ms,
+            "error": str(exc),
+        }
+

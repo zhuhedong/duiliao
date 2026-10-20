@@ -113,6 +113,95 @@ class SourceScheduler:
         )
 
         try:
+            # 0. Check if this is a dedicated AI Intelligence & Email Dispatch task
+            if isinstance(spec, dict) and spec.get("task_type") == "ai_judgment_email":
+                from app.services.ai.pipeline import run_ai_judgment_pipeline
+
+                ai_tag = "手动触发AI研判" if manual else "定时AI研判推送"
+                logger.info(
+                    "[%s] 开始执行 AI 帖文研判与邮件推送流水线: #%d (%s), 目标期号=%s",
+                    ai_tag,
+                    sid,
+                    sname,
+                    period or "auto",
+                )
+
+                ai_res = await asyncio.to_thread(
+                    run_ai_judgment_pipeline,
+                    prompt_id=spec.get("prompt_id") or "macau_analyst_expert",
+                    custom_prompt=spec.get("custom_prompt"),
+                    period=period,
+                    provider=spec.get("provider"),
+                    model=spec.get("model"),
+                    temperature=float(spec.get("temperature", 0.7)),
+                    fetch_fresh=bool(spec.get("fetch_fresh", True)),
+                    recipients=spec.get("recipients"),
+                    subject=spec.get("subject"),
+                    task_name=sname,
+                    send_email=True,
+                )
+
+                next_run = cron_util.compute_next_run(
+                    cron_expr=item.get("cron"),
+                    start_at=item.get("start_at"),
+                    end_at=item.get("end_at"),
+                    base_time=now_cn,
+                )
+                next_enabled = None
+                if not manual and next_run is None:
+                    next_enabled = 0
+
+                elapsed_sec = round(time.perf_counter() - t0, 2)
+                email_info = ai_res.get("email_delivery") or {}
+                email_status_str = "已发送" if email_info.get("sent") else f"未发送({email_info.get('reason', '未知')})"
+                msg = (
+                    f"[{ai_tag}] 研判完成: 期数 {ai_res.get('period')}, "
+                    f"模型 {ai_res.get('provider')}/{ai_res.get('model')}, "
+                    f"邮件: {email_status_str}"
+                )
+
+                await asyncio.to_thread(
+                    cb.update_schedule_run_result,
+                    schedule_id=sid,
+                    last_run_at=now_cn,
+                    next_run_at=next_run,
+                    last_status="success",
+                    last_result=ai_res,
+                    enabled=next_enabled,
+                )
+
+                log_entry = await asyncio.to_thread(
+                    cb.add_schedule_log,
+                    schedule_id=sid,
+                    schedule_name=sname,
+                    lottery=lottery,
+                    period=ai_res.get("period"),
+                    run_id=None,
+                    action=ai_tag,
+                    status="success",
+                    detail=msg,
+                    concurrency=1,
+                    duration_sec=elapsed_sec,
+                    source_total=1,
+                    source_ok=1,
+                    source_fail=0,
+                    sources_result=[{"name": "AI 帖文研判与邮件推送", "ok": True, "detail": email_status_str}],
+                    result=ai_res,
+                    created_at=now_cn,
+                )
+                self._add_log(log_entry or {
+                    "schedule_id": sid,
+                    "schedule_name": sname,
+                    "lottery": lottery,
+                    "period": ai_res.get("period"),
+                    "action": ai_tag,
+                    "status": "success",
+                    "detail": msg,
+                    "duration_sec": elapsed_sec,
+                    "created_at": _now_str(),
+                })
+                return ai_res
+
             # 1. Run collection via thread pool (subprocesses run in ThreadPoolExecutor)
             res = await asyncio.to_thread(
                 cb.collect,

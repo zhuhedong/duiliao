@@ -449,3 +449,111 @@ def zodiac_streak_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# --------------------------------------------------------------------------- #
+# AI Pipeline & Email Dispatch
+# --------------------------------------------------------------------------- #
+class AIPipelineRunRequest(BaseModel):
+    prompt_id: str = Field(default="macau_analyst_expert")
+    period: str | None = Field(default=None)
+    custom_prompt: str | None = Field(default=None)
+    provider: str | None = Field(default=None)
+    model: str | None = Field(default=None)
+    temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    fetch_fresh: bool = Field(default=True)
+    recipients: str | list[str] | None = Field(default=None)
+    subject: str | None = Field(default=None)
+    task_name: str = Field(default="澳门六合彩帖文 AI 智能研判")
+    send_email: bool = Field(default=True)
+
+
+class SendReportEmailRequest(BaseModel):
+    markdown_content: str = Field(..., description="Markdown report body to send")
+    period: str | None = Field(default="")
+    task_name: str = Field(default="澳门六合彩帖文 AI 智能研判")
+    model_name: str = Field(default="")
+    recipients: str | list[str] | None = Field(default=None)
+    subject: str | None = Field(default=None)
+
+
+@router.post("/pipeline/run")
+def execute_pipeline(
+    req: AIPipelineRunRequest = Body(...),
+    _: User = _staff,
+) -> dict[str, Any]:
+    """Execute end-to-end pipeline: Scraped Data -> Custom Prompt -> AI Analysis -> Resend Email."""
+    from app.services.ai.pipeline import run_ai_judgment_pipeline
+
+    if not _AI_CONCURRENCY.acquire(timeout=5):
+        raise HTTPException(status_code=429, detail="AI 分析任务并发已满，请稍后重试")
+    try:
+        return run_ai_judgment_pipeline(
+            prompt_id=req.prompt_id,
+            custom_prompt=req.custom_prompt,
+            period=req.period,
+            provider=req.provider,
+            model=req.model,
+            temperature=req.temperature,
+            fetch_fresh=req.fetch_fresh,
+            recipients=req.recipients,
+            subject=req.subject,
+            task_name=req.task_name,
+            send_email=req.send_email,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        log.exception("Pipeline execution failed: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        _AI_CONCURRENCY.release()
+
+
+@router.post("/send-report-email")
+def dispatch_report_email(
+    req: SendReportEmailRequest = Body(...),
+    _: User = _staff,
+) -> dict[str, Any]:
+    """Send an existing rendered analysis report to recipient(s) via Resend SMTP."""
+    from app.services.email_service import get_email_config, render_ai_report_email, send_smtp_email
+
+    email_cfg = get_email_config(mask=False)
+    actual_recipients: list[str] = []
+    if req.recipients:
+        if isinstance(req.recipients, str):
+            actual_recipients = [r.strip() for r in req.recipients.replace(";", ",").split(",") if r.strip()]
+        else:
+            actual_recipients = [str(r).strip() for r in req.recipients if str(r).strip()]
+    elif email_cfg.get("default_recipients"):
+        actual_recipients = [r.strip() for r in email_cfg["default_recipients"].replace(";", ",").split(",") if r.strip()]
+
+    if not actual_recipients:
+        raise HTTPException(status_code=400, detail="未指定收件人邮箱，且系统设置中无默认收件人")
+
+    subject = req.subject or f"【对撩】第 {req.period or '最新'} 期 {req.task_name} 报告"
+    html_content = render_ai_report_email(
+        task_name=req.task_name,
+        period=req.period or "",
+        markdown_content=req.markdown_content,
+        model_name=req.model_name,
+    )
+
+    try:
+        res = send_smtp_email(
+            to_emails=actual_recipients,
+            subject=subject,
+            html_content=html_content,
+            text_content=req.markdown_content,
+            config=email_cfg,
+        )
+        return {
+            "ok": True,
+            "message": f"报告已成功投递至 {len(res.get('recipients', []))} 个收件人",
+            "recipients": res.get("recipients", []),
+            "elapsed_ms": res.get("elapsed_ms", 0),
+        }
+    except Exception as exc:
+        log.exception("Failed to dispatch report email: %s", exc)
+        raise HTTPException(status_code=500, detail=f"邮件发送失败: {str(exc)}") from exc
+

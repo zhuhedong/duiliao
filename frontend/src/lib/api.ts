@@ -562,6 +562,47 @@ export interface AITestResult {
   error?: string | null;
 }
 
+export interface EmailSettings {
+  smtp_host: string;
+  smtp_port: number;
+  smtp_user: string;
+  smtp_password?: string;
+  from_email: string;
+  from_name: string;
+  default_recipients: string;
+  is_configured: boolean;
+}
+
+export interface EmailTestResult {
+  ok: boolean;
+  message: string;
+  elapsed_ms: number;
+  error?: string | null;
+}
+
+export interface AIPipelineRunPayload {
+  prompt_id?: string;
+  period?: string;
+  custom_prompt?: string;
+  provider?: string;
+  model?: string;
+  temperature?: number;
+  fetch_fresh?: boolean;
+  recipients?: string | string[];
+  subject?: string;
+  task_name?: string;
+  send_email?: boolean;
+}
+
+export interface SendReportEmailPayload {
+  markdown_content: string;
+  period?: string;
+  task_name?: string;
+  model_name?: string;
+  recipients?: string | string[];
+  subject?: string;
+}
+
 export const settingsApi = {
   getAISettings() {
     return api.get<AISettings>("/settings/ai");
@@ -581,6 +622,54 @@ export const settingsApi = {
     model?: string;
   }) {
     return api.post<AITestResult>("/settings/ai/test", data);
+  },
+  getEmailSettings() {
+    return api.get<EmailSettings>("/settings/email");
+  },
+  updateEmailSettings(data: Partial<EmailSettings>) {
+    return api.put<EmailSettings>("/settings/email", data);
+  },
+  testEmailConnection(data: {
+    recipient: string;
+    smtp_host?: string;
+    smtp_port?: number;
+    smtp_user?: string;
+    smtp_password?: string;
+    from_email?: string;
+    from_name?: string;
+  }) {
+    return api.post<EmailTestResult>("/settings/email/test", data);
+  },
+};
+
+export const aiPipelineApi = {
+  runPipeline(data: AIPipelineRunPayload) {
+    return api.post<{
+      ok: boolean;
+      period: string;
+      analysis: string;
+      provider: string;
+      model: string;
+      prompt_id: string;
+      elapsed_sec: number;
+      total_elapsed_sec: number;
+      usage: Record<string, number>;
+      scraped_summary: any;
+      email_delivery: {
+        sent: boolean;
+        recipients?: string[];
+        reason?: string;
+        message?: string;
+        error?: string;
+        elapsed_ms?: number;
+      };
+    }>("/ai/pipeline/run", data);
+  },
+  sendReportEmail(data: SendReportEmailPayload) {
+    return api.post<{ ok: boolean; message: string; recipients: string[]; elapsed_ms: number }>(
+      "/ai/send-report-email",
+      data
+    );
   },
 };
 

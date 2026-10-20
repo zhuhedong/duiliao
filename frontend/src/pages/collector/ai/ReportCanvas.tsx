@@ -8,7 +8,11 @@ import {
   ClockIcon,
   TrashIcon,
   CloseIcon,
+  MailIcon,
 } from "../../../components/icons";
+import { toast } from "../../../components/ui/toast";
+import { aiPipelineApi } from "../../../lib/api";
+import { Portal } from "../../../components/Portal";
 import {
   formatReportTime,
   type AIResult,
@@ -146,6 +150,9 @@ export function ReportCanvas({
   const components = buildMarkdownComponents(accent);
   const bodyRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState("");
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // 流式输出期间自动跟随滚动到底部
   useEffect(() => {
@@ -177,6 +184,30 @@ export function ReportCanvas({
     navigator.clipboard.writeText(display.analysis);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendEmail = async () => {
+    if (!display?.analysis) return;
+    if (!emailRecipient.trim()) {
+      toast.error("请输入收件人邮箱", "如: analyst@example.com");
+      return;
+    }
+    setIsSendingEmail(true);
+    try {
+      const res = await aiPipelineApi.sendReportEmail({
+        markdown_content: display.analysis,
+        period: contextLabel.replace(/[^0-9]/g, "") || "",
+        task_name: title,
+        model_name: `${display.provider}/${display.model}`,
+        recipients: emailRecipient.trim(),
+      });
+      toast.success("研判报告已成功投递至邮箱", `耗时: ${res.elapsed_ms}ms`);
+      setShowEmailModal(false);
+    } catch (err: any) {
+      toast.error("邮件发送失败", err?.message || "请检查系统设置中的 Resend SMTP 配置");
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const usage = display?.usage;
@@ -223,17 +254,99 @@ export function ReportCanvas({
               返回最新
             </button>
           )}
-          {display?.analysis && (
-            <button
-              onClick={copyReport}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 glass-subtle transition-colors hover:bg-violet-500/5 dark:text-slate-300 dark:hover:bg-violet-400/5"
-            >
-              {copied && <CheckBadgeIcon size={14} className="text-emerald-500" />}
-              {copied ? "已复制" : "复制报告"}
-            </button>
+          {display?.analysis && !isAnalyzing && (
+            <>
+              <button
+                onClick={() => setShowEmailModal(true)}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-violet-700 dark:text-violet-300 glass-subtle transition-colors hover:bg-violet-500/15 border border-violet-400/20"
+                title="通过 Resend SMTP 发送此份研判报告"
+              >
+                <MailIcon size={14} />
+                发至邮箱
+              </button>
+              <button
+                onClick={copyReport}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 glass-subtle transition-colors hover:bg-violet-500/5 dark:text-slate-300 dark:hover:bg-violet-400/5"
+              >
+                {copied && <CheckBadgeIcon size={14} className="text-emerald-500" />}
+                {copied ? "已复制" : "复制报告"}
+              </button>
+            </>
           )}
         </div>
       </header>
+
+      {/* —— 发送至邮箱弹窗 —— */}
+      {showEmailModal && (
+        <Portal onClose={() => setShowEmailModal(false)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/60 animate-fadeIn">
+            <div className="w-full max-w-md admin-card rounded-2xl p-6 space-y-4 animate-scaleUp">
+              <div className="flex items-center justify-between border-b border-slate-200/50 dark:border-white/8 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-600 dark:text-violet-300">
+                    <MailIcon size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      投递研判报告至邮箱
+                    </h4>
+                    <p className="text-2xs text-slate-400">使用已配置的 Resend SMTP 安全发信</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowEmailModal(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                >
+                  <CloseIcon size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    目标收件人邮箱 <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={emailRecipient}
+                    onChange={(e) => setEmailRecipient(e.target.value)}
+                    placeholder="输入收件邮箱（多个请用逗号分隔）"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50 font-mono"
+                    autoFocus
+                  />
+                  <p className="text-2xs text-slate-400 mt-1">
+                    留空将默认使用系统设置中配置的默认收件人。
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-violet-500/5 dark:bg-violet-500/10 border border-violet-500/10 text-2xs text-slate-500 dark:text-slate-400 space-y-1">
+                  <div><strong>报告标题：</strong>{title} · {contextLabel}</div>
+                  <div><strong>研判模型：</strong>{display?.provider} / {display?.model}</div>
+                  <div><strong>排版格式：</strong>自动转换自适应响应式 HTML 报表</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/50 dark:border-white/8">
+                <button
+                  onClick={() => setShowEmailModal(false)}
+                  disabled={isSendingEmail}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-white/10"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleSendEmail}
+                  disabled={isSendingEmail}
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl text-xs font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  <MailIcon size={14} className={isSendingEmail ? "animate-bounce" : ""} />
+                  {isSendingEmail ? "正在通过 Resend 发送..." : "立即发送"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </Portal>
+      )}
 
       {/* —— 历史报告带 —— */}
       {history.length > 0 && (

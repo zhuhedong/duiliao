@@ -15,6 +15,9 @@ from app.services.settings_service import (
     get_all_ai_settings,
     save_ai_settings,
     test_ai_connection,
+    get_all_email_settings,
+    save_email_settings,
+    test_email_connection,
 )
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -79,6 +82,71 @@ def test_ai_conn(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return res
+
+
+# ==============================================================================
+# Email (Resend SMTP) Endpoints
+# ==============================================================================
+
+
+class EmailSettingsUpdatePayload(BaseModel):
+    smtp_host: str | None = Field(default=None, description="SMTP Host (default: smtp.resend.com)")
+    smtp_port: int | None = Field(default=None, description="SMTP Port (465 SSL or 587 TLS)")
+    smtp_user: str | None = Field(default=None, description="SMTP Username (default: resend)")
+    smtp_password: str | None = Field(default=None, description="Resend API Key (re_...)")
+    from_email: str | None = Field(default=None, description="Sender email address")
+    from_name: str | None = Field(default=None, description="Sender display name")
+    default_recipients: str | None = Field(default=None, description="Comma-separated recipient emails")
+
+
+class EmailTestPayload(BaseModel):
+    recipient: str = Field(..., description="Target email address for test message")
+    smtp_host: str | None = None
+    smtp_port: int | None = None
+    smtp_user: str | None = None
+    smtp_password: str | None = None
+    from_email: str | None = None
+    from_name: str | None = None
+
+
+@router.get("/email")
+def get_email_config(
+    db: Session = Depends(get_db),
+    _: User = _staff,
+) -> dict[str, Any]:
+    """Retrieve current Email (Resend SMTP) configurations (with API key masked)."""
+    return get_all_email_settings(db, mask=True)
+
+
+@router.put("/email")
+def update_email_config(
+    payload: EmailSettingsUpdatePayload = Body(...),
+    db: Session = Depends(get_db),
+    _: User = _admin,
+) -> dict[str, Any]:
+    """Save updated Email/SMTP configurations (Host, Port, User, API Key, Sender, Recipients)."""
+    data = payload.model_dump(exclude_unset=True)
+    return save_email_settings(db, data)
+
+
+@router.post("/email/test")
+def test_email_conn(
+    payload: EmailTestPayload = Body(...),
+    _: User = _admin,
+) -> dict[str, Any]:
+    """Send a verified test email using the configured or provided Resend SMTP settings."""
+    res = test_email_connection(
+        recipient=payload.recipient,
+        host=payload.smtp_host,
+        port=payload.smtp_port,
+        user=payload.smtp_user,
+        password=payload.smtp_password,
+        from_email=payload.from_email,
+        from_name=payload.from_name,
+    )
+    if not res.get("ok"):
+        raise HTTPException(status_code=400, detail=res.get("message") or "邮件发送失败")
     return res
 
 

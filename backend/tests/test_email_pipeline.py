@@ -1,0 +1,105 @@
+"""Tests for Resend Email Service, Settings, HTML Rendering and AI Judgment Pipeline."""
+import pytest
+from app.services.email_service import (
+    DEFAULT_SMTP_HOST,
+    DEFAULT_SMTP_PORT,
+    DEFAULT_SMTP_USER,
+    get_email_config,
+    render_ai_report_email,
+)
+from app.services.settings_service import save_email_settings
+from app.db.session import SessionLocal
+
+
+def test_email_config_defaults():
+    db = SessionLocal()
+    try:
+        cfg = get_email_config(db=db, mask=True)
+        assert cfg["smtp_host"] == DEFAULT_SMTP_HOST
+        assert cfg["smtp_port"] == DEFAULT_SMTP_PORT
+        assert cfg["smtp_user"] == DEFAULT_SMTP_USER
+    finally:
+        db.close()
+
+
+def test_save_and_retrieve_email_settings():
+    db = SessionLocal()
+    try:
+        saved = save_email_settings(
+            db,
+            {
+                "smtp_host": "smtp.resend.com",
+                "smtp_port": 465,
+                "smtp_user": "resend",
+                "smtp_password": "re_test_mock_key_123456",
+                "from_email": "test@example.com",
+                "from_name": "AI 研判测试",
+                "default_recipients": "rec1@example.com, rec2@example.com",
+            },
+        )
+        assert saved["smtp_host"] == "smtp.resend.com"
+        assert saved["from_email"] == "test@example.com"
+        assert "••••" in saved["smtp_password"]  # Masked
+        assert saved["is_configured"] is True
+
+        # Unmasked retrieval
+        unmasked = get_email_config(db=db, mask=False)
+        assert unmasked["smtp_password"] == "re_test_mock_key_123456"
+    finally:
+        db.close()
+
+
+def test_render_ai_report_email():
+    md = """### 🎯 【澳门六合彩 第 263 期】实码与生肖研判精选
+
+#### 一、 过滤与清洗说明
+* 已清洗剔除假生肖与乱码干扰；
+* 统计到 35 个专家栏目预测。
+
+#### 二、 热度最高生肖 (Top 5)
+1. **[马]** - 出现频次 28 次
+2. **[虎]** - 出现频次 24 次
+
+| 生肖 | 推荐实码 | 频次 |
+| :--- | :--- | :--- |
+| 马 | 11, 23, 35, 47 | 28 |
+| 虎 | 03, 15, 27, 39 | 24 |
+"""
+    html = render_ai_report_email(
+        task_name="澳门六合彩帖文 AI 智能研判",
+        period="263",
+        markdown_content=md,
+        model_name="deepseek/deepseek-chat",
+        elapsed_sec=3.2,
+    )
+
+    assert "<!DOCTYPE html>" in html
+    assert "澳门六合彩帖文 AI 智能研判" in html
+    assert "第 263 期" in html
+    assert "deepseek/deepseek-chat" in html
+    assert "<table>" in html
+    assert "<strong>[马]</strong>" in html or "<strong>" in html
+    assert "Resend" in html
+
+
+def test_email_settings_api(admin_client):
+    # GET settings (CryptoClient transparently returns decrypted dict)
+    data = admin_client.get("/settings/email")
+    assert "smtp_host" in data
+    assert "from_email" in data
+
+    # PUT settings
+    update_payload = {
+        "smtp_host": "smtp.resend.com",
+        "smtp_port": 465,
+        "smtp_user": "resend",
+        "smtp_password": "re_live_test_12345",
+        "from_email": "notifications@myduiliao.com",
+        "from_name": "对撩研判",
+        "default_recipients": "boss@myduiliao.com",
+    }
+    res_data = admin_client.put("/settings/email", update_payload)
+    assert res_data["smtp_host"] == "smtp.resend.com"
+    assert res_data["from_email"] == "notifications@myduiliao.com"
+    assert "••••" in res_data["smtp_password"]
+

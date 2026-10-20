@@ -12,12 +12,15 @@ import {
   DatabaseIcon,
   UploadIcon,
   RefreshIcon,
+  MailIcon,
 } from "../components/icons";
 import {
   settingsApi,
   databaseApi,
   type AISettings,
   type AITestResult,
+  type EmailSettings,
+  type EmailTestResult,
   type DatabaseStatus,
   type DBTestResult,
   type SqliteInspectResult,
@@ -73,7 +76,22 @@ export function SystemSettingsPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<"ai" | "database" | "system">("ai");
+  const [activeTab, setActiveTab] = useState<"ai" | "email" | "database" | "system">("ai");
+
+  // Email / Resend SMTP State
+  const [smtpHost, setSmtpHost] = useState("smtp.resend.com");
+  const [smtpPort, setSmtpPort] = useState(465);
+  const [smtpUser, setSmtpUser] = useState("resend");
+  const [smtpPassword, setSmtpPassword] = useState("");
+  const [fromEmail, setFromEmail] = useState("onboarding@resend.dev");
+  const [fromName, setFromName] = useState("对撩 AI 研判中心");
+  const [defaultRecipients, setDefaultRecipients] = useState("");
+  const [emailConfigured, setEmailConfigured] = useState(false);
+  const [showEmailPassword, setShowEmailPassword] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testEmailRecipient, setTestEmailRecipient] = useState("");
+  const [emailTestResult, setEmailTestResult] = useState<EmailTestResult | null>(null);
 
   // Database Management State
   const [dbStatus, setDbStatus] = useState<DatabaseStatus | null>(null);
@@ -166,6 +184,23 @@ export function SystemSettingsPage() {
         setAnthropicModel(res.anthropic.model || "claude-3-5-sonnet-20241022");
         setAnthropicConfigured(res.anthropic.is_configured);
       }
+
+      // Load Email / Resend settings
+      try {
+        const emailRes: EmailSettings = await settingsApi.getEmailSettings();
+        if (emailRes) {
+          setSmtpHost(emailRes.smtp_host || "smtp.resend.com");
+          setSmtpPort(emailRes.smtp_port || 465);
+          setSmtpUser(emailRes.smtp_user || "resend");
+          setSmtpPassword(emailRes.smtp_password || "");
+          setFromEmail(emailRes.from_email || "onboarding@resend.dev");
+          setFromName(emailRes.from_name || "对撩 AI 研判中心");
+          setDefaultRecipients(emailRes.default_recipients || "");
+          setEmailConfigured(emailRes.is_configured);
+        }
+      } catch (e) {
+        console.warn("Failed to load email settings:", e);
+      }
     } catch (err: any) {
       setSaveError(err?.message || "加载系统配置失败");
     } finally {
@@ -217,6 +252,64 @@ export function SystemSettingsPage() {
       toast.error("保存配置失败", msg);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    setSavingEmail(true);
+    setSaveError(null);
+    try {
+      const updated = await settingsApi.updateEmailSettings({
+        smtp_host: smtpHost.trim(),
+        smtp_port: Number(smtpPort) || 465,
+        smtp_user: smtpUser.trim(),
+        smtp_password: smtpPassword.trim(),
+        from_email: fromEmail.trim(),
+        from_name: fromName.trim(),
+        default_recipients: defaultRecipients.trim(),
+      });
+      setSmtpPassword(updated.smtp_password || "");
+      setEmailConfigured(updated.is_configured);
+      toast.success("邮件服务配置已保存", "Resend SMTP 密钥与发信参数已全局生效");
+    } catch (err: any) {
+      const msg = err?.message || "保存邮件配置失败";
+      toast.error("保存邮件配置失败", msg);
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    const target = testEmailRecipient.trim() || defaultRecipients.split(",")[0]?.trim();
+    if (!target) {
+      toast.error("请输入测试收件人邮箱", "如: yourname@example.com");
+      return;
+    }
+    setTestingEmail(true);
+    setEmailTestResult(null);
+    try {
+      const res = await settingsApi.testEmailConnection({
+        recipient: target,
+        smtp_host: smtpHost.trim(),
+        smtp_port: Number(smtpPort) || 465,
+        smtp_user: smtpUser.trim(),
+        smtp_password: smtpPassword.trim(),
+        from_email: fromEmail.trim(),
+        from_name: fromName.trim(),
+      });
+      setEmailTestResult(res);
+      toast.success("测试邮件发送成功", `耗时: ${res.elapsed_ms}ms，已送达 ${target}`);
+    } catch (err: any) {
+      const msg = err?.message || "测试邮件发送失败";
+      setEmailTestResult({
+        ok: false,
+        message: msg,
+        elapsed_ms: 0,
+        error: msg,
+      });
+      toast.error("测试邮件发送失败", msg);
+    } finally {
+      setTestingEmail(false);
     }
   };
 
@@ -445,6 +538,15 @@ export function SystemSettingsPage() {
             <CheckBadgeIcon size={17} />
             {saving ? "正在保存..." : "保存 AI 配置"}
           </button>
+        ) : activeTab === "email" ? (
+          <button
+            onClick={handleSaveEmail}
+            disabled={savingEmail || loading}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold glow-button border-0 transition-all disabled:opacity-50 cursor-pointer"
+          >
+            <CheckBadgeIcon size={17} />
+            {savingEmail ? "正在保存..." : "保存邮件配置"}
+          </button>
         ) : activeTab === "database" ? (
           <button
             onClick={() => {
@@ -471,6 +573,7 @@ export function SystemSettingsPage() {
           }}
           options={[
             { value: "ai" as const, label: "模型与密钥" },
+            { value: "email" as const, label: "邮件推送 (Resend)" },
             { value: "database" as const, label: "数据库与导入" },
             { value: "system" as const, label: "环境与安全" },
           ]}
@@ -977,6 +1080,220 @@ export function SystemSettingsPage() {
                     {saving ? "正在保存中..." : "保存所有配置"}
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: Email (Resend SMTP) Service */}
+          {activeTab === "email" && (
+            <div className="space-y-6">
+              {/* Card 1: Configuration Form */}
+              <div className="p-6 admin-card space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-violet-500/10 dark:bg-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-300">
+                      <MailIcon size={22} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                          Resend SMTP 邮件服务配置
+                        </h3>
+                        {emailConfigured ? (
+                          <span className="px-2 py-0.5 text-2xs font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            已配置
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-2xs font-semibold rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            未配置
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        用于接收「定时抓取 → 自定义提示词 → AI研判 → 邮件发送」流水线输出的精算报告。
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-violet-500/5 dark:bg-violet-500/10 border border-violet-500/15 text-xs text-slate-600 dark:text-slate-300 space-y-1.5 leading-relaxed">
+                  <div className="font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                    <span>💡 Resend 官方配置指引：</span>
+                  </div>
+                  <p>• <strong>SMTP 服务器：</strong>固定使用 <code className="px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 font-mono text-violet-600 dark:text-violet-400">smtp.resend.com</code>，推荐端口 <code className="px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 font-mono">465</code> (SSL) 或 <code className="px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 font-mono">587</code> (TLS)。</p>
+                  <p>• <strong>发信账号与密码：</strong>用户名固定为 <code className="px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 font-mono">resend</code>，密码为你在 Resend 控制台创建的 API Key（形如 <code className="px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 font-mono">re_123456...</code>）。</p>
+                  <p>• <strong>发件人地址：</strong>测试期可使用官方沙盒发件人 <code className="px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 font-mono">onboarding@resend.dev</code>（仅限发往你的 Resend 注册邮箱）；正式使用建议绑定并验证你自己的域名发信。</p>
+                </div>
+
+                {/* Form Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      SMTP 服务器地址 (Host)
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpHost}
+                      onChange={(e) => setSmtpHost(e.target.value)}
+                      placeholder="smtp.resend.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      SMTP 端口 (Port)
+                    </label>
+                    <input
+                      type="number"
+                      value={smtpPort}
+                      onChange={(e) => setSmtpPort(Number(e.target.value) || 465)}
+                      placeholder="465"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      SMTP 用户名 (Username)
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpUser}
+                      onChange={(e) => setSmtpUser(e.target.value)}
+                      placeholder="resend"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Resend API Key (SMTP 密码)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showEmailPassword ? "text" : "password"}
+                        value={smtpPassword}
+                        onChange={(e) => setSmtpPassword(e.target.value)}
+                        placeholder="re_xxxxxxxxxxxxxx"
+                        className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-sm font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEmailPassword(!showEmailPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      >
+                        {showEmailPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      发件人邮箱地址 (From Email)
+                    </label>
+                    <input
+                      type="text"
+                      value={fromEmail}
+                      onChange={(e) => setFromEmail(e.target.value)}
+                      placeholder="onboarding@resend.dev 或 report@yourdomain.com"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      发件人显示昵称 (From Name)
+                    </label>
+                    <input
+                      type="text"
+                      value={fromName}
+                      onChange={(e) => setFromName(e.target.value)}
+                      placeholder="对撩 AI 研判中心"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      默认研判报告收件人 (Default Recipients)
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultRecipients}
+                      onChange={(e) => setDefaultRecipients(e.target.value)}
+                      placeholder="analyst1@example.com, analyst2@example.com (支持逗号分隔多个)"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                    <p className="text-2xs text-slate-400 mt-1">
+                      定时任务研判完成后，将自动把精算报表投递至以上收件人邮箱。
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200/60 dark:border-white/5">
+                  <button
+                    onClick={handleSaveEmail}
+                    disabled={savingEmail}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold glow-button border-0 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <CheckBadgeIcon size={18} />
+                    {savingEmail ? "正在保存..." : "保存邮件配置"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 2: Connectivity Testing */}
+              <div className="p-6 admin-card space-y-4">
+                <div className="flex items-center gap-2">
+                  <ActivityIcon size={18} className="text-violet-600 dark:text-violet-400" />
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Resend 发信连通性即时测试
+                  </h4>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  输入任意目标收件人，系统将使用上述 Resend SMTP 配置向其发送一封排版测试邮件，验证 API Key 与域名的真实有效性。
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <input
+                    type="email"
+                    value={testEmailRecipient}
+                    onChange={(e) => setTestEmailRecipient(e.target.value)}
+                    placeholder={defaultRecipients ? `默认：${defaultRecipients.split(",")[0]}` : "输入测试接收邮箱地址"}
+                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/70 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                  />
+                  <button
+                    onClick={handleTestEmail}
+                    disabled={testingEmail}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bento-subtle hover:bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-400/30 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                  >
+                    <MailIcon size={16} className={testingEmail ? "animate-bounce" : ""} />
+                    {testingEmail ? "正在投递测试邮件..." : "发送测试邮件"}
+                  </button>
+                </div>
+
+                {emailTestResult && (
+                  <div
+                    className={`p-4 rounded-xl text-xs flex items-start gap-2.5 animate-fadeIn ${
+                      emailTestResult.ok
+                        ? "bg-emerald-500/10 border border-emerald-400/30 text-emerald-700 dark:text-emerald-300"
+                        : "bg-rose-500/10 border border-rose-400/30 text-rose-700 dark:text-rose-300"
+                    }`}
+                  >
+                    {emailTestResult.ok ? (
+                      <CheckBadgeIcon size={18} className="shrink-0 text-emerald-600 mt-0.5" />
+                    ) : (
+                      <ActivityIcon size={18} className="shrink-0 text-rose-600 mt-0.5" />
+                    )}
+                    <div className="space-y-1">
+                      <div className="font-semibold">{emailTestResult.message}</div>
+                      {emailTestResult.error && (
+                        <div className="font-mono text-2xs opacity-80">{emailTestResult.error}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

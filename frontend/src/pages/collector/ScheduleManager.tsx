@@ -122,6 +122,11 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
   const [formStartAt, setFormStartAt] = useState("");
   const [formEndAt, setFormEndAt] = useState("");
 
+  // Task Kind: standard collection or AI Judgment + Email
+  const [taskKind, setTaskKind] = useState<"collection" | "ai_judgment">("collection");
+  const [formPromptId, setFormPromptId] = useState("macau_analyst_expert");
+  const [formRecipients, setFormRecipients] = useState("");
+
   // Concurrency field
   const [formConcurrency, setFormConcurrency] = useState(8);
 
@@ -185,6 +190,9 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
     setFormAutoJudge(true);
     setSourceMode("all");
     setSelectedSourceIds(new Set());
+    setTaskKind("collection");
+    setFormPromptId("macau_analyst_expert");
+    setFormRecipients("");
     setShowModal(true);
   };
 
@@ -199,6 +207,9 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
     setFormDoIngest(sched.do_ingest);
     setFormAutoJudge(sched.auto_judge);
     setFormConcurrency(sched.spec?.concurrency ?? 8);
+    setTaskKind(sched.spec?.task_type === "ai_judgment_email" ? "ai_judgment" : "collection");
+    setFormPromptId(sched.spec?.prompt_id || "macau_analyst_expert");
+    setFormRecipients(sched.spec?.recipients || "");
 
     if (sched.spec?.time_window_start && sched.spec?.time_window_end) {
       setScheduleMode("time_window");
@@ -285,6 +296,14 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
         payload.cron = null;
         payload.start_at = formStartAt.trim() || null;
         payload.end_at = null;
+      }
+
+      if (taskKind === "ai_judgment") {
+        payload.spec = {
+          task_type: "ai_judgment_email",
+          prompt_id: formPromptId.trim() || "macau_analyst_expert",
+          recipients: formRecipients.trim() || undefined,
+        };
       }
 
       if (editingId !== null) {
@@ -558,10 +577,17 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                           {sched.spec.window_date === "daily" ? "每日" : "当天"} {sched.spec.time_window_start}-{sched.spec.time_window_end} (每{sched.spec.interval_minutes}分)
                         </Badge>
                       )}
-                      <Badge variant="outline" className="text-[11px] text-violet-600 dark:text-violet-300 bg-violet-500/10 border-violet-400/30 dark:border-violet-400/25 flex items-center gap-1">
-                        <span>⚡</span>
-                        <span>{sched.spec?.concurrency || 8} 线程</span>
-                      </Badge>
+                      {sched.spec?.task_type === "ai_judgment_email" ? (
+                        <Badge variant="secondary" className="text-[11px] bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-400/30 flex items-center gap-1 font-semibold">
+                          <span>🧠</span>
+                          <span>AI 帖文研判推送 (Resend)</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[11px] text-violet-600 dark:text-violet-300 bg-violet-500/10 border-violet-400/30 dark:border-violet-400/25 flex items-center gap-1">
+                          <span>⚡</span>
+                          <span>{sched.spec?.concurrency || 8} 线程</span>
+                        </Badge>
+                      )}
                       {sched.enabled ? (
                         <Badge variant="success" className="text-[11px]">
                           已启用
@@ -730,6 +756,98 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                   className="w-full"
                 />
               </div>
+
+              {/* Task Type Switcher */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  任务执行类型
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTaskKind("collection");
+                      if (!formName || formName.includes("AI") || formName.includes("研判")) {
+                        setFormName("数据源定时高频采集");
+                      }
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      taskKind === "collection"
+                        ? "border-primary bg-primary/10 text-primary font-semibold ring-1 ring-primary/30"
+                        : "border-slate-200/50 dark:border-white/10 text-slate-600 dark:text-slate-400 bento-subtle"
+                    }`}
+                  >
+                    <div className="text-xs font-bold flex items-center gap-1.5">
+                      <span>🌐</span>
+                      <span>数据源定时采集 (标准)</span>
+                    </div>
+                    <div className="text-[11px] opacity-75 mt-0.5">并发抓取指定彩种/数据源并入库对奖</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTaskKind("ai_judgment");
+                      if (!formName || formName.includes("采集")) {
+                        setFormName("澳门帖文 AI 智能研判与邮件推送");
+                      }
+                    }}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      taskKind === "ai_judgment"
+                        ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300 font-semibold ring-1 ring-violet-500/30"
+                        : "border-slate-200/50 dark:border-white/10 text-slate-600 dark:text-slate-400 bento-subtle"
+                    }`}
+                  >
+                    <div className="text-xs font-bold flex items-center gap-1.5">
+                      <span>🧠</span>
+                      <span>AI 帖文研判与邮件推送 (Resend)</span>
+                    </div>
+                    <div className="text-[11px] opacity-75 mt-0.5">抓取网页 → 提示词 → AI研判 → 邮件发送</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* AI Judgment Specific Config */}
+              {taskKind === "ai_judgment" && (
+                <div className="p-4 rounded-2xl bg-violet-500/5 dark:bg-violet-500/10 border border-violet-500/20 space-y-3 animate-fadeIn">
+                  <div className="flex items-center gap-2 text-xs font-bold text-violet-700 dark:text-violet-300">
+                    <SparklesIcon size={15} />
+                    <span>AI 研判与 Resend 邮件推送参数</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-2xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        提示词模板 (Prompt Template)
+                      </label>
+                      <Select
+                        value={formPromptId}
+                        onChange={(v) => setFormPromptId(v)}
+                        options={[
+                          { value: "macau_analyst_expert", label: "澳门六合彩专业实码研判 (推荐)" },
+                          { value: "consensus_synthesis", label: "跨源共识综合研判" },
+                          { value: "summary_digest", label: "高热摘要分析" },
+                          { value: "structured_extraction", label: "结构化精准抽取" },
+                        ]}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-2xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                        接收人邮箱 (Recipients)
+                      </label>
+                      <TextInput
+                        value={formRecipients}
+                        onChange={setFormRecipients}
+                        placeholder="留空则使用系统设置配置的默认收件人"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    💡 该任务触发时，后台将自动调取最新抓取的帖文数据，经由 AI 专家模型深度研判后，通过 Resend SMTP 将排版优美的 HTML 报表投递到指定邮箱。
+                  </p>
+                </div>
+              )}
 
               {/* Lottery & Period */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1049,8 +1167,10 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                 </div>
               )}
 
-              {/* Thread Pool Concurrency Configuration */}
-              <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-400/30 dark:border-violet-400/25 space-y-2.5">
+              {/* Thread Pool Concurrency Configuration & Target Sources (Standard Collection only) */}
+              {taskKind === "collection" && (
+                <>
+                  <div className="p-4 rounded-2xl bg-violet-500/10 border border-violet-400/30 dark:border-violet-400/25 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-violet-950 dark:text-violet-200 flex items-center gap-1.5">
                     <span>⚡</span>
@@ -1200,6 +1320,8 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                   </div>
                 )}
               </div>
+            </>
+          )}
 
               {/* Execution Options */}
               <div className="flex items-center gap-6 pt-2 border-t border-slate-200/50 dark:border-white/8 text-xs">
