@@ -462,6 +462,7 @@ class AIPipelineRunRequest(BaseModel):
     model: str | None = Field(default=None)
     format_mode: str = Field(default="raw_html")
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
+    timeout: float = Field(default=300.0, ge=10.0, le=1800.0, description="AI 超时时间(秒)")
     fetch_fresh: bool = Field(default=True)
     recipients: str | list[str] | None = Field(default=None)
     subject: str | None = Field(default=None)
@@ -497,6 +498,7 @@ def execute_pipeline(
             model=req.model,
             format_mode=req.format_mode,
             temperature=req.temperature,
+            timeout=req.timeout,
             fetch_fresh=req.fetch_fresh,
             recipients=req.recipients,
             subject=req.subject,

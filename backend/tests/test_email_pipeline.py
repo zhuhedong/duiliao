@@ -103,3 +103,67 @@ def test_email_settings_api(admin_client):
     assert res_data["from_email"] == "notifications@myduiliao.com"
     assert "••••" in res_data["smtp_password"]
 
+
+def test_clean_html_for_llm():
+    from app.services.ai.formatter import clean_html_for_llm, format_scraped_data_for_ai
+
+    sample_html = """<!DOCTYPE html>
+<html>
+<head>
+    <style>.card { color: red; } body { margin: 0; }</style>
+    <script>function doAd(){ alert('ad'); }</script>
+</head>
+<body>
+    <!-- Comment: module header -->
+    <div class="content-module" data-name="内幕大师">
+        <table>
+            <tr><td>第263期</td><td>特码: 15</td></tr>
+        </table>
+    </div>
+
+
+
+</body>
+</html>"""
+    cleaned = clean_html_for_llm(sample_html)
+    assert "<style>" not in cleaned
+    assert "doAd" not in cleaned
+    assert "<!-- Comment" not in cleaned
+    assert "<table>" in cleaned
+    assert "第263期" in cleaned
+    assert "特码: 15" in cleaned
+    assert "\n\n\n" not in cleaned
+
+    formatted = format_scraped_data_for_ai({"html": sample_html}, mode="raw_html")
+    assert "<style>" not in formatted
+    assert "<table>" in formatted
+
+
+def test_ai_client_timeout_and_settings():
+    from app.services.ai.client import get_ai_client
+    from app.services.settings_service import get_all_ai_settings, save_ai_settings
+
+    db = SessionLocal()
+    try:
+        # Check default timeout
+        settings_dict = get_all_ai_settings(db=db, mask=False)
+        assert settings_dict.get("timeout") >= 300.0
+
+        # Save custom timeout
+        save_ai_settings(db, {"timeout": 450.0})
+        updated = get_all_ai_settings(db=db, mask=False)
+        assert updated.get("timeout") == 450.0
+
+        # Verify client picks up custom timeout
+        client = get_ai_client(api_key="sk-mock-key-for-test")
+        assert client.timeout == 450.0
+
+        # Verify explicit timeout override
+        client_override = get_ai_client(api_key="sk-mock-key-for-test", timeout=120.0)
+        assert client_override.timeout == 120.0
+    finally:
+        # Reset timeout
+        save_ai_settings(db, {"timeout": 300.0})
+        db.close()
+
+

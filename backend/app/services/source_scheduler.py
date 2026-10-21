@@ -135,6 +135,7 @@ class SourceScheduler:
                     model=spec.get("model"),
                     format_mode=spec.get("format_mode", "raw_html"),
                     temperature=float(spec.get("temperature", 0.7)),
+                    timeout=float(spec.get("timeout", 300.0)),
                     fetch_fresh=bool(spec.get("fetch_fresh", True)),
                     recipients=spec.get("recipients"),
                     subject=spec.get("subject"),

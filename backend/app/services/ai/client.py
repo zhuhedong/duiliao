@@ -96,7 +96,7 @@ class AIResponse:
 class BaseAIProvider(ABC):
     """Abstract base class for LLM providers."""
 
-    def __init__(self, api_key: str, base_url: str, default_model: str, timeout: float = 180.0):
+    def __init__(self, api_key: str, base_url: str, default_model: str, timeout: float = 300.0):
         self.api_key = api_key.strip()
         self.base_url = base_url.rstrip("/")
         self.default_model = default_model
@@ -176,8 +176,9 @@ class OpenAIProvider(BaseAIProvider):
             payload["max_tokens"] = max_tokens
 
         t0 = time.perf_counter()
+        client_timeout = httpx.Timeout(self.timeout, connect=30.0, read=self.timeout, write=60.0)
         try:
-            with httpx.Client(timeout=self.timeout) as client:
+            with httpx.Client(timeout=client_timeout) as client:
                 resp = client.post(url, headers=headers, json=payload)
                 if resp.status_code != 200:
                     raise _format_http_error(resp, "OpenAI/DeepSeek", self.base_url)
@@ -260,7 +261,7 @@ class OpenAIProvider(BaseAIProvider):
             raise
 
     def _iter_chat_deltas(self, url: str, headers: dict[str, str], payload: dict[str, Any]) -> Generator[str, None, None]:
-        timeout = httpx.Timeout(300.0, connect=20.0, read=300.0)
+        timeout = httpx.Timeout(max(self.timeout, 300.0), connect=30.0, read=max(self.timeout, 300.0))
         try:
             with httpx.Client(timeout=timeout) as client:
                 with client.stream("POST", url, headers=headers, json=payload) as resp:
@@ -315,7 +316,8 @@ class OpenAIProvider(BaseAIProvider):
             payload["max_tokens"] = max_tokens
 
         t0 = time.perf_counter()
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        client_timeout = httpx.Timeout(self.timeout, connect=30.0, read=self.timeout, write=60.0)
+        async with httpx.AsyncClient(timeout=client_timeout) as client:
             resp = await client.post(url, headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
@@ -380,8 +382,9 @@ class GeminiProvider(BaseAIProvider):
             payload["systemInstruction"] = system_instruction
 
         t0 = time.perf_counter()
+        client_timeout = httpx.Timeout(self.timeout, connect=30.0, read=self.timeout, write=60.0)
         try:
-            with httpx.Client(timeout=self.timeout) as client:
+            with httpx.Client(timeout=client_timeout) as client:
                 resp = client.post(url, params=params, json=payload)
                 if resp.status_code != 200:
                     raise _format_http_error(resp, "Google Gemini", self.base_url)
@@ -440,7 +443,7 @@ class GeminiProvider(BaseAIProvider):
         if system_instruction:
             payload["systemInstruction"] = system_instruction
 
-        timeout = httpx.Timeout(180.0, connect=20.0, read=180.0)
+        timeout = httpx.Timeout(max(self.timeout, 300.0), connect=30.0, read=max(self.timeout, 300.0))
         try:
             with httpx.Client(timeout=timeout) as client:
                 with client.stream("POST", url, json=payload) as resp:
@@ -494,7 +497,8 @@ class GeminiProvider(BaseAIProvider):
             payload["systemInstruction"] = system_instruction
 
         t0 = time.perf_counter()
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        client_timeout = httpx.Timeout(self.timeout, connect=30.0, read=self.timeout, write=60.0)
+        async with httpx.AsyncClient(timeout=client_timeout) as client:
             resp = await client.post(url, params=params, json=payload)
             resp.raise_for_status()
             data = resp.json()
@@ -569,8 +573,9 @@ class AnthropicProvider(BaseAIProvider):
             payload["system"] = system_text
 
         t0 = time.perf_counter()
+        client_timeout = httpx.Timeout(self.timeout, connect=30.0, read=self.timeout, write=60.0)
         try:
-            with httpx.Client(timeout=self.timeout) as client:
+            with httpx.Client(timeout=client_timeout) as client:
                 resp = client.post(url, headers=headers, json=payload)
                 if resp.status_code != 200:
                     raise _format_http_error(resp, "Anthropic Claude", self.base_url)
@@ -627,7 +632,7 @@ class AnthropicProvider(BaseAIProvider):
         if system_text:
             payload["system"] = system_text
 
-        timeout = httpx.Timeout(180.0, connect=20.0, read=180.0)
+        timeout = httpx.Timeout(max(self.timeout, 300.0), connect=30.0, read=max(self.timeout, 300.0))
         try:
             with httpx.Client(timeout=timeout) as client:
                 with client.stream("POST", url, headers=headers, json=payload) as resp:
@@ -680,7 +685,8 @@ class AnthropicProvider(BaseAIProvider):
             payload["system"] = system_text
 
         t0 = time.perf_counter()
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        client_timeout = httpx.Timeout(self.timeout, connect=30.0, read=self.timeout, write=60.0)
+        async with httpx.AsyncClient(timeout=client_timeout) as client:
             resp = await client.post(url, headers=headers, json=payload)
             resp.raise_for_status()
             data = resp.json()
@@ -715,7 +721,7 @@ def get_ai_client(
     api_key: str | None = None,
     base_url: str | None = None,
     model: str | None = None,
-    timeout: float = 60.0,
+    timeout: float | None = None,
 ) -> BaseAIProvider:
     """Factory creating the appropriate AI provider instance.
     Checks dynamic system settings first, falling back to environment config.
@@ -725,6 +731,7 @@ def get_ai_client(
     # Load dynamic real settings (unmasked)
     all_settings = get_all_ai_settings(mask=False)
     target_provider = (provider or all_settings.get("default_provider") or "openai").lower().strip()
+    actual_timeout = timeout if timeout is not None else float(all_settings.get("timeout") or 300.0)
 
     if target_provider in ("openai", "deepseek", "qwen", "kimi"):
         cfg = all_settings.get("openai", {})
@@ -732,7 +739,7 @@ def get_ai_client(
         url = base_url if base_url is not None else cfg.get("base_url", "https://api.openai.com/v1")
         default_model = model or cfg.get("model", "deepseek-chat")
         _require_api_key(key, target_provider)
-        return OpenAIProvider(api_key=key, base_url=url, default_model=default_model, timeout=timeout)
+        return OpenAIProvider(api_key=key, base_url=url, default_model=default_model, timeout=actual_timeout)
 
     elif target_provider == "gemini":
         cfg = all_settings.get("gemini", {})
@@ -740,7 +747,7 @@ def get_ai_client(
         url = base_url if base_url is not None else cfg.get("base_url", "https://generativelanguage.googleapis.com")
         default_model = model or cfg.get("model", "gemini-2.5-flash")
         _require_api_key(key, target_provider)
-        return GeminiProvider(api_key=key, base_url=url, default_model=default_model, timeout=timeout)
+        return GeminiProvider(api_key=key, base_url=url, default_model=default_model, timeout=actual_timeout)
 
     elif target_provider in ("anthropic", "claude"):
         cfg = all_settings.get("anthropic", {})
@@ -748,7 +755,7 @@ def get_ai_client(
         url = base_url if base_url is not None else cfg.get("base_url", "https://api.anthropic.com")
         default_model = model or cfg.get("model", "claude-3-5-sonnet-20241022")
         _require_api_key(key, target_provider)
-        return AnthropicProvider(api_key=key, base_url=url, default_model=default_model, timeout=timeout)
+        return AnthropicProvider(api_key=key, base_url=url, default_model=default_model, timeout=actual_timeout)
 
     else:
         raise ValueError(f"不支持的 AI Provider: {provider}。支持: openai, gemini, anthropic")

@@ -132,6 +132,27 @@ def _format_period_extraction(
     return "\n".join(lines)
 
 
+def clean_html_for_llm(raw_html: str, max_chars: int = 250_000) -> str:
+    """Prepare HTML context for LLMs:
+    Preserve complete DOM tree, tables, headings, and prediction content,
+    while stripping non-semantic bloat (CSS stylesheets, JS scripts, comments,
+    and redundant blank lines) to fit comfortably within LLM context limits
+    and avoid token-generation timeouts.
+    """
+    if not raw_html:
+        return ""
+    text = raw_html
+    # Strip style, script, and HTML comments
+    text = re.sub(r"(?is)<style.*?>.*?</style>", "", text)
+    text = re.sub(r"(?is)<script.*?>.*?</script>", "", text)
+    text = re.sub(r"(?s)<!--.*?-->", "", text)
+    # Collapse 3+ consecutive newlines into 2
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if len(text) > max_chars:
+        text = text[:max_chars] + f"\n\n<!-- [截断提示: 原始网页已保留前 {max_chars} 字符以适配大模型上下文窗口] -->"
+    return text
+
+
 def format_scraped_data_for_ai(
     data: dict[str, Any] | Any,
     *,
@@ -147,8 +168,10 @@ def format_scraped_data_for_ai(
     """
     if mode == "raw_html":
         if isinstance(data, dict):
-            return data.get("raw_html") or data.get("html") or ""
-        return getattr(data, "raw_html", None) or getattr(data, "html", None) or str(data)
+            raw = data.get("raw_html") or data.get("html") or ""
+        else:
+            raw = getattr(data, "raw_html", None) or getattr(data, "html", None) or str(data)
+        return clean_html_for_llm(raw)
 
     if period:
         extracted = _format_period_extraction(data, period=str(period).strip())

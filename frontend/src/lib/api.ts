@@ -550,6 +550,7 @@ export interface AIProviderConfig {
 
 export interface AISettings {
   default_provider: string;
+  timeout?: number;
   openai: AIProviderConfig;
   gemini: AIProviderConfig;
   anthropic: AIProviderConfig;
@@ -586,7 +587,9 @@ export interface AIPipelineRunPayload {
   custom_prompt?: string;
   provider?: string;
   model?: string;
+  format_mode?: string;
   temperature?: number;
+  timeout?: number;
   fetch_fresh?: boolean;
   recipients?: string | string[];
   subject?: string;
@@ -609,6 +612,7 @@ export const settingsApi = {
   },
   updateAISettings(data: {
     default_provider?: string;
+    timeout?: number;
     openai?: Partial<AIProviderConfig>;
     gemini?: Partial<AIProviderConfig>;
     anthropic?: Partial<AIProviderConfig>;

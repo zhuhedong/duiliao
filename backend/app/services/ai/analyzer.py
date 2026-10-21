@@ -49,6 +49,7 @@ def analyze_scraped_data(
     model: str | None = None,
     format_mode: str = "raw_html",
     temperature: float = 0.7,
+    timeout: float = 300.0,
     api_key: str | None = None,
     base_url: str | None = None,
     client: BaseAIProvider | None = None,
@@ -145,6 +146,7 @@ def analyze_scraped_data(
             api_key=api_key,
             base_url=base_url,
             model=model,
+            timeout=timeout,
         )
 
         resp: AIResponse = ai_client.generate(
@@ -194,6 +196,7 @@ def analyze_scraped_data_stream(
     model: str | None = None,
     format_mode: str = "raw_html",
     temperature: float = 0.7,
+    timeout: float = 300.0,
     api_key: str | None = None,
     base_url: str | None = None,
     client: BaseAIProvider | None = None,
@@ -281,6 +284,7 @@ def analyze_scraped_data_stream(
             api_key=api_key,
             base_url=base_url,
             model=model,
+            timeout=timeout,
         )
 
         for chunk in ai_client.generate_stream(

@@ -136,6 +136,7 @@ class Settings(BaseSettings):
 
     # --- AI Model Configuration ---
     AI_DEFAULT_PROVIDER: str = "openai"  # openai | gemini | anthropic
+    AI_REQUEST_TIMEOUT: float = 300.0  # Default timeout in seconds for AI inference requests
 
     # OpenAI-compatible protocol (DeepSeek, Qwen, Kimi, OpenAI, Ollama, etc.)
     OPENAI_API_KEY: str = ""

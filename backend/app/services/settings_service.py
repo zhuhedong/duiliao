@@ -91,6 +91,7 @@ def validate_external_url(value: str, *, resolve_dns: bool = True) -> str:
 # Mapping of setting keys
 AI_SETTING_KEYS = [
     "ai_default_provider",
+    "ai_request_timeout",
     "ai_openai_base_url",
     "ai_openai_api_key",
     "ai_openai_model",
@@ -183,8 +184,17 @@ def get_all_ai_settings(db: Session | None = None, mask: bool = True) -> dict[st
             db, "ai_anthropic_model", settings.ANTHROPIC_MODEL or "claude-3-5-sonnet-20241022"
         )
 
+        timeout_str = get_setting_value(
+            db, "ai_request_timeout", str(getattr(settings, "AI_REQUEST_TIMEOUT", 300.0))
+        )
+        try:
+            timeout_sec = float(timeout_str)
+        except (ValueError, TypeError):
+            timeout_sec = 300.0
+
         return {
             "default_provider": default_provider,
+            "timeout": timeout_sec,
             "openai": {
                 "base_url": openai_url,
                 "api_key": mask_api_key(openai_key) if mask else openai_key,
@@ -219,6 +229,15 @@ def save_ai_settings(db: Session, data: dict[str, Any]) -> dict[str, Any]:
             str(data["default_provider"]).strip(),
             "默认 AI 服务商 (openai / gemini / anthropic)",
         )
+
+    # 1.1 Request timeout
+    if "timeout" in data and data["timeout"] is not None:
+        try:
+            t_val = float(data["timeout"])
+            if 10.0 <= t_val <= 1800.0:
+                set_setting_value(db, "ai_request_timeout", str(t_val), "AI 研判模型请求超时时间(秒)")
+        except (ValueError, TypeError):
+            pass
 
     # Helper to update a provider block
     def _update_provider(provider: str, prefix: str):
