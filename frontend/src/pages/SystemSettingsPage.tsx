@@ -522,6 +522,11 @@ export function SystemSettingsPage() {
   const applyPreset = (preset: PresetConfig) => {
     setOpenaiBaseUrl(preset.base_url);
     setOpenaiModel(preset.model);
+    if (preset.base_url.includes("11434") || preset.base_url.includes("localhost")) {
+      if (!openaiKey) {
+        setOpenaiKey("ollama");
+      }
+    }
     toast.info(`已填入预设：${preset.name}`, preset.model);
   };
 

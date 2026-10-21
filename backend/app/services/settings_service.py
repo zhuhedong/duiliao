@@ -23,13 +23,21 @@ _MAX_AI_REQUEST_TIMEOUT = 20.0
 _FAKE_IP_NET = ipaddress.ip_network("198.18.0.0/15")
 
 
-def validate_external_url(value: str, *, resolve_dns: bool = True) -> str:
+def validate_external_url(
+    value: str,
+    *,
+    resolve_dns: bool = True,
+    allow_private: bool = False,
+) -> str:
     """Validate a provider URL before the server makes an outbound request.
 
-    Custom providers are supported, but endpoints that resolve to loopback,
-    private, link-local, multicast, reserved, or unspecified addresses are not.
-    Redirects are disabled at the call site because validating only the initial
-    URL cannot make an unvalidated redirect safe.
+    Custom providers are supported. If allow_private is False, endpoints that
+    resolve to loopback, private, link-local, multicast, reserved, or unspecified
+    addresses are blocked.
+    When allow_private is True, loopback and private addresses (e.g. localhost,
+    127.0.0.1, 192.168.x.x, 10.x.x.x) are permitted (for Ollama, vLLM, LAN gateways),
+    while cloud metadata (169.254.169.254, metadata.google.internal) and multicast
+    remain strictly blocked for defense-in-depth.
     """
     raw = (value or "").strip()
     if not raw:
@@ -48,18 +56,23 @@ def validate_external_url(value: str, *, resolve_dns: bool = True) -> str:
     port = port or (443 if parsed.scheme.lower() == "https" else 80)
     host = parsed.hostname.rstrip(".").lower()
 
+    if host in {"metadata.google.internal", "instance-data"}:
+        raise ValueError("Base URL 不允许访问云元数据服务")
+
     def _blocked(address: str) -> bool:
         ip = ipaddress.ip_address(address)
         if ip in _FAKE_IP_NET:
             return False
-        return (
-            ip.is_loopback
-            or ip.is_private
-            or ip.is_link_local
-            or ip.is_multicast
-            or ip.is_reserved
-            or ip.is_unspecified
-        )
+        # Link-local (e.g. AWS/GCP 169.254.169.254), multicast, unspecified are always blocked
+        if ip.is_link_local or ip.is_multicast or ip.is_unspecified:
+            return True
+        if not allow_private:
+            return (
+                ip.is_loopback
+                or ip.is_private
+                or ip.is_reserved
+            )
+        return False
 
     try:
         literal = ipaddress.ip_address(host)
@@ -68,8 +81,9 @@ def validate_external_url(value: str, *, resolve_dns: bool = True) -> str:
     if literal is not None:
         if _blocked(str(literal)):
             raise ValueError("Base URL 不允许指向本机或内网地址")
-    elif host in {"localhost", "localhost.localdomain"} or host.endswith(".local"):
-        raise ValueError("Base URL 不允许使用本地域名")
+    elif host in {"localhost", "localhost.localdomain"} or host.endswith(".local") or host == "host.docker.internal":
+        if not allow_private:
+            raise ValueError("Base URL 不允许使用本地域名")
     elif resolve_dns:
         try:
             addresses = {
@@ -195,6 +209,7 @@ def get_all_ai_settings(db: Session | None = None, mask: bool = True) -> dict[st
         return {
             "default_provider": default_provider,
             "timeout": timeout_sec,
+            "allow_private_base_url": settings.ai_allow_private_base_url,
             "openai": {
                 "base_url": openai_url,
                 "api_key": mask_api_key(openai_key) if mask else openai_key,
@@ -248,7 +263,7 @@ def save_ai_settings(db: Session, data: dict[str, Any]) -> dict[str, Any]:
         if "base_url" in block and block["base_url"] is not None:
             url = str(block["base_url"]).strip()
             if url:
-                url = validate_external_url(url)
+                url = validate_external_url(url, allow_private=settings.ai_allow_private_base_url)
                 set_setting_value(db, f"{prefix}_base_url", url, f"{provider} API Base URL")
 
         if "model" in block and block["model"] is not None:
@@ -400,7 +415,10 @@ def test_ai_connection(
     real_settings = get_all_ai_settings(mask=False)
     p_config = real_settings.get(target_provider, {})
 
-    target_url = validate_external_url(base_url or p_config.get("base_url") or "")
+    target_url = validate_external_url(
+        base_url or p_config.get("base_url") or "",
+        allow_private=settings.ai_allow_private_base_url,
+    )
     target_model = (model or p_config.get("model") or "").strip()
 
     if api_key is not None and not is_masked_key(api_key):
@@ -409,12 +427,19 @@ def test_ai_connection(
         target_key = p_config.get("api_key") or ""
 
     if not target_key:
-        return {
-            "ok": False,
-            "message": f"未配置 {target_provider} 的 API 密钥（API Key 为空）",
-            "elapsed_ms": 0,
-            "error": "API Key is empty",
-        }
+        is_local_endpoint = any(
+            hint in target_url
+            for hint in ("localhost", "127.0.0.1", ":11434", "host.docker.internal")
+        )
+        if settings.ai_allow_private_base_url and is_local_endpoint and target_provider in ("openai", "deepseek", "qwen", "kimi"):
+            target_key = "ollama"
+        else:
+            return {
+                "ok": False,
+                "message": f"未配置 {target_provider} 的 API 密钥（API Key 为空）",
+                "elapsed_ms": 0,
+                "error": "API Key is empty",
+            }
 
     try:
         timeout = max(3.0, min(float(timeout), _MAX_AI_REQUEST_TIMEOUT))

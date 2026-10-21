@@ -16,6 +16,24 @@ def test_provider_url_rejects_private_and_non_http_targets() -> None:
         validate_external_url("file:///etc/passwd", resolve_dns=False)
 
 
+def test_provider_url_permits_private_targets_when_explicitly_allowed() -> None:
+    assert (
+        validate_external_url("http://127.0.0.1:11434/v1", resolve_dns=False, allow_private=True)
+        == "http://127.0.0.1:11434/v1"
+    )
+    assert (
+        validate_external_url("http://localhost:11434/v1", resolve_dns=False, allow_private=True)
+        == "http://localhost:11434/v1"
+    )
+    assert (
+        validate_external_url("http://192.168.1.100:11434/v1", resolve_dns=False, allow_private=True)
+        == "http://192.168.1.100:11434/v1"
+    )
+    # Cloud metadata remains blocked even when allow_private=True
+    with pytest.raises(ValueError, match="内网|云元数据"):
+        validate_external_url("http://169.254.169.254/latest", resolve_dns=False, allow_private=True)
+
+
 def test_provider_url_preserves_public_custom_gateway_path() -> None:
     assert (
         validate_external_url("HTTPS://api.example.test/v1/", resolve_dns=False)

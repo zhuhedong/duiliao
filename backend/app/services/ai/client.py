@@ -167,7 +167,7 @@ class OpenAIProvider(BaseAIProvider):
         m = model or self.default_model
         url = f"{self.base_url}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {self.api_key or 'ollama'}",
             "Content-Type": "application/json",
         }
         payload: dict[str, Any] = {
@@ -275,7 +275,7 @@ class OpenAIProvider(BaseAIProvider):
         m = model or self.default_model
         url = f"{self.base_url}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {self.api_key or 'ollama'}",
             "Content-Type": "application/json",
         }
         payload: dict[str, Any] = {
@@ -366,7 +366,7 @@ class OpenAIProvider(BaseAIProvider):
         m = model or self.default_model
         url = f"{self.base_url}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {self.api_key or 'ollama'}",
             "Content-Type": "application/json",
         }
         payload: dict[str, Any] = {

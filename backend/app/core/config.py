@@ -137,6 +137,9 @@ class Settings(BaseSettings):
     # --- AI Model Configuration ---
     AI_DEFAULT_PROVIDER: str = "openai"  # openai | gemini | anthropic
     AI_REQUEST_TIMEOUT: float = 300.0  # Default timeout in seconds for AI inference requests
+    # Allow AI Base URL to point to localhost or private network (Ollama, local vLLM, LAN gateways)
+    # None => allowed in non-production, blocked in production unless explicitly set true.
+    AI_ALLOW_PRIVATE_BASE_URL: bool | None = None
 
     # OpenAI-compatible protocol (DeepSeek, Qwen, Kimi, OpenAI, Ollama, etc.)
     OPENAI_API_KEY: str = ""
@@ -181,6 +184,12 @@ class Settings(BaseSettings):
     def run_script_enabled(self) -> bool:
         if self.RUN_SCRIPT_ENABLED is not None:
             return self.RUN_SCRIPT_ENABLED
+        return not self.is_production
+
+    @property
+    def ai_allow_private_base_url(self) -> bool:
+        if self.AI_ALLOW_PRIVATE_BASE_URL is not None:
+            return self.AI_ALLOW_PRIVATE_BASE_URL
         return not self.is_production
 
     @property

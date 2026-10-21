@@ -63,7 +63,10 @@ def update_ai_config(
 ) -> dict[str, Any]:
     """Save updated AI configurations (Base URL, models, and unmasked API keys)."""
     data = payload.model_dump(exclude_unset=True)
-    updated = save_ai_settings(db, data)
+    try:
+        updated = save_ai_settings(db, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return updated
 
 
