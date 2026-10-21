@@ -132,22 +132,30 @@ def _format_period_extraction(
     return "\n".join(lines)
 
 
-def clean_html_for_llm(raw_html: str, max_chars: int = 250_000) -> str:
+def clean_html_for_llm(raw_html: str, max_chars: int = 150_000) -> str:
     """Prepare HTML context for LLMs:
-    Preserve complete DOM tree, tables, headings, and prediction content,
-    while stripping non-semantic bloat (CSS stylesheets, JS scripts, comments,
-    and redundant blank lines) to fit comfortably within LLM context limits
-    and avoid token-generation timeouts.
+    Preserve complete DOM tree, tables, headings, prediction modules, and columns,
+    while stripping non-semantic bloat:
+      - CSS stylesheet blocks (<style>...</style>)
+      - JavaScript blocks (<script>...</script>)
+      - HTML comments (<!--...-->)
+      - Massive inline styling attributes (style="...") which typically consume 70%+ of webpage bytes
+      - Heavy base64 data URIs
+      - Consecutive empty whitespace
     """
     if not raw_html:
         return ""
     text = raw_html
-    # Strip style, script, and HTML comments
-    text = re.sub(r"(?is)<style.*?>.*?</style>", "", text)
-    text = re.sub(r"(?is)<script.*?>.*?</script>", "", text)
+    while re.search(r"(?is)<style.*?>.*?</style>", text):
+        text = re.sub(r"(?is)<style.*?>.*?</style>", "", text)
+    while re.search(r"(?is)<script.*?>.*?</script>", text):
+        text = re.sub(r"(?is)<script.*?>.*?</script>", "", text)
+    text = re.sub(r"(?i)</?(?:style|script)[^>]*>", "", text)
     text = re.sub(r"(?s)<!--.*?-->", "", text)
-    # Collapse 3+ consecutive newlines into 2
-    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    text = re.sub(r"\sstyle=[\x27\x22][^\x27\x22]*[\x27\x22]", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"data:[^\"\x27\)\s]{50,}", "", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n\s*\n", "\n\n", text).strip()
     if len(text) > max_chars:
         text = text[:max_chars] + f"\n\n<!-- [截断提示: 原始网页已保留前 {max_chars} 字符以适配大模型上下文窗口] -->"
     return text

@@ -110,14 +110,14 @@ def test_clean_html_for_llm():
     sample_html = """<!DOCTYPE html>
 <html>
 <head>
-    <style>.card { color: red; } body { margin: 0; }</style>
+    <style id="s1"><style>.card { color: red; } body { margin: 0; }</style></style>
     <script>function doAd(){ alert('ad'); }</script>
 </head>
 <body>
     <!-- Comment: module header -->
-    <div class="content-module" data-name="内幕大师">
-        <table>
-            <tr><td>第263期</td><td>特码: 15</td></tr>
+    <div class="content-module" data-name="内幕大师" style="background-image: radial-gradient(#fff, #000); box-shadow: 0 0 10px red; font-size: 14px;">
+        <table style="border-collapse: collapse; width: 100%;">
+            <tr style="height: 40px;"><td style="color: blue; padding: 4px;">第263期</td><td style="font-weight: bold;">特码: 15</td></tr>
         </table>
     </div>
 
@@ -127,16 +127,37 @@ def test_clean_html_for_llm():
 </html>"""
     cleaned = clean_html_for_llm(sample_html)
     assert "<style>" not in cleaned
+    assert "</style>" not in cleaned
     assert "doAd" not in cleaned
     assert "<!-- Comment" not in cleaned
     assert "<table>" in cleaned
     assert "第263期" in cleaned
     assert "特码: 15" in cleaned
+    assert "radial-gradient" not in cleaned
+    assert "box-shadow" not in cleaned
+    assert "style=" not in cleaned
     assert "\n\n\n" not in cleaned
 
     formatted = format_scraped_data_for_ai({"html": sample_html}, mode="raw_html")
     assert "<style>" not in formatted
+    assert "style=" not in formatted
     assert "<table>" in formatted
+
+
+def test_504_gateway_timeout_format():
+    import httpx
+    from app.services.ai.client import _format_http_error
+
+    resp = httpx.Response(
+        status_code=504,
+        content=b"<!DOCTYPE html><html><head><title>504 Gateway Time-out</title></head></html>",
+        request=httpx.Request("POST", "https://api.deepseek.com/v1/chat/completions"),
+    )
+    err = _format_http_error(resp, "OpenAI/DeepSeek", "https://api.deepseek.com/v1")
+    assert "504" in str(err)
+    assert "网关超时" in str(err) or "Gateway" in str(err)
+    assert "Cloudflare" in str(err)
+    assert "<!DOCTYPE" not in str(err)  # Clean message without dumping ugly HTML tags
 
 
 def test_ai_client_timeout_and_settings():

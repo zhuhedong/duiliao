@@ -62,6 +62,10 @@ def _format_http_error(resp: httpx.Response, provider_name: str, base_url: str) 
         return RuntimeError(
             f"{provider_name} 接口不存在 (HTTP 404): 当前配置的 Base URL 为 {base_url}{detail_suffix}"
         )
+    elif status_code == 504:
+        return RuntimeError(
+            f"{provider_name} 网关超时 (HTTP 504): 上游代理网关（Cloudflare）等待大模型响应超时。通常由于单次输入上下文过大或推理模型（如 deepseek-reasoner）思考耗时过长导致。系统已针对网页内容进行智能轻量化去噪并启用了流式长连接，建议在系统设置中首选响应更敏捷的 deepseek-chat 模型。"
+        )
     elif status_code >= 500:
         return RuntimeError(
             f"{provider_name} 服务端异常 (HTTP {status_code}): 上游大模型服务暂时故障，请稍后重试{detail_suffix}"
@@ -177,6 +181,65 @@ class OpenAIProvider(BaseAIProvider):
 
         t0 = time.perf_counter()
         client_timeout = httpx.Timeout(self.timeout, connect=30.0, read=self.timeout, write=60.0)
+
+        # 1. Attempt streaming-backed generation to keep Cloudflare/gateway connection active
+        stream_payload = dict(payload)
+        stream_payload["stream"] = True
+        stream_payload["stream_options"] = {"include_usage": True}
+        stream_headers = dict(headers)
+        stream_headers["Accept-Encoding"] = "identity"
+        stream_timeout = httpx.Timeout(max(self.timeout, 300.0), connect=30.0, read=max(self.timeout, 300.0))
+
+        try:
+            content_parts: list[str] = []
+            usage_data: dict[str, Any] = {}
+            raw_last_chunk: dict[str, Any] = {}
+            with httpx.Client(timeout=stream_timeout) as client:
+                with client.stream("POST", url, headers=stream_headers, json=stream_payload) as resp:
+                    if resp.status_code != 200:
+                        raise _format_http_error(resp, "OpenAI/DeepSeek", self.base_url)
+                    for line in resp.iter_lines():
+                        line = line.strip()
+                        if not line or not line.startswith("data:"):
+                            continue
+                        data_str = line[len("data:"):].strip()
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data_str)
+                        except Exception:
+                            continue
+                        raw_last_chunk = chunk
+                        if chunk.get("usage"):
+                            usage_data = chunk["usage"]
+                        error = chunk.get("error")
+                        if error:
+                            message = error.get("message") if isinstance(error, dict) else str(error)
+                            raise RuntimeError(message or "模型流式接口返回错误")
+                        choices = chunk.get("choices", [])
+                        if choices:
+                            delta = choices[0].get("delta", {})
+                            part = delta.get("content", "")
+                            if part:
+                                content_parts.append(part)
+
+            full_content = "".join(content_parts)
+            if full_content:
+                elapsed = time.perf_counter() - t0
+                return AIResponse(
+                    content=full_content,
+                    provider="openai",
+                    model=m,
+                    usage=usage_data,
+                    elapsed_sec=round(elapsed, 2),
+                    raw=raw_last_chunk,
+                )
+        except RuntimeError:
+            raise
+        except Exception as stream_err:
+            log.warning("OpenAI streaming generation failed, falling back to non-streaming POST: %s", stream_err)
+
+        # 2. Fallback to non-streaming POST if streaming was not successful
         try:
             with httpx.Client(timeout=client_timeout) as client:
                 resp = client.post(url, headers=headers, json=payload)
