@@ -284,6 +284,42 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(rows26[0].claimed["status"], "hit")
         self.assertEqual(rows26[0].claimed["num"], "17")
 
+        # 27. liaoshen_7ma
+        raw_ls7 = "294期 ✦ 料神⑦码\n ﹝04.16.28.26.38.12.24﹞\n 🏆 赚\n295期 ✦ 料神⑦码\n ﹝18.30.42.08.32.14.26﹞\n 🏆 赚"
+        rows27 = extract_dingjian_column(raw_ls7, "liaoshen_7ma")
+        self.assertEqual(len(rows27), 2)
+        self.assertEqual([a["value"] for a in rows27[0].preds], ["04", "16", "28", "26", "38", "12", "24"])
+        self.assertEqual([a["value"] for a in rows27[1].preds], ["18", "30", "42", "08", "32", "14", "26"])
+
+        # 28. ganhuo_4ma
+        raw_gh4 = "294期（重磅干货）开：兔28准 澳门玄机\n 04◈28◈20◈44\n295期（重磅干货）开：發00准 澳门玄机\n 21◈33◈20◈44\n296期（重磅干货）开：發88准 澳门玄机\n 88◈88◈88◈88"
+        rows28 = extract_dingjian_column(raw_gh4, "ganhuo_4ma")
+        self.assertEqual(len(rows28), 2)
+        self.assertEqual([a["value"] for a in rows28[0].preds], ["04", "28", "20", "44"])
+        self.assertEqual(rows28[0].claimed["status"], "hit")
+        self.assertEqual([a["value"] for a in rows28[1].preds], ["21", "33", "20", "44"])
+        self.assertEqual(rows28[1].claimed["status"], "pending")
+
+        # 29. temawang_2x4m
+        raw_tw = "第294期\n 兔-16-28\n鸡-22-34\n 开奖: 兔28 中\n第295期\n 猴-11-23\n兔-16-40\n 开奖: 發88 中\n第296期\n 稳赚二肖\n 开奖: 發88 中"
+        rows29 = extract_dingjian_column(raw_tw, "temawang_2x4m")
+        self.assertEqual(len(rows29), 2)
+        self.assertEqual([a["value"] for a in rows29[0].preds[:2]], ["兔", "鸡"])
+        self.assertEqual([a["value"] for a in rows29[0].preds[2:]], ["16", "28", "22", "34"])
+        self.assertEqual([a["value"] for a in rows29[1].preds[:2]], ["猴", "兔"])
+        self.assertEqual([a["value"] for a in rows29[1].preds[2:]], ["11", "23", "16", "40"])
+        self.assertEqual(rows29[1].claimed["status"], "pending")
+
+        # 30. dageda_1x3m
+        raw_dgd = "第293期\n 一肖牛\n防:05-17-29\n 开奖: 虎05 中\n第295期\n 一肖马\n防:02-14-26\n 开奖: 發88 中\n第296期\n 一肖内幕\n 开奖: 發88 中"
+        rows30 = extract_dingjian_column(raw_dgd, "dageda_1x3m")
+        self.assertEqual(len(rows30), 2)
+        self.assertEqual(rows30[0].preds[0]["value"], "牛")
+        self.assertEqual([a["value"] for a in rows30[0].preds[1:]], ["05", "17", "29"])
+        self.assertEqual(rows30[1].preds[0]["value"], "马")
+        self.assertEqual([a["value"] for a in rows30[1].preds[1:]], ["02", "14", "26"])
+        self.assertEqual(rows30[1].claimed["status"], "pending")
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

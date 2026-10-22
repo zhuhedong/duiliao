@@ -178,8 +178,12 @@ def format_scraped_data_for_ai(
         if isinstance(data, dict):
             raw = data.get("raw_html") or data.get("html") or ""
         else:
-            raw = getattr(data, "raw_html", None) or getattr(data, "html", None) or str(data)
-        return clean_html_for_llm(raw)
+            raw = getattr(data, "raw_html", None) or getattr(data, "html", None) or ""
+        if raw:
+            return clean_html_for_llm(raw)
+        has_modules = (isinstance(data, dict) and "modules" in data) or hasattr(data, "modules")
+        if not has_modules:
+            return clean_html_for_llm(str(data) if not isinstance(data, dict) else "")
 
     if period:
         extracted = _format_period_extraction(data, period=str(period).strip())

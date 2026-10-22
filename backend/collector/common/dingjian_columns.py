@@ -51,6 +51,10 @@ EXTRACTORS = {
     "yihao_6ma": ("num", 6, r""),
     "caifu_2x4m": ("all", 6, r""),
     "maizhong_4ma": ("num", 4, r""),
+    "liaoshen_7ma": ("num", 7, r""),
+    "ganhuo_4ma": ("num", 4, r""),
+    "temawang_2x4m": ("all", 6, r""),
+    "dageda_1x3m": ("all", 4, r""),
 }
 
 
@@ -638,6 +642,75 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
                 period_raw=period,
                 preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
                 claimed=claimed,
+                raw_text=block,
+            ))
+            continue
+        if parser == "liaoshen_7ma":
+            m = re.search(r"﹝\s*([\d.\s·\-－]+)\s*﹞", block)
+            if not m:
+                continue
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(1))))
+            if len(nums) != 7 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = ".".join(nums)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "ganhuo_4ma":
+            m = re.search(r"((?:\d{2}\s*◈\s*){3}\d{2})", block)
+            if not m:
+                continue
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(1))))
+            if len(nums) != 4 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = ".".join(nums)
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "temawang_2x4m":
+            pairs = re.findall(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})\s*[-－]\s*(\d{2})", block)
+            if len(pairs) != 2:
+                continue
+            xiaos = [pairs[0][0], pairs[1][0]]
+            nums = [pairs[0][1], pairs[0][2], pairs[1][1], pairs[1][2]]
+            if len(set(xiaos)) != 2 or len(set(nums)) != 4 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"{pairs[0][0]}-{pairs[0][1]}-{pairs[0][2]} {pairs[1][0]}-{pairs[1][1]}-{pairs[1][2]}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    *({"kind": "xiao", "value": x, "text": selected} for x in xiaos),
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "dageda_1x3m":
+            m_xiao = re.search(r"一肖\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])", block)
+            m_def = re.search(r"防\s*[:：]\s*(\d{2}(?:\s*[-－]\s*\d{2}){2})", block)
+            if not m_xiao or not m_def:
+                continue
+            xiao = m_xiao.group(1)
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m_def.group(1))))
+            if len(nums) != 3 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"一肖{xiao} 防:{'-'.join(nums)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
                 raw_text=block,
             ))
             continue

@@ -1,4 +1,5 @@
-import { padNum, XIAO_LIST } from "../../lib/lotteryAttr";
+import { getBose, getXiao, padNum, XIAO_LIST } from "../../lib/lotteryAttr";
+import type { BettingRecord } from "../../lib/records";
 
 export const XIAO_NUMBERS_2026: Record<string, string[]> = {
   马: ["01", "13", "25", "37", "49"],
@@ -248,4 +249,74 @@ export function parseSmartInput(
     totalAmount,
     fushiLinks,
   };
+}
+
+export interface PeriodHotNumber {
+  number: string;
+  bose: string;
+  xiao: string;
+  count: number;
+  totalStake: number;
+  hitCount: number;
+  isHit: boolean;
+}
+
+export function computePeriodHotNumbers(records: BettingRecord[]): PeriodHotNumber[] {
+  const map = new Map<string, { count: number; totalStake: number; hitCount: number; isHit: boolean }>();
+
+  for (const r of records) {
+    const numSet = new Set<string>();
+    if (r.numbers && r.numbers.length > 0) {
+      for (const n of r.numbers) {
+        if (n && n.trim()) numSet.add(padNum(n.trim()));
+      }
+    } else if (r.xiaos && r.xiaos.length > 0) {
+      for (const x of r.xiaos) {
+        const nums = XIAO_NUMBERS_2026[x] || [];
+        for (const n of nums) numSet.add(n);
+      }
+    }
+
+    if (numSet.size === 0) continue;
+
+    const perNumStake = Math.round((r.total_amount || 0) / Math.max(1, numSet.size)) || (r.stake_per_note || 5);
+    const hitSet = new Set<string>((r.hit_numbers || []).map((h) => padNum(h.trim())));
+    const drawBalls = new Set<string>([
+      ...(r.draw_numbers || []).map((b) => padNum(b.trim())),
+      ...(r.draw?.balls || []).map((b) => padNum(b.trim())),
+      ...(r.draw?.tema ? [padNum(r.draw.tema.trim())] : []),
+      ...(r.special_number ? [padNum(r.special_number.trim())] : []),
+    ]);
+
+    for (const num of numSet) {
+      const existing = map.get(num) || { count: 0, totalStake: 0, hitCount: 0, isHit: false };
+      existing.count += 1;
+      existing.totalStake += perNumStake;
+      if (hitSet.has(num) || drawBalls.has(num)) {
+        existing.isHit = true;
+        if (hitSet.has(num)) {
+          existing.hitCount += 1;
+        }
+      }
+      map.set(num, existing);
+    }
+  }
+
+  const result: PeriodHotNumber[] = [];
+  for (const [number, data] of map.entries()) {
+    result.push({
+      number,
+      bose: getBose(number),
+      xiao: getXiao(number),
+      count: data.count,
+      totalStake: data.totalStake,
+      hitCount: data.hitCount,
+      isHit: data.isHit,
+    });
+  }
+
+  return result.sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return b.totalStake - a.totalStake;
+  });
 }

@@ -1342,6 +1342,9 @@ class _RecordsScreenState extends ConsumerState<RecordsScreen> {
                           periodCtx,
                         ),
                       ),
+                      _PeriodHotNumbersBar(
+                        items: periodItemsMap[period] ?? const [],
+                      ),
                       for (final item in (periodItemsMap[period] ?? const []))
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
@@ -1600,6 +1603,214 @@ class _SummaryCol extends StatelessWidget {
         const SizedBox(height: 2),
         Text(sub, style: context.texts.labelSmall?.copyWith(fontSize: 11)),
       ],
+    );
+  }
+}
+
+typedef HotNumberInfo = ({
+  String number,
+  String bose,
+  String xiao,
+  int count,
+  int totalStake,
+  bool isHit,
+});
+
+List<HotNumberInfo> computePeriodHotNumbers(List<BettingRecordItem> records) {
+  final countMap = <String, int>{};
+  final stakeMap = <String, int>{};
+  final hitSet = <String>{};
+
+  for (final r in records) {
+    final numSet = <String>{};
+    if (r.numbers.isNotEmpty) {
+      for (final n in r.numbers) {
+        final norm = n.trim().padLeft(2, '0');
+        if (int.tryParse(norm) != null) numSet.add(norm);
+      }
+    } else if (r.xiaos.isNotEmpty) {
+      for (final x in r.xiaos) {
+        final nums = Lottery2026Lookup.numbersForXiao(x);
+        for (final n in nums) {
+          numSet.add(n.padLeft(2, '0'));
+        }
+      }
+    }
+
+    if (numSet.isEmpty) continue;
+
+    final perStake = (r.totalAmount / numSet.length).round().clamp(1, 999999);
+    for (final h in r.hitNumbers) {
+      final norm = h.trim().padLeft(2, '0');
+      if (int.tryParse(norm) != null) hitSet.add(norm);
+    }
+    for (final b in r.drawNumbers) {
+      final norm = b.trim().padLeft(2, '0');
+      if (int.tryParse(norm) != null) hitSet.add(norm);
+    }
+    if (r.specialNumber.isNotEmpty) {
+      final norm = r.specialNumber.trim().padLeft(2, '0');
+      if (int.tryParse(norm) != null) hitSet.add(norm);
+    }
+
+    for (final num in numSet) {
+      countMap[num] = (countMap[num] ?? 0) + 1;
+      stakeMap[num] = (stakeMap[num] ?? 0) + perStake;
+    }
+  }
+
+  final sorted = countMap.keys.toList()
+    ..sort((a, b) {
+      final cComp = (countMap[b] ?? 0).compareTo(countMap[a] ?? 0);
+      if (cComp != 0) return cComp;
+      return (stakeMap[b] ?? 0).compareTo(stakeMap[a] ?? 0);
+    });
+
+  return [
+    for (final num in sorted)
+      (
+        number: num,
+        bose: Lottery2026Lookup.boseForNumber(num),
+        xiao: Lottery2026Lookup.xiaoForNumber(num),
+        count: countMap[num] ?? 0,
+        totalStake: stakeMap[num] ?? 0,
+        isHit: hitSet.contains(num),
+      ),
+  ];
+}
+
+class _PeriodHotNumbersBar extends StatelessWidget {
+  const _PeriodHotNumbersBar({required this.items});
+
+  final List<BettingRecordItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final hotNumbers = computePeriodHotNumbers(items);
+    if (hotNumbers.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GlassCard(
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.local_fire_department_rounded,
+                  size: 15,
+                  color: Color(0xFFF59E0B),
+                ),
+                const SizedBox(width: 4),
+                const Text(
+                  '本期热度号码',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '共 ${hotNumbers.length} 码 · 频次与金额',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (var i = 0; i < hotNumbers.take(12).length; i++) ...[
+                    if (i > 0) const SizedBox(width: 6),
+                    _HotNumberChip(item: hotNumbers[i], rank: i + 1),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HotNumberChip extends StatelessWidget {
+  const _HotNumberChip({required this.item, required this.rank});
+
+  final HotNumberInfo item;
+  final int rank;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: item.isHit
+              ? DuiliaoColors.hit.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '#$rank',
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 4),
+          NumberBall(
+            number: item.number,
+            bose: item.bose,
+            size: 22,
+            showColorName: false,
+          ),
+          const SizedBox(width: 5),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '${item.count}单',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                '¥${item.totalStake}',
+                style: tabularStyle(
+                  TextStyle(
+                    fontSize: 9.5,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (item.isHit) ...[
+            const SizedBox(width: 3),
+            const Icon(
+              Icons.check_circle_rounded,
+              size: 12,
+              color: DuiliaoColors.hit,
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -4142,6 +4353,8 @@ class _RecordStatsScreenState extends ConsumerState<RecordStatsScreen> {
             .toList()
           ..sort((a, b) => b.count.compareTo(a.count));
 
+    final allHotNumbers = computePeriodHotNumbers(all);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: GlassBackground(
@@ -4527,6 +4740,104 @@ class _RecordStatsScreenState extends ConsumerState<RecordStatsScreen> {
                                 ],
                               ],
                             ),
+                    ),
+
+                    // 投注热度号码
+                    const DesignSectionHeader(title: '投注热度号码'),
+                    GlassGroup(
+                      margin: EdgeInsets.zero,
+                      children: [
+                        if (allHotNumbers.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              '暂无投注号码热度统计',
+                              style: context.texts.labelSmall,
+                            ),
+                          )
+                        else
+                          for (var i = 0;
+                              i < allHotNumbers.take(10).length;
+                              i++)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 11,
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 22,
+                                    child: Text(
+                                      '#${i + 1}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: i < 3
+                                            ? const Color(0xFFF59E0B)
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                  NumberBall(
+                                    number: allHotNumbers[i].number,
+                                    bose: allHotNumbers[i].bose,
+                                    size: 28,
+                                    showColorName: false,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${allHotNumbers[i].number} 码 · ${allHotNumbers[i].xiao}',
+                                          style: const TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '下注 ${allHotNumbers[i].count} 次 · 投入 ¥${allHotNumbers[i].totalStake}',
+                                          style: context.texts.labelSmall
+                                              ?.copyWith(fontSize: 11.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (allHotNumbers[i].isHit)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 7,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: DuiliaoColors.hit
+                                            .withValues(alpha: 0.16),
+                                        borderRadius:
+                                            BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: DuiliaoColors.hit
+                                              .withValues(alpha: 0.38),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        '已中',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: DuiliaoColors.hit,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                      ],
                     ),
 
                     // 常中号码 (record-stats.html lines 152-182)

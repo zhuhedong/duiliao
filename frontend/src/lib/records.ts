@@ -67,6 +67,14 @@ export interface RecordStats {
     count: number;
     profit: number;
   }>;
+  hot_numbers?: Array<{
+    number: string;
+    bose: string;
+    xiao: string;
+    count: number;
+    total_stake: number;
+    hit_count: number;
+  }>;
 }
 
 export interface RecordsResponse {

@@ -20,6 +20,7 @@ import {
   TrashIcon,
   SparklesIcon,
   SearchIcon,
+  FlameIcon,
 } from "../../components/icons";
 import {
   FilterChips,
@@ -28,13 +29,14 @@ import {
   SegmentedTabs,
   StatusPill,
 } from "../collector/shared";
-import { LOTTERY_LABEL, type Lottery } from "../../lib/collector";
+import { LOTTERY_LABEL, collectorApi, type Lottery } from "../../lib/collector";
 import { getBose, getXiao } from "../../lib/lotteryAttr";
 import {
   recordsApi,
   type BettingRecord,
   type RecordStats,
 } from "../../lib/records";
+import { computePeriodHotNumbers } from "./recordsUtils";
 import { RecordAddModal } from "./RecordAddModal";
 import { RecordDetailModal } from "./RecordDetailModal";
 import { RecordStatsModal } from "./RecordStatsModal";
@@ -45,6 +47,201 @@ const STATUS_NAME_MAP: Record<string, string> = {
   won: "已中奖",
   lost: "未中",
 };
+
+interface PeriodHotNumbersBarProps {
+  periodStr: string;
+  lottery: string;
+  records: BettingRecord[];
+  activeSearchQuery: string;
+  onFilterNumber: (num: string) => void;
+}
+
+function PeriodHotNumbersBar({
+  periodStr,
+  lottery,
+  records,
+  activeSearchQuery,
+  onFilterNumber,
+}: PeriodHotNumbersBarProps) {
+  const [mode, setMode] = useState<"betting" | "consensus">("betting");
+  const [consensusTallies, setConsensusTallies] = useState<
+    Array<{ value: string; votes: number; percentage: number; hit?: boolean | null }> | null
+  >(null);
+  const [loadingConsensus, setLoadingConsensus] = useState(false);
+
+  const bettingHotNumbers = useMemo(
+    () => computePeriodHotNumbers(records),
+    [records]
+  );
+
+  const fetchConsensus = async () => {
+    if (consensusTallies !== null || loadingConsensus) return;
+    setLoadingConsensus(true);
+    try {
+      const lot = (lottery === "all" ? records[0]?.lottery || "macau" : lottery) as Lottery;
+      const res = await collectorApi.consensus(lot, periodStr);
+      setConsensusTallies(res.atom_tallies?.tema_n || []);
+    } catch {
+      setConsensusTallies([]);
+    } finally {
+      setLoadingConsensus(false);
+    }
+  };
+
+  const handleModeChange = (newMode: "betting" | "consensus") => {
+    setMode(newMode);
+    if (newMode === "consensus" && consensusTallies === null) {
+      void fetchConsensus();
+    }
+  };
+
+  if (bettingHotNumbers.length === 0 && mode === "betting") {
+    return null;
+  }
+
+  return (
+    <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/80 dark:bg-white/[0.02] border border-slate-200/60 dark:border-white/[0.06] space-y-2.5 transition-all">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <FlameIcon size={14} className="text-amber-500 shrink-0" />
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            本期热度号码
+          </span>
+          <span className="text-[11px] text-slate-400">
+            {mode === "betting"
+              ? `共 ${bettingHotNumbers.length} 码 · 频次与金额`
+              : "多源共识推荐热码"}
+          </span>
+        </div>
+
+        {/* Tab switch */}
+        <div className="inline-flex items-center p-0.5 rounded-lg bg-slate-200/60 dark:bg-white/[0.06] text-[11px]">
+          <button
+            type="button"
+            onClick={() => handleModeChange("betting")}
+            className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+              mode === "betting"
+                ? "bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-xs"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            本期下注 ({bettingHotNumbers.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => handleModeChange("consensus")}
+            className={`px-2 py-0.5 rounded-md font-medium transition-colors cursor-pointer ${
+              mode === "consensus"
+                ? "bg-white dark:bg-white/10 text-slate-900 dark:text-white shadow-xs"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+            }`}
+          >
+            全网共识
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {mode === "betting" ? (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          {bettingHotNumbers.slice(0, 15).map((hn, idx) => {
+            const isSelected = activeSearchQuery === hn.number;
+            return (
+              <button
+                key={hn.number}
+                type="button"
+                onClick={() => onFilterNumber(isSelected ? "" : hn.number)}
+                className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-xl text-xs shrink-0 transition-all cursor-pointer ${
+                  isSelected
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400 dark:ring-indigo-300"
+                    : "bg-white dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] border border-slate-200/60 dark:border-white/[0.08] text-slate-700 dark:text-slate-200"
+                }`}
+                title={`号码 ${hn.number} (${hn.xiao}) · 下注 ${hn.count} 次 · 投入 ¥${hn.totalStake}${hn.isHit ? " · 已命中" : ""}`}
+              >
+                <span className={`text-[9px] font-mono font-bold ${isSelected ? "text-indigo-200" : "text-slate-400"}`}>
+                  #{idx + 1}
+                </span>
+                <LotteryBall
+                  number={hn.number}
+                  colorHint={hn.bose}
+                  zodiac={hn.xiao}
+                  size="xs"
+                  isHit={hn.isHit}
+                />
+                <div className="flex flex-col text-left leading-tight pr-0.5">
+                  <span className={`font-mono font-bold text-[11px] ${isSelected ? "text-white" : "text-slate-800 dark:text-slate-200"}`}>
+                    {hn.count}单
+                  </span>
+                  <span className={`font-mono text-[9px] ${isSelected ? "text-indigo-100" : "text-slate-400"}`}>
+                    ¥{hn.totalStake}
+                  </span>
+                </div>
+                {hn.isHit && (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    ✓
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : loadingConsensus ? (
+        <div className="flex items-center justify-center py-2 text-xs text-slate-400 gap-1.5">
+          <Spinner className="size-3.5" />
+          <span>正在加载第 {periodStr} 期全网共识热度…</span>
+        </div>
+      ) : consensusTallies && consensusTallies.length > 0 ? (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          {consensusTallies.slice(0, 15).map((ct, idx) => {
+            const isSelected = activeSearchQuery === ct.value;
+            return (
+              <button
+                key={ct.value}
+                type="button"
+                onClick={() => onFilterNumber(isSelected ? "" : ct.value)}
+                className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-xl text-xs shrink-0 transition-all cursor-pointer ${
+                  isSelected
+                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400"
+                    : "bg-white dark:bg-white/[0.04] hover:bg-slate-100 dark:hover:bg-white/[0.08] border border-slate-200/60 dark:border-white/[0.08] text-slate-700 dark:text-slate-200"
+                }`}
+                title={`共识特码 ${ct.value} · ${ct.votes} 票 · ${ct.percentage}%${ct.hit ? " · 已开出" : ""}`}
+              >
+                <span className={`text-[9px] font-mono font-bold ${isSelected ? "text-indigo-200" : "text-slate-400"}`}>
+                  #{idx + 1}
+                </span>
+                <LotteryBall
+                  number={ct.value}
+                  colorHint={getBose(ct.value)}
+                  zodiac={getXiao(ct.value)}
+                  size="xs"
+                  isHit={Boolean(ct.hit)}
+                />
+                <div className="flex flex-col text-left leading-tight pr-0.5">
+                  <span className={`font-mono font-bold text-[11px] ${isSelected ? "text-white" : "text-slate-800 dark:text-slate-200"}`}>
+                    {ct.votes}票
+                  </span>
+                  <span className={`font-mono text-[9px] ${isSelected ? "text-indigo-100" : "text-slate-400"}`}>
+                    {ct.percentage}%
+                  </span>
+                </div>
+                {ct.hit && (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                    ✓
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-xs text-slate-400 py-1">
+          当前期暂未生成全网共识热度数据
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function RecordsPage() {
   const confirm = useConfirm();
@@ -473,6 +670,15 @@ export function RecordsPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* Period Hot Numbers Bar */}
+                <PeriodHotNumbersBar
+                  periodStr={periodStr}
+                  lottery={lottery}
+                  records={periodRecords}
+                  activeSearchQuery={searchQuery}
+                  onFilterNumber={(num) => setSearchQuery(num)}
+                />
 
                 {/* Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 stagger">

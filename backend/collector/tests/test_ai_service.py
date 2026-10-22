@@ -181,8 +181,9 @@ class TestAIService(unittest.TestCase):
         self.assertIn("第 262 期", user_content)
 
 
+    @patch("httpx.Client.stream", side_effect=Exception("stream fallback in unit test"))
     @patch("httpx.Client.post")
-    def test_openai_provider(self, mock_post):
+    def test_openai_provider(self, mock_post, mock_stream):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {

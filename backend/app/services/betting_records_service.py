@@ -868,6 +868,50 @@ def compute_stats(rows: list[UserBettingRecord]) -> dict[str, Any]:
         )[:5]
     ]
 
+    # Hot betting numbers across all records (settled + pending)
+    num_heat: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        rec_nums: list[str] = []
+        if r.numbers:
+            rec_nums = [_norm_num(n) for n in r.numbers if str(n).strip()]
+        elif r.xiaos:
+            for x in r.xiaos:
+                for n in XIAO_NUMBERS_2026.get(x, []):
+                    if n not in rec_nums:
+                        rec_nums.append(n)
+        if not rec_nums:
+            continue
+
+        per_num_stake = int(round(r.total_amount / max(1, len(rec_nums)))) if r.total_amount else (r.stake_per_note or 5)
+        hit_set = set(_norm_num(h) for h in (r.hit_numbers or []))
+
+        for n in rec_nums:
+            if n in NUM_TO_XIAO_2026:
+                entry = num_heat.setdefault(
+                    n,
+                    {"count": 0, "total_stake": 0, "hit_count": 0},
+                )
+                entry["count"] += 1
+                entry["total_stake"] += per_num_stake
+                if n in hit_set:
+                    entry["hit_count"] += 1
+
+    hot_numbers = [
+        {
+            "number": num,
+            "bose": bose_for_number(num),
+            "xiao": NUM_TO_XIAO_2026.get(num, ""),
+            "count": info["count"],
+            "total_stake": info["total_stake"],
+            "hit_count": info["hit_count"],
+        }
+        for num, info in sorted(
+            num_heat.items(),
+            key=lambda kv: (kv[1]["count"], kv[1]["total_stake"]),
+            reverse=True,
+        )[:10]
+    ]
+
     return {
         "total_records": len(rows),
         "settled_orders": len(settled_rows),
@@ -886,6 +930,7 @@ def compute_stats(rows: list[UserBettingRecord]) -> dict[str, Any]:
         "period_bars": period_bars,
         "play_breakdown": play_breakdown,
         "frequent_hits": frequent_hits,
+        "hot_numbers": hot_numbers,
     }
 
 

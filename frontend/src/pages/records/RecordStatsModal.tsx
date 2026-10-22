@@ -236,6 +236,53 @@ export function RecordStatsModal({
               </div>
             )}
 
+            {/* Hot Betting Numbers TOP 10 */}
+            {stats.hot_numbers && stats.hot_numbers.length > 0 && (
+              <div className="p-5 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🔥 投注热度号码 TOP {stats.hot_numbers.length}</span>
+                  </span>
+                  <span className="text-[11px] text-slate-400">
+                    按全量记录下注频次与资金排序
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                  {stats.hot_numbers.map((hn, idx) => (
+                    <div
+                      key={hn.number}
+                      className="p-3 rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] flex items-center gap-2.5 relative overflow-hidden"
+                    >
+                      <div className="absolute top-1 right-2 text-[10px] font-mono font-bold text-slate-300 dark:text-slate-600">
+                        #{idx + 1}
+                      </div>
+                      <LotteryBall
+                        number={hn.number}
+                        colorHint={hn.bose || getBose(hn.number)}
+                        zodiac={hn.xiao || getXiao(hn.number)}
+                        size="sm"
+                        isHit={hn.hit_count > 0}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                          {hn.count} 次下注
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                          ¥{hn.total_stake}
+                          {hn.hit_count > 0 && (
+                            <span className="ml-1 text-emerald-600 dark:text-emerald-400 font-semibold">
+                              · 中{hn.hit_count}次
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Frequent Winning Numbers */}
             {stats.frequent_hits.length > 0 && (
               <div className="p-5 rounded-2xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] space-y-3">

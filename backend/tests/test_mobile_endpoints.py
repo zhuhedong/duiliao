@@ -367,6 +367,8 @@ def test_betting_record_long_tu_geshu_5_expansion_and_storage(user_client):
 
     listed = user_client.get("/app/records", params={"lottery": "macau"})
     assert listed["ok"] is True
+    assert "hot_numbers" in listed["stats"]
+    assert any(h["number"] == "03" for h in listed["stats"]["hot_numbers"])
     matched = [r for r in listed["items"] if r["id"] == rec["id"]]
     assert len(matched) == 1
     assert matched[0]["numbers"] == ["03", "15", "27", "39", "04", "16", "28", "40"]
