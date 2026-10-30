@@ -320,6 +320,65 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual([a["value"] for a in rows30[1].preds[1:]], ["02", "14", "26"])
         self.assertEqual(rows30[1].claimed["status"], "pending")
 
+        # 31. zhencai_1x2m
+        raw_zc = "第302期\n 狗-33-45\n 开奖: 狗45 中\n第303期\n 真材实料\n期期命中\n 开奖: 發88 中"
+        rows31 = extract_dingjian_column(raw_zc, "zhencai_1x2m")
+        self.assertEqual(len(rows31), 1)
+        self.assertEqual(rows31[0].preds[0]["value"], "狗")
+        self.assertEqual([a["value"] for a in rows31[0].preds[1:]], ["33", "45"])
+        self.assertEqual(rows31[0].claimed["status"], "hit")
+
+        # 32. neimu_5ma
+        raw_nm5 = "第302期 开：狗45 准\n 18 33 45 26 38\n第303期 开：發88 准\n 跟 上 中 大 奖"
+        rows32 = extract_dingjian_column(raw_nm5, "neimu_5ma")
+        self.assertEqual(len(rows32), 1)
+        self.assertEqual([a["value"] for a in rows32[0].preds], ["18", "33", "45", "26", "38"])
+        self.assertEqual(rows32[0].claimed["status"], "hit")
+
+        # 33. jimi_2x2m
+        raw_jm = "302期 ♻澳彩二肖两码♻ 开:狗45对\n 澳门《狗45-马37》机密\n303期 ♻澳彩二肖两码♻ 待开奖\n 澳门《中88-奖88》机密"
+        rows33 = extract_dingjian_column(raw_jm, "jimi_2x2m")
+        self.assertEqual(len(rows33), 1)
+        self.assertEqual([a["value"] for a in rows33[0].preds[:2]], ["狗", "马"])
+        self.assertEqual([a["value"] for a in rows33[0].preds[2:]], ["45", "37"])
+        self.assertEqual(rows33[0].claimed["status"], "hit")
+
+        # 34. jingxuan_2x4m
+        raw_jx4 = "第301期\n 虎-17-29\n龙-15-27\n 开奖: 虎17 中\n第303期\n 牛-18-30\n马-13-25\n 开奖: 發88 中\n第304期\n 跟上中奖\n 开奖: 發88 中"
+        rows34 = extract_dingjian_column(raw_jx4, "jingxuan_2x4m")
+        self.assertEqual(len(rows34), 2)
+        self.assertEqual([a["value"] for a in rows34[0].preds[:2]], ["虎", "龙"])
+        self.assertEqual([a["value"] for a in rows34[0].preds[2:]], ["17", "29", "15", "27"])
+        self.assertEqual([a["value"] for a in rows34[1].preds[:2]], ["牛", "马"])
+        self.assertEqual([a["value"] for a in rows34[1].preds[2:]], ["18", "30", "13", "25"])
+        self.assertEqual(rows34[1].claimed["status"], "pending")
+
+        # 35. dianjin_6ma
+        raw_dj6 = "300期： 特选⑥码 開:蛇38中\n 【05-29-41-03-38-30-42】\n303期： 特选⑥码 開:發88中\n 【08-32-09-39-10-22-34】\n304期： 特选⑥码 開:發88中\n 【精准特选跟上】"
+        rows35 = extract_dingjian_column(raw_dj6, "dianjin_6ma")
+        self.assertEqual(len(rows35), 2)
+        self.assertEqual([a["value"] for a in rows35[0].preds], ["05", "29", "41", "03", "38", "30", "42"])
+        self.assertEqual([a["value"] for a in rows35[1].preds], ["08", "32", "09", "39", "10", "22", "34"])
+        self.assertEqual(rows35[1].claimed["status"], "pending")
+
+        # 36. neimu_1x2m
+        raw_nm12 = "第298期\n 猪-08-20\n 开奖: 猪08 中\n第303期\n 羊-24-36\n防:兔-16\n 开奖: 發88 中\n第304期\n 内幕精准\n 开奖: 發88 中"
+        rows36 = extract_dingjian_column(raw_nm12, "neimu_1x2m")
+        self.assertEqual(len(rows36), 2)
+        self.assertEqual([a["value"] for a in rows36[0].preds], ["猪", "08", "20"])
+        self.assertEqual([a["value"] for a in rows36[1].preds], ["羊", "兔", "24", "36", "16"])
+        self.assertEqual(rows36[1].claimed["status"], "pending")
+
+        # 37. baozhuang_dashen
+        raw_bz = "第300期 开奖:蛇38准\n 主肖 〖龙〗\n 旺码 26.38.22.34\n第303期 开奖:發88准\n 主肖 〖鼠〗\n 旺码 03.15.04.16\n第304期 开奖:發88准\n 主肖 〖发〗\n 旺码 88.88.88.88"
+        rows37 = extract_dingjian_column(raw_bz, "baozhuang_dashen")
+        self.assertEqual(len(rows37), 2)
+        self.assertEqual(rows37[0].preds[0]["value"], "龙")
+        self.assertEqual([a["value"] for a in rows37[0].preds[1:]], ["26", "38", "22", "34"])
+        self.assertEqual(rows37[1].preds[0]["value"], "鼠")
+        self.assertEqual([a["value"] for a in rows37[1].preds[1:]], ["03", "15", "04", "16"])
+        self.assertEqual(rows37[1].claimed["status"], "pending")
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

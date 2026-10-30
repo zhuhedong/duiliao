@@ -336,4 +336,64 @@ void main() {
 
     expect(find.text('第 2026288 期'), findsOneWidget);
   });
+
+  testWidgets(
+      'Records hot numbers display correctly in period list and stats screen',
+      (tester) async {
+    tester.view.physicalSize = const Size(393 * 3, 852 * 3);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.reset);
+
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    container.read(bettingRecordsProvider.notifier).addRecord(
+          const BettingRecordItem(
+            id: 'rec-hot-1',
+            lottery: Lottery.macau,
+            period: '2026292',
+            playType: '正码',
+            timeLabel: '20:15',
+            numbers: ['18', '26', '39'],
+            xiaos: [],
+            stakePerNote: 10,
+            multiplier: 1,
+            notesCount: 3,
+            totalAmount: 30,
+            status: 'pending',
+          ),
+        );
+    container.read(bettingRecordsProvider.notifier).addRecord(
+          const BettingRecordItem(
+            id: 'rec-hot-2',
+            lottery: Lottery.macau,
+            period: '2026292',
+            playType: '特码',
+            timeLabel: '20:20',
+            numbers: ['18'],
+            xiaos: [],
+            stakePerNote: 50,
+            multiplier: 1,
+            notesCount: 1,
+            totalAmount: 50,
+            status: 'pending',
+          ),
+        );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: DuiliaoTheme.dark(),
+          home: const RecordsScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Verify period hot numbers section is rendered
+    expect(find.text('本期热度号码'), findsOneWidget);
+    expect(find.text('#1'), findsOneWidget);
+    expect(find.text('2单'), findsOneWidget); // 18 appears in 2 orders
+  });
 }
