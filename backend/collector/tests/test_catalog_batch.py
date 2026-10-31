@@ -379,6 +379,22 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual([a["value"] for a in rows37[1].preds[1:]], ["03", "15", "04", "16"])
         self.assertEqual(rows37[1].claimed["status"], "pending")
 
+        # 38. caifu_2x2m
+        raw_cf = "第300期\n 蛇-马\n38-49\n 开奖: 蛇38 中\n第303期\n 虎-马\n17-13\n 开奖: 虎17 中\n第304期\n 财富密码\n跟上是赢\n 开奖: 發88 中"
+        rows38 = extract_dingjian_column(raw_cf, "caifu_2x2m")
+        self.assertEqual(len(rows38), 2)
+        self.assertEqual([a["value"] for a in rows38[0].preds[:2]], ["蛇", "马"])
+        self.assertEqual([a["value"] for a in rows38[0].preds[2:]], ["38", "49"])
+        self.assertEqual([a["value"] for a in rows38[1].preds[:2]], ["虎", "马"])
+        self.assertEqual([a["value"] for a in rows38[1].preds[2:]], ["17", "13"])
+
+        # 39. baozhuang_1x3m
+        raw_bz13 = "第303期 ◆ ◆\n 内部直出 ◆ ◆\n 好运一肖\n 虎\n 彩福三码\n 23\n 35\n 47\n 顶尖大师 588080.com\n第304期 ◆ ◆\n 内部直出 ◆ ◆\n 好运一肖\n 中\n 彩福三码\n 發\n 發\n 發\n 顶尖大师 588080.com"
+        rows39 = extract_dingjian_column(raw_bz13, "baozhuang_1x3m")
+        self.assertEqual(len(rows39), 1)
+        self.assertEqual(rows39[0].preds[0]["value"], "虎")
+        self.assertEqual([a["value"] for a in rows39[0].preds[1:]], ["23", "35", "47"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

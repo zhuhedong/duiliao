@@ -2825,8 +2825,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_jingxuan_2x4m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师精选二肖四码
+  enabled: false
+  remark: 顶尖大师精选二肖四码；上游栏目 1793187187186 已下线，巡检治理自动停用
   extra:
     upstream_id: '1793187187186'
     parser: jingxuan_2x4m
@@ -2840,8 +2840,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_dianjin_6ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师点金圣手
+  enabled: false
+  remark: 顶尖大师点金圣手；上游栏目 1785650937039 已下线，巡检治理自动停用
   extra:
     upstream_id: '1785650937039'
     parser: dianjin_6ma
@@ -2870,13 +2870,43 @@ sources:
   hit_mode: any
   script_path: sources/dj_baozhuang_dashen.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师爆庄大神
+  enabled: false
+  remark: 顶尖大师爆庄大神；上游栏目 1789214469476 已下线，巡检治理自动停用
   extra:
     upstream_id: '1789214469476'
     parser: baozhuang_dashen
     kind: mixed
     path: /api/v1/index/config/byid/1789214469476
+- source_id: dj_caifu_2x2m
+  source_name: 顶尖大师财富密码二肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_caifu_2x2m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师财富密码二肖二码
+  extra:
+    upstream_id: '1793359880293'
+    parser: caifu_2x2m
+    kind: mixed
+    path: /api/v1/index/config/byid/1793359880293
+- source_id: dj_baozhuang_1x3m
+  source_name: 顶尖大师一肖三码爆庄
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_baozhuang_1x3m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师一肖三码爆庄
+  extra:
+    upstream_id: '1786878859844'
+    parser: baozhuang_1x3m
+    kind: mixed
+    path: /api/v1/index/config/byid/1786878859844
 draw:
   macau:
     adapter: getLastLottery

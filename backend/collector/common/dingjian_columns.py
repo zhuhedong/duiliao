@@ -62,6 +62,8 @@ EXTRACTORS = {
     "dianjin_6ma": ("num", 7, r""),
     "neimu_1x2m": ("all", 5, r""),
     "baozhuang_dashen": ("all", 5, r""),
+    "caifu_2x2m": ("all", 4, r""),
+    "baozhuang_1x3m": ("all", 4, r""),
 }
 
 
@@ -848,6 +850,46 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             if not (3 <= len(nums) <= 4) or any(not 1 <= int(n) <= 49 for n in nums):
                 continue
             selected = f"主肖〖{xiao}〗 旺码:{'.'.join(nums)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "caifu_2x2m":
+            m_xiao = re.search(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])", block)
+            m_num = re.search(r"(\d{2})\s*[-－]\s*(\d{2})", block)
+            if not m_xiao or not m_num:
+                continue
+            xiaos = [m_xiao.group(1), m_xiao.group(2)]
+            nums = [m_num.group(1), m_num.group(2)]
+            if len(set(xiaos)) != 2 or len(set(nums)) != 2 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"{xiaos[0]}-{xiaos[1]} {nums[0]}-{nums[1]}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    *({"kind": "xiao", "value": x, "text": selected} for x in xiaos),
+                    *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "baozhuang_1x3m":
+            m_xiao = re.search(r"好运一肖\s*([鼠牛虎兔龙蛇马羊猴鸡狗猪])", block)
+            m_box = re.search(r"彩福三码([\s\S]+?)(?:顶尖大师|$)", block)
+            if not m_xiao or not m_box:
+                continue
+            xiao = m_xiao.group(1)
+            nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m_box.group(1))))
+            if len(nums) != 3 or any(not 1 <= int(n) <= 49 for n in nums):
+                continue
+            selected = f"好运一肖: {xiao} 彩福三码: {' '.join(nums)}"
             rows.append(ParsedRow(
                 period_raw=period,
                 preds=[
