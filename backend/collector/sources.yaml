@@ -2780,8 +2780,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_zhencai_1x2m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师真财一肖二码
+  enabled: false
+  remark: 顶尖大师真财一肖二码；上游栏目 1793274668958 已下线，巡检治理自动停用
   extra:
     upstream_id: '1793274668958'
     parser: zhencai_1x2m
@@ -2795,8 +2795,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_neimu_5ma.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师内幕五码
+  enabled: false
+  remark: 顶尖大师内幕五码；上游栏目 1793275653328 已下线，巡检治理自动停用
   extra:
     upstream_id: '1793275653328'
     parser: neimu_5ma
@@ -2810,8 +2810,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_jimi_2x2m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师澳门机密二肖二码
+  enabled: false
+  remark: 顶尖大师澳门机密二肖二码；上游栏目 1786363640463 已下线，巡检治理自动停用
   extra:
     upstream_id: '1786363640463'
     parser: jimi_2x2m
@@ -2907,6 +2907,21 @@ sources:
     parser: baozhuang_1x3m
     kind: mixed
     path: /api/v1/index/config/byid/1786878859844
+- source_id: dj_mashen_1x2m
+  source_name: 顶尖大师码神救民一肖二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_mashen_1x2m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师码神救民一肖二码
+  extra:
+    upstream_id: '1793435198000'
+    parser: mashen_1x2m
+    kind: mixed
+    path: /api/v1/index/config/byid/1793435198000
 draw:
   macau:
     adapter: getLastLottery

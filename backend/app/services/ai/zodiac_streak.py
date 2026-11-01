@@ -53,6 +53,7 @@ def _bucket_by_kind(items: list[dict[str, Any]]) -> dict[str, list[dict[str, Any
 def get_zodiac_by_year(
     lottery: str = "macau",
     year: int | None = None,
+    exclude_tema: bool = False,
 ) -> dict[str, Any]:
     """Read every stored draw in a calendar year, retaining within-draw repeats."""
     from app import collector_bridge as cb
@@ -66,6 +67,11 @@ def get_zodiac_by_year(
 
     today = datetime.now(timezone(timedelta(hours=8))).date()
     target_year = year if year is not None else today.year
+    if isinstance(exclude_tema, str):
+        is_exclude_tema = exclude_tema.strip().lower() in ("1", "true", "yes", "t")
+    else:
+        is_exclude_tema = bool(exclude_tema)
+    positions = POSITIONS[:6] if is_exclude_tema else POSITIONS
     with session_scope(guard=False) as s:
         rows = s.scalars(
             select(Draw)
@@ -79,14 +85,18 @@ def get_zodiac_by_year(
         )
         periods = []
         for draw in rows:
-            balls = [draw.z1, draw.z2, draw.z3, draw.z4, draw.z5, draw.z6, draw.tema]
+            balls = (
+                [draw.z1, draw.z2, draw.z3, draw.z4, draw.z5, draw.z6]
+                if is_exclude_tema
+                else [draw.z1, draw.z2, draw.z3, draw.z4, draw.z5, draw.z6, draw.tema]
+            )
             xiaos = [num_to_xiao(number, draw.draw_date) for number in balls]
             counts = Counter(xiaos)
             repeated = [
                 {
                     "xiao": xiao,
                     "count": count,
-                    "positions": [position for position, value in zip(POSITIONS, xiaos) if value == xiao],
+                    "positions": [position for position, value in zip(positions, xiaos) if value == xiao],
                 }
                 for xiao, count in counts.items()
                 if count >= 2
@@ -100,7 +110,14 @@ def get_zodiac_by_year(
                 "repeated_xiaos": repeated,
             })
 
-    return {"ok": True, "lottery": lottery, "year": target_year, "total_periods": len(periods), "periods": periods}
+    return {
+        "ok": True,
+        "lottery": lottery,
+        "year": target_year,
+        "exclude_tema": is_exclude_tema,
+        "total_periods": len(periods),
+        "periods": periods,
+    }
 
 
 def get_zodiac_by_periods(

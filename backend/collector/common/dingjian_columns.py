@@ -64,6 +64,7 @@ EXTRACTORS = {
     "baozhuang_dashen": ("all", 5, r""),
     "caifu_2x2m": ("all", 4, r""),
     "baozhuang_1x3m": ("all", 4, r""),
+    "mashen_1x2m": ("all", 7, r""),
 }
 
 
@@ -895,6 +896,33 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
                 preds=[
                     {"kind": "xiao", "value": xiao, "text": selected},
                     *({"kind": "num", "value": n, "text": selected} for n in nums),
+                ],
+                claimed=claimed_from_block(block),
+                raw_text=block,
+            ))
+            continue
+        if parser == "mashen_1x2m":
+            m_main = re.search(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})\s*[-－]\s*(\d{2})", block)
+            if not m_main:
+                continue
+            xiao = m_main.group(1)
+            main_nums = [m_main.group(2), m_main.group(3)]
+            if len(set(main_nums)) != 2 or any(not 1 <= int(n) <= 49 for n in main_nums):
+                continue
+            all_nums = list(main_nums)
+            selected = f"{xiao}-{main_nums[0]}-{main_nums[1]}"
+            m_song = re.search(r"送\s*[:：]\s*([0-9\s\-－]+)", block)
+            if m_song:
+                song_nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m_song.group(1))))
+                if song_nums and all(1 <= int(n) <= 49 for n in song_nums):
+                    all_nums.extend(song_nums)
+                    all_nums = list(dict.fromkeys(all_nums))
+                    selected += f" 送:{'-'.join(song_nums)}"
+            rows.append(ParsedRow(
+                period_raw=period,
+                preds=[
+                    {"kind": "xiao", "value": xiao, "text": selected},
+                    *({"kind": "num", "value": n, "text": selected} for n in all_nums),
                 ],
                 claimed=claimed_from_block(block),
                 raw_text=block,

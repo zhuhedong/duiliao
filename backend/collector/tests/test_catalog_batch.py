@@ -395,6 +395,23 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(rows39[0].preds[0]["value"], "虎")
         self.assertEqual([a["value"] for a in rows39[0].preds[1:]], ["23", "35", "47"])
 
+        # 40. mashen_1x2m
+        raw_ms = (
+            "第301期\n 虎-05-17\n送:19-31-20-32\n 开奖: 虎17 中\n"
+            "第304期\n 狗-21-33\n送:16-28-11-23\n 开奖: 狗21 中\n"
+            "第305期\n 码神救民，速速上车\n翻身再此一举！跟上不会错！\n 开奖: 發88 中"
+        )
+        rows40 = extract_dingjian_column(raw_ms, "mashen_1x2m")
+        self.assertEqual(len(rows40), 2)
+        self.assertEqual(rows40[0].preds[0]["value"], "虎")
+        self.assertEqual([a["value"] for a in rows40[0].preds[1:3]], ["05", "17"])
+        self.assertEqual([a["value"] for a in rows40[0].preds[3:]], ["19", "31", "20", "32"])
+        self.assertEqual(rows40[0].claimed["status"], "hit")
+        self.assertEqual(rows40[1].preds[0]["value"], "狗")
+        self.assertEqual([a["value"] for a in rows40[1].preds[1:3]], ["21", "33"])
+        self.assertEqual([a["value"] for a in rows40[1].preds[3:]], ["16", "28", "11", "23"])
+        self.assertEqual(rows40[1].claimed["status"], "hit")
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

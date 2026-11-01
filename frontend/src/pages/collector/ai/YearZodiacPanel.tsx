@@ -6,6 +6,7 @@ interface YearZodiacData {
   ok: boolean;
   lottery: "macau" | "hk";
   year: number;
+  exclude_tema?: boolean;
   total_periods: number;
   periods: {
     period: string;
@@ -19,6 +20,7 @@ interface YearZodiacData {
 
 export function YearZodiacPanel() {
   const [lottery, setLottery] = useState<"macau" | "hk">("macau");
+  const [excludeTema, setExcludeTema] = useState(false);
   const [data, setData] = useState<YearZodiacData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +34,9 @@ export function YearZodiacPanel() {
     setCopyStatus("");
     setData(null);
     try {
-      const result = await api.get<YearZodiacData>(`/ai/zodiac-year-data?lottery=${lottery}`);
+      const result = await api.get<YearZodiacData>(
+        `/ai/zodiac-year-data?lottery=${lottery}&exclude_tema=${excludeTema}`,
+      );
       setData(result);
       setExpanded(true);
     } catch (err) {
@@ -56,7 +60,7 @@ export function YearZodiacPanel() {
     const url = URL.createObjectURL(new Blob([json], { type: "application/json;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${data.lottery}-${data.year}-zodiac.json`;
+    link.download = `${data.lottery}-${data.year}-zodiac${data.exclude_tema ? "-no-tema" : ""}.json`;
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   };
@@ -68,7 +72,7 @@ export function YearZodiacPanel() {
           <DatabaseIcon size={16} className="text-violet-500" />
           当年逐期生肖 · 重肖 JSON
         </h3>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-3">
           <select
             aria-label="当年生肖彩种"
             value={lottery}
@@ -84,6 +88,22 @@ export function YearZodiacPanel() {
             <option value="macau">澳门</option>
             <option value="hk">香港</option>
           </select>
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-slate-700 select-none dark:text-slate-300">
+            <input
+              type="checkbox"
+              aria-label="排除特码生肖"
+              checked={excludeTema}
+              disabled={loading}
+              onChange={(e) => {
+                setExcludeTema(e.target.checked);
+                setData(null);
+                setError(null);
+                setCopyStatus("");
+              }}
+              className="size-4 rounded border-slate-300 text-primary accent-primary focus:ring-primary/30 cursor-pointer disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900"
+            />
+            <span>排除特码生肖</span>
+          </label>
           <button
             onClick={load}
             disabled={loading}
@@ -94,7 +114,7 @@ export function YearZodiacPanel() {
         </div>
       </div>
       <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
-        按北京时间当年查询已同步的开奖记录。生肖数组顺序为正1至正6、特码，保留重复项；同一期出现至少两次的生肖标为重肖，列出次数和位置。
+        按北京时间当年查询已同步的开奖记录。生肖数组顺序为正1至正6{excludeTema ? "（特码已排除）" : "、特码"}，保留重复项；同一期出现至少两次的生肖标为重肖，列出次数和位置。
       </p>
       {error && <p role="alert" className="mt-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>}
       {data && (
@@ -103,6 +123,7 @@ export function YearZodiacPanel() {
             <span className="font-semibold text-slate-700 dark:text-slate-300">
               {data.year} 年 · {data.lottery === "macau" ? "澳门" : "香港"} · 共 {data.total_periods} 期
               · {data.periods.filter((row) => row.has_repeated_xiao).length} 期有重肖
+              {data.exclude_tema ? " · 排除特码" : ""}
             </span>
             <button onClick={copy} className="cursor-pointer font-semibold text-primary hover:underline">复制 JSON</button>
             <button onClick={download} className="cursor-pointer font-semibold text-primary hover:underline">下载 JSON</button>
@@ -122,7 +143,9 @@ export function YearZodiacPanel() {
           {expanded && (
             <div id="year-zodiac-json" className="space-y-2">
               <p className="text-2xs text-slate-500">
-                xiaos：全部 7 球生肖；repeated_xiaos：重肖、count 次数、positions 位置；无重肖时为 []。生肖按各期开奖日期换算。
+                {data.exclude_tema
+                  ? "xiaos：正1至正6生肖（已排除特码）；repeated_xiaos：重肖、count 次数、positions 位置；无重肖时为 []。生肖按各期开奖日期换算。"
+                  : "xiaos：全部 7 球生肖；repeated_xiaos：重肖、count 次数、positions 位置；无重肖时为 []。生肖按各期开奖日期换算。"}
               </p>
               <textarea
                 aria-label="当年逐期生肖 JSON 数组"

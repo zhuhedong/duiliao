@@ -119,10 +119,103 @@ def test_year_data_api_is_available_to_signed_in_users(user_client, year_draws):
     result = user_client.get("/ai/zodiac-year-data", params={"lottery": "macau"})
     assert result["ok"] is True
     assert result["year"] == 2026
+    assert result["exclude_tema"] is False
     assert result["periods"][0]["repeated_xiaos"][0]["count"] == 4
 
 
-@pytest.mark.parametrize("params", [{"lottery": "invalid"}, {"year": 9999}, {"year": "no-year"}])
+def test_exclude_tema_filters_special_ball_from_zodiac_and_repeats(year_draws):
+    year_draws("2026048", date(2026, 2, 17), balls=["01", "02", "03", "04", "05", "06", "37"])
+
+    with_tema = zodiac_streak.get_zodiac_by_year(exclude_tema=False)
+    assert with_tema["exclude_tema"] is False
+    period_with = with_tema["periods"][0]
+    assert len(period_with["balls"]) == 7
+    assert len(period_with["xiaos"]) == 7
+    assert period_with["has_repeated_xiao"] is True
+    assert period_with["repeated_xiaos"] == [
+        {"xiao": "马", "count": 2, "positions": ["正1", "特码"]}
+    ]
+
+    no_tema = zodiac_streak.get_zodiac_by_year(exclude_tema=True)
+    assert no_tema["exclude_tema"] is True
+    period_no = no_tema["periods"][0]
+    assert len(period_no["balls"]) == 6
+    assert len(period_no["xiaos"]) == 6
+    assert period_no["balls"] == ["01", "02", "03", "04", "05", "06"]
+    assert period_no["xiaos"] == ["马", "蛇", "龙", "兔", "虎", "牛"]
+    assert period_no["has_repeated_xiao"] is False
+    assert period_no["repeated_xiaos"] == []
+
+
+def test_exclude_tema_preserves_repeats_among_positive_balls_while_dropping_special(year_draws):
+    # 01 (马), 13 (马) are in positive balls. 25 (马) is in special ball (tema).
+    year_draws("2026048", date(2026, 2, 17), balls=["01", "13", "02", "03", "04", "05", "25"])
+
+    with_tema = zodiac_streak.get_zodiac_by_year(exclude_tema=False)
+    p_with = with_tema["periods"][0]
+    assert p_with["balls"] == ["01", "13", "02", "03", "04", "05", "25"]
+    assert p_with["xiaos"] == ["马", "马", "蛇", "龙", "兔", "虎", "马"]
+    assert p_with["has_repeated_xiao"] is True
+    assert p_with["repeated_xiaos"] == [
+        {"xiao": "马", "count": 3, "positions": ["正1", "正2", "特码"]}
+    ]
+
+    no_tema = zodiac_streak.get_zodiac_by_year(exclude_tema=True)
+    p_no = no_tema["periods"][0]
+    assert p_no["balls"] == ["01", "13", "02", "03", "04", "05"]
+    assert p_no["xiaos"] == ["马", "马", "蛇", "龙", "兔", "虎"]
+    assert p_no["has_repeated_xiao"] is True
+    assert p_no["repeated_xiaos"] == [
+        {"xiao": "马", "count": 2, "positions": ["正1", "正2"]}
+    ]
+
+
+@pytest.mark.parametrize(
+    ("val", "expected"),
+    [
+        ("false", False),
+        ("0", False),
+        ("no", False),
+        (False, False),
+        (None, False),
+        ("true", True),
+        ("1", True),
+        ("yes", True),
+        (True, True),
+    ],
+)
+def test_get_zodiac_by_year_normalizes_string_and_falsy_exclude_tema(year_draws, val, expected):
+    year_draws("2026048", date(2026, 2, 17), balls=["01", "02", "03", "04", "05", "06", "37"])
+    res = zodiac_streak.get_zodiac_by_year(exclude_tema=val)
+    assert res["exclude_tema"] is expected
+    assert len(res["periods"][0]["balls"]) == (6 if expected else 7)
+
+
+def test_year_data_api_supports_exclude_tema(user_client, year_draws):
+    year_draws("2026048", date(2026, 2, 17), balls=["01", "02", "03", "04", "05", "06", "37"])
+    res_default = user_client.get("/ai/zodiac-year-data", params={"lottery": "macau"})
+    assert res_default["exclude_tema"] is False
+    assert len(res_default["periods"][0]["balls"]) == 7
+    assert res_default["periods"][0]["has_repeated_xiao"] is True
+
+    res_excluded = user_client.get(
+        "/ai/zodiac-year-data",
+        params={"lottery": "macau", "exclude_tema": "true"},
+    )
+    assert res_excluded["exclude_tema"] is True
+    assert len(res_excluded["periods"][0]["balls"]) == 6
+    assert res_excluded["periods"][0]["has_repeated_xiao"] is False
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"lottery": "invalid"},
+        {"year": 9999},
+        {"year": "no-year"},
+        {"exclude_tema": "invalid"},
+    ],
+)
 def test_year_data_api_validates_filters(user_client, params):
     with pytest.raises(ApiError) as exc:
         user_client.get("/ai/zodiac-year-data", params=params)

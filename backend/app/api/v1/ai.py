@@ -338,12 +338,13 @@ class ZodiacStreakRequest(BaseModel):
 def get_zodiac_year_data(
     lottery: Literal["macau", "hk"] = "macau",
     year: int | None = Query(default=None, ge=2000, le=2100),
+    exclude_tema: bool = Query(default=False, description="排除特码生肖"),
     _: User = _user,
 ) -> dict[str, Any]:
     """Return all stored draws for the year, including repeated zodiac counts."""
     from app.services.ai.zodiac_streak import get_zodiac_by_year
 
-    return get_zodiac_by_year(lottery=lottery, year=year)
+    return get_zodiac_by_year(lottery=lottery, year=year, exclude_tema=exclude_tema)
 
 
 @router.get("/zodiac-streak-data")
