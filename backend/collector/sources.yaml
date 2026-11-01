@@ -1,4 +1,15 @@
 sources:
+- source_id: ai_expert_10m5x
+  source_name: AI智能研判十码五肖
+  site_family: ai_forecast
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/ai_expert_10m5x.py
+  timeout_sec: 30
+  enabled: true
+  remark: 每日AI大模型根据全量帖文智能研判产出的10码5肖预测，自动录入对料对奖
+  extra: {}
 - source_id: haige_pingte
   source_name: 海哥平特
   site_family: dingjian_dashi

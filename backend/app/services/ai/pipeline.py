@@ -104,6 +104,35 @@ def run_ai_judgment_pipeline(
 
     target_period = analysis_result.period or period or "最新"
 
+    # Step 3.5: Automatically extract AI predictions (5 zodiacs + 10 numbers) and ingest into source 'ai_expert_10m5x'
+    ai_ingest_result: dict[str, Any] = {"ok": False, "skipped": True}
+    try:
+        from app.services.ai.ai_pred_extractor import extract_ai_predictions, ingest_ai_predictions
+
+        pred_atoms = extract_ai_predictions(analysis_result.analysis)
+        xiao_preds = pred_atoms.get("xiao") or []
+        num_preds = pred_atoms.get("numbers") or []
+        if xiao_preds or num_preds:
+            logger.info(
+                "Pipeline Step 3.5: Auto-ingesting AI prediction for period=%s (xiao=%s, nums=%s) into source ai_expert_10m5x...",
+                target_period,
+                xiao_preds,
+                num_preds,
+            )
+            ai_ingest_result = ingest_ai_predictions(
+                lottery="macau",
+                period=target_period,
+                xiao=xiao_preds,
+                numbers=num_preds,
+                raw_text=analysis_result.analysis,
+            )
+        else:
+            logger.warning("Pipeline Step 3.5: No zodiacs or numbers extracted from AI report for period=%s", target_period)
+            ai_ingest_result = {"ok": False, "skipped": True, "reason": "no_predictions_extracted"}
+    except Exception as exc:
+        logger.exception("Pipeline Step 3.5: Failed to auto-ingest AI predictions into source ai_expert_10m5x: %s", exc)
+        ai_ingest_result = {"ok": False, "skipped": False, "error": str(exc)}
+
     # Step 4 & 5: Render HTML report and send via Resend SMTP
     email_delivery: dict[str, Any] = {"sent": False}
     if send_email:
@@ -181,5 +210,6 @@ def run_ai_judgment_pipeline(
         "total_elapsed_sec": total_elapsed,
         "usage": analysis_result.usage,
         "scraped_summary": analysis_result.scraped_summary,
+        "ai_ingest": ai_ingest_result,
         "email_delivery": email_delivery,
     }

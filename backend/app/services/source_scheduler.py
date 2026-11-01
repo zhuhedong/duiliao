@@ -156,9 +156,17 @@ class SourceScheduler:
                 elapsed_sec = round(time.perf_counter() - t0, 2)
                 email_info = ai_res.get("email_delivery") or {}
                 email_status_str = "已发送" if email_info.get("sent") else f"未发送({email_info.get('reason', '未知')})"
+                ai_ingest_info = ai_res.get("ai_ingest") or {}
+                if ai_ingest_info.get("ok"):
+                    num_cnt = len(ai_ingest_info.get("numbers") or [])
+                    xiao_cnt = len(ai_ingest_info.get("xiao") or [])
+                    ingest_status_str = f"已入源({num_cnt}码{xiao_cnt}肖)"
+                else:
+                    ingest_status_str = "未提取入源" if ai_ingest_info.get("skipped") else "入源异常"
                 msg = (
                     f"[{ai_tag}] 研判完成: 期数 {ai_res.get('period')}, "
                     f"模型 {ai_res.get('provider')}/{ai_res.get('model')}, "
+                    f"预测: {ingest_status_str}, "
                     f"邮件: {email_status_str}"
                 )
 
