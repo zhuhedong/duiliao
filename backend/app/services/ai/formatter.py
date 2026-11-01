@@ -171,19 +171,36 @@ def format_scraped_data_for_ai(
 
     Args:
         data: FetchResult object or dict containing 'modules', 'site_title', 'html'.
-        mode: 'raw_html' (original html, default) or 'modules_summary' (denoised text).
-        period: target period for modules_summary extraction; raw_html stays intact.
+        mode: 'raw_html' (original complete html without subtraction, default),
+              'cleaned_html' (bloat-filtered html), or 'modules_summary' (denoised text).
+        period: target period for modules_summary extraction; raw_html stays 100% intact.
     """
     if mode == "raw_html":
+        raw = ""
         if isinstance(data, dict):
             raw = data.get("raw_html") or data.get("html") or ""
-        else:
+        elif hasattr(data, "raw_html") or hasattr(data, "html"):
             raw = getattr(data, "raw_html", None) or getattr(data, "html", None) or ""
+        elif isinstance(data, str):
+            raw = data
+
         if raw:
-            return clean_html_for_llm(raw)
+            # Send complete, original HTML without subtraction (不做减法，保留所有标签、样式、脚本与内容)
+            return raw
+
         has_modules = (isinstance(data, dict) and "modules" in data) or hasattr(data, "modules")
-        if not has_modules:
-            return clean_html_for_llm(str(data) if not isinstance(data, dict) else "")
+        if not has_modules and not period:
+            return str(data) if not isinstance(data, dict) else ""
+
+    if mode == "cleaned_html":
+        raw = ""
+        if isinstance(data, dict):
+            raw = data.get("raw_html") or data.get("html") or ""
+        elif hasattr(data, "raw_html") or hasattr(data, "html"):
+            raw = getattr(data, "raw_html", None) or getattr(data, "html", None) or ""
+        elif isinstance(data, str):
+            raw = data
+        return clean_html_for_llm(raw)
 
     if period:
         extracted = _format_period_extraction(data, period=str(period).strip())

@@ -581,7 +581,7 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                       {sched.spec?.task_type === "ai_judgment_email" ? (
                         <Badge variant="secondary" className="text-[11px] bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-400/30 flex items-center gap-1 font-semibold">
                           <span>🧠</span>
-                          <span>AI 帖文研判推送 (Resend)</span>
+                          <span>AI 帖文研判 (完整HTML无减法)</span>
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="text-[11px] text-violet-600 dark:text-violet-300 bg-violet-500/10 border-violet-400/30 dark:border-violet-400/25 flex items-center gap-1">
@@ -843,6 +843,10 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
                         className="w-full"
                       />
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-violet-500/10 text-violet-700 dark:text-violet-300 text-xs">
+                    <CheckBadgeIcon size={15} className="text-emerald-500 shrink-0" />
+                    <span><strong>数据格式：</strong>送原始完整 HTML（raw_html），100% 完整传导，不做减法（保留所有标签、样式、脚本与内容，绝不截断）。</span>
                   </div>
                   <p className="text-[11px] text-slate-400">
                     💡 该任务触发时，后台将自动调取最新抓取的帖文数据，经由 AI 专家模型深度研判后，通过 Resend SMTP 将排版优美的 HTML 报表投递到指定邮箱。

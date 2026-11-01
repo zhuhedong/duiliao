@@ -139,9 +139,15 @@ def test_clean_html_for_llm():
     assert "\n\n\n" not in cleaned
 
     formatted = format_scraped_data_for_ai({"html": sample_html}, mode="raw_html")
-    assert "<style>" not in formatted
-    assert "style=" not in formatted
-    assert "<table>" in formatted
+    assert "<style>" in formatted
+    assert "style=" in formatted
+    assert "<table" in formatted
+    assert formatted == sample_html
+
+    cleaned_fmt = format_scraped_data_for_ai({"html": sample_html}, mode="cleaned_html")
+    assert "<style>" not in cleaned_fmt
+    assert "style=" not in cleaned_fmt
+    assert "<table>" in cleaned_fmt
 
 
 def test_504_gateway_timeout_format():

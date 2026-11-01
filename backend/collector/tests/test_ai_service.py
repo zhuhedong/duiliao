@@ -393,6 +393,37 @@ class TestAIService(unittest.TestCase):
         deltas = "".join(e.get("delta", "") for e in events if e.get("stage") == "delta")
         self.assertEqual(deltas, "### 澳门六合彩分析报告\n热肖：龙、马")
 
+    def test_raw_html_no_subtraction_and_no_truncation(self):
+        """Ensure mode='raw_html' sends complete HTML without subtraction (不做减法):
+        Preserves styles, scripts, comments, inline style attributes, and long documents without truncation.
+        """
+        giant_html = (
+            "<!DOCTYPE html><html><head>"
+            "<style>.red-ball { color: red; }</style>"
+            "<script>var tracker = 1;</script>"
+            "</head><body>"
+            "<!-- Module comment -->"
+            "<div class='module' style='background: gold; color: #333;'>"
+            + "<p>第305期 特码预测 08-20-32-44</p>" * 10_000
+            + "</div></body></html>"
+        )
+        self.assertGreater(len(giant_html), 200_000)
+
+        # 1. Direct dict with html
+        formatted = format_scraped_data_for_ai({"html": giant_html}, mode="raw_html", period="305")
+        self.assertEqual(formatted, giant_html)
+        self.assertIn("<style>.red-ball", formatted)
+        self.assertIn("<script>var tracker", formatted)
+        self.assertIn("<!-- Module comment -->", formatted)
+        self.assertIn("style='background: gold;", formatted)
+        self.assertNotIn("截断提示", formatted)
+        self.assertGreater(len(formatted), 200_000)
+
+        # 2. Object with raw_html
+        obj = SimpleNamespace(raw_html=giant_html)
+        formatted_obj = format_scraped_data_for_ai(obj, mode="raw_html", period="305")
+        self.assertEqual(formatted_obj, giant_html)
+
 
 if __name__ == "__main__":
     unittest.main()
