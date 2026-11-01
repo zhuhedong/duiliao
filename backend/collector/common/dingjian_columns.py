@@ -909,15 +909,16 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             main_nums = [m_main.group(2), m_main.group(3)]
             if len(set(main_nums)) != 2 or any(not 1 <= int(n) <= 49 for n in main_nums):
                 continue
-            all_nums = list(main_nums)
-            selected = f"{xiao}-{main_nums[0]}-{main_nums[1]}"
-            m_song = re.search(r"送\s*[:：]\s*([0-9\s\-－]+)", block)
-            if m_song:
-                song_nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m_song.group(1))))
-                if song_nums and all(1 <= int(n) <= 49 for n in song_nums):
-                    all_nums.extend(song_nums)
-                    all_nums = list(dict.fromkeys(all_nums))
-                    selected += f" 送:{'-'.join(song_nums)}"
+            m_song = re.search(r"送\s*[:：]\s*([^\n\r]+)", block)
+            if not m_song:
+                continue
+            song_nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m_song.group(1))))
+            if len(song_nums) != 4 or any(not 1 <= int(n) <= 49 for n in song_nums):
+                continue
+            all_nums = [*main_nums, *song_nums]
+            if len(set(all_nums)) != 6:
+                continue
+            selected = f"{xiao}-{main_nums[0]}-{main_nums[1]} 送:{'-'.join(song_nums)}"
             rows.append(ParsedRow(
                 period_raw=period,
                 preds=[
