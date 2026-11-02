@@ -417,6 +417,42 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual([a["value"] for a in rows40[1].preds[3:]], ["16", "28", "11", "23"])
         self.assertEqual(rows40[1].claimed["status"], "hit")
 
+        # 41. shazhuang_2ma
+        raw_sz = (
+            "第302期\n 开奖：狗45准\n \n 25\n ⊹\n 45\n 澳门杀庄二码：跟着买\n"
+            "第306期\n 开奖：發88准\n \n 88\n ⊹\n 88\n 出特优选\n说中就是中，加迅聊好友\n"
+        )
+        rows41 = extract_dingjian_column(raw_sz, "shazhuang_2ma")
+        self.assertEqual(len(rows41), 1)
+        self.assertEqual(rows41[0].period_raw, "302")
+        self.assertEqual([a["value"] for a in rows41[0].preds], ["25", "45"])
+        self.assertEqual(rows41[0].claimed["status"], "hit")
+        self.assertEqual(rows41[0].claimed["num"], "45")
+
+        # 42. caiyun_2x4m
+        raw_cy = (
+            "第302期\n 狗-33-45\n鼠-19-31\n 开奖: 狗45 中\n 顶尖大师588080.com\n"
+            "第306期\n 财运神码继续中奖\n你需要稳稳的中奖资料就在这里\n 开奖: 發88 中\n"
+        )
+        rows42 = extract_dingjian_column(raw_cy, "caiyun_2x4m")
+        self.assertEqual(len(rows42), 1)
+        self.assertEqual(rows42[0].period_raw, "302")
+        self.assertEqual([a["value"] for a in rows42[0].preds[:2]], ["狗", "鼠"])
+        self.assertEqual([a["value"] for a in rows42[0].preds[2:]], ["33", "45", "19", "31"])
+        self.assertEqual(rows42[0].claimed["status"], "hit")
+
+        # 43. dujia_6ma
+        raw_dj = (
+            "302期\n 精准数据 【23-35-33-45-25-37】\n 开奖结果\n 狗45准\n"
+            "306期\n 精准数据 【加迅聊好友，领料中奖】\n 开奖结果\n ？00准\n"
+        )
+        rows43 = extract_dingjian_column(raw_dj, "dujia_6ma")
+        self.assertEqual(len(rows43), 1)
+        self.assertEqual(rows43[0].period_raw, "302")
+        self.assertEqual([a["value"] for a in rows43[0].preds], ["23", "35", "33", "45", "25", "37"])
+        self.assertEqual(rows43[0].claimed["status"], "hit")
+        self.assertEqual(rows43[0].claimed["num"], "45")
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)

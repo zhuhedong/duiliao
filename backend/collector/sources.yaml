@@ -2866,8 +2866,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_neimu_1x2m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师内幕一肖二码
+  enabled: false
+  remark: 顶尖大师内幕一肖二码；上游栏目 1792925571666 已消失，巡检治理自动停用
   extra:
     upstream_id: '1792925571666'
     parser: neimu_1x2m
@@ -2896,8 +2896,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_caifu_2x2m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师财富密码二肖二码
+  enabled: false
+  remark: 顶尖大师财富密码二肖二码；上游栏目 1793359880293 已消失，巡检治理自动停用
   extra:
     upstream_id: '1793359880293'
     parser: caifu_2x2m
@@ -2911,8 +2911,8 @@ sources:
   hit_mode: any
   script_path: sources/dj_baozhuang_1x3m.py
   timeout_sec: 30
-  enabled: true
-  remark: 顶尖大师一肖三码爆庄
+  enabled: false
+  remark: 顶尖大师一肖三码爆庄；上游栏目 1786878859844 已消失，巡检治理自动停用
   extra:
     upstream_id: '1786878859844'
     parser: baozhuang_1x3m
@@ -2933,6 +2933,51 @@ sources:
     parser: mashen_1x2m
     kind: mixed
     path: /api/v1/index/config/byid/1793435198000
+- source_id: dj_shazhuang_2ma
+  source_name: 顶尖大师澳门杀庄二码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_shazhuang_2ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师澳门杀庄二码
+  extra:
+    upstream_id: '1789559842698'
+    parser: shazhuang_2ma
+    kind: num
+    path: /api/v1/index/config/byid/1789559842698
+- source_id: dj_caiyun_2x4m
+  source_name: 顶尖大师财运二肖四码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: texiao
+  hit_mode: any
+  script_path: sources/dj_caiyun_2x4m.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师财运二肖四码
+  extra:
+    upstream_id: '1793532210519'
+    parser: caiyun_2x4m
+    kind: mixed
+    path: /api/v1/index/config/byid/1793532210519
+- source_id: dj_dujia_6ma
+  source_name: 顶尖大师独家六码
+  site_family: dingjian_dashi
+  lottery: macau
+  play_type: tema_n
+  hit_mode: any
+  script_path: sources/dj_dujia_6ma.py
+  timeout_sec: 30
+  enabled: true
+  remark: 顶尖大师独家六码
+  extra:
+    upstream_id: '1787831127461'
+    parser: dujia_6ma
+    kind: num
+    path: /api/v1/index/config/byid/1787831127461
 draw:
   macau:
     adapter: getLastLottery
