@@ -1244,8 +1244,9 @@ export const collectorApi = {
   deleteSchedule(id: number) {
     return api.del<{ ok: boolean; message: string }>(`/collector/schedules/${id}`);
   },
-  triggerSchedule(id: number) {
-    return api.post<{ ok: boolean; result: any }>(`/collector/schedules/${id}/trigger`);
+  triggerSchedule(id: number, wait: boolean = false) {
+    const q = wait ? "?wait=true" : "";
+    return api.post<{ ok: boolean; result?: any; status?: string; message?: string }>(`/collector/schedules/${id}/trigger${q}`);
   },
   getScheduleLogs(id: number) {
     return api.get<{ ok: boolean; schedule: CollectionSchedule; logs: any[] }>(`/collector/schedules/${id}/logs`);

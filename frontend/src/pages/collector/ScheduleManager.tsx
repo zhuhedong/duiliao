@@ -350,9 +350,14 @@ export function ScheduleManager({ currentLottery = "macau", allSources = [] }: S
     try {
       const res = await collectorApi.triggerSchedule(sched.id);
       const summary = res.result;
-      const msg = `任务 #${sched.id} 立即执行完成！期数: ${summary?.period || "auto"}，成功 ${summary?.source_ok ?? 0}/${summary?.source_total ?? 0} 源`;
-      setSuccessMsg(msg);
-      toast.success("定时任务已立即执行", msg);
+      if (summary?.status === "already_running") {
+        const warnMsg = summary.message || `任务 #${sched.id} 正在执行中，请勿重复触发`;
+        toast.warning("任务正在执行中", warnMsg);
+      } else {
+        const msg = summary?.message || `任务 #${sched.id} 已在后台启动执行，可在下方查看进度与执行日志`;
+        setSuccessMsg(msg);
+        toast.success("定时任务已在后台启动", msg);
+      }
       await loadData();
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : `执行任务 #${sched.id} 失败`;

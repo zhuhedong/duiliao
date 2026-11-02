@@ -101,5 +101,11 @@ def test_schedule_logs_api_lifecycle(staff_client):
             staff_client.get("/collector/schedules/logs/9999999")
         assert exc.value.status_code == 404
 
+        # 7. Test POST /collector/schedules/{schedule_id}/trigger (background asynchronous execution)
+        trigger_res = staff_client.post(f"/collector/schedules/{sched_id}/trigger")
+        assert trigger_res["ok"] is True
+        assert trigger_res["result"]["status"] in ("running", "already_running")
+        assert "后台" in trigger_res["result"]["message"] or "执行" in trigger_res["result"]["message"]
+
     finally:
         cb.delete_schedule(sched_id)

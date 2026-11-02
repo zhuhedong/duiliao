@@ -363,12 +363,31 @@ class SourceScheduler:
         finally:
             self._running_tasks.discard(sid)
 
-    async def trigger_now(self, schedule_id: int) -> dict[str, Any]:
-        """Manually trigger immediate execution of a schedule."""
+    async def trigger_now(self, schedule_id: int, wait: bool = True) -> dict[str, Any]:
+        """Manually trigger immediate execution of a schedule.
+
+        Args:
+            schedule_id: The ID of the schedule to execute.
+            wait: If True (default for direct calls/tests), block until completion.
+                  If False, launch in background and return running status immediately.
+        """
         item = await asyncio.to_thread(cb.get_schedule, schedule_id)
         if not item:
             raise ValueError(f"Schedule #{schedule_id} not found")
-        return await self._safe_execute(item, manual=True)
+        sid = item["id"]
+        if sid in self._running_tasks:
+            return {"ok": False, "status": "already_running", "message": f"任务 #{sid} 正在执行中，请勿重复触发"}
+
+        if wait:
+            return await self._safe_execute(item, manual=True)
+
+        asyncio.create_task(self._safe_execute(item, manual=True))
+        return {
+            "ok": True,
+            "status": "running",
+            "message": f"任务 #{sid} 已在后台启动执行",
+            "schedule_id": sid,
+        }
 
     async def run_loop(self) -> None:
         """Main periodic loop running during the FastAPI lifespan."""

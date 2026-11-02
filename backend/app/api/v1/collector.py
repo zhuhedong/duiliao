@@ -1042,13 +1042,14 @@ def delete_collection_schedule(
 @router.post("/schedules/{schedule_id}/trigger")
 async def trigger_collection_schedule(
     schedule_id: int,
+    wait: bool = Query(False, description="Whether to block until execution completes"),
     _: User = _staff,
 ) -> dict[str, Any]:
     """Immediately trigger execution of a collection schedule in background."""
     from app.services.source_scheduler import source_scheduler
 
     try:
-        res = await source_scheduler.trigger_now(schedule_id)
+        res = await source_scheduler.trigger_now(schedule_id, wait=wait)
         return {"ok": True, "result": res}
     except Exception as exc:
         raise _bad_request(exc)
