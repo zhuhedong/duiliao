@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from common.catalog_text import claimed_from_block, period_blocks
-from common.parse_pred import parse_claimed, strip_html
+from common.parse_pred import strip_html
 from common.source_rows import ParsedRow, build_prediction
 
 # Each selector is deliberately tied to observed markup, not the column name.
@@ -689,7 +689,7 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             ))
             continue
         if parser in ("temawang_2x4m", "caiyun_2x4m"):
-            pairs = re.findall(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－]\s*(\d{2})\s*[-－]\s*(\d{2})", block)
+            pairs = re.findall(r"([鼠牛虎兔龙蛇马羊猴鸡狗猪])\s*[-－·.]\s*(\d{2})\s*[-－·.]\s*(\d{2})", block)
             if len(pairs) != 2:
                 continue
             xiaos = [pairs[0][0], pairs[1][0]]
@@ -933,7 +933,7 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             ))
             continue
         if parser == "shazhuang_2ma":
-            m = re.search(r"(\d{2})\s*[⊹+]\s*(\d{2})", block)
+            m = re.search(r"(?<!\d)(\d{2})\s*[⊹+＋\-－·/]\s*(\d{2})(?!\d)", block)
             if not m:
                 continue
             nums = [m.group(1), m.group(2)]
@@ -948,25 +948,17 @@ def extract(raw: str, parser: str) -> list[ParsedRow]:
             ))
             continue
         if parser == "dujia_6ma":
-            m = re.search(r"精准数据\s*【\s*((?:\d{2}[.\s·\-－]*){6})\s*】", block)
+            m = re.search(r"(?:精准数据\s*[:：]?)?\s*[【\[]\s*((?:\d{2}[.,\s·\-－/]*){6})\s*[】\]]", block)
             if not m:
                 continue
             nums = list(dict.fromkeys(re.findall(r"(?<!\d)\d{2}(?!\d)", m.group(1))))
             if len(nums) != 6 or any(not 1 <= int(n) <= 49 for n in nums):
                 continue
-            m_claim = re.search(r"开奖结果\s*(?:[：:])?\s*([^\n\r]+)", block) or re.search(r"开奖结果\s*[\r\n]+\s*([^\n\r]+)", block)
-            claim_text = m_claim.group(1).strip() if m_claim else ""
-            if any(mark in claim_text for mark in ("?00", "？00", "0000", "發88", "发88")):
-                claimed = {"status": "pending", "xiao": None, "num": None, "raw": claim_text}
-            elif claim_text:
-                claimed = parse_claimed(claim_text)
-            else:
-                claimed = claimed_from_block(block)
             selected = ".".join(nums)
             rows.append(ParsedRow(
                 period_raw=period,
                 preds=[{"kind": "num", "value": n, "text": selected} for n in nums],
-                claimed=claimed,
+                claimed=claimed_from_block(block),
                 raw_text=block,
             ))
             continue

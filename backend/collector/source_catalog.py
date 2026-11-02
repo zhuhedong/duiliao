@@ -36,7 +36,7 @@ SETTING_KEY = "source_catalog"
 SITE_FAMILY = "dingjian_dashi"
 UPSTREAM_RE = re.compile(r"config/byid/(\d+)")
 ASSET_RE = re.compile(r"(?:src|href)\s*=\s*['\"]([^'\"]+)['\"]", re.I)
-PERIOD_RE = re.compile(r"(?:第\s*)?(\d{1,7})\s*期")
+PERIOD_RE = re.compile(r"(?<![\d第])(?:第\s*)?(\d{1,7})\s*期")
 XIAO_RE = re.compile(r"[鼠牛虎兔龙龍蛇马馬羊猴鸡雞狗猪豬]")
 NUMBER_RE = re.compile(r"(?<!\d)(?:0?[1-9]|[1-4]\d)(?!\d)")
 
@@ -140,13 +140,13 @@ def classify_content(content: str | None, *, source: str = "catalog", name: str 
     # The component API returns arbitrary author HTML.  Keep a structural
     # profile beside the old coverage classification so onboarding decisions
     # come from the live markup instead of a source name or a stale script.
-    chunks = [chunk.strip() for chunk in re.split(r"(?=(?:第\s*)?\d{1,7}\s*期)", text) if chunk.strip()]
+    chunks = [chunk.strip() for chunk in re.split(r"(?=(?<!\d)(?:第\s*)?\d{1,7}\s*期)", text) if chunk.strip()]
     records: list[dict[str, Any]] = []
     for chunk in chunks[:80]:
         period_match = PERIOD_RE.search(chunk)
         if not period_match:
             continue
-        claim_match = re.search(r"(?:开奖|開獎|开|開)\s*[:：]?\s*([^\n]{0,60})", chunk)
+        claim_match = re.search(r"(?:开奖结果|開獎結果|开奖|開獎|开|開)\s*[:：]?\s*([^\n\r]{0,60})", chunk)
         claim = claim_match.group(1).strip() if claim_match else ""
         compact = re.sub(r"\s+", "", claim or chunk)
         if any(mark in compact for mark in ("?00", "？00", "猫00", "貓00", "發00", "发00", "0000", "發88", "发88")):

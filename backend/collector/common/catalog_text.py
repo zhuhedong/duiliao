@@ -5,7 +5,7 @@ import re
 from common.parse_pred import parse_claimed
 
 PERIOD_RE = re.compile(r"(?<![\d第])(?:第\s*)?(\d{1,7})\s*期")
-CLAIM_RE = re.compile(r"(?:开奖|開獎|开|開)\s*[:：]?\s*([^\n]{1,60})")
+CLAIM_RE = re.compile(r"(?:开奖结果|開獎結果|开奖|開獎|开|開)\s*[:：]?\s*([^\n\r]{1,60})")
 
 
 def period_blocks(text: str) -> list[tuple[str, str]]:

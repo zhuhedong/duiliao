@@ -453,6 +453,30 @@ class TestDingjianNewColumns(unittest.TestCase):
         self.assertEqual(rows43[0].claimed["status"], "hit")
         self.assertEqual(rows43[0].claimed["num"], "45")
 
+        # Edge cases & upcoming periods with numbers
+        raw_dj2 = (
+            "305期\n 独家六码:【21.33.22.34.26.38】\n 开奖结果\n 蛇26准\n"
+            "306期\n 精准数据【01-02-03-04-05-06】\n 开奖结果\n ？00准\n"
+        )
+        rows43_2 = extract_dingjian_column(raw_dj2, "dujia_6ma")
+        self.assertEqual(len(rows43_2), 2)
+        self.assertEqual(rows43_2[0].period_raw, "305")
+        self.assertEqual(rows43_2[0].claimed["status"], "hit")
+        self.assertEqual(rows43_2[1].period_raw, "306")
+        self.assertEqual(rows43_2[1].claimed["status"], "pending")
+        self.assertEqual([a["value"] for a in rows43_2[1].preds], ["01", "02", "03", "04", "05", "06"])
+
+        raw_sz2 = "第305期\n 开奖: 蛇26准\n 24 + 26\n 澳门杀庄二码\n"
+        rows41_2 = extract_dingjian_column(raw_sz2, "shazhuang_2ma")
+        self.assertEqual(len(rows41_2), 1)
+        self.assertEqual([a["value"] for a in rows41_2[0].preds], ["24", "26"])
+
+        raw_cy2 = "第305期\n 蛇·26·38 牛.06.18\n 开奖: 蛇26 中\n"
+        rows42_2 = extract_dingjian_column(raw_cy2, "caiyun_2x4m")
+        self.assertEqual(len(rows42_2), 1)
+        self.assertEqual([a["value"] for a in rows42_2[0].preds[:2]], ["蛇", "牛"])
+        self.assertEqual([a["value"] for a in rows42_2[0].preds[2:]], ["26", "38", "06", "18"])
+
     def test_wuma_splits_numbers_and_holds_placeholder(self):
         raw = "第263期\n顶尖大师058585.com\n09-21\n11-23-35\n开奖:狗09中\n第267期\n跟上\n开奖:發88中\n"
         rows = extract_wuma(raw)
@@ -583,6 +607,19 @@ class TestSiteCatalog(unittest.TestCase):
         self.assertEqual(profile["analysis"]["parser_hint"], "period_prediction_claim")
         self.assertEqual(profile["analysis"]["latest_period"], 270)
         self.assertEqual(profile["analysis"]["record_count"], 1)
+
+        profile2 = classify_content(
+            '<div>302期\n精准数据【23-35-33-45-25-37】\n开奖结果\n狗45准\n'
+            '306期\n精准数据【加迅聊好友，领料中奖】\n开奖结果\n？00准</div>',
+            source="detail_api",
+            name="独家六码",
+        )
+        self.assertEqual(profile2["analysis"]["latest_period"], 306)
+        self.assertEqual(profile2["analysis"]["record_count"], 2)
+        self.assertEqual(profile2["analysis"]["records"][0]["period"], 302)
+        self.assertEqual(profile2["analysis"]["records"][0]["status"], "hit")
+        self.assertEqual(profile2["analysis"]["records"][1]["period"], 306)
+        self.assertEqual(profile2["analysis"]["records"][1]["status"], "pending")
 
     def test_dingji_page_parser_reads_live_table_rows(self):
         title, rows = _parse_amtz_records(
