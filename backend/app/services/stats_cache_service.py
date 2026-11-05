@@ -91,6 +91,7 @@ class StatsCacheService:
                 if f":{lottery_str}:" in k
                 or k.startswith(f"trend:{lottery_str}")
                 or k.startswith(f"pingte_ranking:{lottery_str}")
+                or k.startswith(f"pingte_zodiac_history:{lottery_str}")
                 or k.startswith(f"ratings:{lottery_str}")
                 or k.startswith(f"mobile_home:{lottery_str}")
                 or k.startswith(f"draws:{lottery_str}")

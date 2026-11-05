@@ -386,6 +386,30 @@ def get_pingte_ranking_endpoint(
     )
 
 
+@router.get("/pingte-zodiac-history")
+def get_pingte_zodiac_history_endpoint(
+    lottery: str = "macau",
+    xiao: str | None = None,
+    limit: int = 0,
+    period_from: str | None = None,
+    period_to: str | None = None,
+    force_refresh: bool = False,
+    _: User = _user,
+) -> dict[str, Any]:
+    """Return per-zodiac Pingte draw history: streak/omission segments (多少到多少连开/没出) and period history."""
+    try:
+        return cb.get_pingte_zodiac_history(
+            lottery=lottery,
+            xiao=xiao,
+            limit=limit,
+            period_from=period_from,
+            period_to=period_to,
+            force_refresh=force_refresh,
+        )
+    except (ValueError, KeyError) as exc:
+        raise _bad_request(exc)
+
+
 @router.get("/cache/stats")
 def get_stats_cache_status(_: User = _user) -> dict[str, Any]:
     """Inspect current server-side statistics cache status and hit rates."""

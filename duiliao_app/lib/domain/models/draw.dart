@@ -438,17 +438,320 @@ class TrendResponse {
   static const empty = TrendResponse(code: 1, msg: '', data: []);
 }
 
+class PingteMatchedBall {
+  const PingteMatchedBall({
+    required this.position,
+    required this.isTema,
+    required this.number,
+    this.bose = '',
+    this.wuxing = '',
+  });
+
+  final int position;
+  final bool isTema;
+  final String number;
+  final String bose;
+  final String wuxing;
+
+  factory PingteMatchedBall.fromJson(Map<String, dynamic> json) =>
+      PingteMatchedBall(
+        position: asInt(json['position'] ?? json['pos']),
+        isTema: asBool(json['is_tema']),
+        number: asString(json['number'] ?? json['num']),
+        bose: asString(json['bose']),
+        wuxing: asString(json['wuxing']),
+      );
+}
+
+class PingteAllBall {
+  const PingteAllBall({
+    required this.position,
+    required this.isTema,
+    required this.number,
+    required this.xiao,
+    this.bose = '',
+    this.wuxing = '',
+    this.isTarget = false,
+  });
+
+  final int position;
+  final bool isTema;
+  final String number;
+  final String xiao;
+  final String bose;
+  final String wuxing;
+  final bool isTarget;
+
+  factory PingteAllBall.fromJson(Map<String, dynamic> json) => PingteAllBall(
+        position: asInt(json['position'] ?? json['pos']),
+        isTema: asBool(json['is_tema']),
+        number: asString(json['number'] ?? json['num']),
+        xiao: asString(json['xiao']),
+        bose: asString(json['bose']),
+        wuxing: asString(json['wuxing']),
+        isTarget: asBool(json['is_target'] ?? json['is_match']),
+      );
+}
+
+class PingteSegmentRange {
+  const PingteSegmentRange({
+    required this.type,
+    required this.typeLabel,
+    required this.startPeriod,
+    required this.endPeriod,
+    this.startDate = '',
+    this.endDate = '',
+    required this.length,
+    required this.text,
+    this.isCurrent = false,
+  });
+
+  final String type;
+  final String typeLabel;
+  final String startPeriod;
+  final String endPeriod;
+  final String startDate;
+  final String endDate;
+  final int length;
+  final String text;
+  final bool isCurrent;
+
+  factory PingteSegmentRange.fromJson(Map<String, dynamic> json) =>
+      PingteSegmentRange(
+        type: asString(json['type']),
+        typeLabel: asString(json['type_label']),
+        startPeriod: asString(json['start_period']),
+        endPeriod: asString(json['end_period']),
+        startDate: asString(json['start_date']),
+        endDate: asString(json['end_date']),
+        length: asInt(json['length']),
+        text: asString(json['text']),
+        isCurrent: asBool(json['is_current']),
+      );
+}
+
+class PingteSegmentPeriodItem {
+  const PingteSegmentPeriodItem({
+    required this.period,
+    this.drawDate = '',
+    required this.isHit,
+    this.ballCount = 0,
+    this.hasTema = false,
+    this.matchedNumbers = const [],
+    this.matchedBalls = const [],
+  });
+
+  final String period;
+  final String drawDate;
+  final bool isHit;
+  final int ballCount;
+  final bool hasTema;
+  final List<String> matchedNumbers;
+  final List<PingteMatchedBall> matchedBalls;
+
+  factory PingteSegmentPeriodItem.fromJson(Map<String, dynamic> json) {
+    final balls = asModelList(json['matched_balls'], PingteMatchedBall.fromJson);
+    final nums = asStringList(json['matched_numbers']);
+    return PingteSegmentPeriodItem(
+      period: asString(json['period']),
+      drawDate: asString(json['draw_date'] ?? json['date']),
+      isHit: asBool(json['is_hit'] ?? json['hit']),
+      ballCount: asInt(json['ball_count']),
+      hasTema: asBool(json['has_tema'] ?? json['tema_hit']),
+      matchedNumbers: nums.isNotEmpty ? nums : balls.map((b) => b.number).toList(),
+      matchedBalls: balls,
+    );
+  }
+}
+
+class PingteSegment {
+  const PingteSegment({
+    required this.segmentId,
+    required this.type,
+    required this.typeLabel,
+    required this.startPeriod,
+    required this.endPeriod,
+    this.startDate = '',
+    this.endDate = '',
+    required this.length,
+    this.totalBalls = 0,
+    this.temaHits = 0,
+    this.isCurrent = false,
+    required this.text,
+    this.periods = const [],
+  });
+
+  final int segmentId;
+  final String type;
+  final String typeLabel;
+  final String startPeriod;
+  final String endPeriod;
+  final String startDate;
+  final String endDate;
+  final int length;
+  final int totalBalls;
+  final int temaHits;
+  final bool isCurrent;
+  final String text;
+  final List<PingteSegmentPeriodItem> periods;
+
+  factory PingteSegment.fromJson(Map<String, dynamic> json) => PingteSegment(
+        segmentId: asInt(json['segment_id']),
+        type: asString(json['type']),
+        typeLabel: asString(json['type_label']),
+        startPeriod: asString(json['start_period']),
+        endPeriod: asString(json['end_period']),
+        startDate: asString(json['start_date']),
+        endDate: asString(json['end_date']),
+        length: asInt(json['length']),
+        totalBalls: asInt(json['total_balls']),
+        temaHits: asInt(json['tema_hits']),
+        isCurrent: asBool(json['is_current']),
+        text: asString(json['text']),
+        periods: asModelList(json['periods'], PingteSegmentPeriodItem.fromJson),
+      );
+}
+
+class PingteDistributionItem {
+  const PingteDistributionItem({
+    required this.length,
+    required this.count,
+    this.label = '',
+    this.latestStartPeriod = '',
+    this.latestEndPeriod = '',
+    this.latestText = '',
+    this.isCurrent = false,
+    this.ranges = const [],
+  });
+
+  final int length;
+  final int count;
+  final String label;
+  final String latestStartPeriod;
+  final String latestEndPeriod;
+  final String latestText;
+  final bool isCurrent;
+  final List<PingteSegmentRange> ranges;
+
+  factory PingteDistributionItem.fromJson(Map<String, dynamic> json) {
+    final parsedRanges =
+        asModelList(json['ranges'], PingteSegmentRange.fromJson);
+    final firstRange = parsedRanges.isNotEmpty ? parsedRanges.first : null;
+    final rawStart = asString(json['latest_start_period']);
+    final rawEnd = asString(json['latest_end_period']);
+    final rawText = asString(json['latest_text']);
+    return PingteDistributionItem(
+      length: asInt(json['length']),
+      count: asInt(json['count']),
+      label: asString(json['label']),
+      latestStartPeriod:
+          rawStart.isNotEmpty ? rawStart : (firstRange?.startPeriod ?? ''),
+      latestEndPeriod:
+          rawEnd.isNotEmpty ? rawEnd : (firstRange?.endPeriod ?? ''),
+      latestText: rawText.isNotEmpty ? rawText : (firstRange?.text ?? ''),
+      isCurrent: json['is_current'] != null
+          ? asBool(json['is_current'])
+          : (firstRange?.isCurrent ?? false),
+      ranges: parsedRanges,
+    );
+  }
+}
+
+class PingteZodiacPeriodRecord {
+  const PingteZodiacPeriodRecord({
+    required this.period,
+    this.drawDate = '',
+    required this.isHit,
+    this.ballCount = 0,
+    this.hasTema = false,
+    this.matchedNumbers = const [],
+    this.matchedBalls = const [],
+    this.allBalls = const [],
+    this.segmentId = 0,
+    this.segmentType = '',
+    this.segmentTypeLabel = '',
+    this.segmentStep = 0,
+    this.segmentLength = 0,
+    this.segmentStartPeriod = '',
+    this.segmentEndPeriod = '',
+    this.segmentText = '',
+    this.runningText = '',
+  });
+
+  final String period;
+  final String drawDate;
+  final bool isHit;
+  final int ballCount;
+  final bool hasTema;
+  final List<String> matchedNumbers;
+  final List<PingteMatchedBall> matchedBalls;
+  final List<PingteAllBall> allBalls;
+  final int segmentId;
+  final String segmentType;
+  final String segmentTypeLabel;
+  final int segmentStep;
+  final int segmentLength;
+  final String segmentStartPeriod;
+  final String segmentEndPeriod;
+  final String segmentText;
+  final String runningText;
+
+  factory PingteZodiacPeriodRecord.fromJson(Map<String, dynamic> json) {
+    final balls = asModelList(json['matched_balls'], PingteMatchedBall.fromJson);
+    final nums = asStringList(json['matched_numbers']);
+    final segTypeLabel = asString(json['segment_type_label'] ?? json['run_type_label']);
+    final segStep = asInt(json['segment_step'] ?? json['run_step']);
+    final rawRunning = asString(json['running_text']);
+    return PingteZodiacPeriodRecord(
+      period: asString(json['period']),
+      drawDate: asString(json['draw_date'] ?? json['date']),
+      isHit: asBool(json['is_hit'] ?? json['hit']),
+      ballCount: asInt(json['ball_count']),
+      hasTema: asBool(json['has_tema'] ?? json['tema_hit']),
+      matchedNumbers: nums.isNotEmpty ? nums : balls.map((b) => b.number).toList(),
+      matchedBalls: balls,
+      allBalls: asModelList(json['all_balls'], PingteAllBall.fromJson),
+      segmentId: asInt(json['segment_id']),
+      segmentType: asString(json['segment_type'] ?? json['run_type']),
+      segmentTypeLabel: segTypeLabel,
+      segmentStep: segStep,
+      segmentLength: asInt(json['segment_length']),
+      segmentStartPeriod: asString(json['segment_start_period'] ?? json['segment_start']),
+      segmentEndPeriod: asString(json['segment_end_period'] ?? json['segment_end']),
+      segmentText: asString(json['segment_text']),
+      runningText: rawRunning.isNotEmpty
+          ? rawRunning
+          : (segTypeLabel.isNotEmpty && segStep > 0 ? '$segTypeLabel第$segStep期' : ''),
+    );
+  }
+}
+
 class PingteZodiacRank {
   const PingteZodiacRank({
     required this.name,
     required this.label,
     required this.count,
+    this.pingCount = 0,
+    this.temaCount = 0,
     required this.periodsCount,
+    this.missPeriodsCount = 0,
+    this.multiBallPeriodsCount = 0,
     required this.frequency,
     required this.currentOmission,
     required this.maxOmission,
     required this.maxConsecutive,
     required this.currentConsecutive,
+    this.currentRange,
+    this.maxConsecutiveRange,
+    this.maxOmissionRange,
+    this.segmentsCount = 0,
+    this.hitSegmentsCount = 0,
+    this.missSegmentsCount = 0,
+    this.recentSegments = const [],
+    this.streakDistribution = const [],
+    this.omissionDistribution = const [],
+    this.segments = const [],
+    this.periodHistory = const [],
     required this.numbers,
     required this.rank,
     this.isHot = false,
@@ -458,32 +761,116 @@ class PingteZodiacRank {
   final String name;
   final String label;
   final int count;
+  final int pingCount;
+  final int temaCount;
   final int periodsCount;
+  final int missPeriodsCount;
+  final int multiBallPeriodsCount;
   final double frequency;
   final int currentOmission;
   final int maxOmission;
   final int maxConsecutive;
   final int currentConsecutive;
+  final PingteSegmentRange? currentRange;
+  final PingteSegmentRange? maxConsecutiveRange;
+  final PingteSegmentRange? maxOmissionRange;
+  final int segmentsCount;
+  final int hitSegmentsCount;
+  final int missSegmentsCount;
+  final List<PingteSegment> recentSegments;
+  final List<PingteDistributionItem> streakDistribution;
+  final List<PingteDistributionItem> omissionDistribution;
+  final List<PingteSegment> segments;
+  final List<PingteZodiacPeriodRecord> periodHistory;
   final List<String> numbers;
   final int rank;
   final bool isHot;
   final bool isCold;
 
-  factory PingteZodiacRank.fromJson(Map<String, dynamic> json) => PingteZodiacRank(
+  factory PingteZodiacRank.fromJson(Map<String, dynamic> json) =>
+      PingteZodiacRank(
         name: asString(json['name']),
         label: asString(json['label']),
         count: asInt(json['count']),
+        pingCount: asInt(json['ping_count']),
+        temaCount: asInt(json['tema_count']),
         periodsCount: asInt(json['periods_count']),
+        missPeriodsCount: asInt(json['miss_periods_count']),
+        multiBallPeriodsCount: asInt(json['multi_ball_periods_count']),
         frequency: asDouble(json['frequency']),
         currentOmission: asInt(json['current_omission']),
         maxOmission: asInt(json['max_omission']),
         maxConsecutive: asInt(json['max_consecutive']),
         currentConsecutive: asInt(json['current_consecutive']),
+        currentRange:
+            asModelOrNull(json['current_range'], PingteSegmentRange.fromJson),
+        maxConsecutiveRange: asModelOrNull(
+            json['max_consecutive_range'], PingteSegmentRange.fromJson),
+        maxOmissionRange: asModelOrNull(
+            json['max_omission_range'], PingteSegmentRange.fromJson),
+        segmentsCount: asInt(json['segments_count']),
+        hitSegmentsCount: asInt(json['hit_segments_count']),
+        missSegmentsCount: asInt(json['miss_segments_count']),
+        recentSegments:
+            asModelList(json['recent_segments'], PingteSegment.fromJson),
+        streakDistribution: asModelList(
+            json['streak_distribution'], PingteDistributionItem.fromJson),
+        omissionDistribution: asModelList(
+            json['omission_distribution'], PingteDistributionItem.fromJson),
+        segments: asModelList(json['segments'], PingteSegment.fromJson),
+        periodHistory: asModelList(
+            json['period_history'], PingteZodiacPeriodRecord.fromJson),
         numbers: asStringList(json['numbers']),
         rank: asInt(json['rank']),
         isHot: asBool(json['is_hot']),
         isCold: asBool(json['is_cold']),
       );
+}
+
+class PingteZodiacHistoryResult {
+  const PingteZodiacHistoryResult({
+    required this.ok,
+    required this.lottery,
+    required this.samplePeriods,
+    this.latestPeriod,
+    this.earliestPeriod,
+    this.latestDrawDate,
+    this.selectedXiao,
+    this.zodiacHistory,
+    this.zodiacs = const [],
+  });
+
+  final bool ok;
+  final String lottery;
+  final int samplePeriods;
+  final String? latestPeriod;
+  final String? earliestPeriod;
+  final String? latestDrawDate;
+  final String? selectedXiao;
+  final PingteZodiacRank? zodiacHistory;
+  final List<PingteZodiacRank> zodiacs;
+
+  factory PingteZodiacHistoryResult.fromJson(Map<String, dynamic> json) =>
+      PingteZodiacHistoryResult(
+        ok: asBool(json['ok'], fallback: true),
+        lottery: asString(json['lottery']),
+        samplePeriods: asInt(json['sample_periods']),
+        latestPeriod: asStringOrNull(json['latest_period']),
+        earliestPeriod: asStringOrNull(json['earliest_period']),
+        latestDrawDate: asStringOrNull(json['latest_draw_date']),
+        selectedXiao:
+            asStringOrNull(json['selected_xiao'] ?? json['target_xiao']),
+        zodiacHistory: asModelOrNull(
+            json['zodiac_history'] ?? json['selected_zodiac'],
+            PingteZodiacRank.fromJson),
+        zodiacs: asModelList(json['zodiacs'], PingteZodiacRank.fromJson),
+      );
+
+  static const empty = PingteZodiacHistoryResult(
+    ok: true,
+    lottery: '',
+    samplePeriods: 0,
+  );
 }
 
 class PingteTailRank {
@@ -716,4 +1103,5 @@ class PingteRankingResult {
     samplePeriods: 0,
   );
 }
+
 

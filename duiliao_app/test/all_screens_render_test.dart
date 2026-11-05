@@ -417,5 +417,13 @@ void main() {
       const PingteRankingScreen(),
       logicalSize: const Size(360, 780),
     );
+    await pumpAndScroll(
+      tester,
+      const PingteRankingScreen(
+        initialTab: RankingTab.zodiacHistory,
+        initialXiao: '马',
+      ),
+      logicalSize: const Size(393, 852),
+    );
   });
 }

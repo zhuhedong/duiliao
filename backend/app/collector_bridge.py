@@ -1017,7 +1017,9 @@ def get_pingte_ranking(
                     max_omiss = run_o
         return (cur_omiss, max_omiss, max_cons, cur_cons)
 
-    # 1. Zodiac Ranking
+    # 1. Zodiac Ranking (enriched with streak/omission period ranges & segments)
+    from pingte_history import compute_single_zodiac_history
+
     zodiac_ranking = []
     zodiac_nums_map = {z: [] for z in XIAO}
     for n in range(1, 50):
@@ -1026,30 +1028,13 @@ def get_pingte_ranking(
         zodiac_nums_map[zx].append(pn)
 
     for z in XIAO:
-        hit_series = []
-        total_ball_count = 0
-        periods_count = 0
-        for p in periods_data:
-            c = p["xiaos"].count(z)
-            total_ball_count += c
-            is_hit = (c > 0)
-            if is_hit:
-                periods_count += 1
-            hit_series.append(is_hit)
-        cur_om, max_om, max_cons, cur_cons = calc_omissions_and_streaks(hit_series)
-        freq = round((periods_count / N) * 100, 1)
-        zodiac_ranking.append({
-            "name": z,
-            "label": f"{z}肖",
-            "count": total_ball_count,
-            "periods_count": periods_count,
-            "frequency": freq,
-            "current_omission": cur_om,
-            "max_omission": max_om,
-            "max_consecutive": max_cons,
-            "current_consecutive": cur_cons,
-            "numbers": zodiac_nums_map.get(z, []),
-        })
+        z_hist = compute_single_zodiac_history(
+            z,
+            periods_data,
+            zodiac_numbers=zodiac_nums_map.get(z, []),
+            include_period_history=False,
+        )
+        zodiac_ranking.append(z_hist)
 
     zodiac_ranking.sort(key=lambda x: (-x["count"], -x["periods_count"], x["current_omission"]))
     for i, r in enumerate(zodiac_ranking):
@@ -1212,7 +1197,7 @@ def get_pingte_ranking(
         tail_ranking.reverse()
         number_ranking.reverse()
     elif order_by == "omission_desc":
-        zodiac_ranking.sort(key=lambda x: -x["current_omission"])
+        zodiac_ranking.sort(key=lambda x: (-x["current_omission"], -x["max_omission"], x["count"]))
         tail_ranking.sort(key=lambda x: -x["current_omission"])
         number_ranking.sort(key=lambda x: -x["current_omission"])
     elif order_by == "consecutive_desc":
@@ -1239,6 +1224,124 @@ def get_pingte_ranking(
         "wuxing_ranking": wuxing_ranking,
     }
     stats_cache.set(cache_key, result, ttl=3600)
+    return result
+
+
+def get_pingte_zodiac_history(
+    lottery: str = "macau",
+    xiao: str | None = None,
+    limit: int = 0,
+    period_from: str | None = None,
+    period_to: str | None = None,
+    force_refresh: bool = False,
+) -> dict[str, Any]:
+    """Retrieve per-zodiac Pingte draw history: streak segments (多少到多少连开多少),
+    omission segments (多少到多少没出多少), distributions, and period-by-period draw details.
+
+    ``limit <= 0`` (and no ``period_from``/``period_to``) queries **当年全部期数**.
+    """
+    from app.services.stats_cache_service import stats_cache
+
+    lottery_key = str(lottery or "macau").lower()
+    try:
+        limit_i = int(limit)
+    except (TypeError, ValueError):
+        limit_i = 0
+
+    xiao_key = (xiao or "all").strip() or "all"
+    p_from = (period_from or "").strip() or None
+    p_to = (period_to or "").strip() or None
+    has_custom_range = bool(p_from or p_to)
+    scope_key = f"range:{p_from or ''}-{p_to or ''}:{limit_i}" if has_custom_range else ("year" if limit_i <= 0 else str(limit_i))
+    cache_key = f"pingte_zodiac_history:{lottery_key}:{scope_key}:{xiao_key}"
+    if not force_refresh and not has_custom_range:
+        cached = stats_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+    bootstrap()
+    from datetime import date, datetime, timezone, timedelta
+    from sqlalchemy import select
+    from db import session_scope
+    from schema import Draw
+    from common.period import normalize as normalize_period
+    from pingte_history import compute_all_zodiacs_pingte_history
+
+    def _norm_bound(raw_p: str | None) -> str | None:
+        if not raw_p:
+            return None
+        try:
+            return normalize_period(lottery_key, raw_p)
+        except Exception:
+            return raw_p
+
+    if has_custom_range:
+        p_from = _norm_bound(p_from)
+        p_to = _norm_bound(p_to)
+        if p_from and p_to and p_from > p_to:
+            p_from, p_to = p_to, p_from
+
+    cn_now = datetime.now(timezone.utc) + timedelta(hours=8)
+    year = cn_now.year
+    year_from = f"{year}001"
+    year_to = f"{year}366"
+    use_year_scope = (limit_i <= 0) and not has_custom_range
+    if not use_year_scope and not has_custom_range:
+        limit_i = max(1, min(limit_i, 500))
+
+    with session_scope(guard=False) as s:
+        stmt = select(Draw)
+        if lottery:
+            stmt = stmt.where(Draw.lottery == lottery)
+        if has_custom_range:
+            if p_from:
+                stmt = stmt.where(Draw.period >= p_from)
+            if p_to:
+                stmt = stmt.where(Draw.period <= p_to)
+            range_cap = max(limit_i, 1000) if limit_i > 500 else 1000
+            draws = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(range_cap)))
+        elif use_year_scope:
+            stmt = stmt.where(Draw.period >= year_from, Draw.period <= year_to)
+            draws = list(s.scalars(stmt.order_by(Draw.period.desc())))
+        else:
+            draws = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(limit_i)))
+
+    chronological = list(reversed(draws))
+    ref_date = draws[0].draw_date if (draws and isinstance(draws[0].draw_date, date)) else date.today()
+    latest_draw_date = ref_date.isoformat() if draws else None
+    computed = compute_all_zodiacs_pingte_history(
+        chronological,
+        ref_date=ref_date,
+        target_xiao=xiao if xiao_key != "all" else None,
+        include_period_history=True,
+    )
+
+    target_z = computed["target_xiao"]
+    selected_detail = computed["zodiacs_map"].get(target_z) if target_z else None
+    zodiacs_overview = [
+        ({**z, "period_history": []} if target_z and z["name"] == target_z else z)
+        for z in computed["zodiacs"]
+    ]
+
+    result = {
+        "ok": True,
+        "lottery": lottery,
+        "sample_periods": computed["sample_periods"],
+        "sample_scope": "range" if has_custom_range else ("year" if use_year_scope else "limit"),
+        "sample_year": year if use_year_scope else None,
+        "period_from": p_from,
+        "period_to": p_to,
+        "earliest_period": computed["earliest_period"],
+        "latest_period": computed["latest_period"],
+        "latest_draw_date": latest_draw_date,
+        "target_xiao": target_z,
+        "selected_xiao": target_z,
+        "selected_zodiac": selected_detail,
+        "zodiac_history": selected_detail,
+        "zodiacs": zodiacs_overview,
+    }
+    if not has_custom_range:
+        stats_cache.set(cache_key, result, ttl=3600)
     return result
 
 

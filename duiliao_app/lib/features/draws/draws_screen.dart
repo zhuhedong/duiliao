@@ -177,7 +177,7 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                       ),
                       const SizedBox(height: 10),
 
-                      // Quick Entries: 走势图表 & 平特排行榜
+                      // Quick Entries: 走势图表 & 平特排行榜 & 生肖历史
                       Row(
                         children: [
                           Expanded(
@@ -190,51 +190,55 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                               borderRadius: BorderRadius.circular(14),
                               child: GlassSubtleBox(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
+                                  horizontal: 10,
                                   vertical: 10,
                                 ),
                                 child: Row(
                                   children: [
                                     Container(
-                                      width: 28,
-                                      height: 28,
+                                      width: 26,
+                                      height: 26,
                                       decoration: BoxDecoration(
                                         color: DuiliaoColors.primary.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
                                         Icons.trending_up_rounded,
-                                        size: 16,
+                                        size: 15,
                                         color: DuiliaoColors.primaryDark,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    const Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '走势图表',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
+                                    const SizedBox(width: 6),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '走势图表',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                        Text(
-                                          '尾/头/波/五行/肖',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            color: Colors.white54,
+                                          Text(
+                                            '尾/头/波/肖',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.white54,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Expanded(
                             child: InkWell(
                               onTap: () => Navigator.of(context).push(
@@ -245,44 +249,109 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                               borderRadius: BorderRadius.circular(14),
                               child: GlassSubtleBox(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
+                                  horizontal: 10,
                                   vertical: 10,
                                 ),
                                 child: Row(
                                   children: [
                                     Container(
-                                      width: 28,
-                                      height: 28,
+                                      width: 26,
+                                      height: 26,
                                       decoration: BoxDecoration(
                                         color: DuiliaoColors.boseGold.withValues(alpha: 0.2),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: const Icon(
                                         Icons.military_tech_rounded,
-                                        size: 16,
+                                        size: 15,
                                         color: DuiliaoColors.boseGold,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    const Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '平特排行榜',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
+                                    const SizedBox(width: 6),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '平特排行榜',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                        Text(
-                                          '生肖/尾数/号码榜',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            color: Colors.white54,
+                                          Text(
+                                            '生肖/尾数/号码',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.white54,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const PingteRankingScreen(
+                                    initialTab: RankingTab.zodiacHistory,
+                                  ),
+                                ),
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              child: GlassSubtleBox(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 26,
+                                      height: 26,
+                                      decoration: BoxDecoration(
+                                        color: DuiliaoColors.hit.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.history_edu_rounded,
+                                        size: 15,
+                                        color: DuiliaoColors.hit,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '平特生肖历史',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Text(
+                                            '连开/没出期号',
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.white54,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),

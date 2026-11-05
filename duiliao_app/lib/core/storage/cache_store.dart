@@ -197,6 +197,14 @@ abstract final class CacheKeys {
   static String trend(String lottery, int limit) => 'trend:$lottery:$limit';
   static String pingteRanking(String lottery, int limit, String dimension, String orderBy) =>
       'pingte_ranking:$lottery:$limit:$dimension:$orderBy';
+  static String pingteZodiacHistory(
+    String lottery,
+    String? xiao,
+    int limit,
+    String? periodFrom,
+    String? periodTo,
+  ) =>
+      'pingte_zodiac_history:$lottery:${xiao ?? 'all'}:$limit:${periodFrom ?? ''}:${periodTo ?? ''}';
   static const String eventCursor = 'event_cursor';
   static const String messages = 'messages';
 }

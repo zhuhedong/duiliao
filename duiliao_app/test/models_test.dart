@@ -1368,6 +1368,180 @@ void main() {
       );
     });
   });
+
+  group('Pingte zodiac history models', () {
+    test('parses PingteZodiacHistoryResult with segments, distributions, and periodHistory', () {
+      final result = PingteZodiacHistoryResult.fromJson({
+        'ok': true,
+        'lottery': 'macau',
+        'sample_periods': 10,
+        'latest_period': '2026010',
+        'earliest_period': '2026001',
+        'latest_draw_date': '2026-01-10',
+        'selected_xiao': '马',
+        'zodiac_history': {
+          'name': '马',
+          'label': '马肖',
+          'count': 8,
+          'ping_count': 6,
+          'tema_count': 2,
+          'periods_count': 6,
+          'miss_periods_count': 4,
+          'multi_ball_periods_count': 2,
+          'frequency': 60.0,
+          'current_omission': 0,
+          'max_omission': 3,
+          'max_consecutive': 4,
+          'current_consecutive': 2,
+          'current_range': {
+            'type': 'hit',
+            'type_label': '连开',
+            'start_period': '2026009',
+            'end_period': '2026010',
+            'start_date': '2026-01-09',
+            'end_date': '2026-01-10',
+            'length': 2,
+            'text': '2026009~2026010 连开2期',
+            'is_current': true,
+          },
+          'max_consecutive_range': {
+            'type': 'hit',
+            'type_label': '连开',
+            'start_period': '2026001',
+            'end_period': '2026004',
+            'start_date': '2026-01-01',
+            'end_date': '2026-01-04',
+            'length': 4,
+            'text': '2026001~2026004 连开4期',
+            'is_current': false,
+          },
+          'max_omission_range': {
+            'type': 'miss',
+            'type_label': '没出',
+            'start_period': '2026005',
+            'end_period': '2026007',
+            'start_date': '2026-01-05',
+            'end_date': '2026-01-07',
+            'length': 3,
+            'text': '2026005~2026007 没出3期',
+            'is_current': false,
+          },
+          'segments_count': 4,
+          'hit_segments_count': 2,
+          'miss_segments_count': 2,
+          'streak_distribution': [
+            {
+              'length': 4,
+              'label': '连开4期',
+              'count': 1,
+              'ranges': [
+                {
+                  'start_period': '2026001',
+                  'end_period': '2026004',
+                  'start_date': '2026-01-01',
+                  'end_date': '2026-01-04',
+                  'total_balls': 5,
+                  'is_current': false,
+                  'text': '2026001~2026004 连开4期',
+                }
+              ],
+            }
+          ],
+          'omission_distribution': [
+            {
+              'length': 3,
+              'label': '没出3期',
+              'count': 1,
+              'ranges': [
+                {
+                  'start_period': '2026005',
+                  'end_period': '2026007',
+                  'start_date': '2026-01-05',
+                  'end_date': '2026-01-07',
+                  'total_balls': 0,
+                  'is_current': false,
+                  'text': '2026005~2026007 没出3期',
+                }
+              ],
+            }
+          ],
+          'segments': [
+            {
+              'segment_id': 4,
+              'type': 'hit',
+              'type_label': '连开',
+              'start_period': '2026009',
+              'end_period': '2026010',
+              'start_date': '2026-01-09',
+              'end_date': '2026-01-10',
+              'length': 2,
+              'total_balls': 3,
+              'tema_hits': 1,
+              'is_current': true,
+              'text': '2026009~2026010 连开2期',
+              'periods': [
+                {
+                  'period': '2026010',
+                  'draw_date': '2026-01-10',
+                  'is_hit': true,
+                  'ball_count': 2,
+                  'has_tema': true,
+                  'matched_numbers': ['01', '13'],
+                  'matched_balls': [
+                    {'position': 1, 'is_tema': false, 'number': '13', 'bose': '红', 'wuxing': '水'},
+                    {'position': 7, 'is_tema': true, 'number': '01', 'bose': '红', 'wuxing': '金'},
+                  ],
+                }
+              ],
+            }
+          ],
+          'period_history': [
+            {
+              'period': '2026010',
+              'draw_date': '2026-01-10',
+              'is_hit': true,
+              'ball_count': 2,
+              'has_tema': true,
+              'matched_numbers': ['01', '13'],
+              'matched_balls': [
+                {'position': 7, 'is_tema': true, 'number': '01', 'bose': '红', 'wuxing': '金'}
+              ],
+              'all_balls': [
+                {'position': 7, 'is_tema': true, 'number': '01', 'xiao': '马', 'bose': '红', 'wuxing': '金', 'is_target': true}
+              ],
+              'segment_id': 4,
+              'segment_type': 'hit',
+              'segment_type_label': '连开',
+              'segment_step': 2,
+              'segment_length': 2,
+              'segment_start_period': '2026009',
+              'segment_end_period': '2026010',
+              'segment_text': '2026009~2026010 连开2期',
+              'running_text': '连开第2期',
+            }
+          ],
+          'numbers': ['01', '13', '25', '37', '49'],
+          'rank': 1,
+        },
+        'zodiacs': [],
+      });
+
+      expect(result.ok, isTrue);
+      expect(result.selectedXiao, '马');
+      expect(result.zodiacHistory, isNotNull);
+      expect(result.zodiacHistory!.currentRange!.text, '2026009~2026010 连开2期');
+      expect(result.zodiacHistory!.maxConsecutiveRange!.text, '2026001~2026004 连开4期');
+      expect(result.zodiacHistory!.maxOmissionRange!.text, '2026005~2026007 没出3期');
+      expect(result.zodiacHistory!.streakDistribution.first.latestStartPeriod, '2026001');
+      expect(result.zodiacHistory!.streakDistribution.first.latestEndPeriod, '2026004');
+      expect(result.zodiacHistory!.streakDistribution.first.ranges, hasLength(1));
+      expect(result.zodiacHistory!.omissionDistribution.first.latestStartPeriod, '2026005');
+      expect(result.zodiacHistory!.omissionDistribution.first.latestEndPeriod, '2026007');
+      expect(result.zodiacHistory!.segments, hasLength(1));
+      expect(result.zodiacHistory!.periodHistory, hasLength(1));
+      expect(result.zodiacHistory!.periodHistory.first.runningText, '连开第2期');
+    });
+  });
 }
 
 /// Small helper used by the deep-link test to assert channels are non-empty.

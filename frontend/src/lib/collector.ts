@@ -575,20 +575,138 @@ export interface TrendResponse {
   total?: number;
 }
 
+export interface PingteMatchedBall {
+  num: string;
+  pos: string;
+  bose: string;
+  is_tema: boolean;
+}
+
+export interface PingteAllBall {
+  num: string;
+  xiao: string;
+  bose: string;
+  pos: string;
+  is_tema: boolean;
+  is_match: boolean;
+}
+
+export interface PingteSegmentRange {
+  type: "hit" | "miss";
+  type_label: string;
+  start_period: string;
+  end_period: string;
+  start_date: string;
+  end_date: string;
+  length: number;
+  total_balls: number;
+  is_current: boolean;
+  text: string;
+}
+
+export interface PingteSegmentPeriodItem {
+  period: string;
+  date: string;
+  hit: boolean;
+  ball_count: number;
+  tema_hit: boolean;
+  matched_balls: PingteMatchedBall[];
+}
+
+export interface PingteSegment {
+  segment_id: number;
+  type: "hit" | "miss";
+  type_label: string;
+  start_period: string;
+  end_period: string;
+  start_date: string;
+  end_date: string;
+  length: number;
+  total_balls: number;
+  tema_hits: number;
+  is_current: boolean;
+  text: string;
+  periods: PingteSegmentPeriodItem[];
+}
+
+export interface PingteDistributionItem {
+  length: number;
+  label: string;
+  count: number;
+  ranges: Array<{
+    start_period: string;
+    end_period: string;
+    start_date: string;
+    end_date: string;
+    total_balls: number;
+    is_current: boolean;
+    text: string;
+  }>;
+}
+
+export interface PingteZodiacPeriodRecord {
+  idx: number;
+  period: string;
+  date: string;
+  hit: boolean;
+  ball_count: number;
+  ping_count: number;
+  tema_hit: boolean;
+  matched_balls: PingteMatchedBall[];
+  all_balls: PingteAllBall[];
+  segment_id: number;
+  run_type: "hit" | "miss";
+  run_type_label: string;
+  run_step: number;
+  segment_length: number;
+  segment_start: string;
+  segment_end: string;
+  segment_is_current: boolean;
+  segment_text: string;
+}
+
 export interface PingteZodiacRank {
   name: string;
   label: string;
   count: number;
+  ping_count?: number;
+  tema_count?: number;
   periods_count: number;
+  miss_periods_count?: number;
+  multi_ball_periods_count?: number;
   frequency: number;
   current_omission: number;
   max_omission: number;
   max_consecutive: number;
   current_consecutive: number;
+  current_range?: PingteSegmentRange | null;
+  max_consecutive_range?: PingteSegmentRange | null;
+  max_omission_range?: PingteSegmentRange | null;
+  segments_count?: number;
+  hit_segments_count?: number;
+  miss_segments_count?: number;
+  recent_segments?: PingteSegmentRange[];
+  streak_distribution?: PingteDistributionItem[];
+  omission_distribution?: PingteDistributionItem[];
+  segments?: PingteSegment[];
+  period_history?: PingteZodiacPeriodRecord[];
   numbers: string[];
-  rank: number;
-  is_hot: boolean;
-  is_cold: boolean;
+  rank?: number;
+  is_hot?: boolean;
+  is_cold?: boolean;
+}
+
+export interface PingteZodiacHistoryResult {
+  ok: boolean;
+  lottery: string;
+  sample_periods: number;
+  sample_scope?: "year" | "limit" | "range";
+  sample_year?: number | null;
+  earliest_period: string | null;
+  latest_period: string | null;
+  target_xiao: string | null;
+  selected_zodiac: PingteZodiacRank | null;
+  zodiacs: PingteZodiacRank[];
 }
 
 export interface PingteTailRank {
@@ -1108,6 +1226,24 @@ export const collectorApi = {
       order_by,
     });
     return api.get<PingteRankingResult>(`/collector/pingte-ranking?${q}`);
+  },
+  getPingteZodiacHistory(
+    lottery: Lottery = "macau",
+    params?: {
+      xiao?: string;
+      limit?: number;
+      period_from?: string;
+      period_to?: string;
+      force_refresh?: boolean;
+    },
+  ) {
+    const q = new URLSearchParams({ lottery });
+    if (params?.xiao) q.set("xiao", params.xiao);
+    if (params?.limit !== undefined) q.set("limit", String(params.limit));
+    if (params?.period_from) q.set("period_from", params.period_from);
+    if (params?.period_to) q.set("period_to", params.period_to);
+    if (params?.force_refresh) q.set("force_refresh", "true");
+    return api.get<PingteZodiacHistoryResult>(`/collector/pingte-zodiac-history?${q}`);
   },
 
   confirmMissing(source_id: string, periods: string[]) {

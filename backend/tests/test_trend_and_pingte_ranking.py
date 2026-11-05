@@ -42,10 +42,19 @@ def test_pingte_ranking_endpoint(user_client, seeded_draws):
     z0 = res["zodiac_ranking"][0]
     assert "name" in z0
     assert "count" in z0
+    assert "ping_count" in z0
+    assert "tema_count" in z0
+    assert "miss_periods_count" in z0
     assert "current_omission" in z0
     assert "max_omission" in z0
     assert "max_consecutive" in z0
     assert "current_consecutive" in z0
+    assert "current_range" in z0
+    assert "max_consecutive_range" in z0
+    assert "max_omission_range" in z0
+    assert "recent_segments" in z0
+    assert "streak_distribution" in z0
+    assert "omission_distribution" in z0
     assert "numbers" in z0
     assert z0["rank"] == 1
 
@@ -78,6 +87,39 @@ def test_pingte_ranking_endpoint(user_client, seeded_draws):
         assert z_cons[i]["current_consecutive"] >= z_cons[i + 1]["current_consecutive"]
 
 
+def test_pingte_zodiac_history_endpoint(user_client, seeded_draws):
+    res = user_client.get("/collector/pingte-zodiac-history?lottery=macau&xiao=马&limit=50")
+    assert res["ok"] is True
+    assert res["lottery"] == "macau"
+    assert res["selected_xiao"] == "马"
+    assert res["sample_periods"] > 0
+    assert len(res["zodiacs"]) == 12
+
+    zh = res["zodiac_history"]
+    assert zh is not None
+    assert zh["name"] == "马"
+    assert zh["periods_count"] + zh["miss_periods_count"] == res["sample_periods"]
+    assert zh["ping_count"] + zh["tema_count"] == zh["count"]
+    assert isinstance(zh["segments"], list)
+    assert len(zh["segments"]) > 0
+    assert sum(seg["length"] for seg in zh["segments"]) == res["sample_periods"]
+    for seg in zh["segments"]:
+        assert seg["type"] in ("hit", "miss")
+        assert seg["start_period"] <= seg["end_period"]
+        assert seg["length"] >= 1
+        assert ("连开" in seg["text"]) or ("没出" in seg["text"])
+    assert len(zh["period_history"]) == res["sample_periods"]
+
+    # Custom period range (including reversed bounds & short period numbers)
+    res_range = user_client.get(
+        "/collector/pingte-zodiac-history?lottery=macau&xiao=马&limit=1&period_from=2026248&period_to=2026247"
+    )
+    assert res_range["ok"] is True
+    assert res_range["sample_scope"] == "range"
+    assert res_range["sample_periods"] >= 2
+    assert res_range["earliest_period"] == "2026247"
+    assert res_range["latest_period"] == "2026248"
+
 
 def test_pingte_ranking_year_scope_default(user_client, seeded_draws):
     """limit=0 / 缺省应统计当年全部期数（sample_scope=year）。"""
@@ -97,3 +139,4 @@ def test_pingte_ranking_year_scope_default(user_client, seeded_draws):
     res50 = user_client.get("/collector/pingte-ranking?lottery=macau&limit=50")
     assert res50["ok"] is True
     assert res50.get("sample_scope") == "limit"
+

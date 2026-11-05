@@ -243,3 +243,28 @@ final pingteRankingProvider = FutureProvider.family<
   },
 );
 
+/// Per-zodiac Pingte draw history & streak/omission segment provider.
+final pingteZodiacHistoryProvider = FutureProvider.family<
+    PingteZodiacHistoryResult,
+    ({
+      Lottery lottery,
+      String? xiao,
+      int limit,
+      String? periodFrom,
+      String? periodTo,
+      bool forceRefresh,
+    })>(
+  (ref, args) async {
+    final repo = ref.read(collectorRepositoryProvider);
+    final res = await repo.pingteZodiacHistory(
+      lottery: args.lottery.code,
+      xiao: args.xiao,
+      limit: args.limit,
+      periodFrom: args.periodFrom,
+      periodTo: args.periodTo,
+      forceRefresh: args.forceRefresh,
+    );
+    return res.value;
+  },
+);
+

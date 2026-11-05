@@ -209,6 +209,33 @@ class CollectorRepository {
     );
   }
 
+  Future<Fetched<PingteZodiacHistoryResult>> pingteZodiacHistory({
+    required String lottery,
+    String? xiao,
+    int limit = 0,
+    String? periodFrom,
+    String? periodTo,
+    bool forceRefresh = false,
+  }) {
+    return _cached(
+      key: CacheKeys.pingteZodiacHistory(lottery, xiao, limit, periodFrom, periodTo),
+      ttl: CacheTtl.draws,
+      forceRefresh: forceRefresh,
+      fetch: () => _client.get<Map<String, dynamic>>(
+        '/collector/pingte-zodiac-history',
+        query: {
+          'lottery': lottery,
+          if (xiao != null && xiao.isNotEmpty) 'xiao': xiao,
+          'limit': limit,
+          if (periodFrom != null && periodFrom.isNotEmpty) 'period_from': periodFrom,
+          if (periodTo != null && periodTo.isNotEmpty) 'period_to': periodTo,
+          'force_refresh': forceRefresh,
+        },
+      ),
+      parse: (json) => PingteZodiacHistoryResult.fromJson(asMap(json)),
+    );
+  }
+
   // ------------------------------------------------------------------ //
   // Consensus / comparison / ratings
   // ------------------------------------------------------------------ //

@@ -64,7 +64,7 @@ const NAV: NavItem[] = [
     short: "排行",
     icon: <TargetIcon size={16} />,
     group: "intel",
-    keywords: "pingte ranking 平特 连肖 命中率",
+    keywords: "pingte ranking 平特 连肖 连开 没出 遗漏 生肖历史 命中率",
   },
   {
     to: "/collector/trend",
