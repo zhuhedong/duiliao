@@ -672,6 +672,7 @@ export interface PingteZodiacRank {
   ping_count?: number;
   tema_count?: number;
   periods_count: number;
+  sample_periods?: number;
   miss_periods_count?: number;
   multi_ball_periods_count?: number;
   frequency: number;
