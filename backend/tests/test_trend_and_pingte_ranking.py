@@ -139,4 +139,47 @@ def test_pingte_ranking_year_scope_default(user_client, seeded_draws):
     res50 = user_client.get("/collector/pingte-ranking?lottery=macau&limit=50")
     assert res50["ok"] is True
     assert res50.get("sample_scope") == "limit"
+    assert "prev_tema_pingte" in res50
+    assert res50["prev_tema_pingte"]["evaluated_periods"] == max(0, res50["sample_periods"] - 1)
+
+
+def test_pingte_prev_tema_endpoint(user_client, seeded_draws):
+    """测试上期特码生肖落当期平特统计接口（当年概率、连续出现区间、连续缺失区间、逐期比对明细）。"""
+    res = user_client.get("/collector/pingte-prev-tema?lottery=macau&limit=0")
+    assert res["ok"] is True
+    assert res["lottery"] == "macau"
+    assert res["sample_scope"] == "year"
+    assert res["total_draws"] >= 2
+    assert res["evaluated_periods"] == res["total_draws"] - 1
+    assert res["sample_periods"] == res["evaluated_periods"]
+    assert res["periods_count"] + res["miss_periods_count"] == res["evaluated_periods"]
+    assert 0.0 <= res["probability"] <= 100.0
+    assert res["latest_tema_ref"] is not None
+    assert "tema" in res["latest_tema_ref"]
+    assert "tema_xiao" in res["latest_tema_ref"]
+
+    pt = res["prev_tema_pingte"]
+    assert pt["evaluated_periods"] == res["evaluated_periods"]
+    assert sum(seg["length"] for seg in pt["segments"]) == res["evaluated_periods"]
+    for seg in pt["segments"]:
+        assert seg["type"] in ("hit", "miss")
+        assert ("连续出现" in seg["text"]) or ("连续缺失" in seg["text"])
+    assert len(pt["period_history"]) == res["evaluated_periods"]
+    p0 = pt["period_history"][0]
+    assert "prev_period" in p0
+    assert "prev_tema" in p0
+    assert "prev_tema_xiao" in p0
+    assert len(p0["all_balls"]) == 7
+
+    # 别名路由与自定义期号区间
+    res_range = user_client.get(
+        "/collector/pingte-prev-tema-history?lottery=macau&limit=1&period_from=2026248&period_to=2026247"
+    )
+    assert res_range["ok"] is True
+    assert res_range["sample_scope"] == "range"
+    assert res_range["earliest_draw_period"] == "2026247"
+    assert res_range["latest_period"] == "2026248"
+    assert res_range["evaluated_periods"] == res_range["total_draws"] - 1
+
+
 

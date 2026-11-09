@@ -1541,6 +1541,161 @@ void main() {
       expect(result.zodiacHistory!.periodHistory, hasLength(1));
       expect(result.zodiacHistory!.periodHistory.first.runningText, '连开第2期');
     });
+
+    test('parses PingtePrevTemaResult with streaks, omissions, and prev_tema period comparison', () {
+      final result = PingtePrevTemaResult.fromJson({
+        'ok': true,
+        'lottery': 'macau',
+        'sample_scope': 'year',
+        'sample_year': 2026,
+        'prev_tema_pingte': {
+          'name': '前特肖',
+          'label': '上期特码生肖落当期平特',
+          'total_draws': 11,
+          'sample_periods': 10,
+          'evaluated_periods': 10,
+          'earliest_draw_period': '2026001',
+          'earliest_period': '2026002',
+          'latest_period': '2026011',
+          'count': 8,
+          'ping_count': 6,
+          'tema_count': 2,
+          'periods_count': 6,
+          'miss_periods_count': 4,
+          'multi_ball_periods_count': 1,
+          'exact_tema_num_count': 2,
+          'exact_tema_num_rate': 20.0,
+          'frequency': 60.0,
+          'probability': 60.0,
+          'miss_probability': 40.0,
+          'current_consecutive': 2,
+          'current_omission': 0,
+          'max_consecutive': 3,
+          'max_omission': 2,
+          'latest_tema_ref': {
+            'period': '2026011',
+            'date': '2026-01-11',
+            'tema': '08',
+            'tema_xiao': '猪',
+            'tema_bose': '红',
+            'tema_wuxing': '木',
+            'numbers': ['08', '20', '32', '44'],
+          },
+          'current_range': {
+            'type': 'hit',
+            'type_label': '连续出现',
+            'start_period': '2026010',
+            'end_period': '2026011',
+            'length': 2,
+            'text': '2026010~2026011 连续出现2期',
+            'is_current': true,
+          },
+          'max_consecutive_range': {
+            'type': 'hit',
+            'type_label': '连续出现',
+            'start_period': '2026002',
+            'end_period': '2026004',
+            'length': 3,
+            'text': '2026002~2026004 连续出现3期',
+            'is_current': false,
+          },
+          'max_omission_range': {
+            'type': 'miss',
+            'type_label': '连续缺失',
+            'start_period': '2026005',
+            'end_period': '2026006',
+            'length': 2,
+            'text': '2026005~2026006 连续缺失2期',
+            'is_current': false,
+          },
+          'segments': [
+            {
+              'segment_id': 4,
+              'type': 'hit',
+              'type_label': '连续出现',
+              'start_period': '2026010',
+              'end_period': '2026011',
+              'length': 2,
+              'total_balls': 3,
+              'tema_hits': 1,
+              'is_current': true,
+              'text': '2026010~2026011 连续出现2期',
+              'periods': [
+                {
+                  'period': '2026011',
+                  'prev_period': '2026010',
+                  'prev_tema': '01',
+                  'prev_tema_xiao': '马',
+                  'is_hit': true,
+                  'exact_tema_num_hit': true,
+                  'ball_count': 2,
+                  'has_tema': false,
+                  'matched_numbers': ['01', '13'],
+                  'matched_balls': [],
+                }
+              ],
+            }
+          ],
+          'period_history': [
+            {
+              'period': '2026011',
+              'draw_date': '2026-01-11',
+              'prev_period': '2026010',
+              'prev_date': '2026-01-10',
+              'prev_tema': '01',
+              'prev_tema_xiao': '马',
+              'prev_tema_bose': '红',
+              'prev_tema_wuxing': '金',
+              'is_hit': true,
+              'exact_tema_num_hit': true,
+              'ball_count': 2,
+              'has_tema': false,
+              'matched_numbers': ['01', '13'],
+              'matched_balls': [
+                {'position': 1, 'is_tema': false, 'number': '01', 'bose': '红', 'wuxing': '金', 'is_exact_tema_num': true},
+              ],
+              'all_balls': [
+                {'position': 1, 'is_tema': false, 'number': '01', 'xiao': '马', 'bose': '红', 'wuxing': '金', 'is_target': true, 'is_exact_tema_num': true},
+              ],
+              'segment_id': 4,
+              'segment_type': 'hit',
+              'segment_type_label': '连续出现',
+              'segment_step': 2,
+              'segment_length': 2,
+              'segment_start_period': '2026010',
+              'segment_end_period': '2026011',
+              'segment_text': '2026010~2026011 连续出现2期',
+              'running_text': '连续出现第2期',
+            }
+          ],
+        },
+      });
+
+      expect(result.ok, isTrue);
+      expect(result.totalDraws, 11);
+      expect(result.samplePeriods, 10);
+      expect(result.evaluatedPeriods, 10);
+      expect(result.earliestDrawPeriod, '2026001');
+      expect(result.earliestPeriod, '2026002');
+      expect(result.latestPeriod, '2026011');
+      expect(result.stats.probability, 60.0);
+      expect(result.stats.periodsCount, 6);
+      expect(result.stats.missPeriodsCount, 4);
+      expect(result.stats.exactTemaNumCount, 2);
+      expect(result.stats.exactTemaNumRate, 20.0);
+      expect(result.stats.latestTemaRef, isNotNull);
+      expect(result.stats.latestTemaRef!.tema, '08');
+      expect(result.stats.latestTemaRef!.temaXiao, '猪');
+      expect(result.stats.latestTemaRef!.numbers, ['08', '20', '32', '44']);
+      expect(result.stats.currentRange!.text, '2026010~2026011 连续出现2期');
+      expect(result.stats.maxConsecutiveRange!.text, '2026002~2026004 连续出现3期');
+      expect(result.stats.maxOmissionRange!.text, '2026005~2026006 连续缺失2期');
+      expect(result.stats.periodHistory.first.prevPeriod, '2026010');
+      expect(result.stats.periodHistory.first.prevTema, '01');
+      expect(result.stats.periodHistory.first.prevTemaXiao, '马');
+      expect(result.stats.periodHistory.first.exactTemaNumHit, isTrue);
+      expect(result.stats.periodHistory.first.allBalls.first.isExactTemaNum, isTrue);
+    });
   });
 }
 

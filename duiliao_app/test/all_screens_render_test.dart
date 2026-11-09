@@ -425,5 +425,19 @@ void main() {
       ),
       logicalSize: const Size(393, 852),
     );
+    await pumpAndScroll(
+      tester,
+      const PingteRankingScreen(
+        initialTab: RankingTab.prevTema,
+      ),
+      logicalSize: const Size(393, 852),
+    );
+    await pumpAndScroll(
+      tester,
+      const PingteRankingScreen(
+        initialTab: RankingTab.prevTema,
+      ),
+      logicalSize: const Size(360, 780),
+    );
   });
 }

@@ -16,7 +16,9 @@ from common.xiao import XIAO
 from collector.pingte_history import (
     build_periods_data,
     compute_all_zodiacs_pingte_history,
+    compute_prev_tema_in_pingte,
     compute_single_zodiac_history,
+    format_prev_tema_segment_text,
     format_segment_text,
 )
 
@@ -255,6 +257,23 @@ class TestPingteHistoryUnit(unittest.TestCase):
             )
             self.assertEqual(len(z["period_history"]), len(draws))
 
+        pt = res["prev_tema_pingte"]
+        self.assertIsNotNone(pt)
+        self.assertEqual(pt["total_draws"], len(draws))
+        self.assertEqual(pt["evaluated_periods"], len(draws) - 1)
+        self.assertEqual(pt["periods_count"] + pt["miss_periods_count"], len(draws) - 1)
+        self.assertEqual(pt["ping_count"] + pt["tema_count"], pt["count"])
+        self.assertEqual(sum(s["length"] for s in pt["segments"]), len(draws) - 1)
+        self.assertEqual(
+            sum(d["count"] for d in pt["streak_distribution"]),
+            pt["hit_segments_count"],
+        )
+        self.assertEqual(
+            sum(d["count"] for d in pt["omission_distribution"]),
+            pt["miss_segments_count"],
+        )
+        self.assertEqual(len(pt["period_history"]), len(draws) - 1)
+
     def test_collector_bridge_zodiac_history_and_ranking(self):
         """Verify collector_bridge.get_pingte_zodiac_history and get_pingte_ranking against real pred.db."""
         from contextlib import contextmanager
@@ -415,8 +434,161 @@ class TestPingteHistoryUnit(unittest.TestCase):
             self.assertEqual(r_rank["sample_periods"], 50)
             self.assertEqual(len(r_rank["zodiac_ranking"]), 12)
             self.assertIsNotNone(r_rank["zodiac_ranking"][0]["current_range"])
+            self.assertIn("prev_tema_pingte", r_rank)
+            self.assertEqual(r_rank["prev_tema_pingte"]["evaluated_periods"], 49)
+
+            # 6. Dedicated prev_tema_history endpoint: year scope (limit=0) & custom range
+            r_prev_year = cb.get_pingte_prev_tema_history(lottery="macau", limit=0)
+            self.assertTrue(r_prev_year["ok"])
+            self.assertEqual(r_prev_year["sample_scope"], "year")
+            self.assertEqual(r_prev_year["evaluated_periods"], r_prev_year["total_draws"] - 1)
+            self.assertEqual(r_prev_year["sample_periods"], r_prev_year["evaluated_periods"])
+            self.assertGreater(r_prev_year["probability"], 0.0)
+            self.assertIsNotNone(r_prev_year["latest_tema_ref"])
+            self.assertEqual(
+                len(r_prev_year["prev_tema_pingte"]["period_history"]),
+                r_prev_year["evaluated_periods"],
+            )
+
+            r_prev_range = cb.get_pingte_prev_tema_history(
+                lottery="macau",
+                limit=0,
+                period_from="2026050",
+                period_to="2026001",
+            )
+            self.assertEqual(r_prev_range["sample_scope"], "range")
+            self.assertEqual(r_prev_range["total_draws"], 50)
+            self.assertEqual(r_prev_range["evaluated_periods"], 49)
+            self.assertEqual(r_prev_range["sample_periods"], 49)
+            self.assertEqual(r_prev_range["earliest_draw_period"], "2026001")
+            self.assertEqual(r_prev_range["earliest_period"], "2026002")
+            self.assertEqual(r_prev_range["latest_period"], "2026050")
+
+            # 7. zodiac_history with xiao="prev_tema" & empty range ranking prev_tema_pingte
+            r_zh_prev = cb.get_pingte_zodiac_history(
+                lottery="macau",
+                xiao="prev_tema",
+                limit=0,
+                period_from="2026001",
+                period_to="2026010",
+            )
+            self.assertEqual(r_zh_prev["selected_xiao"], "前特肖")
+            self.assertIsNotNone(r_zh_prev["zodiac_history"])
+            self.assertEqual(r_zh_prev["zodiac_history"]["evaluated_periods"], 9)
+
+            r_rank_empty = cb.get_pingte_ranking(
+                lottery="empty_lottery",
+                limit=0,
+            )
+            self.assertEqual(r_rank_empty["sample_periods"], 0)
+            self.assertIsInstance(r_rank_empty["prev_tema_pingte"], dict)
+            self.assertEqual(r_rank_empty["prev_tema_pingte"]["evaluated_periods"], 0)
             stats_cache.on_draw_updated("macau")
+
+    def test_prev_tema_in_pingte_edge_cases_and_streaks(self):
+        self.assertEqual(
+            format_prev_tema_segment_text("2026002", "2026004", True, 3),
+            "2026002~2026004 连续出现3期",
+        )
+        self.assertEqual(
+            format_prev_tema_segment_text("2026005", "2026007", False, 3),
+            "2026005~2026007 连续缺失3期",
+        )
+
+        # Empty draws
+        empty = compute_prev_tema_in_pingte([])
+        self.assertEqual(empty["total_draws"], 0)
+        self.assertEqual(empty["sample_periods"], 0)
+        self.assertEqual(empty["evaluated_periods"], 0)
+        self.assertEqual(empty["periods_count"], 0)
+        self.assertEqual(empty["miss_periods_count"], 0)
+        self.assertEqual(empty["probability"], 0.0)
+        self.assertIsNone(empty["current_range"])
+        self.assertIsNone(empty["latest_tema_ref"])
+
+        # Single draw (cannot evaluate prev_tema yet, but latest_tema_ref is populated)
+        one = compute_prev_tema_in_pingte([_make_draw("2026001", [2, 3, 4, 5, 6, 7, 1], "2026-06-01")])
+        self.assertEqual(one["total_draws"], 1)
+        self.assertEqual(one["sample_periods"], 0)
+        self.assertEqual(one["evaluated_periods"], 0)
+        self.assertEqual(one["probability"], 0.0)
+        self.assertIsNone(one["current_range"])
+        self.assertIsNotNone(one["latest_tema_ref"])
+        self.assertEqual(one["latest_tema_ref"]["period"], "2026001")
+        self.assertEqual(one["latest_tema_ref"]["tema"], "01")
+        self.assertEqual(one["latest_tema_ref"]["tema_xiao"], "马")
+
+        # 6 draws -> 5 evaluated periods (2026002..2026006):
+        # 2026001: tema=01(马)
+        # 2026002: z1=13(马), tema=02(蛇) -> HIT (1/5): 2026002 has prev_tema_xiao=马 (ball 13)
+        # 2026003: z1=02(蛇), z2=14(蛇), tema=03(龙) -> HIT (2/5): 2026003 has prev_tema_xiao=蛇 (balls 02 exact + 14)
+        # 2026004: [4,5,6,7,8,9,04(兔)] -> MISS (no 龙 balls: 03,15,27,39)
+        # 2026005: [5,6,7,8,9,10,05(虎)] -> MISS (no 兔 balls: 04,16,28,40)
+        # 2026006: [6,7,8,9,10,11,05(虎)] -> HIT (3/5): tema=05(虎) hits prev_tema_xiao=虎 and exact 05
+        seq = [
+            _make_draw("2026001", [2, 3, 4, 5, 6, 7, 1], "2026-06-01"),
+            _make_draw("2026002", [13, 3, 4, 5, 6, 7, 2], "2026-06-02"),
+            _make_draw("2026003", [2, 14, 4, 5, 6, 7, 3], "2026-06-03"),
+            _make_draw("2026004", [4, 5, 6, 7, 8, 9, 4], "2026-06-04"),
+            _make_draw("2026005", [5, 6, 7, 8, 9, 10, 5], "2026-06-05"),
+            _make_draw("2026006", [6, 7, 8, 9, 10, 11, 5], "2026-06-06"),
+        ]
+        res = compute_prev_tema_in_pingte(seq)
+        self.assertEqual(res["total_draws"], 6)
+        self.assertEqual(res["sample_periods"], 5)
+        self.assertEqual(res["evaluated_periods"], 5)
+        self.assertEqual(res["periods_count"], 3)
+        self.assertEqual(res["miss_periods_count"], 2)
+        self.assertEqual(res["probability"], 60.0)
+        self.assertEqual(res["exact_tema_num_count"], 2)  # 2026003 (02) and 2026006 (05)
+        self.assertEqual(res["exact_tema_num_rate"], 40.0)
+        self.assertEqual(res["multi_ball_periods_count"], 1)    # 2026003 had two 蛇 balls (02, 14)
+        self.assertEqual(res["current_consecutive"], 1)
+        self.assertEqual(res["current_omission"], 0)
+        self.assertEqual(res["current_range"]["text"], "2026006~2026006 连续出现1期")
+        self.assertEqual(res["max_consecutive"], 2)
+        self.assertEqual(res["max_consecutive_range"]["text"], "2026002~2026003 连续出现2期")
+        self.assertEqual(res["max_omission"], 2)
+        self.assertEqual(res["max_omission_range"]["text"], "2026004~2026005 连续缺失2期")
+        self.assertEqual(
+            [s["text"] for s in res["segments"]],
+            [
+                "2026006~2026006 连续出现1期",
+                "2026004~2026005 连续缺失2期",
+                "2026002~2026003 连续出现2期",
+            ],
+        )
+        self.assertEqual(len(res["period_history"]), 5)
+        self.assertEqual(res["period_history"][0]["period"], "2026006")
+        self.assertEqual(res["period_history"][0]["prev_period"], "2026005")
+        self.assertEqual(res["period_history"][0]["prev_tema"], "05")
+        self.assertEqual(res["period_history"][0]["prev_tema_xiao"], "虎")
+        self.assertTrue(res["period_history"][0]["exact_tema_num_hit"])
+
+        # Lunar New Year boundary transition:
+        # 2026-02-16 (lunar year 2025 = 蛇): tema=01 -> 01 is 蛇
+        # 2026-02-17 (lunar year 2026 = 马): 02 is 蛇, 01 is 马
+        cny_seq = [
+            _make_draw("2026047", [3, 4, 5, 6, 7, 8, 1], "2026-02-16"),   # tema=01 (蛇 in 2025 lunar year)
+            _make_draw("2026048", [2, 4, 5, 6, 7, 8, 9], "2026-02-17"),   # z1=02 (蛇 in 2026 lunar year)
+        ]
+        cny_res = compute_prev_tema_in_pingte(cny_seq)
+        self.assertEqual(cny_res["evaluated_periods"], 1)
+        self.assertEqual(cny_res["periods_count"], 1)
+        self.assertEqual(cny_res["probability"], 100.0)
+        self.assertEqual(cny_res["period_history"][0]["prev_tema"], "01")
+        self.assertEqual(cny_res["period_history"][0]["prev_tema_xiao"], "蛇")
+        self.assertEqual(cny_res["period_history"][0]["matched_numbers"], ["02"])
+        self.assertFalse(cny_res["period_history"][0]["exact_tema_num_hit"])
+
+        # compute_all_zodiacs_pingte_history with target_xiao="prev_tema"
+        all_prev = compute_all_zodiacs_pingte_history(seq, target_xiao="prev_tema", include_period_history=True)
+        self.assertEqual(all_prev["target_xiao"], "前特肖")
+        self.assertEqual(all_prev["prev_tema_pingte"]["name"], "前特肖")
+        self.assertEqual(len(all_prev["prev_tema_pingte"]["period_history"]), 5)
+        self.assertEqual(len(all_prev["zodiacs"][0]["period_history"]), 0)
 
 
 if __name__ == "__main__":
     unittest.main()
+

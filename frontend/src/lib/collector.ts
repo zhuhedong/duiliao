@@ -577,18 +577,23 @@ export interface TrendResponse {
 
 export interface PingteMatchedBall {
   num: string;
+  xiao?: string;
   pos: string;
   bose: string;
+  wuxing?: string;
   is_tema: boolean;
+  is_exact_tema_num?: boolean;
 }
 
 export interface PingteAllBall {
   num: string;
   xiao: string;
   bose: string;
+  wuxing?: string;
   pos: string;
   is_tema: boolean;
   is_match: boolean;
+  is_exact_tema_num?: boolean;
 }
 
 export interface PingteSegmentRange {
@@ -607,9 +612,16 @@ export interface PingteSegmentRange {
 export interface PingteSegmentPeriodItem {
   period: string;
   date: string;
+  prev_period?: string;
+  prev_date?: string;
+  prev_tema?: string;
+  prev_tema_xiao?: string;
+  prev_tema_bose?: string;
+  prev_tema_wuxing?: string;
   hit: boolean;
   ball_count: number;
   tema_hit: boolean;
+  exact_tema_num_hit?: boolean;
   matched_balls: PingteMatchedBall[];
 }
 
@@ -648,10 +660,18 @@ export interface PingteZodiacPeriodRecord {
   idx: number;
   period: string;
   date: string;
+  prev_period?: string;
+  prev_date?: string;
+  prev_tema?: string;
+  prev_tema_xiao?: string;
+  prev_tema_bose?: string;
+  prev_tema_wuxing?: string;
+  target_xiao?: string;
   hit: boolean;
   ball_count: number;
   ping_count: number;
   tema_hit: boolean;
+  exact_tema_num_hit?: boolean;
   matched_balls: PingteMatchedBall[];
   all_balls: PingteAllBall[];
   segment_id: number;
@@ -663,6 +683,17 @@ export interface PingteZodiacPeriodRecord {
   segment_end: string;
   segment_is_current: boolean;
   segment_text: string;
+  running_text?: string;
+}
+
+export interface PingteLatestTemaRef {
+  period: string;
+  date: string;
+  tema: string;
+  tema_xiao: string;
+  tema_bose: string;
+  tema_wuxing: string;
+  numbers: string[];
 }
 
 export interface PingteZodiacRank {
@@ -671,11 +702,20 @@ export interface PingteZodiacRank {
   count: number;
   ping_count?: number;
   tema_count?: number;
+  exact_tema_num_count?: number;
+  exact_tema_num_rate?: number;
   periods_count: number;
+  total_draws?: number;
   sample_periods?: number;
+  evaluated_periods?: number;
+  earliest_draw_period?: string | null;
+  earliest_period?: string | null;
+  latest_period?: string | null;
   miss_periods_count?: number;
   multi_ball_periods_count?: number;
   frequency: number;
+  probability?: number;
+  miss_probability?: number;
   current_omission: number;
   max_omission: number;
   max_consecutive: number;
@@ -691,10 +731,24 @@ export interface PingteZodiacRank {
   omission_distribution?: PingteDistributionItem[];
   segments?: PingteSegment[];
   period_history?: PingteZodiacPeriodRecord[];
+  latest_tema_ref?: PingteLatestTemaRef | null;
   numbers: string[];
   rank?: number;
   is_hot?: boolean;
   is_cold?: boolean;
+}
+
+export type PingtePrevTemaStats = PingteZodiacRank;
+
+export interface PingtePrevTemaResult extends PingtePrevTemaStats {
+  ok: boolean;
+  lottery: string;
+  sample_scope?: "year" | "limit" | "range";
+  sample_year?: number | null;
+  period_from?: string | null;
+  period_to?: string | null;
+  latest_draw_date?: string | null;
+  prev_tema_pingte?: PingtePrevTemaStats | null;
 }
 
 export interface PingteZodiacHistoryResult {
@@ -708,6 +762,7 @@ export interface PingteZodiacHistoryResult {
   target_xiao: string | null;
   selected_zodiac: PingteZodiacRank | null;
   zodiacs: PingteZodiacRank[];
+  prev_tema_pingte?: PingtePrevTemaStats | null;
 }
 
 export interface PingteTailRank {
@@ -785,6 +840,7 @@ export interface PingteRankingResult {
   number_ranking: PingteNumberRank[];
   bose_ranking: PingteBoseRank[];
   wuxing_ranking: PingteWuxingRank[];
+  prev_tema_pingte?: PingtePrevTemaStats | null;
 }
 
 
@@ -1245,6 +1301,22 @@ export const collectorApi = {
     if (params?.period_to) q.set("period_to", params.period_to);
     if (params?.force_refresh) q.set("force_refresh", "true");
     return api.get<PingteZodiacHistoryResult>(`/collector/pingte-zodiac-history?${q}`);
+  },
+  getPingtePrevTemaHistory(
+    lottery: Lottery = "macau",
+    params?: {
+      limit?: number;
+      period_from?: string;
+      period_to?: string;
+      force_refresh?: boolean;
+    },
+  ) {
+    const q = new URLSearchParams({ lottery });
+    if (params?.limit !== undefined) q.set("limit", String(params.limit));
+    if (params?.period_from) q.set("period_from", params.period_from);
+    if (params?.period_to) q.set("period_to", params.period_to);
+    if (params?.force_refresh) q.set("force_refresh", "true");
+    return api.get<PingtePrevTemaResult>(`/collector/pingte-prev-tema?${q}`);
   },
 
   confirmMissing(source_id: string, periods: string[]) {

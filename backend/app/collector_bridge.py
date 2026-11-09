@@ -933,6 +933,8 @@ def get_pingte_ranking(
         else:
             draws = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(limit_i)))
 
+    from pingte_history import compute_prev_tema_in_pingte
+
     N = len(draws)
     if N == 0:
         empty = {
@@ -948,6 +950,7 @@ def get_pingte_ranking(
             "number_ranking": [],
             "bose_ranking": [],
             "wuxing_ranking": [],
+            "prev_tema_pingte": compute_prev_tema_in_pingte([], include_period_history=False),
         }
         stats_cache.set(cache_key, empty, ttl=3600)
         return empty
@@ -971,6 +974,7 @@ def get_pingte_ranking(
         periods_data.append({
             "period": d.period,
             "date": dd,
+            "date_str": dd.isoformat() if isinstance(dd, date) else str(dd or ""),
             "all_7": all_7,
             "ping_6": b_list,
             "tema": tema_num,
@@ -1209,6 +1213,12 @@ def get_pingte_ranking(
         tail_ranking.sort(key=lambda x: (-x["current_consecutive"], -x["max_consecutive"], -x["count"]))
         number_ranking.sort(key=lambda x: (-x["current_consecutive"], -x["max_consecutive"], -x["count"]))
 
+    prev_tema_pingte = compute_prev_tema_in_pingte(
+        periods_data,
+        ref_date=ref_date,
+        include_period_history=True,
+    )
+
     result = {
         "ok": True,
         "lottery": lottery,
@@ -1222,6 +1232,7 @@ def get_pingte_ranking(
         "number_ranking": number_ranking,
         "bose_ranking": bose_ranking,
         "wuxing_ranking": wuxing_ranking,
+        "prev_tema_pingte": prev_tema_pingte,
     }
     stats_cache.set(cache_key, result, ttl=3600)
     return result
@@ -1317,7 +1328,11 @@ def get_pingte_zodiac_history(
     )
 
     target_z = computed["target_xiao"]
-    selected_detail = computed["zodiacs_map"].get(target_z) if target_z else None
+    prev_tema_pingte = computed.get("prev_tema_pingte")
+    if target_z == "前特肖":
+        selected_detail = prev_tema_pingte
+    else:
+        selected_detail = computed["zodiacs_map"].get(target_z) if target_z else None
     zodiacs_overview = [
         ({**z, "period_history": []} if target_z and z["name"] == target_z else z)
         for z in computed["zodiacs"]
@@ -1339,6 +1354,114 @@ def get_pingte_zodiac_history(
         "selected_zodiac": selected_detail,
         "zodiac_history": selected_detail,
         "zodiacs": zodiacs_overview,
+        "prev_tema_pingte": prev_tema_pingte,
+    }
+    if not has_custom_range:
+        stats_cache.set(cache_key, result, ttl=3600)
+    return result
+
+
+def get_pingte_prev_tema_history(
+    lottery: str = "macau",
+    limit: int = 0,
+    period_from: str | None = None,
+    period_to: str | None = None,
+    force_refresh: bool = False,
+) -> dict[str, Any]:
+    """Calculate whether the previous period's special ball zodiac (``上一期特码生肖``)
+    appears in the current period's 7 Pingte balls (``正码1-6 + 特码``), starting from the
+    2nd draw in the scope (e.g. 第二期7个号码是否包含第一期特码生肖).
+
+    ``limit <= 0`` (and no ``period_from``/``period_to``) queries **当年全部期数**.
+    """
+    from app.services.stats_cache_service import stats_cache
+
+    lottery_key = str(lottery or "macau").lower()
+    try:
+        limit_i = int(limit)
+    except (TypeError, ValueError):
+        limit_i = 0
+
+    p_from = (period_from or "").strip() or None
+    p_to = (period_to or "").strip() or None
+    has_custom_range = bool(p_from or p_to)
+    scope_key = (
+        f"range:{p_from or ''}-{p_to or ''}:{limit_i}"
+        if has_custom_range
+        else ("year" if limit_i <= 0 else str(limit_i))
+    )
+    cache_key = f"pingte_prev_tema_history:{lottery_key}:{scope_key}"
+    if not force_refresh and not has_custom_range:
+        cached = stats_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+    bootstrap()
+    from datetime import date, datetime, timezone, timedelta
+    from sqlalchemy import select
+    from db import session_scope
+    from schema import Draw
+    from common.period import normalize as normalize_period
+    from pingte_history import compute_prev_tema_in_pingte
+
+    def _norm_bound(raw_p: str | None) -> str | None:
+        if not raw_p:
+            return None
+        try:
+            return normalize_period(lottery_key, raw_p)
+        except Exception:
+            return raw_p
+
+    if has_custom_range:
+        p_from = _norm_bound(p_from)
+        p_to = _norm_bound(p_to)
+        if p_from and p_to and p_from > p_to:
+            p_from, p_to = p_to, p_from
+
+    cn_now = datetime.now(timezone.utc) + timedelta(hours=8)
+    year = cn_now.year
+    year_from = f"{year}001"
+    year_to = f"{year}366"
+    use_year_scope = (limit_i <= 0) and not has_custom_range
+    if not use_year_scope and not has_custom_range:
+        limit_i = max(1, min(limit_i, 500))
+
+    with session_scope(guard=False) as s:
+        stmt = select(Draw)
+        if lottery:
+            stmt = stmt.where(Draw.lottery == lottery)
+        if has_custom_range:
+            if p_from:
+                stmt = stmt.where(Draw.period >= p_from)
+            if p_to:
+                stmt = stmt.where(Draw.period <= p_to)
+            range_cap = max(limit_i, 1000) if limit_i > 500 else 1000
+            draws = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(range_cap)))
+        elif use_year_scope:
+            stmt = stmt.where(Draw.period >= year_from, Draw.period <= year_to)
+            draws = list(s.scalars(stmt.order_by(Draw.period.desc())))
+        else:
+            draws = list(s.scalars(stmt.order_by(Draw.period.desc()).limit(limit_i)))
+
+    chronological = list(reversed(draws))
+    ref_date = draws[0].draw_date if (draws and isinstance(draws[0].draw_date, date)) else date.today()
+    latest_draw_date = ref_date.isoformat() if draws else None
+    prev_tema = compute_prev_tema_in_pingte(
+        chronological,
+        ref_date=ref_date,
+        include_period_history=True,
+    )
+
+    result = {
+        "ok": True,
+        "lottery": lottery,
+        "sample_scope": "range" if has_custom_range else ("year" if use_year_scope else "limit"),
+        "sample_year": year if use_year_scope else None,
+        "period_from": p_from,
+        "period_to": p_to,
+        "latest_draw_date": latest_draw_date,
+        **prev_tema,
+        "prev_tema_pingte": prev_tema,
     }
     if not has_custom_range:
         stats_cache.set(cache_key, result, ttl=3600)

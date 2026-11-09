@@ -410,6 +410,32 @@ def get_pingte_zodiac_history_endpoint(
         raise _bad_request(exc)
 
 
+@router.get("/pingte-prev-tema")
+@router.get("/pingte-prev-tema-history")
+def get_pingte_prev_tema_history_endpoint(
+    lottery: str = "macau",
+    limit: int = 0,
+    period_from: str | None = None,
+    period_to: str | None = None,
+    force_refresh: bool = False,
+    _: User = _user,
+) -> dict[str, Any]:
+    """Return statistics on whether the previous period's special ball zodiac (上一期特码生肖)
+    appears in the current period's 7 Pingte balls (当期平特7码), including appearance probability,
+    contiguous hit/miss segments (xxx~xxx期连续出现/连续缺失), distributions, and per-period history.
+    """
+    try:
+        return cb.get_pingte_prev_tema_history(
+            lottery=lottery,
+            limit=limit,
+            period_from=period_from,
+            period_to=period_to,
+            force_refresh=force_refresh,
+        )
+    except (ValueError, KeyError) as exc:
+        raise _bad_request(exc)
+
+
 @router.get("/cache/stats")
 def get_stats_cache_status(_: User = _user) -> dict[str, Any]:
     """Inspect current server-side statistics cache status and hit rates."""

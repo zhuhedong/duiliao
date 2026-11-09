@@ -236,6 +236,31 @@ class CollectorRepository {
     );
   }
 
+  Future<Fetched<PingtePrevTemaResult>> getPingtePrevTemaHistory({
+    required String lottery,
+    int limit = 0,
+    String? periodFrom,
+    String? periodTo,
+    bool forceRefresh = false,
+  }) async {
+    return _cached(
+      key: CacheKeys.pingtePrevTemaHistory(lottery, limit, periodFrom, periodTo),
+      ttl: CacheTtl.draws,
+      forceRefresh: forceRefresh,
+      fetch: () => _client.get<Map<String, dynamic>>(
+        '/collector/pingte-prev-tema',
+        query: {
+          'lottery': lottery,
+          'limit': limit,
+          if (periodFrom != null && periodFrom.isNotEmpty) 'period_from': periodFrom,
+          if (periodTo != null && periodTo.isNotEmpty) 'period_to': periodTo,
+          'force_refresh': forceRefresh,
+        },
+      ),
+      parse: (json) => PingtePrevTemaResult.fromJson(asMap(json)),
+    );
+  }
+
   // ------------------------------------------------------------------ //
   // Consensus / comparison / ratings
   // ------------------------------------------------------------------ //

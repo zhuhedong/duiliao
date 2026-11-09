@@ -12,7 +12,7 @@ import '../../ui/theme.dart';
 import '../../ui/widgets/number_ball.dart';
 import 'draws_providers.dart';
 
-enum RankingTab { zodiac, zodiacHistory, tail, number, bose, wuxing }
+enum RankingTab { zodiac, prevTema, zodiacHistory, tail, number, bose, wuxing }
 
 const List<String> _kAllZodiacs = [
   '鼠',
@@ -51,9 +51,10 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
   String _keyword = '';
   bool _forceRefresh = false;
 
-  // Zodiac History state
+  // Zodiac History & PrevTema state
   late String _selectedXiao = widget.initialXiao ?? '鼠';
   String _historySubMode = 'segments'; // 'segments' | 'periods' | 'all_zodiacs'
+  String _prevTemaSubMode = 'segments'; // 'segments' | 'periods'
   String _segmentTypeFilter = 'all'; // 'all' | 'hit' | 'miss'
   int _minSegmentLength = 1;
   int? _exactSegmentLength;
@@ -109,9 +110,22 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
           )
         : null;
 
+    final prevTemaAsync = _tab == RankingTab.prevTema
+        ? ref.watch(
+            pingtePrevTemaHistoryProvider((
+              lottery: lottery,
+              limit: _limit,
+              periodFrom: _appliedPeriodFrom,
+              periodTo: _appliedPeriodTo,
+              forceRefresh: _forceRefresh,
+            )),
+          )
+        : null;
+
     if (_forceRefresh &&
         !rankingAsync.isLoading &&
-        (historyAsync == null || !historyAsync.isLoading)) {
+        (historyAsync == null || !historyAsync.isLoading) &&
+        (prevTemaAsync == null || !prevTemaAsync.isLoading)) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _forceRefresh = false);
       });
@@ -119,6 +133,13 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
 
     final data = rankingAsync.value;
     final historyData = historyAsync?.value;
+    final prevTemaData = prevTemaAsync?.value;
+    final hasCustomRange =
+        _appliedPeriodFrom != null || _appliedPeriodTo != null;
+    final prevTemaStats = prevTemaData?.stats ??
+        (hasCustomRange
+            ? null
+            : (data?.prevTemaPingte ?? historyData?.prevTemaPingte));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -132,8 +153,8 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                   icon: Icons.chevron_left_rounded,
                   onTap: () => Navigator.of(context).maybePop(),
                 ),
-                title: '平特排行榜 & 生肖历史',
-                subtitle: '7 码全域统计 · 连开/没出起止期号明细',
+                title: '平特排行榜 & 前特肖历史',
+                subtitle: '7 码全域统计 · 上期特码落平特概率与连续出现/缺失区间',
                 actions: [
                   GlassIconButton(
                     icon: Icons.refresh_rounded,
@@ -197,7 +218,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                     const SizedBox(height: 8),
 
                     // Sort orders (shown on ranking tabs)
-                    if (_tab != RankingTab.zodiacHistory) ...[
+                    if (_tab != RankingTab.zodiacHistory && _tab != RankingTab.prevTema) ...[
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -263,8 +284,8 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                               onChanged: (v) => setState(() => _keyword = v.trim()),
                               style: const TextStyle(fontSize: 12, color: Colors.white),
                               decoration: InputDecoration(
-                                hintText: _tab == RankingTab.zodiacHistory
-                                    ? '搜索期号、开出号码或连开/没出描述...'
+                                hintText: _tab == RankingTab.zodiacHistory || _tab == RankingTab.prevTema
+                                    ? '搜索期号、开出号码或连续出现/缺失描述...'
                                     : '搜索生肖或号码...',
                                 hintStyle: const TextStyle(fontSize: 12, color: Colors.white38),
                                 border: InputBorder.none,
@@ -288,6 +309,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                       child: Row(
                         children: [
                           (tab: RankingTab.zodiac, label: '平特生肖'),
+                          (tab: RankingTab.prevTema, label: '🎯 上期特肖平特'),
                           (tab: RankingTab.zodiacHistory, label: '📜 生肖历史 (连开/没出)'),
                           (tab: RankingTab.tail, label: '平特尾数'),
                           (tab: RankingTab.number, label: '平特号码'),
@@ -298,7 +320,10 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                           return Padding(
                             padding: const EdgeInsets.only(right: 6),
                             child: InkWell(
-                              onTap: () => setState(() => _tab = t.tab),
+                              onTap: () => setState(() {
+                                _exactSegmentLength = null;
+                                _tab = t.tab;
+                              }),
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -330,11 +355,11 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Stats banner
-                    if (data != null && data.samplePeriods > 0)
+                    // Stats banner + PrevTema quick card
+                    if (data != null && data.samplePeriods > 0) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        margin: const EdgeInsets.only(bottom: 12),
+                        margin: const EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(14),
@@ -369,9 +394,65 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                           ],
                         ),
                       ),
+                      if (prevTemaStats != null && _tab != RankingTab.prevTema)
+                        InkWell(
+                          onTap: () => setState(() {
+                            _exactSegmentLength = null;
+                            _tab = RankingTab.prevTema;
+                          }),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: DuiliaoColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: DuiliaoColors.primary.withValues(alpha: 0.35),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '🎯 上期特码落平特概率: ${prevTemaStats.probability}% (出现${prevTemaStats.periodsCount}期/缺失${prevTemaStats.missPeriodsCount}期)',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  prevTemaStats.currentRange?.text ??
+                                      (prevTemaStats.currentConsecutive > 0
+                                          ? '连续出现${prevTemaStats.currentConsecutive}期'
+                                          : '连续缺失${prevTemaStats.currentOmission}期'),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontFamily: 'monospace',
+                                    fontWeight: FontWeight.bold,
+                                    color: prevTemaStats.currentConsecutive > 0
+                                        ? DuiliaoColors.hit
+                                        : DuiliaoColors.warning,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
 
                     // Content
-                    if (_tab == RankingTab.zodiacHistory)
+                    if (_tab == RankingTab.prevTema)
+                      _buildPrevTemaView(
+                        prevTemaAsync: prevTemaAsync,
+                        prevTemaStats: prevTemaStats,
+                      )
+                    else if (_tab == RankingTab.zodiacHistory)
                       _buildZodiacHistoryView(
                         historyAsync: historyAsync,
                         historyData: historyData,
@@ -397,6 +478,7 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
                     else
                       switch (_tab) {
                         RankingTab.zodiac => _buildZodiacList(data.zodiacRanking),
+                        RankingTab.prevTema => const SizedBox.shrink(),
                         RankingTab.zodiacHistory => const SizedBox.shrink(),
                         RankingTab.tail => _buildTailList(data.tailRanking),
                         RankingTab.number => _buildNumberList(data.numberRanking),
@@ -707,6 +789,914 @@ class _PingteRankingScreenState extends ConsumerState<PingteRankingScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  // TAB 1.5: Previous Tema Zodiac in Current Pingte 7 Balls (上期特码生肖落当期平特)
+  Widget _buildPrevTemaView({
+    required AsyncValue<PingtePrevTemaResult>? prevTemaAsync,
+    required PingteZodiacRank? prevTemaStats,
+  }) {
+    final stats = prevTemaStats;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Rule description + custom period range filter
+        GlassSubtleBox(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '🎯 上期特码生肖在当期平特 7 码中出现统计',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 3),
+              const Text(
+                '规则: 从第 2 期开始逐期比对，计算当期 7 个号码是否包含前一期的特码生肖，统计当年出现概率及连续出现/连续缺失区间。',
+                style: TextStyle(fontSize: 10, color: Colors.white60),
+              ),
+              if (stats?.latestTemaRef != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: DuiliaoColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: DuiliaoColors.primary.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '📌 下期参考: 最新第 ${stats!.latestTemaRef!.period} 期 (${stats.latestTemaRef!.date}) 特码为 ${stats.latestTemaRef!.tema} (${stats.latestTemaRef!.temaXiao}肖 · ${stats.latestTemaRef!.temaBose}波)',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (stats.latestTemaRef!.numbers.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '下期平特关注【${stats.latestTemaRef!.temaXiao}肖】号码: ${stats.latestTemaRef!.numbers.join(", ")}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                            color: DuiliaoColors.boseGold,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              // Custom Period Range Filter Row
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 32,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: TextField(
+                        controller: _periodFromCtrl,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: Colors.white,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: '起始期号 如2026001',
+                          hintStyle: TextStyle(fontSize: 10, color: Colors.white30),
+                          border: InputBorder.none,
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: Text('~', style: TextStyle(color: Colors.white38, fontSize: 11)),
+                  ),
+                  Expanded(
+                    child: Container(
+                      height: 32,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: TextField(
+                        controller: _periodToCtrl,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: Colors.white,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: '截止期号 如2026285',
+                          hintStyle: TextStyle(fontSize: 10, color: Colors.white30),
+                          border: InputBorder.none,
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () => setState(() {
+                      final pf = _periodFromCtrl.text.trim();
+                      final pt = _periodToCtrl.text.trim();
+                      _appliedPeriodFrom = pf.isEmpty ? null : pf;
+                      _appliedPeriodTo = pt.isEmpty ? null : pt;
+                    }),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: DuiliaoColors.primaryDark,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        '筛选',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_appliedPeriodFrom != null || _appliedPeriodTo != null) ...[
+                    const SizedBox(width: 4),
+                    InkWell(
+                      onTap: () => setState(() {
+                        _periodFromCtrl.clear();
+                        _periodToCtrl.clear();
+                        _appliedPeriodFrom = null;
+                        _appliedPeriodTo = null;
+                      }),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          '清除',
+                          style: TextStyle(fontSize: 10, color: Colors.white70),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        if (prevTemaAsync != null && prevTemaAsync.isLoading && stats == null)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (stats == null ||
+            (stats.evaluatedPeriods == 0 && stats.samplePeriods == 0))
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text(
+                '暂无足够期数比对上期特码落平特数据',
+                style: TextStyle(color: Colors.white54, fontSize: 13),
+              ),
+            ),
+          )
+        else ...[
+          // Probability & Streak/Omission Summary Card
+          GlassSubtleBox(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _limit <= 0 && _appliedPeriodFrom == null && _appliedPeriodTo == null
+                                ? '当年出现概率: ${stats.probability}%'
+                                : '样本出现概率: ${stats.probability}%',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                              color: DuiliaoColors.hit,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '有效比对 ${stats.evaluatedPeriods > 0 ? stats.evaluatedPeriods : stats.samplePeriods} 期 (${stats.earliestPeriod ?? ''}~${stats.latestPeriod ?? ''}) · 出现 ${stats.periodsCount} 期 / 缺失 ${stats.missPeriodsCount} 期',
+                            style: const TextStyle(fontSize: 11, color: Colors.white70),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '共命中 ${stats.count} 球 (正码${stats.pingCount} · 特码连肖${stats.temaCount} · 特码原号重出${stats.exactTemaNumCount}期)',
+                            style: const TextStyle(fontSize: 10, color: Colors.white54),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: DuiliaoColors.hit.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: DuiliaoColors.hit.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            '${stats.probability}%',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                              color: Colors.white,
+                            ),
+                          ),
+                          const Text(
+                            '出现概率',
+                            style: TextStyle(fontSize: 9, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // 3 Interval Highlight Boxes: 当前状态 / 最长连续出现 / 最长连续缺失
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        stats.currentRange != null
+                            ? '⚡ 当前状态: ${stats.currentRange!.text}'
+                            : '⚡ 当前状态: ${stats.currentConsecutive > 0 ? '连续出现 ${stats.currentConsecutive} 期' : '连续缺失 ${stats.currentOmission} 期'}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          color: stats.currentConsecutive > 0
+                              ? DuiliaoColors.hit
+                              : DuiliaoColors.warning,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        stats.maxConsecutiveRange != null
+                            ? '🔥 最长连续出现: ${stats.maxConsecutiveRange!.text} (共${stats.hitSegmentsCount}段连续出现)'
+                            : '🔥 最长连续出现: ${stats.maxConsecutive} 期',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: Colors.white70,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        stats.maxOmissionRange != null
+                            ? '❄️ 最长连续缺失: ${stats.maxOmissionRange!.text} (共${stats.missSegmentsCount}段连续缺失)'
+                            : '❄️ 最长连续缺失: ${stats.maxOmission} 期',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Streak & Omission Distributions
+                if (stats.streakDistribution.isNotEmpty ||
+                    stats.omissionDistribution.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  const Text(
+                    '连续出现 / 连续缺失期数分布 (点击筛选对应长度区间):',
+                    style: TextStyle(fontSize: 10, color: Colors.white54),
+                  ),
+                  const SizedBox(height: 4),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        ...stats.streakDistribution.map((d) {
+                          final isSelected = _prevTemaSubMode == 'segments' &&
+                              _segmentTypeFilter == 'hit' &&
+                              _exactSegmentLength == d.length;
+                          final shortRange = (d.latestStartPeriod.isNotEmpty &&
+                                  d.latestEndPeriod.isNotEmpty)
+                              ? ' (${d.latestStartPeriod.length > 3 ? d.latestStartPeriod.substring(d.latestStartPeriod.length - 3) : d.latestStartPeriod}~${d.latestEndPeriod.length > 3 ? d.latestEndPeriod.substring(d.latestEndPeriod.length - 3) : d.latestEndPeriod})'
+                              : '';
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 5),
+                            child: InkWell(
+                              onTap: () => setState(() {
+                                _prevTemaSubMode = 'segments';
+                                if (isSelected) {
+                                  _segmentTypeFilter = 'all';
+                                  _exactSegmentLength = null;
+                                } else {
+                                  _segmentTypeFilter = 'hit';
+                                  _exactSegmentLength = d.length;
+                                }
+                              }),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? DuiliaoColors.hit
+                                      : DuiliaoColors.hit.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: DuiliaoColors.hit.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                child: Text(
+                                  '连续出现${d.length}期×${d.count}次$shortRange',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontFamily: 'monospace',
+                                    color: isSelected ? Colors.white : DuiliaoColors.hit,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                        ...stats.omissionDistribution.map((d) {
+                          final isSelected = _prevTemaSubMode == 'segments' &&
+                              _segmentTypeFilter == 'miss' &&
+                              _exactSegmentLength == d.length;
+                          final shortRange = (d.latestStartPeriod.isNotEmpty &&
+                                  d.latestEndPeriod.isNotEmpty)
+                              ? ' (${d.latestStartPeriod.length > 3 ? d.latestStartPeriod.substring(d.latestStartPeriod.length - 3) : d.latestStartPeriod}~${d.latestEndPeriod.length > 3 ? d.latestEndPeriod.substring(d.latestEndPeriod.length - 3) : d.latestEndPeriod})'
+                              : '';
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 5),
+                            child: InkWell(
+                              onTap: () => setState(() {
+                                _prevTemaSubMode = 'segments';
+                                if (isSelected) {
+                                  _segmentTypeFilter = 'all';
+                                  _exactSegmentLength = null;
+                                } else {
+                                  _segmentTypeFilter = 'miss';
+                                  _exactSegmentLength = d.length;
+                                }
+                              }),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? DuiliaoColors.warning
+                                      : Colors.white.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: Text(
+                                  '连续缺失${d.length}期×${d.count}次$shortRange',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontFamily: 'monospace',
+                                    color: isSelected ? Colors.black : Colors.white70,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Sub-mode switcher: 连续出现/缺失区间 | 逐期比对明细
+          Row(
+            children: [
+              (mode: 'segments', label: '📊 连续出现/缺失区间 (${stats.segments.length})'),
+              (mode: 'periods', label: '📅 逐期7码比对 (${stats.periodHistory.length})'),
+            ].map((m) {
+              final isSel = _prevTemaSubMode == m.mode;
+              return Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: InkWell(
+                    onTap: () => setState(() => _prevTemaSubMode = m.mode),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? DuiliaoColors.primary
+                            : Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSel ? DuiliaoColors.primaryDark : Colors.white12,
+                        ),
+                      ),
+                      child: Text(
+                        m.label,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                          color: isSel ? Colors.white : Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 10),
+
+          if (_prevTemaSubMode == 'segments')
+            _buildPrevTemaSegmentsList(stats)
+          else
+            _buildPrevTemaPeriodsList(stats),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildPrevTemaSegmentsList(PingteZodiacRank stats) {
+    var list = stats.segments.toList();
+    if (_segmentTypeFilter == 'hit') {
+      list = list.where((s) => s.type == 'hit').toList();
+    } else if (_segmentTypeFilter == 'miss') {
+      list = list.where((s) => s.type == 'miss').toList();
+    }
+    if (_exactSegmentLength != null) {
+      list = list.where((s) => s.length == _exactSegmentLength).toList();
+    } else if (_minSegmentLength > 1) {
+      list = list.where((s) => s.length >= _minSegmentLength).toList();
+    }
+    if (_keyword.isNotEmpty) {
+      list = list
+          .where((s) =>
+              s.startPeriod.contains(_keyword) ||
+              s.endPeriod.contains(_keyword) ||
+              (_keyword.length == s.startPeriod.length &&
+                  _keyword.compareTo(s.startPeriod) >= 0 &&
+                  _keyword.compareTo(s.endPeriod) <= 0) ||
+              s.text.contains(_keyword) ||
+              s.periods.any((p) =>
+                  p.period.contains(_keyword) ||
+                  p.prevPeriod.contains(_keyword) ||
+                  p.prevTema.contains(_keyword) ||
+                  p.prevTemaXiao.contains(_keyword) ||
+                  p.matchedNumbers.any((n) => n.contains(_keyword))))
+          .toList();
+    }
+
+    if (_segmentSort == 'latest') {
+      list.sort((a, b) => b.segmentId.compareTo(a.segmentId));
+    } else if (_segmentSort == 'oldest') {
+      list.sort((a, b) => a.segmentId.compareTo(b.segmentId));
+    } else if (_segmentSort == 'length_desc') {
+      list.sort((a, b) {
+        final cmp = b.length.compareTo(a.length);
+        return cmp != 0 ? cmp : b.segmentId.compareTo(a.segmentId);
+      });
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              ...[
+                (id: 'all', label: '全部'),
+                (id: 'hit', label: '🔥 只看连续出现'),
+                (id: 'miss', label: '❄️ 只看连续缺失'),
+              ].map((t) {
+                final isSel = _segmentTypeFilter == t.id;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: InkWell(
+                    onTap: () => setState(() {
+                      _segmentTypeFilter = t.id;
+                      _exactSegmentLength = null;
+                    }),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? DuiliaoColors.primaryDark
+                            : Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        t.label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                          color: isSel ? Colors.white : Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              ...[1, 2, 3, 4, 5].map((minLen) {
+                final isSel = _exactSegmentLength == null && _minSegmentLength == minLen;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: InkWell(
+                    onTap: () => setState(() {
+                      _exactSegmentLength = null;
+                      _minSegmentLength = minLen;
+                    }),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? DuiliaoColors.primary.withValues(alpha: 0.3)
+                            : Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        minLen == 1 ? '不限期数' : '≥$minLen期',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isSel ? Colors.white : Colors.white60,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              ...[
+                (id: 'latest', label: '最新'),
+                (id: 'length_desc', label: '最长'),
+                (id: 'oldest', label: '最旧'),
+              ].map((s) {
+                final isSel = _segmentSort == s.id;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: InkWell(
+                    onTap: () => setState(() => _segmentSort = s.id),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isSel
+                            ? Colors.white24
+                            : Colors.white.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        s.label,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isSel ? Colors.white : Colors.white60,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        if (list.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(
+              child: Text(
+                '没有符合筛选条件的连续出现/连续缺失区间',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ),
+          )
+        else
+          ...list.map((seg) {
+            final isHit = seg.type == 'hit';
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: GlassSubtleBox(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isHit
+                                ? DuiliaoColors.hit.withValues(alpha: 0.2)
+                                : Colors.white.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: isHit
+                                  ? DuiliaoColors.hit.withValues(alpha: 0.5)
+                                  : Colors.white24,
+                            ),
+                          ),
+                          child: Text(
+                            isHit ? '🔥 连续出现 ${seg.length} 期' : '❄️ 连续缺失 ${seg.length} 期',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isHit ? DuiliaoColors.hit : Colors.white70,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            seg.text,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'monospace',
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (seg.isCurrent)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: DuiliaoColors.boseGold.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: const Text(
+                              '当前',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: DuiliaoColors.boseGold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '日期: ${seg.startDate == seg.endDate ? seg.startDate : '${seg.startDate} ~ ${seg.endDate}'}',
+                          style: const TextStyle(fontSize: 10, color: Colors.white54),
+                        ),
+                        if (isHit)
+                          Text(
+                            '共命中 ${seg.totalBalls} 球${seg.temaHits > 0 ? ' (含特码${seg.temaHits}次)' : ''}',
+                            style: const TextStyle(fontSize: 10, color: DuiliaoColors.hit),
+                          )
+                        else
+                          Text(
+                            '连续 ${seg.length} 期未出现上期特码生肖',
+                            style: const TextStyle(fontSize: 10, color: Colors.white38),
+                          ),
+                      ],
+                    ),
+                    if (seg.periods.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: seg.periods.map((p) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: Text(
+                              isHit
+                                  ? '${p.period.length > 3 ? p.period.substring(p.period.length - 3) : p.period}期[上期特${p.prevTema}${p.prevTemaXiao}]: ${p.matchedBalls.map((b) => '${b.number}${b.isTema ? '(特)' : ''}').join(' ')}'
+                                  : '${p.period.length > 3 ? p.period.substring(p.period.length - 3) : p.period}期[上期特${p.prevTema}${p.prevTemaXiao} 未出]',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontFamily: 'monospace',
+                                color: isHit ? Colors.white70 : Colors.white54,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
+  Widget _buildPrevTemaPeriodsList(PingteZodiacRank stats) {
+    var list = stats.periodHistory.toList();
+    if (_periodFilter == 'hit') {
+      list = list.where((p) => p.isHit).toList();
+    } else if (_periodFilter == 'miss') {
+      list = list.where((p) => !p.isHit).toList();
+    }
+    if (_keyword.isNotEmpty) {
+      list = list
+          .where((p) =>
+              p.period.contains(_keyword) ||
+              p.prevPeriod.contains(_keyword) ||
+              p.prevTema.contains(_keyword) ||
+              p.prevTemaXiao.contains(_keyword) ||
+              p.segmentText.contains(_keyword) ||
+              p.matchedNumbers.any((n) => n.contains(_keyword)))
+          .toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            (id: 'all', label: '全部期数 (${stats.periodHistory.length})'),
+            (id: 'hit', label: '🔥 只看出现 (${stats.periodsCount})'),
+            (id: 'miss', label: '❄️ 只看缺失 (${stats.missPeriodsCount})'),
+          ].map((f) {
+            final isSel = _periodFilter == f.id;
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: InkWell(
+                onTap: () => setState(() => _periodFilter = f.id),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isSel
+                        ? DuiliaoColors.primaryDark
+                        : Colors.white.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    f.label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                      color: isSel ? Colors.white : Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 8),
+        ...list.take(150).map((row) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            child: GlassSubtleBox(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '第 ${row.period} 期 (${row.drawDate}) · 上期(${row.prevPeriod})特码: ${row.prevTema}${row.prevTemaXiao}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: row.isHit
+                              ? DuiliaoColors.hit.withValues(alpha: 0.2)
+                              : Colors.white10,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          row.isHit
+                              ? '${row.runningText} · 命中${row.ballCount}码 (${row.matchedNumbers.join(",")})'
+                              : '${row.runningText} · 缺失',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: row.isHit ? DuiliaoColors.hit : Colors.white54,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '所属区间: ${row.segmentText}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                      color: Colors.white54,
+                    ),
+                  ),
+                  if (row.allBalls.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: row.allBalls.map((b) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: b.isTarget
+                                    ? DuiliaoColors.hit.withValues(alpha: 0.25)
+                                    : Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(
+                                  color: b.isTarget
+                                      ? DuiliaoColors.hit
+                                      : Colors.white10,
+                                ),
+                              ),
+                              child: Text(
+                                '${b.number}${b.xiao}${b.isTema ? '(特)' : ''}',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontFamily: 'monospace',
+                                  fontWeight: b.isTarget ? FontWeight.bold : FontWeight.normal,
+                                  color: b.isTarget ? Colors.white : Colors.white54,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 

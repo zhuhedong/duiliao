@@ -268,3 +268,27 @@ final pingteZodiacHistoryProvider = FutureProvider.family<
   },
 );
 
+/// Previous-period special ball zodiac in current-period Pingte 7 balls provider.
+final pingtePrevTemaHistoryProvider = FutureProvider.family<
+    PingtePrevTemaResult,
+    ({
+      Lottery lottery,
+      int limit,
+      String? periodFrom,
+      String? periodTo,
+      bool forceRefresh,
+    })>(
+  (ref, args) async {
+    final repo = ref.read(collectorRepositoryProvider);
+    final res = await repo.getPingtePrevTemaHistory(
+      lottery: args.lottery.code,
+      limit: args.limit,
+      periodFrom: args.periodFrom,
+      periodTo: args.periodTo,
+      forceRefresh: args.forceRefresh,
+    );
+    return res.value;
+  },
+);
+
+

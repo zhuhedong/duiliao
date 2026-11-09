@@ -12,6 +12,8 @@ import {
   type PingteZodiacHistoryResult,
   type PingteZodiacRank,
   type PingteSegment,
+  type PingtePrevTemaResult,
+  type PingtePrevTemaStats,
 } from "../../lib/collector";
 import { BOSE_COLORS, WUXING_COLORS } from "../../lib/lotteryAttr";
 import {
@@ -26,7 +28,7 @@ import {
 
 const ALL_XIAO = ["鼠", "牛", "虎", "兔", "龙", "蛇", "马", "羊", "猴", "鸡", "狗", "猪"] as const;
 
-type RankingTab = "zodiac" | "zodiac_history" | "tail" | "number" | "bose" | "wuxing";
+type RankingTab = "zodiac" | "prev_tema" | "zodiac_history" | "tail" | "number" | "bose" | "wuxing";
 type SortOption =
   | "count_desc"
   | "count_asc"
@@ -35,6 +37,7 @@ type SortOption =
   | "consecutive_desc";
 
 type HistoryViewMode = "segments" | "periods" | "all_zodiacs";
+type PrevTemaViewMode = "segments" | "periods";
 type SegmentTypeFilter = "all" | "hit" | "miss";
 type SegmentSortOrder = "newest" | "oldest" | "length_desc";
 type PeriodRecordFilter = "all" | "hit" | "miss" | "multi";
@@ -59,6 +62,7 @@ export function PingteRankingPage() {
   // Zodiac History state
   const [selectedXiao, setSelectedXiao] = useState<string>("鼠");
   const [historyViewMode, setHistoryViewMode] = useState<HistoryViewMode>("segments");
+  const [prevTemaViewMode, setPrevTemaViewMode] = useState<PrevTemaViewMode>("segments");
   const [segTypeFilter, setSegTypeFilter] = useState<SegmentTypeFilter>("all");
   const [segMinLength, setSegMinLength] = useState<number>(1);
   const [segExactLength, setSegExactLength] = useState<{ type: "hit" | "miss"; length: number } | null>(null);
@@ -70,6 +74,11 @@ export function PingteRankingPage() {
   const [historyData, setHistoryData] = useState<PingteZodiacHistoryResult | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // Prev Tema in Pingte state
+  const [prevTemaData, setPrevTemaData] = useState<PingtePrevTemaResult | null>(null);
+  const [prevTemaLoading, setPrevTemaLoading] = useState(false);
+  const [prevTemaError, setPrevTemaError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -106,6 +115,27 @@ export function PingteRankingPage() {
     [lottery, selectedXiao, limit, appliedPeriodRange],
   );
 
+  const loadPrevTemaData = useCallback(
+    async (forceRefresh = false) => {
+      setPrevTemaLoading(true);
+      setPrevTemaError(null);
+      try {
+        const res = await collectorApi.getPingtePrevTemaHistory(lottery, {
+          limit,
+          period_from: appliedPeriodRange.from,
+          period_to: appliedPeriodRange.to,
+          force_refresh: forceRefresh,
+        });
+        setPrevTemaData(res);
+      } catch (err) {
+        setPrevTemaError(err instanceof ApiError ? err.message : "获取上期特码落平特统计失败");
+      } finally {
+        setPrevTemaLoading(false);
+      }
+    },
+    [lottery, limit, appliedPeriodRange],
+  );
+
   useEffect(() => {
     void loadData();
   }, [loadData]);
@@ -113,8 +143,10 @@ export function PingteRankingPage() {
   useEffect(() => {
     if (activeTab === "zodiac_history") {
       void loadHistoryData();
+    } else if (activeTab === "prev_tema") {
+      void loadPrevTemaData();
     }
-  }, [activeTab, loadHistoryData]);
+  }, [activeTab, loadHistoryData, loadPrevTemaData]);
 
   const openZodiacHistory = (xiaoName: string) => {
     setSelectedXiao(xiaoName);
@@ -172,24 +204,57 @@ export function PingteRankingPage() {
 
   // Active zodiac detail for history tab (fallback to rankingData if historyData is still loading)
   const activeZodiacDetail: PingteZodiacRank | null = useMemo(() => {
-    if (historyData?.selected_zodiac && historyData.selected_zodiac.name === selectedXiao) {
-      return historyData.selected_zodiac;
+    const validHistory =
+      historyData && historyData.lottery === lottery ? historyData : null;
+    const validRanking =
+      rankingData && rankingData.lottery === lottery ? rankingData : null;
+    if (validHistory?.selected_zodiac && validHistory.selected_zodiac.name === selectedXiao) {
+      return validHistory.selected_zodiac;
     }
-    const fromHistoryList = historyData?.zodiacs?.find((z) => z.name === selectedXiao);
+    const fromHistoryList = validHistory?.zodiacs?.find((z) => z.name === selectedXiao);
     if (fromHistoryList) return fromHistoryList;
-    const fromRanking = rankingData?.zodiac_ranking?.find((z) => z.name === selectedXiao);
+    const fromRanking = validRanking?.zodiac_ranking?.find((z) => z.name === selectedXiao);
     return fromRanking ?? null;
-  }, [historyData, rankingData, selectedXiao]);
+  }, [historyData, rankingData, selectedXiao, lottery]);
+
+  // Active prev_tema detail (fallback to rankingData.prev_tema_pingte or historyData.prev_tema_pingte)
+  const activePrevTemaDetail: PingtePrevTemaStats | null = useMemo(() => {
+    const validPrevTema =
+      prevTemaData && prevTemaData.lottery === lottery ? prevTemaData : null;
+    const validRanking =
+      rankingData && rankingData.lottery === lottery ? rankingData : null;
+    const validHistory =
+      historyData && historyData.lottery === lottery ? historyData : null;
+    const hasCustomRange = Boolean(appliedPeriodRange.from || appliedPeriodRange.to);
+
+    if (activeTab === "prev_tema" || hasCustomRange) {
+      if (validPrevTema?.prev_tema_pingte) return validPrevTema.prev_tema_pingte;
+      if (validPrevTema && typeof validPrevTema.periods_count === "number") return validPrevTema;
+    }
+    if (!hasCustomRange && validRanking?.prev_tema_pingte) {
+      return validRanking.prev_tema_pingte;
+    }
+    if (validPrevTema?.prev_tema_pingte) return validPrevTema.prev_tema_pingte;
+    if (validPrevTema && typeof validPrevTema.periods_count === "number") return validPrevTema;
+    if (!hasCustomRange && validHistory?.prev_tema_pingte) {
+      return validHistory.prev_tema_pingte;
+    }
+    return null;
+  }, [prevTemaData, rankingData, historyData, lottery, activeTab, appliedPeriodRange]);
 
   const allZodiacsForHistory: PingteZodiacRank[] = useMemo(() => {
-    if (historyData?.zodiacs?.length) return historyData.zodiacs;
-    if (rankingData?.zodiac_ranking?.length) {
-      return [...rankingData.zodiac_ranking].sort(
+    const validHistory =
+      historyData && historyData.lottery === lottery ? historyData : null;
+    const validRanking =
+      rankingData && rankingData.lottery === lottery ? rankingData : null;
+    if (validHistory?.zodiacs?.length) return validHistory.zodiacs;
+    if (validRanking?.zodiac_ranking?.length) {
+      return [...validRanking.zodiac_ranking].sort(
         (a, b) => ALL_XIAO.indexOf(a.name as any) - ALL_XIAO.indexOf(b.name as any),
       );
     }
     return [];
-  }, [historyData, rankingData]);
+  }, [historyData, rankingData, lottery]);
 
   const filteredSegments: PingteSegment[] = useMemo(() => {
     const raw = activeZodiacDetail?.segments ?? [];
@@ -249,9 +314,73 @@ export function PingteRankingPage() {
     });
   }, [activeZodiacDetail, periodRecordFilter, keyword]);
 
+  const filteredPrevTemaSegments: PingteSegment[] = useMemo(() => {
+    const raw = activePrevTemaDetail?.segments ?? [];
+    const kw = keyword.trim().toLowerCase();
+    const list = raw.filter((seg) => {
+      if (segExactLength) {
+        if (seg.type !== segExactLength.type || seg.length !== segExactLength.length) {
+          return false;
+        }
+      } else {
+        if (segTypeFilter !== "all" && seg.type !== segTypeFilter) return false;
+        if (seg.length < segMinLength) return false;
+      }
+      if (kw) {
+        const matchPeriod =
+          seg.start_period.includes(kw) ||
+          seg.end_period.includes(kw) ||
+          (kw.length === seg.start_period.length &&
+            kw >= seg.start_period &&
+            kw <= seg.end_period) ||
+          seg.text.toLowerCase().includes(kw) ||
+          seg.periods?.some(
+            (p) =>
+              p.period.includes(kw) ||
+              (p.prev_period && p.prev_period.includes(kw)) ||
+              (p.prev_tema && p.prev_tema.includes(kw)) ||
+              (p.prev_tema_xiao && p.prev_tema_xiao.includes(kw)) ||
+              p.matched_balls?.some((b) => b.num.includes(kw) || b.pos.includes(kw)),
+          );
+        if (!matchPeriod) return false;
+      }
+      return true;
+    });
+
+    if (segSortOrder === "oldest") {
+      return [...list].sort((a, b) => a.segment_id - b.segment_id);
+    }
+    if (segSortOrder === "length_desc") {
+      return [...list].sort((a, b) => b.length - a.length || b.segment_id - a.segment_id);
+    }
+    return [...list].sort((a, b) => b.segment_id - a.segment_id);
+  }, [activePrevTemaDetail, segTypeFilter, segMinLength, segExactLength, segSortOrder, keyword]);
+
+  const filteredPrevTemaPeriods = useMemo(() => {
+    const raw = activePrevTemaDetail?.period_history ?? [];
+    const kw = keyword.trim().toLowerCase();
+    return raw.filter((rec) => {
+      if (periodRecordFilter === "hit" && !rec.hit) return false;
+      if (periodRecordFilter === "miss" && rec.hit) return false;
+      if (periodRecordFilter === "multi" && rec.ball_count < 2) return false;
+      if (kw) {
+        const match =
+          rec.period.includes(kw) ||
+          (rec.prev_period && rec.prev_period.includes(kw)) ||
+          (rec.prev_tema && rec.prev_tema.includes(kw)) ||
+          (rec.prev_tema_xiao && rec.prev_tema_xiao.includes(kw)) ||
+          rec.date.includes(kw) ||
+          rec.segment_text.toLowerCase().includes(kw) ||
+          rec.matched_balls.some((b) => b.num.includes(kw) || b.pos.includes(kw));
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [activePrevTemaDetail, periodRecordFilter, keyword]);
+
   return (
     <PageWorkspace
-      summary="基于官方落球 7 码（6 正码 + 1 特码）平特全域统计；支持查询每个生肖从哪一期到哪一期连开多少期、从哪一期到哪一期没出多少期。"
+      summary="基于官方落球 7 码（6 正码 + 1 特码）平特全域统计；支持上期特码生肖落当期平特概率分析，以及各生肖连续出现/连续缺失区间查询。"
       actions={
         <Button
           type="button"
@@ -260,18 +389,23 @@ export function PingteRankingPage() {
             void loadData();
             if (activeTab === "zodiac_history") {
               void loadHistoryData(true);
+            } else if (activeTab === "prev_tema") {
+              void loadPrevTemaData(true);
             }
           }}
-          disabled={loading || historyLoading}
+          disabled={loading || historyLoading || prevTemaLoading}
         >
-          <RefreshIcon size={14} className={loading || historyLoading ? "animate-spin" : ""} />
+          <RefreshIcon
+            size={14}
+            className={loading || historyLoading || prevTemaLoading ? "animate-spin" : ""}
+          />
           <span>刷新榜单与历史</span>
         </Button>
       }
     >
       {/* Overview Stat Ribbon */}
       {rankingData && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="bento-card rounded-2xl p-4">
             <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               统计彩种 / 样本期数
@@ -291,6 +425,30 @@ export function PingteRankingPage() {
             <div className="text-base font-bold text-indigo-600 dark:text-indigo-400 mt-1 font-mono tabular-nums">
               {rankingData.earliest_period} ~ {rankingData.latest_period}
             </div>
+          </div>
+
+          <div
+            onClick={() => {
+              setSegExactLength(null);
+              setActiveTab("prev_tema");
+            }}
+            className="bento-card rounded-2xl p-4 cursor-pointer border-indigo-200/70 dark:border-indigo-500/30 hover:border-indigo-500 transition-colors"
+            title="点击查看上期特码生肖落当期平特完整统计与连续出现/连续缺失区间"
+          >
+            <div className="flex items-center justify-between text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
+              <span>🎯 上期特码落平特概率</span>
+              <span className="text-[10px] underline">详情→</span>
+            </div>
+            <div className="text-base font-bold text-slate-900 dark:text-white mt-1 font-mono tabular-nums">
+              {activePrevTemaDetail
+                ? `${activePrevTemaDetail.probability ?? activePrevTemaDetail.frequency}% (出${activePrevTemaDetail.periods_count}/缺${activePrevTemaDetail.miss_periods_count ?? 0})`
+                : "—"}
+            </div>
+            {activePrevTemaDetail?.current_range && (
+              <div className="text-[10px] font-mono text-rose-600 dark:text-rose-400 mt-0.5 truncate">
+                当前: {activePrevTemaDetail.current_range.text}
+              </div>
+            )}
           </div>
 
           <div className="bento-card rounded-2xl p-4">
@@ -339,7 +497,11 @@ export function PingteRankingPage() {
             <SegmentedTabs
               tabs={LOTTERIES.map((l) => ({ id: l.value, label: l.label }))}
               activeTab={lottery}
-              onChange={(v) => setLottery(v as Lottery)}
+              onChange={(v) => {
+                setLottery(v as Lottery);
+                setPrevTemaData(null);
+                setHistoryData(null);
+              }}
             />
 
             {/* Sample Periods Selector */}
@@ -356,11 +518,13 @@ export function PingteRankingPage() {
                 setAppliedPeriodRange({});
                 setPeriodFromInput("");
                 setPeriodToInput("");
+                setPrevTemaData(null);
+                setHistoryData(null);
               }}
             />
 
             {/* Sort Order Selector (shown on ranking tabs) */}
-            {activeTab !== "zodiac_history" && (
+            {activeTab !== "zodiac_history" && activeTab !== "prev_tema" && (
               <SegmentedTabs
                 tabs={[
                   { id: "count_desc", label: "🔥 热号榜" },
@@ -395,6 +559,7 @@ export function PingteRankingPage() {
           <SegmentedTabs
             tabs={[
               { id: "zodiac", label: "平特生肖榜 (12肖)" },
+              { id: "prev_tema", label: "🎯 上期特码落平特 (前特肖概率/连续出现/缺失)" },
               { id: "zodiac_history", label: "📜 生肖开奖历史 (连开/没出区间)" },
               { id: "tail", label: "平特尾数榜 (0-9尾)" },
               { id: "number", label: "平特号码榜 (01-49)" },
@@ -402,7 +567,10 @@ export function PingteRankingPage() {
               { id: "wuxing", label: "平特五行榜" },
             ]}
             activeTab={activeTab}
-            onChange={(v) => setActiveTab(v as RankingTab)}
+            onChange={(v) => {
+              setSegExactLength(null);
+              setActiveTab(v as RankingTab);
+            }}
           />
         </div>
       </div>
@@ -611,6 +779,674 @@ export function PingteRankingPage() {
                 })}
               </tbody>
             </TableContainer>
+          )}
+
+          {/* TAB 1.2: 上期特码生肖落当期平特 (概率 / xxx期连续出现 / xxx期连续缺失 / 逐期比对) */}
+          {activeTab === "prev_tema" && (
+            <div className="space-y-4">
+              {/* Rule Explanation & Period Range Filter Bar */}
+              <div className="bento-card rounded-2xl p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-bold text-slate-900 dark:text-white">
+                      🎯 上期特码生肖在当期平特 7 码中出现统计
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      规则说明：从第 2 期开始逐期比对（如第 2 期 7 个号码是否包含第 1 期的特码生肖），统计当年/样本出现概率、连续出现期数区间、连续缺失期数区间。
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      value={periodFromInput}
+                      onChange={(e) => setPeriodFromInput(e.target.value.trim())}
+                      placeholder="起始期号 如 2026001"
+                      className="h-8 px-2.5 text-xs rounded-xl bento-input w-36 font-mono"
+                    />
+                    <span className="text-xs text-slate-400">~</span>
+                    <input
+                      type="text"
+                      value={periodToInput}
+                      onChange={(e) => setPeriodToInput(e.target.value.trim())}
+                      placeholder="结束期号 如 2026285"
+                      className="h-8 px-2.5 text-xs rounded-xl bento-input w-36 font-mono"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setAppliedPeriodRange({
+                          from: periodFromInput || undefined,
+                          to: periodToInput || undefined,
+                        });
+                      }}
+                    >
+                      按区间查询
+                    </Button>
+                    {(appliedPeriodRange.from || appliedPeriodRange.to) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setPeriodFromInput("");
+                          setPeriodToInput("");
+                          setAppliedPeriodRange({});
+                        }}
+                      >
+                        清除区间
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Next period reference banner */}
+                {activePrevTemaDetail?.latest_tema_ref && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-500/10 border border-indigo-200/70 dark:border-indigo-500/25">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="px-2 py-0.5 rounded-md font-bold bg-indigo-600 text-white">
+                        下期平特参考
+                      </span>
+                      <span className="font-medium text-slate-700 dark:text-slate-200 font-mono">
+                        最新第 <b>{activePrevTemaDetail.latest_tema_ref.period}</b> 期（
+                        {activePrevTemaDetail.latest_tema_ref.date}）特码为{" "}
+                        <b className="text-rose-600 dark:text-rose-400">
+                          {activePrevTemaDetail.latest_tema_ref.tema}
+                        </b>{" "}
+                        （
+                        <b className="text-indigo-600 dark:text-indigo-300">
+                          {activePrevTemaDetail.latest_tema_ref.tema_xiao}肖
+                        </b>{" "}
+                        · {activePrevTemaDetail.latest_tema_ref.tema_bose}波 ·{" "}
+                        {activePrevTemaDetail.latest_tema_ref.tema_wuxing}行）
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
+                      <span className="text-slate-500 dark:text-slate-400">
+                        下期关注【{activePrevTemaDetail.latest_tema_ref.tema_xiao}肖】号码:
+                      </span>
+                      {activePrevTemaDetail.latest_tema_ref.numbers.map((n) => (
+                        <span
+                          key={n}
+                          className="px-2 py-0.5 rounded-md font-bold bg-white dark:bg-white/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30"
+                        >
+                          {n}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {prevTemaError && (
+                <Alert variant="error">
+                  <AlertDescription>{prevTemaError}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* 4-Card Summary Ribbon */}
+              {activePrevTemaDetail && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="bento-card rounded-2xl p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                        {limit === 0 && !appliedPeriodRange.from && !appliedPeriodRange.to
+                          ? "当年出现概率"
+                          : "样本出现概率"}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md text-xs font-mono font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                        出现概率 {activePrevTemaDetail.probability ?? activePrevTemaDetail.frequency}%
+                      </span>
+                    </div>
+                    <div className="mt-2 text-lg font-bold text-slate-900 dark:text-white font-mono">
+                      出现 {activePrevTemaDetail.periods_count} 期 / 缺失{" "}
+                      {activePrevTemaDetail.miss_periods_count ?? 0} 期
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      有效比对 {activePrevTemaDetail.evaluated_periods ?? activePrevTemaDetail.sample_periods} 期（
+                      {activePrevTemaDetail.earliest_period}~{activePrevTemaDetail.latest_period}，含首期基准{" "}
+                      {activePrevTemaDetail.earliest_draw_period ?? activePrevTemaDetail.earliest_period} 共{" "}
+                      {activePrevTemaDetail.total_draws ?? (activePrevTemaDetail.sample_periods ?? 0) + 1} 期）
+                    </div>
+                    <div className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                      共命中 {activePrevTemaDetail.count} 球（正码 {activePrevTemaDetail.ping_count ?? 0}{" "}
+                      · 特码连肖 {activePrevTemaDetail.tema_count ?? 0} · 特码原号{" "}
+                      {activePrevTemaDetail.exact_tema_num_count ?? 0} 期）
+                    </div>
+                  </div>
+
+                  <div className="bento-card rounded-2xl p-4">
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      当前最新状态区间
+                    </div>
+                    <div
+                      className={`mt-2 text-base font-bold font-mono ${
+                        activePrevTemaDetail.current_consecutive > 0
+                          ? "text-rose-600 dark:text-rose-400"
+                          : "text-amber-600 dark:text-amber-400"
+                      }`}
+                    >
+                      {activePrevTemaDetail.current_range?.text ||
+                        (activePrevTemaDetail.current_consecutive > 0
+                          ? `连续出现 ${activePrevTemaDetail.current_consecutive} 期`
+                          : `连续缺失 ${activePrevTemaDetail.current_omission} 期`)}
+                    </div>
+                    {activePrevTemaDetail.current_range && (
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                        日期: {activePrevTemaDetail.current_range.start_date} ~{" "}
+                        {activePrevTemaDetail.current_range.end_date}
+                      </div>
+                    )}
+                    <div className="mt-1 text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                      缺失概率: {activePrevTemaDetail.miss_probability ?? (100 - (activePrevTemaDetail.probability ?? activePrevTemaDetail.frequency)).toFixed(2)}%
+                    </div>
+                  </div>
+
+                  <div className="bento-card rounded-2xl p-4">
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      历史最长连续出现区间
+                    </div>
+                    <div className="mt-2 text-base font-bold text-rose-600 dark:text-rose-400 font-mono">
+                      {activePrevTemaDetail.max_consecutive_range?.text ||
+                        `连续出现 ${activePrevTemaDetail.max_consecutive} 期`}
+                    </div>
+                    {activePrevTemaDetail.max_consecutive_range && (
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                        {activePrevTemaDetail.max_consecutive_range.start_date} ~{" "}
+                        {activePrevTemaDetail.max_consecutive_range.end_date} · 共出{" "}
+                        {activePrevTemaDetail.max_consecutive_range.total_balls} 码
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bento-card rounded-2xl p-4">
+                    <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                      历史最长连续缺失区间
+                    </div>
+                    <div className="mt-2 text-base font-bold text-slate-800 dark:text-slate-200 font-mono">
+                      {activePrevTemaDetail.max_omission_range?.text ||
+                        `连续缺失 ${activePrevTemaDetail.max_omission} 期`}
+                    </div>
+                    {activePrevTemaDetail.max_omission_range && (
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                        {activePrevTemaDetail.max_omission_range.start_date} ~{" "}
+                        {activePrevTemaDetail.max_omission_range.end_date}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Streak & Omission Distributions */}
+              {activePrevTemaDetail && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {/* 连续出现分布 */}
+                  <div className="bento-card rounded-2xl p-4 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-rose-600 dark:text-rose-400">
+                        🔥 上期特码落平特 · 连续出现次数分布（共{" "}
+                        {activePrevTemaDetail.hit_segments_count ?? 0} 段连续出现）
+                      </span>
+                      {segExactLength?.type === "hit" && (
+                        <button
+                          type="button"
+                          onClick={() => setSegExactLength(null)}
+                          className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                        >
+                          取消筛选
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(activePrevTemaDetail.streak_distribution ?? []).map((d) => {
+                        const active =
+                          segExactLength?.type === "hit" && segExactLength.length === d.length;
+                        return (
+                          <button
+                            key={`prev-hit-${d.length}`}
+                            type="button"
+                            onClick={() => {
+                              setPrevTemaViewMode("segments");
+                              setSegExactLength(
+                                active ? null : { type: "hit", length: d.length },
+                              );
+                            }}
+                            className={`px-2.5 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer border ${
+                              active
+                                ? "bg-rose-600 text-white border-rose-600 font-bold"
+                                : "bg-rose-50/80 text-rose-700 border-rose-200/70 dark:bg-rose-500/12 dark:text-rose-300 dark:border-rose-500/25 hover:bg-rose-100"
+                            }`}
+                          >
+                            {d.label}: <b>{d.count}</b>次
+                            {d.ranges[0] && (
+                              <span className="ml-1 opacity-80 text-[10px]">
+                                ({d.ranges[0].start_period.slice(-3)}~
+                                {d.ranges[0].end_period.slice(-3)})
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 连续缺失分布 */}
+                  <div className="bento-card rounded-2xl p-4 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        ❄️ 上期特码落平特 · 连续缺失次数分布（共{" "}
+                        {activePrevTemaDetail.miss_segments_count ?? 0} 段连续缺失）
+                      </span>
+                      {segExactLength?.type === "miss" && (
+                        <button
+                          type="button"
+                          onClick={() => setSegExactLength(null)}
+                          className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                        >
+                          取消筛选
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(activePrevTemaDetail.omission_distribution ?? []).map((d) => {
+                        const active =
+                          segExactLength?.type === "miss" && segExactLength.length === d.length;
+                        return (
+                          <button
+                            key={`prev-miss-${d.length}`}
+                            type="button"
+                            onClick={() => {
+                              setPrevTemaViewMode("segments");
+                              setSegExactLength(
+                                active ? null : { type: "miss", length: d.length },
+                              );
+                            }}
+                            className={`px-2.5 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer border ${
+                              active
+                                ? "bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 font-bold"
+                                : "bg-slate-100 text-slate-700 border-slate-200/80 dark:bg-white/[0.06] dark:text-slate-300 dark:border-white/10 hover:bg-slate-200/70"
+                            }`}
+                          >
+                            {d.label}: <b>{d.count}</b>次
+                            {d.ranges[0] && (
+                              <span className="ml-1 opacity-75 text-[10px]">
+                                ({d.ranges[0].start_period.slice(-3)}~
+                                {d.ranges[0].end_period.slice(-3)})
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* View Mode Switcher & Sub-filters */}
+              <div className="bento-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+                <SegmentedTabs
+                  tabs={[
+                    {
+                      id: "segments",
+                      label: `📊 连续出现 / 连续缺失区间 (${filteredPrevTemaSegments.length})`,
+                    },
+                    {
+                      id: "periods",
+                      label: `📅 逐期比对明细 (${filteredPrevTemaPeriods.length})`,
+                    },
+                  ]}
+                  activeTab={prevTemaViewMode}
+                  onChange={(v) => setPrevTemaViewMode(v as PrevTemaViewMode)}
+                />
+
+                {prevTemaViewMode === "segments" && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SegmentedTabs
+                      tabs={[
+                        { id: "all", label: "全部波段" },
+                        { id: "hit", label: "🔥 只看连续出现" },
+                        { id: "miss", label: "❄️ 只看连续缺失" },
+                      ]}
+                      activeTab={segExactLength ? segExactLength.type : segTypeFilter}
+                      onChange={(v) => {
+                        setSegExactLength(null);
+                        setSegTypeFilter(v as SegmentTypeFilter);
+                      }}
+                    />
+                    <SegmentedTabs
+                      tabs={[
+                        { id: "1", label: "≥1期" },
+                        { id: "2", label: "≥2期" },
+                        { id: "3", label: "≥3期" },
+                        { id: "4", label: "≥4期" },
+                        { id: "5", label: "≥5期" },
+                      ]}
+                      activeTab={segExactLength ? "" : String(segMinLength)}
+                      onChange={(v) => {
+                        setSegExactLength(null);
+                        setSegMinLength(Number(v));
+                      }}
+                    />
+                    <SegmentedTabs
+                      tabs={[
+                        { id: "newest", label: "最新优先" },
+                        { id: "oldest", label: "从旧到新" },
+                        { id: "length_desc", label: "期数最多" },
+                      ]}
+                      activeTab={segSortOrder}
+                      onChange={(v) => setSegSortOrder(v as SegmentSortOrder)}
+                    />
+                  </div>
+                )}
+
+                {prevTemaViewMode === "periods" && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SegmentedTabs
+                      tabs={[
+                        { id: "all", label: "全部期数" },
+                        { id: "hit", label: "✅ 仅看出现期" },
+                        { id: "miss", label: "❄️ 仅看缺失期" },
+                        { id: "multi", label: "🎯 同肖多码(≥2码)" },
+                      ]}
+                      activeTab={periodRecordFilter}
+                      onChange={(v) => setPeriodRecordFilter(v as PeriodRecordFilter)}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* VIEW 1: 连续出现 / 连续缺失区间列表 */}
+              {prevTemaViewMode === "segments" && (
+                <TableContainer>
+                  <thead>
+                    <tr>
+                      <th className={`${tableThClass} w-16 text-center`}>波段</th>
+                      <th className={`${tableThClass} w-32 text-center`}>状态类型</th>
+                      <th className={`${tableThClass} w-48`}>起止期号 (从哪期到哪期)</th>
+                      <th className={`${tableThClass} w-36 text-center`}>连续出现 / 缺失期数</th>
+                      <th className={`${tableThClass} w-60`}>完整区间描述</th>
+                      <th className={`${tableThClass} min-w-[320px]`}>区间内各期比对详情 (上期特肖 vs 当期平特)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredPrevTemaSegments.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="py-12 text-center text-xs text-slate-400 dark:text-slate-500"
+                        >
+                          暂无符合筛选条件的连续出现/连续缺失区间记录
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredPrevTemaSegments.map((seg) => {
+                        const isHit = seg.type === "hit";
+                        return (
+                          <tr key={seg.segment_id} className={tableRowClass}>
+                            <td className={`${tableTdClass} text-center font-mono text-xs text-slate-400`}>
+                              #{seg.segment_id}
+                            </td>
+                            <td className={`${tableTdClass} text-center`}>
+                              <div className="inline-flex items-center gap-1">
+                                <span
+                                  className={`px-2 py-0.5 rounded-md text-xs font-bold ${
+                                    isHit
+                                      ? "bg-rose-50 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300"
+                                      : "bg-slate-100 text-slate-600 dark:bg-white/[0.07] dark:text-slate-300"
+                                  }`}
+                                >
+                                  {isHit ? "🔥 连续出现" : "❄️ 连续缺失"}
+                                </span>
+                                {seg.is_current && (
+                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                    当前
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className={tableTdClass}>
+                              <div className="font-mono font-bold text-slate-900 dark:text-white text-xs">
+                                {seg.start_period} ~ {seg.end_period}
+                              </div>
+                              <div className="font-mono text-[10px] text-slate-400 mt-0.5">
+                                {seg.start_date} ~ {seg.end_date}
+                              </div>
+                            </td>
+                            <td className={`${tableTdClass} text-center font-mono`}>
+                              <span
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                  isHit
+                                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-300"
+                                    : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                                }`}
+                              >
+                                {isHit ? `连续出现 ${seg.length} 期` : `连续缺失 ${seg.length} 期`}
+                              </span>
+                            </td>
+                            <td className={`${tableTdClass} font-mono text-xs font-semibold`}>
+                              <span
+                                className={
+                                  isHit
+                                    ? "text-rose-600 dark:text-rose-400"
+                                    : "text-slate-600 dark:text-slate-300"
+                                }
+                              >
+                                {seg.text}
+                              </span>
+                              {isHit && (
+                                <span className="ml-1.5 text-[11px] font-normal text-slate-400">
+                                  (共中{seg.total_balls}球
+                                  {seg.tema_hits > 0 ? ` · 含特${seg.tema_hits}次` : ""})
+                                </span>
+                              )}
+                            </td>
+                            <td className={tableTdClass}>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(seg.periods ?? []).map((p) => (
+                                  <span
+                                    key={p.period}
+                                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono ${
+                                      isHit
+                                        ? "bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200"
+                                        : "bg-slate-50 dark:bg-white/[0.03] text-slate-500 dark:text-slate-400"
+                                    }`}
+                                  >
+                                    <b className="text-indigo-600 dark:text-indigo-400">
+                                      {p.period.slice(-3)}期
+                                    </b>
+                                    {p.prev_tema_xiao && (
+                                      <span className="text-slate-500 dark:text-slate-400">
+                                        [上期特{p.prev_tema}
+                                        {p.prev_tema_xiao}]
+                                      </span>
+                                    )}
+                                    {isHit ? (
+                                      <>
+                                        <span>:</span>
+                                        {p.matched_balls.map((b, bi) => (
+                                          <span
+                                            key={bi}
+                                            className={
+                                              b.is_tema
+                                                ? "font-bold text-amber-600 dark:text-amber-400"
+                                                : "font-semibold text-emerald-600 dark:text-emerald-400"
+                                            }
+                                          >
+                                            {b.num}({b.pos})
+                                          </span>
+                                        ))}
+                                      </>
+                                    ) : (
+                                      <span className="text-slate-400">未出</span>
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </TableContainer>
+              )}
+
+              {/* VIEW 2: 逐期比对明细 */}
+              {prevTemaViewMode === "periods" && (
+                <>
+                  {prevTemaLoading && !activePrevTemaDetail?.period_history?.length ? (
+                    <div className="bento-card rounded-2xl flex items-center justify-center p-12">
+                      <Spinner className="w-6 h-6 text-indigo-600" />
+                    </div>
+                  ) : (
+                    <TableContainer>
+                      <thead>
+                        <tr>
+                          <th className={`${tableThClass} w-32`}>当期期号 / 日期</th>
+                          <th className={`${tableThClass} w-48`}>上一期特码 & 生肖</th>
+                          <th className={`${tableThClass} w-28 text-center`}>当期是否出现</th>
+                          <th className={`${tableThClass} w-56`}>所属连续出现 / 缺失区间</th>
+                          <th className={`${tableThClass} w-44`}>当期命中上期特肖号码</th>
+                          <th className={`${tableThClass} min-w-[300px]`}>
+                            当期平特 7 码（高亮上期特码生肖）
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredPrevTemaPeriods.length === 0 ? (
+                          <tr>
+                            <td
+                              colSpan={6}
+                              className="py-12 text-center text-xs text-slate-400 dark:text-slate-500"
+                            >
+                              暂无匹配的逐期比对记录
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredPrevTemaPeriods.map((rec) => {
+                            const prevBoseColor =
+                              BOSE_COLORS[rec.prev_tema_bose || ""] || { bg: "#64748b" };
+                            return (
+                              <tr key={rec.period} className={tableRowClass}>
+                                <td className={tableTdClass}>
+                                  <div className="font-mono font-bold text-slate-900 dark:text-white text-xs">
+                                    {rec.period}
+                                  </div>
+                                  <div className="font-mono text-[10px] text-slate-400">
+                                    {rec.date}
+                                  </div>
+                                </td>
+                                <td className={tableTdClass}>
+                                  <div className="flex items-center gap-2 font-mono">
+                                    <span
+                                      className="w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center shrink-0"
+                                      style={{ backgroundColor: prevBoseColor.bg }}
+                                    >
+                                      {rec.prev_tema}
+                                    </span>
+                                    <div>
+                                      <div className="text-xs font-bold text-slate-900 dark:text-white">
+                                        {rec.prev_tema_xiao}肖
+                                        <span className="ml-1 text-[10px] font-normal text-slate-400">
+                                          ({rec.prev_tema_bose}·{rec.prev_tema_wuxing})
+                                        </span>
+                                      </div>
+                                      <div className="text-[10px] text-slate-400">
+                                        上期: {rec.prev_period}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className={`${tableTdClass} text-center font-mono`}>
+                                  {rec.hit ? (
+                                    <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                                      出现 ({rec.ball_count}码)
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-400">
+                                      缺失
+                                    </span>
+                                  )}
+                                </td>
+                                <td className={`${tableTdClass} font-mono text-xs`}>
+                                  <div
+                                    className={`font-semibold ${
+                                      rec.hit
+                                        ? "text-rose-600 dark:text-rose-400"
+                                        : "text-slate-600 dark:text-slate-400"
+                                    }`}
+                                  >
+                                    {rec.segment_text}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400">
+                                    {rec.hit
+                                      ? `该段连续出现第 ${rec.run_step} / ${rec.segment_length} 期`
+                                      : `该段连续缺失第 ${rec.run_step} / ${rec.segment_length} 期`}
+                                  </div>
+                                </td>
+                                <td className={tableTdClass}>
+                                  {rec.matched_balls.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1 font-mono">
+                                      {rec.matched_balls.map((mb, mi) => {
+                                        const bColor = BOSE_COLORS[mb.bose] || { bg: "#64748b" };
+                                        return (
+                                          <span
+                                            key={mi}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-[11px] font-bold"
+                                            style={{ backgroundColor: bColor.bg }}
+                                          >
+                                            <span>{mb.num}</span>
+                                            <span className="opacity-90 text-[10px]">
+                                              ({mb.pos})
+                                            </span>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-slate-400">—</span>
+                                  )}
+                                </td>
+                                <td className={tableTdClass}>
+                                  <div className="flex flex-wrap items-center gap-1.5 font-mono">
+                                    {rec.all_balls.map((ab, ai) => {
+                                      const bColor = BOSE_COLORS[ab.bose] || { bg: "#64748b" };
+                                      return (
+                                        <span
+                                          key={ai}
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg text-[11px] border transition-all ${
+                                            ab.is_match
+                                              ? "ring-2 ring-rose-500 bg-rose-50 dark:bg-rose-500/20 border-rose-300 dark:border-rose-400 font-bold text-slate-900 dark:text-white"
+                                              : "bg-slate-50 dark:bg-white/[0.04] border-slate-200/60 dark:border-white/10 text-slate-500 dark:text-slate-400 opacity-75"
+                                          }`}
+                                        >
+                                          <span
+                                            className="w-4 h-4 rounded-full text-[10px] text-white flex items-center justify-center font-bold"
+                                            style={{ backgroundColor: bColor.bg }}
+                                          >
+                                            {ab.num}
+                                          </span>
+                                          <span>{ab.xiao}</span>
+                                          {ab.is_tema && (
+                                            <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">
+                                              特
+                                            </span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </TableContainer>
+                  )}
+                </>
+              )}
+            </div>
           )}
 
           {/* TAB 1.5: 生肖平特开奖历史 (多少到多少连开多少 / 多少到多少没出) */}

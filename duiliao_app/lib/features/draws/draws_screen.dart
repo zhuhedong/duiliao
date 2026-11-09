@@ -360,6 +360,70 @@ class _DrawsScreenState extends ConsumerState<DrawsScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const PingteRankingScreen(
+                              initialTab: RankingTab.prevTema,
+                            ),
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        child: GlassSubtleBox(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 9,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: DuiliaoColors.primary.withValues(alpha: 0.22),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.track_changes_rounded,
+                                  size: 15,
+                                  color: DuiliaoColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '🎯 上期特码生肖落当期平特统计',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      '查询当年出现概率、xxx~xxx期连续出现 / 连续缺失明细',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        color: Colors.white60,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 16,
+                                color: Colors.white54,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 12),
 
 

@@ -205,7 +205,15 @@ abstract final class CacheKeys {
     String? periodTo,
   ) =>
       'pingte_zodiac_history:$lottery:${xiao ?? 'all'}:$limit:${periodFrom ?? ''}:${periodTo ?? ''}';
+  static String pingtePrevTemaHistory(
+    String lottery,
+    int limit,
+    String? periodFrom,
+    String? periodTo,
+  ) =>
+      'pingte_prev_tema:$lottery:$limit:${periodFrom ?? ''}:${periodTo ?? ''}';
   static const String eventCursor = 'event_cursor';
   static const String messages = 'messages';
 }
+
 
